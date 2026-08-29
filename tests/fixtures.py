@@ -93,6 +93,16 @@ def populate_league(
     return draft
 
 
+def add_players(storage, players: dict[str, tuple[str, str, int]]) -> None:
+    """players: pid -> (full name, position, search_rank)."""
+    storage.save_players({
+        pid: {"full_name": name, "first_name": name.split()[0],
+              "last_name": name.split()[-1], "position": pos,
+              "team": "AAA", "status": "Active", "search_rank": rank}
+        for pid, (name, pos, rank) in players.items()
+    })
+
+
 def default_pairs(teams: int) -> list[tuple[int, int]]:
     return [(i, i + 1) for i in range(1, teams + 1, 2)]
 

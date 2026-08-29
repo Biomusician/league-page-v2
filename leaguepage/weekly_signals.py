@@ -89,12 +89,12 @@ def tracks_and_fades(storage: Storage, league: League, week: int,
                      analysis: dict) -> tuple[list[dict], list[dict]]:
     """Trend nominations over the last TREND_WINDOW played weeks. Empty when
     fewer than 2 weeks have been played — a one-week trend is a result."""
-    weeks_played = analysis.get("weeks_played", 0)
+    weeks_played = (analysis or {}).get("weeks_played", 0)
     if weeks_played < 2:
         return [], []
     limitation = (f"Basis: last {min(TREND_WINDOW, weeks_played)} of {weeks_played} "
                   "played weeks; small samples, stated as such.")
-    tracks, fades = [], []
+    tracks, fades = [], []  # entries carry a _priority for ranking before the cap
     for slug, t in analysis["teams"].items():
         ap = t.get("all_play") or {}
         rec = t["record"]
@@ -121,21 +121,40 @@ def tracks_and_fades(storage: Storage, league: League, week: int,
             hooks_up.append(f"{streak} streak")
         if streak and streak.startswith("L") and int(streak[1:]) >= 3:
             hooks_down.append(f"{streak} streak")
+        def _priority(hooks: list[str]) -> int:
+            # the record-vs-all-play divergence is the strongest signal;
+            # streaks alone are the weakest
+            score = 0
+            for h in hooks:
+                if "all-play" in h:
+                    score += 2
+                elif "scoring" in h:
+                    score += 1
+                else:
+                    score += 1
+            return score + (1 if any("all-play" in h for h in hooks) else 0)
+
         if hooks_up and t["standing"] > 2:  # don't just duplicate the top of the table
-            tracks.append(_cand(
+            c = _cand(
                 f"track:{slug}", "track", f"Track of Interest: {slug}",
                 teams=[slug], facts=["; ".join(hooks_up) + ".", limitation],
                 ev=ev, why="Underlying trend runs ahead of surface results.",
                 sections=["tracks"], confidence="trend-window",
-            ))
+            )
+            c["_priority"] = _priority(hooks_up)
+            tracks.append(c)
         if hooks_down:
-            fades.append(_cand(
+            c = _cand(
                 f"fade:{slug}", "fade", f"Fade: {slug}",
                 teams=[slug], facts=["; ".join(hooks_down) + ".", limitation],
                 ev=ev, why="Underlying trend runs behind surface results. The system "
                            "states the evidence; only editorial prose calls it a fade.",
                 sections=["fades"], confidence="trend-window",
-            ))
+            )
+            c["_priority"] = _priority(hooks_down)
+            fades.append(c)
+    tracks.sort(key=lambda c: -c.pop("_priority"))
+    fades.sort(key=lambda c: -c.pop("_priority"))
     both = {c["teams"][0] for c in tracks} & {c["teams"][0] for c in fades}
     for c in tracks + fades:
         if c["teams"][0] in both:
@@ -194,8 +213,8 @@ def black_box_events(storage: Storage, league: League, week: int, analysis: dict
                 if r.get("matchup_id") is not None:
                     by_mid.setdefault(r["matchup_id"], []).append(float(r.get("points") or 0))
             season_margins += [abs(p[0] - p[1]) for p in by_mid.values() if len(p) == 2]
-        big, m = max(margins)
-        small, m2 = min(margins)
+        big, m = max(margins, key=lambda x: x[0])
+        small, m2 = min(margins, key=lambda x: x[0])
         if season_margins and big >= max(season_margins):
             events.append(_cand(
                 f"blackbox:margin-high:{week}", "black-box",

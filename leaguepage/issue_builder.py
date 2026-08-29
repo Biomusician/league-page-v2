@@ -54,9 +54,10 @@ MODULE_DEFS = [
 
 WEEKLY_DEFAULT = ["masthead", "lowdown", "hardware", "ctp", "power", "tracks",
                   "fades", "forceflow", "blackbox", "intel", "branches",
-                  "false-assumptions"]
+                  "false-assumptions", "custom"]
 DRAFT_DEFAULT = ["masthead", "lowdown", "draft-capsules", "hardware", "power",
-                 "false-assumptions"]
+                 "false-assumptions", "custom"]
+OPT_IN_MODULES = {"custom"}  # excluded unless the commissioner includes them
 
 MIN_INTEL_WEEKS = 5  # before this, playoff math is fake precision — module omits itself
 
@@ -130,7 +131,8 @@ def module_states(
     out = []
     for position, (key, title, kind) in enumerate(module_defs_for(league, issue_key)):
         row = saved.get(key) or {}
-        included = bool(row.get("included", 1))
+        default_included = 0 if (key in OPT_IN_MODULES and not row) else 1
+        included = bool(row.get("included", default_included))
         approved = bool(row.get("approved", 0))
         status, detail = "ready", ""
         if kind == "auto":
@@ -172,16 +174,20 @@ def module_states(
                 status, detail = "drafting", "copy present but carries a blocked marker"
             else:
                 status = "approved" if approved else "edited"
+        saved_pos = row.get("position")
         out.append({
             "module_key": key, "kind": kind,
             "title": row.get("custom_title") or title,
-            "position": row.get("position", position),
+            "position": saved_pos if saved_pos is not None else position,
+            "_explicit_pos": saved_pos is not None,
+            "_registry_index": position,
             "included": included,
             "approved": approved,
             "status": status,
             "detail": detail,
         })
-    out.sort(key=lambda m: m["position"])
+    # explicit commissioner positions win ties against defaults
+    out.sort(key=lambda m: (m["position"], not m["_explicit_pos"], m["_registry_index"]))
     return out
 
 
