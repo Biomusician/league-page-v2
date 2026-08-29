@@ -1,0 +1,45 @@
+{% extends "desk/base.html" %}
+{% block title %}{{ league.display_name }} — Week {{ week }} Matchup Lab{% endblock %}
+{% block masthead_right %}{{ league.display_name }} · {{ season }} · Week {{ week }} · Matchup Lab{% endblock %}
+{% block content %}
+
+{% if not computed %}
+<div class="warn">No matchup data for week {{ week }}. Run <code>scripts/sync.py</code>, then
+<code>scripts/build_weekly_packet.py --league {{ league.slug }} --week {{ week }}</code>.</div>
+{% else %}
+
+<p class="meta">Weeks played: {{ computed.analysis.weeks_played }} ·
+Interest scores are editorial heuristics with visible components (open a matchup to see them), never objective measurements.</p>
+
+{% for r in rows %}
+<div class="card">
+  <b><a href="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ r.slug }}">{{ r.matchup.teams[0].team_name or r.matchup.teams[0].team_slug }}
+  vs {{ r.matchup.teams[1].team_name or r.matchup.teams[1].team_slug }}</a></b>
+  <span class="score">{{ r.effective_prominence }}</span>
+  {% if r.state and r.state.prominence_override %}<span class="meta">(override; recommended {{ r.recommended_prominence }})</span>{% endif %}
+  <div class="meta">
+    Competitive Importance {{ r.competitive_importance.score }} · Story Value {{ r.story_value.score }}
+    {% if r.tags %} · tags: {{ r.tags|join(", ") }}{% endif %}
+  </div>
+  <div class="meta">
+    status: <b>{{ r.status }}</b>
+    {% if r.state and r.state.selected_angle_id %} · angle: <code>{{ r.state.selected_angle_id }}</code>{% endif %}
+    {% if r.state and r.state.custom_angle %} · custom angle set{% endif %}
+    {% if r.status == "ready_to_draft" %} · <b>Ready for Claude Code</b>{% endif %}
+  </div>
+</div>
+{% endfor %}
+
+<div class="card">
+  <b>Drafting is a Claude Code step</b> <span class="meta">(no in-browser generation; nothing here can invoke Claude)</span>
+  <ol class="facts">
+    <li>Make angle/note/prominence decisions above, then rebuild the packet:<br>
+      <code>.venv\Scripts\python.exe scripts\build_weekly_packet.py --league {{ league.slug }} --week {{ week }}</code></li>
+    <li>In a Claude Code session in this repo, ask:<br>
+      <code>Draft all unapproved matchup previews for {{ league.slug }} week {{ week }} using my writing-style skill. Follow each matchup's generated/AUTHORING.md.</code></li>
+    <li>Return here to edit, approve, or send revision requests.</li>
+  </ol>
+</div>
+
+{% endif %}
+{% endblock %}

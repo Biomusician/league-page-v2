@@ -1,0 +1,25 @@
+{
+  "_readme": "Schema example for editorial/managers.json, which is gitignored because it carries real Sleeper handles and identity data (repo hygiene rule from the my-writing-style skill: real names/handles stay out of committed files; league nicknames and team names are fine). Regenerate the real file with scripts/seed_editorial.py after a sync, then hand-curate. Alias statuses: entries in 'aliases' are confirmed; 'unverified_aliases' entries are inferred (never usable as fact) or rejected (kept so they are not re-inferred). Set 'allow_cross_league_callbacks': true on a manager ONLY when Jonathan explicitly marks their history as usable across leagues.",
+  "example-manager": {
+    "sleeper_user_id": "000000000000000000",
+    "display_name": "ExampleHandle",
+    "aliases": ["League Nickname"],
+    "unverified_aliases": [
+      {
+        "name": "MaybeNickname",
+        "status": "inferred",
+        "evidence": "Why this was guessed.",
+        "rule": "Do not use in generated copy until confirmed."
+      }
+    ],
+    "identity": {"nationality": "", "role": "", "notes": ""},
+    "recurring_bits": ["a joke lane that recurs"],
+    "retired_bits": ["a joke lane to stop using"],
+    "notable_events": [],
+    "sensitivity": "fair_game",
+    "allow_cross_league_callbacks": false,
+    "leagues": {
+      "surfeit": {"roster_id": 1, "team_name": "Example Team", "co_managed": false}
+    }
+  }
+}

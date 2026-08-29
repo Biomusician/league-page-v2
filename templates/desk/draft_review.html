@@ -1,0 +1,119 @@
+{% extends "desk/base.html" %}
+{% block title %}{{ league.display_name }} — Draft Review{% endblock %}
+{% block masthead_right %}{{ league.display_name }} · {{ season }} · Draft Review{% endblock %}
+{% block content %}
+
+{% if not analysis %}
+<div class="warn">No draft data for {{ league.display_name }} {{ season }} yet.
+After the draft, run <code>scripts/sync.py</code> and refresh this page.</div>
+{% else %}
+
+<p class="meta">
+  Draft {{ analysis.draft_id }} — <b>{{ analysis.draft_status }}</b>,
+  {{ analysis.pick_count }}/{{ analysis.expected_pick_count or "?" }} picks ·
+  {{ analysis.total_teams }} teams, {{ analysis.rounds }} rounds ·
+  Reference ranks: {{ analysis.adp_provenance or "unavailable" }}
+</p>
+{% for w in analysis.warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+
+<h2 id="stories">Story Board <span class="meta">({{ candidates|length }} rule-based candidates)</span></h2>
+{% for c in candidates %}
+<div class="card">
+  <span class="score">{{ c.score }}</span>
+  <b>{{ c.headline }}</b>
+  <span class="meta">[{{ c.category }}]</span>
+  {% set d = story_decisions.get(c.candidate_id) %}
+  {% if d %}<span class="decision">→ {{ d.decision|upper }}{% if d.note %} — “{{ d.note }}”{% endif %}</span>{% endif %}
+  <div class="meta">why surfaced: {{ c.why }}</div>
+  <ul class="facts">{% for f in c.facts %}<li>{{ f }}</li>{% endfor %}</ul>
+  <details><summary>evidence</summary><ul class="facts">{% for e in c.evidence %}<li><code>{{ e }}</code></li>{% endfor %}</ul></details>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/draft-review/story">
+    <input type="hidden" name="candidate_id" value="{{ c.candidate_id }}">
+    <button name="decision" value="include" class="primary">Include</button>
+    <button name="decision" value="save">Save</button>
+    <button name="decision" value="ignore">Ignore</button>
+    <input type="text" name="note" placeholder="commissioner note" size="32">
+  </form>
+</div>
+{% endfor %}
+
+<h2 id="awards">Draft Award Nominations</h2>
+<p class="meta">Nominations only — no award publishes without your decision. Subjective categories carry no scores on purpose.</p>
+{% for aw in awards %}
+<div class="card">
+  <b>{{ aw.award_name }}</b> <span class="meta">[{{ aw.kind }}] — {{ aw.metric }}</span>
+  {% set d = award_decisions.get(aw.award_key) %}
+  {% if d %}<div class="decision">→ {{ d.decision|upper }}{% if d.winner %}: {{ d.winner }}{% endif %}{% if d.note %} — “{{ d.note }}”{% endif %}</div>{% endif %}
+  <ol class="facts">
+  {% for n in aw.nominees %}
+    <li><b>{% if n.player %}{{ n.player }} ({{ n.team_slug }}){% else %}{{ n.team_slug }}{% endif %}</b>
+        {% if n.metric_value is defined and n.metric_value is not none %}<span class="meta">metric: {{ n.metric_value }}</span>{% endif %}
+      <ul>{% for f in n.facts %}<li class="meta">{{ f }}</li>{% endfor %}</ul>
+    </li>
+  {% endfor %}
+  </ol>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/draft-review/award">
+    <input type="hidden" name="award_key" value="{{ aw.award_key }}">
+    <input type="text" name="winner" placeholder="winner (team slug / player / free text)" size="34">
+    <button name="decision" value="awarded" class="primary">Award</button>
+    <button name="decision" value="manual">Manual winner</button>
+    <button name="decision" value="rejected">No award</button>
+    <input type="text" name="note" placeholder="note" size="24">
+  </form>
+</div>
+{% endfor %}
+
+<h2 id="power">Peer and Near-Peer Competition <span class="meta">(preseason baseline — yours, not the computer's)</span></h2>
+<p class="meta">Evidence lives in the dossiers; there is no objectively correct preseason ranking. Tiers: 1 Peer Competition · 2 Near-Peer Competition · 3 Competitive but Flawed · 4 Strategic Reassessment Required. Saved rankings become receipts.</p>
+<form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/draft-review/power">
+<table>
+  <tr><th>Team</th><th>Managers</th><th>Rank</th><th>Tier</th><th>Editorial note</th></tr>
+  {% for t in analysis.teams %}
+  {% set existing = power_by_roster.get(t.roster_id) %}
+  <tr>
+    <td><b>{{ t.team_name or t.team_slug }}</b></td>
+    <td class="meta">{{ t.manager_display_names|join(", ") }}</td>
+    <td><input type="text" name="rank_{{ t.roster_id }}" size="2" value="{{ existing.rank if existing and existing.rank is not none else '' }}"></td>
+    <td><input type="text" name="tier_{{ t.roster_id }}" size="2" value="{{ existing.tier if existing and existing.tier is not none else '' }}"></td>
+    <td><input type="text" name="note_{{ t.roster_id }}" size="48" value="{{ existing.note if existing and existing.note else '' }}"></td>
+  </tr>
+  {% endfor %}
+</table>
+<button class="primary" style="margin-top:.5rem">Save preseason rankings</button>
+</form>
+
+<h2 id="takes">Takes <span class="meta">(receipts — original wording is stored verbatim, forever)</span></h2>
+{% for t in takes %}
+<div class="card">
+  <b>“{{ t.quote }}”</b>
+  <div class="meta">{{ t.subject }} · {{ t.context }} {{ t.season }} · topic: {{ t.topic or "—" }} ·
+    confidence: {{ t.confidence or "—" }} · status: <b>{{ t.status }}</b>
+    {% if t.resolution %} · resolution: {{ t.resolution }}{% endif %}</div>
+  {% if t.status in ("open", "too_early") %}
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/draft-review/take/{{ t.take_id }}/resolve">
+    <select name="status">
+      <option value="too_early">still too early</option>
+      <option value="validated">validated</option>
+      <option value="contradicted">contradicted</option>
+      <option value="retired">retired</option>
+    </select>
+    <input type="text" name="resolution" placeholder="what actually happened" size="36">
+    <button>Record verdict</button>
+  </form>
+  {% endif %}
+</div>
+{% endfor %}
+<div class="card">
+  <b>Track as Take</b>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/draft-review/take" style="display:block">
+    <div><textarea name="quote" rows="2" cols="70" placeholder="Exact wording of the assertion" required></textarea></div>
+    <input type="text" name="subject" placeholder="team slug / manager" size="24" required>
+    <input type="text" name="topic" placeholder="topic (e.g. rb-depth)" size="18">
+    <input type="text" name="players" placeholder="players, comma-separated" size="28">
+    <input type="text" name="confidence" placeholder="confidence" size="12">
+    <button class="primary">Track</button>
+  </form>
+</div>
+
+{% endif %}
+{% endblock %}

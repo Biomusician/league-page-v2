@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ league.display_name }} — Week {{ week }} Common Tactical Picture</title>
+<style>
+  :root { --ink:#1a1c20; --paper:#f7f6f2; --accent:#7a2318; --line:#d8d5cd; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Georgia, 'Times New Roman', serif; background:var(--paper); color:var(--ink); line-height:1.55; }
+  header { text-align:center; border-bottom:3px double var(--ink); padding:1.6rem 1rem .9rem; }
+  header h1 { margin:0; font-size:2.2rem; letter-spacing:.12em; text-transform:uppercase; }
+  header .sub { color:var(--accent); font-variant:small-caps; letter-spacing:.15em; }
+  main { max-width:52rem; margin:0 auto; padding:1.5rem 1.2rem 4rem; }
+  h2.section { text-transform:uppercase; letter-spacing:.1em; border-bottom:2px solid var(--ink); }
+  .card { border:1px solid var(--line); background:#fff; border-radius:4px; padding:1rem 1.2rem; margin:1rem 0; }
+  .card.feature { border:2px solid var(--ink); box-shadow:3px 3px 0 var(--line); }
+  .card.feature .vs { font-size:1.5rem; }
+  .vs { font-weight:bold; font-size:1.15rem; }
+  .meta { color:#6b6f76; font-size:.85rem; }
+  .tag { display:inline-block; background:var(--ink); color:var(--paper); border-radius:3px; padding:.05rem .45rem; font-size:.75rem; margin-right:.3rem; letter-spacing:.05em; }
+  .pending { color:#6b6f76; font-style:italic; }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ league.display_name }}</h1>
+  <div class="sub">{{ league.subtitle }} · {{ season }} · Week {{ week }}</div>
+</header>
+<main>
+<h2 class="section">Common Tactical Picture</h2>
+{% for c in cards %}
+{% set a = c.matchup.teams[0] %}{% set b = c.matchup.teams[1] %}
+<div class="card {{ 'feature' if c.prominence == 'FEATURE' else '' }}">
+  <div class="vs">{{ a.public_name }} vs {{ b.public_name }}</div>
+  <div class="meta">
+    {{ a.record.wins }}-{{ a.record.losses }} vs {{ b.record.wins }}-{{ b.record.losses }}
+    {% if a.points is not none and a.points %} · {{ a.points }} – {{ b.points }}{% endif %}
+  </div>
+  <div>{% for t in c.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+       <span class="tag" style="background:var(--accent)">{{ c.prominence }}</span></div>
+  {% if c.preview_html %}
+  <div class="preview">{{ c.preview_html | safe }}</div>
+  {% else %}
+  <p class="pending">Preview pending.</p>
+  {% endif %}
+</div>
+{% endfor %}
+</main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{% extends "desk/base.html" %}
+{% block content %}
+<h2>What needs my attention?</h2>
+{% for c in cards %}
+<div class="card">
+  <h3 style="margin:.1rem 0">{{ c.league.display_name }} <span class="meta">— {{ c.season }} · {{ c.league.subtitle }}</span></h3>
+  <ul class="facts">
+    <li>League status: <b>{{ c.league_status }}</b> · Draft: <b>{{ c.draft_status }}</b> ({{ c.picks }} picks)</li>
+    <li>Story decisions recorded: {{ c.story_decisions }} · Award decisions: {{ c.award_decisions }}</li>
+    <li>Draft Issue: <b>{{ c.issue_status }}</b></li>
+  </ul>
+  {% if c.season %}
+  <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/draft-review">Open Draft Review →</a>
+  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/week/{{ c.current_week }}/matchups">Week {{ c.current_week }} Matchup Lab →</a>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

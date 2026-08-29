@@ -1,0 +1,72 @@
+{
+  "_readme": "Structured coalition/relationship metadata (spec §33). Verification model: every mapping to a Sleeper account/roster carries a status — 'confirmed' (Jonathan said so), 'inferred' (evidence recorded, NOT usable as fact in generated copy), or 'rejected' (kept so it is not re-inferred). Identities AND both coalition roster mappings were explicitly confirmed by Jonathan 2026-08-29. Do not infer additional biographical facts.",
+  "humor_guidance": "Nationality, aircraft, coalition dynamics, fighter culture, pilot-vs-maintenance dynamics, and procurement/alliance references are fair game for recurring humor. Prefer specific aviation/coalition/organizational humor over lazy nationality stereotypes.",
+  "identities": {
+    "FRA": {
+      "status": "confirmed",
+      "nationality": "France / French",
+      "role": "Rafale pilot",
+      "aircraft": "Dassault Rafale",
+      "coalition": "fra-uk",
+      "sleeper_manager": {"key": null, "status": "unmapped"}
+    },
+    "UK": {
+      "status": "confirmed",
+      "nationality": "United Kingdom / British",
+      "role": "Chinook pilot",
+      "aircraft": "Chinook",
+      "coalition": "fra-uk",
+      "sleeper_manager": {"key": null, "status": "unmapped"}
+    },
+    "JPN": {
+      "status": "confirmed",
+      "nationality": "Japan / Japanese",
+      "role": "maintenance officer / MX officer",
+      "aircraft": null,
+      "coalition": "jpn-swe",
+      "sleeper_manager": {"key": null, "status": "unmapped"}
+    },
+    "SWE": {
+      "status": "confirmed",
+      "nationality": "Sweden / Swedish",
+      "role": "Gripen pilot",
+      "aircraft": "Saab JAS 39 Gripen",
+      "coalition": "jpn-swe",
+      "sleeper_manager": {"key": null, "status": "unmapped"}
+    }
+  },
+  "coalitions": [
+    {
+      "key": "fra-uk",
+      "name": "FRA/UK",
+      "members": ["FRA", "UK"],
+      "tags": ["France", "United Kingdom", "Rafale", "Chinook", "pilots"],
+      "roster_mapping": {
+        "league": "surfeit",
+        "roster_id": 8,
+        "status": "confirmed",
+        "evidence": "Confirmed by Jonathan 2026-08-29. (Originally inferred from the team name 'L'entente Discordiale' punning on the Entente Cordiale; co-manager not set in Sleeper.)"
+      }
+    },
+    {
+      "key": "jpn-swe",
+      "name": "JPN/SWE",
+      "members": ["JPN", "SWE"],
+      "tags": ["Japan", "Sweden", "MX", "Gripen", "operator-maintainer dynamic"],
+      "roster_mapping": {
+        "league": "surfeit",
+        "roster_id": 7,
+        "status": "confirmed",
+        "evidence": "Confirmed by Jonathan 2026-08-29. (Originally inferred from roster 7 'Wild SeeKats' being the league's only Sleeper-confirmed co-managed team.)"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "between": ["fra-uk", "jpn-swe"],
+      "type": "Coalition Rivalry",
+      "status": "confirmed",
+      "notes": "Per spec §33."
+    }
+  ]
+}

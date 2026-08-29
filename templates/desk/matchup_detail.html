@@ -1,0 +1,127 @@
+{% extends "desk/base.html" %}
+{% block title %}{{ slug }} — Matchup Lab{% endblock %}
+{% block masthead_right %}
+<a href="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups">← Week {{ week }} queue</a>
+{% endblock %}
+{% block content %}
+
+{% if not sm %}
+<div class="warn">Matchup {{ slug }} not found for week {{ week }}.</div>
+{% else %}
+{% set m = sm.matchup %}
+{% set a = m.teams[0] %}{% set b = m.teams[1] %}
+
+<h2>{{ a.team_name or a.team_slug }} vs {{ b.team_name or b.team_slug }}
+  <span class="score">{{ (sm.state.prominence_override if sm.state else none) or sm.recommended_prominence }}</span>
+  <span class="meta">status: {{ status }}{% if status == "ready_to_draft" %} · <b>Ready for Claude Code</b>{% endif %}</span>
+</h2>
+
+<h2 id="facts">FACTS</h2>
+<div class="card">
+  <table>
+    <tr><th></th><th>{{ a.team_slug }}</th><th>{{ b.team_slug }}</th></tr>
+    <tr><td>Managers</td><td>{{ a.manager_display_names|join(", ") }}{% if a.co_managed %} (co-managed){% endif %}</td>
+        <td>{{ b.manager_display_names|join(", ") }}{% if b.co_managed %} (co-managed){% endif %}</td></tr>
+    <tr><td>Record</td><td>{{ a.record.wins }}-{{ a.record.losses }} ({{ a.record.fpts }} PF)</td>
+        <td>{{ b.record.wins }}-{{ b.record.losses }} ({{ b.record.fpts }} PF)</td></tr>
+    <tr><td>Standing / PF rank</td><td>#{{ a.standing }} / #{{ a.points_rank }}</td><td>#{{ b.standing }} / #{{ b.points_rank }}</td></tr>
+    <tr><td>Streak</td><td>{{ a.streak or "—" }}</td><td>{{ b.streak or "—" }}</td></tr>
+    <tr><td>All-play</td><td>{{ a.all_play or "—" }}</td><td>{{ b.all_play or "—" }}</td></tr>
+  </table>
+  <div class="meta" style="margin-top:.4rem">Unavailable (stated, never fabricated):
+    {% for u in m.unavailable %}<div>· {{ u }}</div>{% endfor %}
+  </div>
+</div>
+<div class="card">
+  <b>Why the scores</b> <span class="meta">— editorial heuristics, weights adjustable in matchup_interest.py</span>
+  <div class="meta">Competitive Importance {{ sm.competitive_importance.score }}:</div>
+  <ul class="facts">{% for c in sm.competitive_importance.components %}<li>+{{ c.points }} {{ c.label }}</li>{% endfor %}</ul>
+  <div class="meta">Story Value {{ sm.story_value.score }}:</div>
+  <ul class="facts">{% for c in sm.story_value.components %}<li>+{{ c.points }} {{ c.label }}</li>{% endfor %}</ul>
+  <details><summary>evidence references</summary><ul class="facts">
+    {% for e in m.evidence %}<li><code>{{ e }}</code></li>{% endfor %}
+  </ul></details>
+</div>
+<div class="card">
+  <b>History &amp; memory</b>
+  {% if m.h2h.meetings %}<div class="meta">H2H: {{ m.h2h.record }}</div>
+  {% else %}<div class="meta">No prior meetings in synced history.</div>{% endif %}
+  {% for c in sm.story_memory.callbacks %}
+    <div class="meta">[{{ c.strength }}] callback: '{{ c.matched_term }}' in {{ c.title }}
+      ({{ c.source_league }} {{ c.season or "????" }}{% if c.week %} wk{{ c.week }}{% endif %}, <code>{{ c.evidence }}</code>)
+      {% if c.cross_league %} [CROSS-LEAGUE, explicitly approved]{% endif %}
+      {% if c.date_unreliable %} [dating not high-confidence]{% endif %}</div>
+  {% endfor %}
+  {% if not sm.story_memory.callbacks %}<div class="meta">No archive callbacks (league-scoped retrieval).</div>{% endif %}
+  {% for t in sm.story_memory.takes %}<div class="meta">take:{{ t.take_id }} [{{ t.status }}] “{{ t.quote }}”</div>{% endfor %}
+</div>
+
+<h2 id="story">STORY</h2>
+{% if sm.state and sm.state.custom_angle %}
+<div class="card"><b>Commissioner custom angle (controls)</b><div>{{ sm.state.custom_angle }}</div></div>
+{% endif %}
+{% for angle in sm.angles %}
+<div class="card">
+  <b>{{ angle.title }}</b> <span class="meta">[{{ angle.family }} · {{ angle.strength }}]</span>
+  {% if sm.state and sm.state.selected_angle_id == angle.angle_id %}<span class="decision">← SELECTED</span>{% endif %}
+  {% set d = angle_decisions.get(angle.angle_id) %}
+  {% if d %}<span class="meta">({{ d.decision }}{% if d.note %}: {{ d.note }}{% endif %})</span>{% endif %}
+  <div class="meta">{{ angle.premise }}</div>
+  <div class="meta">why: {{ angle.why }}</div>
+  {% for w in angle.collision_warnings %}<div class="warn">Recently used: {{ w }}</div>{% endfor %}
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ slug }}/angle">
+    <input type="hidden" name="angle_id" value="{{ angle.angle_id }}">
+    <button name="action" value="select" class="primary">Select</button>
+    <button name="action" value="save">Save</button>
+    <button name="action" value="reject">Reject</button>
+    <button name="action" value="stale">Mark stale</button>
+    <input type="text" name="note" placeholder="note" size="24">
+  </form>
+</div>
+{% endfor %}
+<div class="card">
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ slug }}/angle" style="display:block">
+    <div><textarea name="custom_angle" rows="2" cols="70" placeholder="Write a custom angle/premise"></textarea></div>
+    <button name="action" value="custom" class="primary">Use custom angle</button>
+    <input type="text" name="note" placeholder="commissioner note (flags story value)" size="40">
+    <button name="action" value="note">Save note only</button>
+  </form>
+  {% if sm.state and sm.state.angle_note %}<div class="meta">note on file: “{{ sm.state.angle_note }}”</div>{% endif %}
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ slug }}/prominence">
+    <select name="prominence">
+      {% for p in ["", "FEATURE", "MAJOR", "STANDARD", "CAPSULE"] %}
+      <option value="{{ p }}" {% if sm.state and sm.state.prominence_override == p %}selected{% endif %}>{{ p or "(use recommendation)" }}</option>
+      {% endfor %}
+    </select>
+    <button>Set prominence override</button>
+  </form>
+</div>
+
+<h2 id="draft">DRAFT</h2>
+{% if marker_present %}<div class="warn">Draft still carries the ROUGH DRAFT marker; remove it when your edit is done. Approve/lock are blocked until then.</div>{% endif %}
+<div class="card">
+  <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ slug }}/draft">
+    <textarea name="draft_text" rows="18" cols="100" style="width:100%">{{ draft_text }}</textarea>
+    <div><button class="primary">Save edit</button> <span class="meta">saving sets status to “edited”</span></div>
+  </form>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ slug }}/status">
+    <button name="action" value="approve" class="primary">Approve</button>
+    <button name="action" value="unapprove">Unapprove</button>
+    <button name="action" value="lock">Lock</button>
+    <button name="action" value="reject">Reject draft</button>
+    <button name="action" value="requeue">Return to authoring queue</button>
+  </form>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ slug }}/revision">
+    <select name="request_type">
+      <option>new opening</option><option>new closing</option><option>shorter</option>
+      <option>more historical callback</option><option>different angle</option><option>tone correction</option>
+    </select>
+    <input type="text" name="detail" placeholder="detail (optional)" size="34">
+    <button>Request revision (next Claude Code pass)</button>
+  </form>
+  {% if sm.state and sm.state.revision_requests %}
+  <div class="meta">pending revision requests: {{ sm.state.revision_requests }}</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

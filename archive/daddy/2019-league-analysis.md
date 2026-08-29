@@ -1,0 +1,142 @@
+---
+league: daddy
+season: 2019
+title: League Analysis: Time the First
+source: google-doc 1fE9YTgHj8LBLuod5W7_Lna0d5oFyxiToouN-z_dn_EI
+---
+Analysis AF: Pre-Draft
+“Too Much Time on My Hands”
+
+
+Dynasty never stops, and it definitely doesn’t start with the draft. It’s never too early for a league write-up, so here we are. It’s far too early to do in-depth analyses of matchups, power rankings, and personalities, but that hasn’t stopped most of the fantasy sites from churning out content far before the start of the preseason, so it’s not going to stop us either.
+
+
+By the Numbers
+
+
+Never judge a book by its cover, unless the cover is someone’s username. Whether it’s the year you joined the site, birth year, favorite number, or first available number, having a number in your username is definitely popular:
+  
+
+It’s poor form to offend people before you’ve had a chance to offer them trades, so I’ll let you draw your own conclusions about people too lazy to think of unique usernames. Speaking of drawing your own conclusions, here’s a world cloud built around our conversations thus far. Clearly, the draft is important to us.
+
+
+  
+
+  
+
+This just shows how much people are talking about other people, not including instances where people typed names but forgot to add spaces before or after a name (Bazingamade this typo would not have counted.) From this, we see that we’ve all naturally gravitated around the commissionucleus, mostly with gripes and complaints. I’m as disappointed as you are by the Hoelbrooks showing up on there.
+
+
+Speaking of names, let’s take a look at this year’s team names, as well as how many Google Results each of them have (queries: fantasy football “[team name]”):
+
+
+Team Name
+	Results
+	[Blank]
+	DNP
+	Olmstead Land Sharks
+	0
+	Boston Poindexters
+	27
+	Hot Chubb Time Machine
+	296
+	The Mixon Administration
+	324
+	To Khalil a Mackingbird
+	739
+	U.S. Trash
+	2,130
+	Statistical Anomalies
+	5,480
+	Porkchop Express
+	6,030
+	Show Me Your TDs
+	16,400
+	
+
+Takeaway: Basic is already tanking, but the earliest instance of Show Me Your TDs was in 2002. Originally I titled the right column “How Lame?” but after my team appeared so high on the list, my ego got the better of me. It’s not even a great mini-study on how common team names are, but by the time that became clear, I was too far into the Googling.
+
+
+Scouting Report
+
+
+Several individuals have already unconsciously identified themselves as natural fits for our league home, Sleeper. Quincy, Cody, and Kelsey have flown under the radar in early league conversations, and if I didn’t know who they were, I wouldn’t even know who they were or what they were doing here. They’re basically the Foster Moreaus, Mack Hollinses, and Darrel Williams of our league. You’ve only heard of them if you’ve been paying an unhealthy amount of attention. Hopefully they’re better at fantasy than conversation.
+
+
+On the other side of the pendulum, we have individuals like Bazinga, Basic, and even The Commish willing to wade into the muck of daily conversation like it’s nothing. File your hurt feelings reports elsewhere, because minds are being spoken, bets are being made, and there are going to be winners and losers.
+
+
+Current Power Rankings
+
+
+Drafter
+	Score
+	Pick
+	Football Equivalent
+	The Commish
+	44
+	8
+	Eric Decker
+	Bazinga
+	36
+	1
+	Jason Garrett
+	Bull
+	35
+	5
+	Kellen Clemens
+	McLovin
+	3-4
+	6
+	Demaryius Thomas
+	Quincy King
+	28
+	9
+	Mark Sanchez
+	Cody Martin
+	27
+	4
+	Joe Flacco
+	Denzel Neal
+	20
+	3
+	Michael Vick
+	Basic
+	14
+	7
+	Martavius Bryant
+	Distro
+	Frank Gore / 34
+	10
+	Vince Young (QB)
+	Kelsey
+	Frank Gore
+	2
+	Oscar Davenport (QB)
+	
+
+I picked the most interesting players around your score, not the most famous, most talented, or most likely to have the same spirit animal as you. Johnny Manziel - sorry, JOHN Manziel - scored a 32 (and so did Ezekiel Elliott) and we know how that turned out, so don’t take it too seriously. Deal with it.
+
+
+League Drama
+
+
+The draft date hadn’t even been set for FOUR DAYS until someone chimed up that it wouldn’t work after all. After bouncing back a couple weeks, the draft was once again set in stone. For now.
+
+
+Harsh words were nearly spoken betwixt Basic, McLovin, Bazinga, and Distro, as they expressed their differing opinions on America’s Team, The Dallas Cowboys. Chat colors were changed, pictures were added, bets were made (and immediately judged unwise by Bull) - it was the best of times.
+
+
+People feel strongly about DSTs and kickers. They’re basically the appendices, tonsils, and wisdom teeth of fantasy football, but people can’t stand the initial pain of letting them go, even though they cause nothing but grief and misfortune down the road. They’re like vestigial organs that may have been fun or useful in redraft, but have no place in the highly-evolved machinery of dynasty fantasy football. After some spirited conversation, majority ruled. Season goal: Beat the Commish and Bull by having my streaming kicker and defense go off, even though their skill positions performed better.
+
+
+Conclusion and Awards
+
+
+Hot take: Foster Moreau (who?) will win the league
+Most likely to succeed: A Durham (there are two of them; the odds are doubled)
+Least likely to collude: Also the Durhams; I don’t think there’s a better rivalry in the league atm
+Most likely to love the Browns: Basic, runner-up Bazinga
+Taco: Kelsey
+Bettingest: McLovin
+Most likely to write 1 pointless analysis, then never do it again: Also McLovin

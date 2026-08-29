@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+site/
+.pytest_cache/
+
+# Privacy: real Sleeper handles/identities stay local-only (see SKILL.md
+# hygiene rule). Schema documented in editorial/managers.example.json.
+editorial/managers.json
+# Regenerable packet/dossier output carries manager display names from the DB.
+editorial/**/generated/
+editorial/**/dossiers/
