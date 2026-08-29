@@ -21,14 +21,24 @@ Read before resuming substantive work:
   Installed verbatim from Jonathan. Never regenerate, update, or "learn"
   style rules from AI-generated prose.
 
+## Current priority (Jonathan, 2026-08-29)
+
+Ship the public MVP to Vercel production today. Fable is authorized for
+this tranche and for MVP/maintenance work. Production deployment of the
+AUDITED PUBLIC ARTIFACT (dist/) to Vercel is authorized, including project
+creation and preview/production deploys. Launch-editorial publishing for
+the MVP was authorized. Private Commissioner/editorial material must
+remain strictly local.
+
 ## Hard prohibitions (standing, never cleared by compaction)
 
-1. No remote push, no creating remotes/repos/PRs, no deployment, without
-   Jonathan's explicit approval in this conversation. GitHub Pages is agreed
-   in principle; executing it still needs an explicit go.
-2. Never mark commissioner approval, publish an issue, or remove
-   ROUGH DRAFT markers on Jonathan's behalf. Generated prose never
-   auto-publishes.
+1. Deploy ONLY the audited public artifact (dist/). Never deploy or expose
+   the authoring repo, data/, editorial/, .claude/, published/ sources,
+   the Desk, tests, or the private history bundle. Do not make the source
+   repository public or push it to a remote without explicit approval.
+2. Outside the explicitly authorized MVP launch content, never mark
+   commissioner approval, publish an issue, or remove ROUGH DRAFT markers
+   on Jonathan's behalf. Generated prose never auto-publishes.
 3. No Anthropic API / LLM API anywhere in the product. Claude Code IS the
    editorial AI.
 4. Privacy: real Sleeper handles live only in local gitignored
@@ -41,9 +51,9 @@ Read before resuming substantive work:
 
 ## Gates and confirmed facts
 
-- **Phase 8 model gate**: Jonathan required Opus for Phase 8. If the session
-  reports a non-Opus model, report that and STOP Phase 8 work unless he
-  explicitly overrides the gate.
+- **Model gate**: superseded for MVP/maintenance work (Jonathan,
+  2026-08-29): Fable is authorized unless a later task explicitly requests
+  Opus.
 - CONFIRMED (Jonathan, 2026-08-29): FRA/UK = Surfeit roster 8 (L'entente
   Discordiale); JPN/SWE = Surfeit roster 7 (Wild SeeKats).
 - UNVERIFIED (never usable as fact): chrys*** = "EMCO".

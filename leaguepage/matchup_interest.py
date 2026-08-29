@@ -47,12 +47,14 @@ def competitive_importance(matchup: dict, week_ctx: dict, weights: dict = WEIGHT
     total = week_ctx.get("total_teams") or 10
     third = max(1, round(total / 3))
     a, b = matchup["teams"]
-    if a["standing"] <= third and b["standing"] <= third:
-        comps.append({"label": f"top table: standings #{a['standing']} vs #{b['standing']}",
-                      "points": weights["top_table"], "evidence": matchup["evidence"]})
-    if a["standing"] > total - third and b["standing"] > total - third:
-        comps.append({"label": f"basement: standings #{a['standing']} vs #{b['standing']}",
-                      "points": weights["basement"], "evidence": matchup["evidence"]})
+    # standings-derived components need actual games; preseason order is arbitrary
+    if week_ctx.get("weeks_played", 0) > 0:
+        if a["standing"] <= third and b["standing"] <= third:
+            comps.append({"label": f"top table: standings #{a['standing']} vs #{b['standing']}",
+                          "points": weights["top_table"], "evidence": matchup["evidence"]})
+        if a["standing"] > total - third and b["standing"] > total - third:
+            comps.append({"label": f"basement: standings #{a['standing']} vs #{b['standing']}",
+                          "points": weights["basement"], "evidence": matchup["evidence"]})
     ra, rb = a["record"], b["record"]
     if abs(ra["wins"] - rb["wins"]) <= 1 and week_ctx.get("weeks_played", 0) > 0:
         comps.append({"label": f"records within a game: {ra['wins']}-{ra['losses']} vs {rb['wins']}-{rb['losses']}",

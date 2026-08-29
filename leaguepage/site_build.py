@@ -26,7 +26,7 @@ from pathlib import Path
 import markdown as md
 from jinja2 import Environment, FileSystemLoader
 
-from leaguepage.config import DIST_DIR, LEAGUES, PUBLISHED_DIR, TEMPLATES_DIR, League
+from leaguepage.config import DIST_DIR, LEAGUES, PUBLISHED_DIR, STATIC_DIR, TEMPLATES_DIR, League
 from leaguepage.editorial import load_coalitions
 from leaguepage.matchup_analysis import all_play, analyze_week, team_record, weekly_scores
 from leaguepage.matchup_packet import compute_week, matchup_status, week_dir
@@ -498,6 +498,12 @@ def build_site(
                      editorial_dir=editorial_dir,
                      preview_issue=(preview_issues or {}).get(league.slug))
     _write(out, "index.html", env.get_template("public/root.html").render(), pages)
+    if STATIC_DIR.is_dir():
+        assets = out / "assets"
+        assets.mkdir(parents=True, exist_ok=True)
+        for f in STATIC_DIR.iterdir():
+            if f.is_file():
+                shutil.copy2(f, assets / f.name)
     return {"out_dir": out, "pages": pages, "warnings": warnings}
 
 
