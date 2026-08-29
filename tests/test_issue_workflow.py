@@ -140,7 +140,8 @@ def test_publish_gates_and_full_publish(env):
             pub.publish_assembled_issue(s, league, "2026", "week-01", week=1)
     # clean + approved -> publishes; site contains the words and the credit
     (idir / "lowdown" / "lowdown.md").write_text(
-        "# The Lowdown\n\nWeek one happened. Three things follow from that.",
+        "# The Lowdown\n\nWeek one happened. Three things follow from that.\n\n"
+        "<!-- usage: frame=competitive -->\n",
         encoding="utf-8")
     client.post("/commissioner/surfeit/2026/issue/week-01/lowdown",
                 data={"lowdown_text": "", "action": "approve"})
@@ -151,6 +152,7 @@ def test_publish_gates_and_full_publish(env):
     assert "Week one happened" in html
     assert "by the Commissioner" in html
     assert ROUGH_DRAFT_MARKER not in html and "TEST DRAFT" not in html
+    assert "<!--" not in html.split("</header>")[1]  # no editorial comments in body
     assert issue["status"] == "published"
     # league home lists the published issue
     home = (tmp / "site" / "surfeit" / "index.html").read_text(encoding="utf-8")

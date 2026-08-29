@@ -3,8 +3,10 @@
 Read `.claude/skills/my-writing-style/SKILL.md` once, then work these briefs. Every output is a
 rough draft for the commissioner; nothing you write publishes directly.
 
+- AUTHORING_INDEX.md
 - generated/AUTHORING_BRIEF.md
 - lowdown/AUTHORING.md
 - sections/AUTHORING-custom.md
+- sections/AUTHORING-hardware.md
 
 Matchup previews (if any pending) are under matchups/*/generated/AUTHORING.md.

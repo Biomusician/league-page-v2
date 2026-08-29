@@ -24,9 +24,19 @@ from jinja2 import Environment, FileSystemLoader
 from leaguepage.config import EDITORIAL_DIR, SITE_DIR, TEMPLATES_DIR, League
 from leaguepage.storage import Storage
 
+import re as _re
+
 ROUGH_DRAFT_MARKER = "ROUGH DRAFT - COMMISSIONER EDIT REQUIRED"
 # Any of these in source text marks material that must never publish.
 BLOCKED_MARKERS = (ROUGH_DRAFT_MARKER, "TEST DRAFT", "provisional label")
+
+_HTML_COMMENT_RE = _re.compile(r"<!--.*?-->", _re.DOTALL)
+
+
+def strip_editorial_comments(text: str) -> str:
+    """HTML comments carry commissioner-only metadata (usage trackers, naming
+    notes); they never reach published page source."""
+    return _HTML_COMMENT_RE.sub("", text)
 
 
 class PublishError(RuntimeError):
@@ -124,7 +134,8 @@ def publish_assembled_issue(
         if s.get("content_md"):
             sections.append({
                 "title": s["title"],
-                "html": markdown.markdown(s["content_md"], extensions=["tables", "smarty"]),
+                "html": markdown.markdown(strip_editorial_comments(s["content_md"]),
+                                          extensions=["tables", "smarty"]),
                 "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
             })
     html = template.render(league=league, season=season, issue_key=issue_key,
@@ -223,7 +234,8 @@ def render_week(
             "matchup": m,
             "tags": sm["tags"],
             "prominence": (sm["state"] or {}).get("prominence_override") or sm["recommended_prominence"],
-            "preview_html": markdown.markdown(text, extensions=["smarty"]) if approved else None,
+            "preview_html": markdown.markdown(strip_editorial_comments(text),
+                                              extensions=["smarty"]) if approved else None,
         })
     cards.sort(key=lambda c: ("FEATURE", "MAJOR", "STANDARD", "CAPSULE").index(c["prominence"]))
 

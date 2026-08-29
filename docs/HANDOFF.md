@@ -1,7 +1,41 @@
 # HANDOFF
 
-Updated 2026-08-29 (end of Phase 4.5 + Phase 5 Matchup Lab tranche). Read
-docs/SPEC.md (product spec) and docs/DECISIONS.md (architecture) first.
+Updated 2026-08-29 (end of Phase 5.1 + Phase 6 Weekly Editorial Desk tranche).
+Read docs/SPEC.md (product spec) and docs/DECISIONS.md (architecture) first.
+
+## Phase 6 state — the issue pipeline is end-to-end
+
+The full weekly flow works: Sync → Build (authoring packets) → Story Board →
+Matchup Lab → Awards Board → Lowdown Prep → Tracks/Fades/Force Flow/Black Box
+(via Story Board routing) → Issue Builder → Commissioner edit/approve →
+Publish (themed public issue + league home). Draft/preseason issues use the
+same routes with issue_key "draft".
+
+- Desk entry: `/commissioner/{league}/{season}/issue/{issue_key}` (workspace
+  with the DATA→PUBLISH strip); `/stories`, `/awards`, `/lowdown`, `/builder`,
+  `/preview` under it. Rankings: `/commissioner/{league}/{season}/rankings/
+  {label}`. Surfeit: `/commissioner/surfeit/{season}/false-assumptions`.
+- Publication gates (all tested): every included module approved; no ROUGH
+  DRAFT / TEST DRAFT / provisional-label markers; every roster has a
+  confirmed public display name (Desk team-names panel; Sleeper team names
+  count, handles never do); HTML comments stripped from published output.
+- Coalition mappings are CONFIRMED (Jonathan, 2026-08-29): FRA/UK = surfeit
+  roster 8, JPN/SWE = roster 7. Coalition Story Value boosts are live; the
+  coalition clash never auto-takes Matchup of the Week.
+- Git history was squashed to a sanitized baseline on 2026-08-29; prior
+  history exists ONLY in C:\Users\Jonathan\
+  League-Page-PRIVATE-history-backup-2026-08-29.bundle (private, never push).
+  The repo history is now safe to push.
+
+## Surfeit 2026 Draft Issue — TEST assembly awaiting Jonathan
+
+A complete acceptance run sits under `editorial/2026/surfeit/draft/`:
+lowdown/{themes,outline,rough-lowdown}.md, sections/{hardware,
+draft-capsules}.md — all TEST/ROUGH-marked, unapproved, style-checked.
+Story/award decisions in the DB are marked "TEST" in their notes; the
+preseason ranking rows carry a blocking placeholder note. To make it real:
+replace TEST decisions with yours, name the five unnamed rosters (workspace
+panel), edit the rough material, approve modules, publish from the builder.
 
 ## Voice (authoritative)
 

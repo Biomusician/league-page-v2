@@ -238,8 +238,10 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
         return "\n".join(lines)
     if kind == "intel":
         return None  # scenario engine is a later phase; module self-omits
+    # Rough/test content is returned so the commissioner preview can show it;
+    # assemble() records marker warnings and enforce=True blocks publication.
     text = _read(idir / "sections" / f"{key}.md")
-    return text.strip() if text and _clean(text) else None
+    return text.strip() if text else None
 
 
 def assemble_issue(

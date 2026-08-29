@@ -19,7 +19,24 @@ and a static public site for reading them.
 .venv\Scripts\python.exe -m pytest tests\ -q        # run the test suite
 ```
 
-## Weekly Matchup Lab workflow (per league)
+## Weekly issue workflow (per league)
+
+```
+.venv\Scripts\python.exe scripts\sync.py
+.venv\Scripts\python.exe scripts\desk.py
+```
+
+On the Desk, open `/commissioner/<league>/<season>/issue/week-NN` and work the
+strip: **Build** (packets + briefs) → Story Board → Matchup Lab → Awards →
+Lowdown → Builder. Between decision passes, ask Claude Code:
+
+> Work the task list in editorial/<season>/<league>/week-NN/AUTHORING_INDEX.md
+> using my writing-style skill.
+
+Edit and approve everything on the Desk, then publish from the Builder. The
+draft/preseason issue is the same flow at `/commissioner/<league>/<season>/issue/draft`.
+
+## Matchup Lab detail (per league)
 
 ```
 .venv\Scripts\python.exe scripts\sync.py
