@@ -23,12 +23,12 @@ Read before resuming substantive work:
 
 ## Current priority (Jonathan, 2026-08-29)
 
-Ship the public MVP to Vercel production today. Fable is authorized for
-this tranche and for MVP/maintenance work. Production deployment of the
-AUDITED PUBLIC ARTIFACT (dist/) to Vercel is authorized, including project
-creation and preview/production deploys. Launch-editorial publishing for
-the MVP was authorized. Private Commissioner/editorial material must
-remain strictly local.
+MVP is LIVE at https://league-page-ten-sandy.vercel.app (Vercel project
+league-page, deployed 2026-08-29; redeploy playbook in docs/DEPLOY.md).
+Fable is authorized for MVP/maintenance work unless a task explicitly
+requests Opus. Deploying the AUDITED PUBLIC ARTIFACT (dist/) to this
+Vercel project remains authorized. Private Commissioner/editorial material
+must remain strictly local.
 
 ## Hard prohibitions (standing, never cleared by compaction)
 

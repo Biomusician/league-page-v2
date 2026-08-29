@@ -1,205 +1,101 @@
 # HANDOFF
 
-Updated 2026-08-29 (end of Phase 7 — operationalized). Read docs/SPEC.md,
-docs/DECISIONS.md, and docs/DEPLOY.md.
+Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
+docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
+playbook), POST_MVP.md (backlog).
 
-## Phase 7 state
+## THE SITE IS LIVE
 
-- **Public site**: `scripts/build_public_site.py` renders a fully static
-  dist/ (root league selector, both league sites with the full navigation:
-  home/front page, Common Tactical Picture, standings + Under the Hood,
-  Peer and Near-Peer, teams + team pages with confirmed-coalition flags,
-  Force Flow log + Moves That Mattered, draft board with labeled reference
-  provenance, Black Box with population labels, archive with verbatim
-  historical issues, stable issue permalinks). Published issues render only
-  from frozen `published/` snapshots (immutable on rebuild; republish is
-  explicit). The build audits its own output and fails on private material;
-  current builds are clean. `--preview surfeit:draft` gives dist-preview/
-  (banner-flagged, never deploy). Local preview:
-  `python -m http.server 8777 --directory dist`.
-- **Disco draft: COMPLETE (228/228)** — analytics, dossiers, editorial
-  packet, draft-issue workspace, and review packet all generated; the
-  12-team flow needed zero special-casing. 1 player (Will Howard) has no
-  superflex reference rank; his delta is honestly omitted.
-- **Surfeit Draft Issue**: TEST scaffolding archived to
-  editorial/2026/surfeit/draft/test-archive/ and stripped from working
-  copies; capsules re-written across diverse Force Design frames; Lowdown
-  edit-passed. Everything remains ROUGH/unapproved awaiting Jonathan.
-- **Commissioner Review Packet**: /commissioner/{league}/{season}/issue/
-  {key}/review — every decision on one screen with labeled SYSTEM
-  recommendations (never written into decision tables). Both leagues'
-  packets flag their unresolved names (surfeit rosters 2/4/5/6/10, disco
-  6/10/11) with editorial name suggestions for Surfeit.
+**Production: https://league-page-ten-sandy.vercel.app**
 
-## Phase 6 state — the issue pipeline is end-to-end
+- Vercel project `league-page`, account biomusician (scope "biomusician's
+  projects"), CLI authenticated on this machine. Deploy unit is `dist/`
+  only; redeploy commands are in docs/DEPLOY.md.
+- Deployed build: 98 pages + 3 logo assets, privacy audit clean, all 1,319
+  internal links verified, 118 offline tests passing.
+- Verified in production: root selector, both league homes, drafts,
+  standings, teams + team pages, Common Tactical Picture, Disco archive
+  (all 55 historical issues), both 2026 Draft Issue permalinks, both logo
+  assets, mobile at 375px. Private-path probes (/.claude/, /editorial/,
+  /CLAUDE.md, /docs/, /data/, /published/ sources, .vercel metadata) all
+  return 404.
+- Model authorization: Fable is authorized for MVP and maintenance work
+  unless a later task explicitly requests Opus (Jonathan, 2026-08-29).
 
-The full weekly flow works: Sync → Build (authoring packets) → Story Board →
-Matchup Lab → Awards Board → Lowdown Prep → Tracks/Fades/Force Flow/Black Box
-(via Story Board routing) → Issue Builder → Commissioner edit/approve →
-Publish (themed public issue + league home). Draft/preseason issues use the
-same routes with issue_key "draft".
+## What is published (content state)
 
-- Desk entry: `/commissioner/{league}/{season}/issue/{issue_key}` (workspace
-  with the DATA→PUBLISH strip); `/stories`, `/awards`, `/lowdown`, `/builder`,
-  `/preview` under it. Rankings: `/commissioner/{league}/{season}/rankings/
-  {label}`. Surfeit: `/commissioner/surfeit/{season}/false-assumptions`.
-- Publication gates (all tested): every included module approved; no ROUGH
-  DRAFT / TEST DRAFT / provisional-label markers; every roster has a
-  confirmed public display name (Desk team-names panel; Sleeper team names
-  count, handles never do); HTML comments stripped from published output.
-- Coalition mappings are CONFIRMED (Jonathan, 2026-08-29): FRA/UK = surfeit
-  roster 8, JPN/SWE = roster 7. Coalition Story Value boosts are live; the
-  coalition clash never auto-takes Matchup of the Week.
-- Git history was squashed to a sanitized baseline on 2026-08-29; prior
-  history exists ONLY in C:\Users\Jonathan\
-  League-Page-PRIVATE-history-backup-2026-08-29.bundle (private, never push).
-  The repo history is now safe to push.
+- Both leagues have a published 2026 **Draft Issue containing the launch
+  Lowdown only** (Surfeit: "Every Draft Is a List of Assumptions"; Disco:
+  "Vol 7.I: Establishing the Picture" with Oregon Trail + BYEpocalypse
+  callbacks). Snapshots frozen under published/, committed.
+- The Surfeit hardware/capsules sections remain ROUGH drafts on disk,
+  unpublished. Disco capsules not written. See POST_MVP.md.
+- **8 rosters use neutral "Roster N" commissioner overrides** (surfeit
+  2/4/5/6/10, disco 6/10/11) because their managers set no Sleeper team
+  name. Set real names on the Desk team-names panel, then rebuild+deploy.
+- Logos (from Jonathan, 2026-08-29): static/disco-logo-banner.jpg (dark
+  masthead + root card), static/disco-logo-light.png (unused, kept for
+  light contexts), static/surfeit-logo.jpg (Skunk Works badge; masthead +
+  root card). build_site copies static/ -> dist/assets/.
 
-## Surfeit 2026 Draft Issue — TEST assembly awaiting Jonathan
+## Private/public boundary (non-negotiable)
 
-A complete acceptance run sits under `editorial/2026/surfeit/draft/`:
-lowdown/{themes,outline,rough-lowdown}.md, sections/{hardware,
-draft-capsules}.md — all TEST/ROUGH-marked, unapproved, style-checked.
-Story/award decisions in the DB are marked "TEST" in their notes; the
-preseason ranking rows carry a blocking placeholder note. To make it real:
-replace TEST decisions with yours, name the five unnamed rosters (workspace
-panel), edit the rough material, approve modules, publish from the builder.
+Only audited `dist/` output is ever deployed. Never deploy or expose the
+authoring repo, data/ (SQLite), editorial/, .claude/, published/ sources,
+templates/, leaguepage/, scripts/, tests, the Desk, or the private history
+bundle (League-Page-PRIVATE-history-backup-2026-08-29.bundle — never push
+or reimport). The source repo has no remote and stays private; pushing it
+anywhere still requires explicit approval. The build audits its own output
+and fails on private material; `test_all_internal_links_resolve` guards
+link integrity.
+
+## Weekly issue cycle (the whole thing)
+
+1. `.venv\Scripts\python.exe scripts\sync.py`
+2. `.venv\Scripts\python.exe scripts\build_weekly_packet.py --league <slug> --week <N>`
+   (weekly) or the Desk issue-workspace Build button
+3. Desk (`scripts\desk.py`, localhost:8026, private): decisions, angles,
+   team names, rankings
+4. Claude Code: work the issue's AUTHORING_INDEX.md / matchup packets with
+   the my-writing-style skill
+5. Desk: edit, approve modules (ROUGH marker must go), PUBLISH -> frozen
+   snapshot under published/ (commit it)
+6. `.venv\Scripts\python.exe scripts\build_public_site.py`
+7. Deploy per docs/DEPLOY.md (cd dist; npx vercel link --yes --project
+   league-page; npx vercel deploy --prod --yes)
+
+## Data state
+
+- Sync current as of 2026-08-29: NFL preseason, fantasy week 1. Disco
+  228/228 picks, Surfeit 150/150; Week 1 pairings exist for both.
+- Reference ranks: FantasyPros ECR snapshots in refdata/adp/ (half-PPR for
+  Surfeit, superflex for Disco). 1 unmatched Disco player (Will Howard),
+  delta honestly omitted.
+- Confirmed coalition mappings (Jonathan, 2026-08-29): FRA/UK = surfeit
+  roster 8, JPN/SWE = surfeit roster 7. "EMCO" alias remains UNVERIFIED.
+- matchup_interest fix this tranche: top-table/basement components require
+  played games (preseason standings order is arbitrary).
+
+## Compaction harness (settled — do not redesign)
+
+- SessionStart hook, matcher "compact", re-injects .claude/COMPACT.md
+  after every compaction. Session-scoped copy lives in Fantasy Bot
+  .claude/settings.local.json (absolute path); the committed
+  .claude/settings.json here carries the portable $CLAUDE_PROJECT_DIR
+  form for sessions started in this repo. PostCompact stdout is NOT
+  injected as context on Claude Code 2.1.247; do not "fix" this back.
+- autoCompactWindow: 800000 in ~/.claude/settings.json (Fable 5 native 1M
+  window; ~80%). Interactive equivalent: /autocompact 800k.
 
 ## Voice (authoritative)
 
-`.claude/skills/my-writing-style/SKILL.md` — supplied by Jonathan, installed
-verbatim, never regenerate from the archive. CLAUDE.md carries the always-on
-pointer and the drafting-override (weekly/draft workflows are explicit
-drafting requests). `editorial/style/ARCHIVE_STYLE_NOTES.md` is secondary.
+.claude/skills/my-writing-style/SKILL.md — supplied by Jonathan, installed
+verbatim, never regenerate. Weekly/draft authoring workflows are explicit
+drafting requests (drafting override). style_check.py is warnings-only;
+the skill-level sweep is authoritative.
 
-## Matchup Lab (Phase 5 — built and dry-run against real Surfeit Week 1)
+## Top post-MVP tasks
 
-The weekly loop:
-
-1. `scripts/sync.py`
-2. `scripts/build_weekly_packet.py --league <slug> --week <N>`
-3. Desk (`scripts/desk.py`) → `/commissioner/<league>/<season>/week/<N>/matchups`:
-   pick angles (5 rule-generated families per matchup), notes, prominence
-   overrides. Two-axis interest (Competitive Importance / Story Value) shows
-   its components; weights adjustable in `matchup_interest.py`.
-4. Rebuild the packet (decisions + revision requests flow into AUTHORING.md).
-5. Claude Code: "Draft all unapproved matchup previews for <league> week <N>
-   using my writing-style skill." Drafts land at
-   `editorial/<season>/<league>/week-NN/matchups/<slug>/draft.md` with the
-   ROUGH DRAFT marker and a usage comment.
-6. Desk: edit (marker must go), approve/lock (blocked while marker present;
-   approval parses the usage comment into the repetition log), or send
-   structured revision requests (requeues for the next Claude Code pass).
-7. `scripts/publish_week.py --league <slug> --week <N>` → public Common
-   Tactical Picture page; only approved/locked drafts render.
-
-Story Memory is league-scoped: cross-league callbacks only for managers with
-`allow_cross_league_callbacks: true` in local managers.json. Repetition
-control: `editorial_usage` table + collision warnings on angles; coalition
-joke lanes rotate. Five TEST drafts (marked, unapproved) sit in
-`editorial/2026/surfeit/week-01/` from the authoring dry run.
-
-## Privacy
-
-Real Sleeper handles live only in local (gitignored) `editorial/managers.json`
-and the local DB; committed files use team names/nicknames. **Git history
-before 2026-08-29 still contains the removed files — resolve before any push**
-(fresh-history publish or filter). Surfeit has five unnamed rosters; the test
-drafts use provisional labels. Getting real nicknames into managers.json
-aliases is the fix.
-
-## Architecture (corrected this tranche)
-
-    Sleeper / archive / metadata → deterministic analytics → structured
-    editorial context (packets) → Claude Code authoring/editing →
-    git-tracked published issue
-
-Claude Code IS the editorial AI. No LLM API keys anywhere; a one-click API
-authoring feature is explicitly post-V1. Generated prose never auto-publishes.
-
-## What exists and works
-
-- **Ingestion** (`scripts/sync.py`): both leagues' settings/rosters/users/
-  matchups/transactions/drafts in `data/league.sqlite3`. Preseason-aware.
-- **Archive**: 55 issues (2019–2025) in `archive/`, FTS-indexed, with full
-  source provenance (`archive/provenance.json`) and a spot-check report
-  (`scripts/audit_archive_dating.py` — 18 flagged rows, all explained; the
-  one genuinely ambiguous doc is `disco/2025-week-05.md`).
-- **Editorial metadata** (`editorial/*.json`): confirmed/inferred/rejected
-  statuses. FRA/UK/JPN/SWE coalition identities recorded as confirmed facts;
-  their roster mappings are INFERRED (evidence noted) and unusable in copy
-  until Jonathan confirms. The "EMCO" manager-alias inference remains
-  unverified (details in local managers.json).
-- **Reference ranks** (`refdata/adp/`): FantasyPros ECR snapshots (half-PPR
-  for Surfeit, superflex for Disco, retrieved 2026-08-29) behind an
-  ADP-source abstraction; `scripts/import_adp.py` refreshes or imports any
-  CSV. Missing players → no delta, never fabricated.
-- **Draft analytics** (`leaguepage/draft_analysis.py`): deterministic facts
-  with evidence IDs (`leaguepage/evidence.py` — scheme shared with future
-  Matchup Lab). Verified on Surfeit's real 150-pick draft (0 unmatched
-  players) and on synthetic 10/12-team, partial, and empty drafts.
-- **Story candidates** (`draft_stories.py`) + **award nominations**
-  (`draft_awards.py`): scored/ranked, evidence-backed, never auto-decided.
-- **Commissioner's Desk** (`scripts/desk.py`, localhost:8026): draft-review
-  screen — Story Board (Include/Save/Ignore + notes), award decisions,
-  preseason Peer and Near-Peer Competition (commissioner-owned), Track-as-
-  Take with verdict recording. All decisions persist in SQLite.
-- **Editorial packets** (`scripts/build_editorial_packet.py --league X
-  --type draft`): self-contained authoring context under
-  `editorial/<season>/<league>/draft/generated/` incl. AUTHORING_BRIEF.md,
-  dossiers, allowed-callback archive context, confirmed-only manager context
-  with BANNED list. Deterministic/idempotent except MANIFEST.json.
-- **Style profile** (`editorial/style/STYLE_PROFILE.md`): the Daddy/Disco
-  voice distilled with exemplar pointers and anti-patterns.
-- **Publishing skeleton** (`scripts/publish_issue.py`): generated → edited →
-  approved → published; ROUGH DRAFT marker + explicit approval both block.
-- **Tests**: 47, synthetic, no network.
-
-## The intended weekly/draft loop
-
-1. `scripts/sync.py`
-2. `scripts/build_editorial_packet.py --league <slug> --type draft`
-3. Desk (`scripts/desk.py`) → decide stories/awards, set rankings, track takes
-4. Rebuild the packet (decisions flow into it)
-5. Claude Code session: read `generated/AUTHORING_BRIEF.md`, write
-   `editorial/<season>/<league>/draft/draft-issue.md`
-6. Jonathan edits → saves as `issue.md` without the marker
-7. `scripts/publish_issue.py --approve` then `--publish` → `site/...html`
-
-## Waiting on Disco's draft (~Aug 30)
-
-After it completes, run exactly:
-
-    .venv\Scripts\python.exe scripts\sync.py
-    .venv\Scripts\python.exe scripts\build_editorial_packet.py --league disco --type draft
-
-Same pipeline, no code changes expected (12-team format is tested).
-
-## Needs Jonathan
-
-- Confirm or reject: EMCO alias; FRA/UK ↔ Surfeit roster 8 ("L'entente
-  Discordiale"); JPN/SWE ↔ Surfeit roster 7 ("Wild SeeKats"). Flip
-  `status` to `confirmed`/`rejected` in editorial/*.json.
-- Map FRA/UK/JPN/SWE identities to manager keys in coalitions.json
-  (`sleeper_manager` fields) when ready.
-- Fill recurring bits / sensitivity flags in managers.json as desired.
-- Preseason Peer and Near-Peer Competition on the Desk (becomes receipts).
-- Hosting decision executes at first publish (GitHub Pages agreed; pushing
-  needs explicit approval).
-
-## Next build phase (not started)
-
-Weekly Awards Board (nomination engine over weekly results — schema and
-evidence scheme ready), Lowdown Prep, full Issue Builder integration of
-approved matchup previews, richer public pages, Intel Prep / Branches and
-Sequels / False Assumptions (late-season). Projections remain unavailable
-(Sleeper's public API has none); a projection source would activate the
-projection-closeness scoring and Photo Finish tagging already in place.
-
-## Gotchas
-
-- Three Pythons on PATH — always `.venv\Scripts\python.exe`.
-- Always pass `encoding="utf-8"` when writing files from Python here.
-- Sleeper players endpoint cached 20h; don't force-refetch.
-- `data/` and `site/` are gitignored; `refdata/`, `archive/`, `editorial/`
-  are tracked and load-bearing for provenance.
+See POST_MVP.md. Short version: real names for the 8 neutral rosters,
+finish the Draft Issues, preseason Peer and Near-Peer, preseason Takes,
+custom domain + one-command deploy.

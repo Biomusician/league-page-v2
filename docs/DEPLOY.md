@@ -1,8 +1,30 @@
 # Deploying the public site
 
+**LIVE: https://league-page-ten-sandy.vercel.app** — Vercel project
+`league-page` (account biomusician, scope "biomusician's projects"),
+deployed 2026-08-29. Deploy unit is `dist/` only; the CLI is authenticated
+on this machine (`npx vercel whoami`).
+
 The public artifact is fully static: no server code, no database, no API
-keys, no Sleeper calls at page-view time. Any static host works (GitHub
-Pages, Cloudflare Pages, Netlify, an S3 bucket, a USB stick).
+keys, no Sleeper calls at page-view time.
+
+## Deploy / redeploy to Vercel
+
+```
+cd dist
+npx vercel link --yes --project league-page
+npx vercel deploy --prod --yes
+```
+
+The `link` step is needed after every rebuild because `build_public_site.py`
+wipes `dist/` (including the `.vercel/` link metadata Vercel writes there).
+It is non-interactive and idempotent. The CLI never uploads `.vercel/` or
+`.env.local`. Preview deploy: drop `--prod` (preview URLs sit behind
+Vercel's deployment protection; production is public).
+
+After deploying, spot-check: `/`, `/disco/`, `/surfeit/`, a draft page, an
+archive issue, and confirm `/CLAUDE.md` and `/editorial/managers.json`
+return 404.
 
 ## Build
 
@@ -42,16 +64,15 @@ never move old ones.
 
 ## Publishing a new issue (the whole cycle)
 
-1. `scripts\sync.py`
+1. `.venv\Scripts\python.exe scripts\sync.py`
 2. Desk (`scripts\desk.py`) → issue workspace → Build → make decisions
    (Review Packet shows everything on one screen)
 3. Claude Code: work `editorial/<season>/<league>/<issue>/AUTHORING_INDEX.md`
    with the my-writing-style skill
 4. Desk: edit, approve modules, PUBLISH (freezes a snapshot under
    `published/` — commit it)
-5. `scripts\build_public_site.py`
-6. Upload `dist/` to the host (or push, once a deployment destination is
-   approved — none is configured yet, and nothing here pushes anywhere).
+5. `.venv\Scripts\python.exe scripts\build_public_site.py`
+6. Deploy `dist/` to Vercel production (three commands above).
 
 Republishing an old issue is deliberate: re-run PUBLISH on that issue;
 normal rebuilds never touch frozen snapshots.
