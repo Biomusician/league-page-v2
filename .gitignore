@@ -4,6 +4,8 @@ __pycache__/
 .env
 data/
 site/
+dist/
+dist-preview/
 .pytest_cache/
 
 # Privacy: real Sleeper handles/identities stay local-only (see SKILL.md

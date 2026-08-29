@@ -1,0 +1,52 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Draft{% endblock %}
+{% block content %}
+<h2 class="section-label">Draft · {{ season }}</h2>
+{% if not board %}
+<p>The {{ season }} draft has not produced picks yet.</p>
+{% else %}
+<p class="meta">{{ status_line }}</p>
+
+{% if recap_href %}
+<p><a href="{{ lroot }}{{ recap_href }}">Read the editorial Draft Issue →</a></p>
+{% endif %}
+
+<section class="module">
+  <h2 class="section-label">Team-by-Team</h2>
+  <p class="meta">{% for t in team_sections %}<a href="#team-{{ t.slug }}">{{ t.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+  {% for t in team_sections %}
+  <div class="card" id="team-{{ t.slug }}">
+    <strong>{{ t.name }}</strong> <span class="meta">{{ t.position_counts }}</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      {% for p in t.picks %}
+      <tr><td>{{ p.round }}</td><td>{{ p.pick_no }}</td><td class="wrap">{{ p.name }}</td>
+          <td>{{ p.position }}</td><td>{{ p.nfl_team or "—" }}</td>
+          <td>{{ p.adp if p.adp is not none else "—" }}</td>
+          <td>{{ "%+g"|format(p.delta) if p.delta is not none else "—" }}</td></tr>
+      {% endfor %}
+    </table>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="module">
+  <h2 class="section-label">Full Board</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th scope="col">Pick</th><th scope="col">Rd</th><th scope="col">Team</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    {% for p in board %}
+    <tr><td>{{ p.pick_no }}</td><td>{{ p.round }}</td><td class="wrap">{{ p.team }}</td>
+        <td class="wrap">{{ p.name }}</td><td>{{ p.position }}</td>
+        <td>{{ p.adp if p.adp is not none else "—" }}</td>
+        <td>{{ "%+g"|format(p.delta) if p.delta is not none else "—" }}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</section>
+<p class="meta">Reference ranks ("Ref"): {{ adp_provenance or "no reference source" }}.
+A negative Δ means a pick ahead of that reference; the number is a fact, the verdict is editorial.</p>
+{% endif %}
+{% endblock %}

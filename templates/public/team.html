@@ -1,0 +1,53 @@
+{% extends "public/base.html" %}
+{% block title %}{{ team.name }} — {{ league.display_name }}{% endblock %}
+{% block content %}
+<h2 class="section-label">{{ team.name }}</h2>
+{% if team.coalition %}
+<div class="card">
+  <span class="flags" aria-hidden="true">{{ team.coalition.flags }}</span>
+  <strong>{{ team.coalition.label }}</strong>
+  <div class="meta">{{ team.coalition.roles }}</div>
+</div>
+{% endif %}
+<p class="meta">Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
+{% if team.co_managed %} · co-managed command structure{% endif %}</p>
+
+{% if team.score_history %}
+<section class="module">
+  <h2 class="section-label">Performance</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th scope="col">Week</th>{% for w, p in team.score_history %}<th scope="col">{{ w }}</th>{% endfor %}</tr>
+    <tr><td>Points</td>{% for w, p in team.score_history %}<td>{{ p }}</td>{% endfor %}</tr>
+  </table>
+  </div>
+  {% if team.all_play %}<p class="meta">All-play: {{ team.all_play }}</p>{% endif %}
+</section>
+{% endif %}
+
+{% if team.awards %}
+<section class="module">
+  <h2 class="section-label">Award Cabinet</h2>
+  <ul>{% for a in team.awards %}<li><strong>{{ a.name }}</strong> — {{ a.issue }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="module">
+  <h2 class="section-label">Roster</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th scope="col">Pos</th><th scope="col">Player</th><th scope="col">NFL</th></tr>
+    {% for p in team.roster %}
+    <tr><td>{{ p.position }}</td><td class="wrap">{{ p.name }}</td><td>{{ p.nfl }}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</section>
+
+{% if team.mentions %}
+<section class="module">
+  <h2 class="section-label">Newsletter History</h2>
+  <ul>{% for m in team.mentions %}<li><a href="{{ lroot }}{{ m.href }}">{{ m.label }}</a></li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

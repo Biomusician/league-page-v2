@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>League Select</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Georgia, 'Times New Roman', serif; background:#0f1216; color:#e8e4d8;
+         min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .wrap { display:grid; grid-template-columns:1fr 1fr; gap:0; width:min(64rem, 100%); min-height:70vh; }
+  a.league { display:flex; flex-direction:column; align-items:center; justify-content:center;
+             text-decoration:none; padding:3rem 2rem; text-align:center; }
+  a.league:focus-visible { outline:4px solid #d97514; outline-offset:-4px; }
+  a.disco { background:#14181d; color:#e8a33d; border-right:1px solid #2c343d; }
+  a.disco .sub { color:#8fa8b8; }
+  a.surfeit { background:#f4f4f0; color:#1b3a5c; }
+  a.surfeit .sub { color:#4f6b85; }
+  h1 { margin:.2rem 0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.4rem, 4vw, 2.4rem); }
+  .sub { font-variant:small-caps; letter-spacing:.2em; font-size:.95rem; }
+  .rule { width:5rem; border-top:3px double currentColor; margin:1rem 0; }
+  @media (max-width: 640px) { .wrap { grid-template-columns:1fr; } a.disco { border-right:0; border-bottom:1px solid #2c343d; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="league disco" href="disco/index.html">
+    <div class="sub">Operational / CRC</div>
+    <h1>Disco Chat</h1>
+    <div class="rule" role="presentation"></div>
+    <div class="sub">Enter the Common Tactical Picture</div>
+  </a>
+  <a class="league surfeit" href="surfeit/index.html">
+    <div class="sub">Force Design · 2035</div>
+    <h1>The Surfeit</h1>
+    <div class="rule" role="presentation"></div>
+    <div class="sub">Read the current assessment</div>
+  </a>
+</div>
+</body>
+</html>

@@ -16,6 +16,8 @@ DB_PATH = DATA_DIR / "league.sqlite3"
 ARCHIVE_DIR = REPO_ROOT / "archive"
 EDITORIAL_DIR = REPO_ROOT / "editorial"
 SITE_DIR = REPO_ROOT / "site"
+PUBLISHED_DIR = REPO_ROOT / "published"  # frozen snapshots of published issues
+DIST_DIR = REPO_ROOT / "dist"            # deployable public build output
 TEMPLATES_DIR = REPO_ROOT / "templates"
 STATIC_DIR = REPO_ROOT / "static"
 

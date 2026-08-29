@@ -1,0 +1,34 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Force Flow{% endblock %}
+{% block content %}
+<h2 class="section-label">Force Flow</h2>
+
+{% if editorial_sections %}
+<section class="module">
+  <h2 class="section-label">Moves That Mattered</h2>
+  <p class="meta">Editorial selections from published issues.</p>
+  {% for s in editorial_sections %}
+  <div class="card">
+    <p class="meta">{{ s.issue_label }}</p>
+    <div>{{ s.html | safe }}</div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="module">
+  <h2 class="section-label">Transaction Log</h2>
+  <p class="meta">The full reference log. Not everything here mattered; that is what the section above is for.</p>
+  {% if log %}
+  <div class="tablewrap">
+  <table>
+    <tr><th scope="col">Week</th><th scope="col">Type</th><th scope="col">Team</th><th scope="col">Added</th><th scope="col">Dropped</th><th scope="col">FAAB</th></tr>
+    {% for t in log %}
+    <tr><td>{{ t.week }}</td><td>{{ t.type }}</td><td class="wrap">{{ t.team }}</td>
+        <td class="wrap">{{ t.adds or "—" }}</td><td class="wrap">{{ t.drops or "—" }}</td><td>{{ t.faab or "—" }}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p>No transactions yet.</p>{% endif %}
+</section>
+{% endblock %}

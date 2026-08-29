@@ -1,0 +1,20 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Peer and Near-Peer Competition{% endblock %}
+{% block content %}
+<h2 class="section-label">Peer and Near-Peer Competition</h2>
+{% if rankings %}
+<p class="meta">The commissioner's editorial ranking ({{ label }}). It is a judgment, published as one.</p>
+{% for r in rankings %}
+<div class="card">
+  <p style="margin:.1rem 0"><strong>#{{ r.rank }} {{ r.name }}</strong>
+    {% if r.movement %}<span class="tag">{{ r.movement }}</span>{% endif %}
+    {% if r.tier_name %}<span class="tag prom">{{ r.tier_name }}</span>{% endif %}
+  </p>
+  <p class="meta">{{ r.record }}</p>
+  {% if r.note %}<p>{{ r.note }}</p>{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p>No ranking has been published yet this season.</p>
+{% endif %}
+{% endblock %}

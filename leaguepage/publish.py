@@ -110,14 +110,20 @@ def publish_assembled_issue(
     season: str,
     issue_key: str,
     *,
-    site_dir: Path | None = None,
+    published_dir: Path | None = None,
     base_dir: Path | None = None,
     week: int | None = None,
 ) -> Path:
-    """Publish a fully assembled issue (weekly or draft) to the public site.
-    Enforces: every included module approved, no blocked markers, all public
-    team names resolved. Then refreshes the league home page."""
+    """Publish a fully assembled issue: enforce the gates (every included
+    module approved, no blocked markers, all public team names resolved),
+    then FREEZE a snapshot under published/. The public site renders issues
+    from snapshots only, so later editorial-file changes never mutate an
+    already-published issue; running this again deliberately republishes."""
+    import json as _json
+
+    from leaguepage.config import PUBLISHED_DIR
     from leaguepage.issue_builder import assemble_issue
+    from leaguepage.storage import utcnow_iso
 
     try:
         assembled = assemble_issue(storage, league, season, issue_key,
@@ -125,29 +131,30 @@ def publish_assembled_issue(
     except ValueError as exc:
         raise PublishError(str(exc)) from exc
 
-    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
-    template = env.get_template("public/full_issue.html")
     sections = []
     for s in assembled["sections"]:
-        if s["kind"] == "auto":
+        if s["kind"] == "auto" or not s.get("content_md"):
             continue
-        if s.get("content_md"):
-            sections.append({
-                "title": s["title"],
-                "html": markdown.markdown(strip_editorial_comments(s["content_md"]),
-                                          extensions=["tables", "smarty"]),
-                "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
-            })
-    html = template.render(league=league, season=season, issue_key=issue_key,
-                           issue_label=issue_key.replace("week-", "Week ").replace("draft", "Draft Issue"),
-                           sections=sections)
-    out = (site_dir or SITE_DIR) / league.slug / season / f"{issue_key}.html"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(html, encoding="utf-8")
+        sections.append({
+            "module_key": s["module_key"],
+            "title": s["title"],
+            "content_md": strip_editorial_comments(s["content_md"]).strip(),
+            "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
+        })
+    snapshot = {
+        "league": league.slug, "season": season, "issue_key": issue_key,
+        "issue_label": issue_key.replace("week-", "Week ").replace("draft", "Draft Issue"),
+        "published_at": utcnow_iso(),
+        "sections": sections,
+    }
+    snap_path = ((published_dir or PUBLISHED_DIR) / league.slug / season
+                 / f"{issue_key}.json")
+    snap_path.parent.mkdir(parents=True, exist_ok=True)
+    snap_path.write_text(_json.dumps(snapshot, indent=1, ensure_ascii=False) + "\n",
+                         encoding="utf-8")
     storage.set_issue_status(league_slug=league.slug, season=season, issue_key=issue_key,
-                             status="published", published_path=out.as_posix())
-    render_league_home(storage, league, site_dir=site_dir)
-    return out
+                             status="published", published_path=snap_path.as_posix())
+    return snap_path
 
 
 def render_league_home(storage: Storage, league: League, *, site_dir: Path | None = None) -> Path:

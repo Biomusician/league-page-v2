@@ -1,0 +1,26 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Archive{% endblock %}
+{% block content %}
+<h2 class="section-label">Archive</h2>
+
+{% if published %}
+<section class="module">
+  <h2 class="section-label">{{ season }} Issues</h2>
+  <ul>{% for p in published %}<li><a href="{{ lroot }}{{ p.href }}">{{ p.season }} · {{ p.issue_label }}</a></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% for group in historical_groups %}
+<section class="module">
+  <h2 class="section-label">{{ group.title }}</h2>
+  <p class="meta">Imported historical issues, preserved verbatim.</p>
+  {% for season_label, items in group.seasons %}
+  <h3>{{ season_label }}</h3>
+  <ul>
+    {% for it in items %}<li><a href="{{ lroot }}archive/a{{ it.issue_id }}/index.html">{{ it.title }}</a></li>{% endfor %}
+  </ul>
+  {% endfor %}
+</section>
+{% endfor %}
+{% if not published and not historical_groups %}<p>Nothing archived yet.</p>{% endif %}
+{% endblock %}

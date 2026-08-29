@@ -1,0 +1,15 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Teams{% endblock %}
+{% block content %}
+<h2 class="section-label">Teams</h2>
+<div class="teamgrid">
+  {% for t in teams %}
+  <a class="card" href="{{ lroot }}team/{{ t.slug }}/index.html" style="text-decoration:none; color:inherit">
+    <strong>{{ t.name }}</strong>
+    {% if t.coalition %}<div class="flags" aria-label="{{ t.coalition.label }}">{{ t.coalition.flags }}</div>{% endif %}
+    <div class="meta">{{ t.record }} · #{{ t.standing }}</div>
+    {% if t.coalition %}<div class="meta">{{ t.coalition.roles }}</div>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

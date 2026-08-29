@@ -1,0 +1,35 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Black Box{% endblock %}
+{% block content %}
+<h2 class="section-label">Black Box</h2>
+
+{% if records %}
+<section class="module">
+  <h2 class="section-label">Records on File</h2>
+  <p class="meta">Comparison population: {{ population }}. Records older than this
+  dataset are not claimed.</p>
+  <div class="tablewrap">
+  <table>
+    <tr><th scope="col">Record</th><th scope="col">Holder</th><th scope="col">Value</th><th scope="col">When</th></tr>
+    {% for r in records %}
+    <tr><td class="wrap">{{ r.label }}</td><td class="wrap">{{ r.holder }}</td><td>{{ r.value }}</td><td>{{ r.when }}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</section>
+{% else %}
+<p>Not enough recorded weeks to claim any records yet. The box is listening.</p>
+{% endif %}
+
+{% if editorial_sections %}
+<section class="module">
+  <h2 class="section-label">Logged Anomalies</h2>
+  {% for s in editorial_sections %}
+  <div class="card">
+    <p class="meta">{{ s.issue_label }}</p>
+    <div>{{ s.html | safe }}</div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

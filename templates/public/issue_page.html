@@ -1,0 +1,18 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — {{ season }} {{ issue.issue_label }}{% endblock %}
+{% block content %}
+{% if issue.preview %}
+<div class="card feature" role="note">
+  <strong>UNPUBLISHED COMMISSIONER PREVIEW</strong> — this issue has not been
+  approved or published; content may include rough drafts.
+</div>
+{% endif %}
+<p class="meta">{{ issue.issue_label }} · {{ season }}{% if issue.published_at %} · published {{ issue.published_at[:10] }}{% endif %}</p>
+{% for s in issue.sections %}
+<section class="module" id="{{ s.anchor }}">
+  <h2 class="section-label">{{ s.title }}</h2>
+  {% if s.credit %}<div class="credit">{{ s.credit }}</div>{% endif %}
+  <div>{{ s.html | safe }}</div>
+</section>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Common Tactical Picture{% endblock %}
+{% block content %}
+<h2 class="section-label">Common Tactical Picture · Week {{ week }}</h2>
+{% for c in cards %}
+<section class="card {{ 'feature' if c.prominence == 'FEATURE' else '' }}" id="{{ c.anchor }}" aria-label="{{ c.names }}">
+  <p style="margin:.1rem 0"><strong style="font-size:{{ '1.35rem' if c.prominence == 'FEATURE' else '1.1rem' }}">{{ c.names }}</strong></p>
+  <p class="meta">{{ c.records }}{% if c.score %} · {{ c.score }}{% endif %}</p>
+  <div>{% for t in c.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+       <span class="tag prom">{{ c.prominence }}</span></div>
+  {% if c.preview_html %}
+  <div>{{ c.preview_html | safe }}</div>
+  {% else %}
+  <p class="meta"><i>Preview pending.</i></p>
+  {% endif %}
+</section>
+{% endfor %}
+{% if not cards %}<p>No matchups on the board yet.</p>{% endif %}
+{% endblock %}

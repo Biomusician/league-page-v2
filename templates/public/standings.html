@@ -1,0 +1,32 @@
+{% extends "public/base.html" %}
+{% block title %}{{ league.display_name }} — Standings{% endblock %}
+{% block content %}
+<h2 class="section-label">Standings</h2>
+<div class="tablewrap">
+<table>
+  <tr><th scope="col">#</th><th scope="col">Team</th><th scope="col">W</th><th scope="col">L</th>
+      <th scope="col">PF</th><th scope="col">PA</th>{% if weeks_played %}<th scope="col">Streak</th>{% endif %}</tr>
+  {% for t in standings %}
+  <tr><td>{{ loop.index }}</td><td class="wrap">{{ t.name }}</td><td>{{ t.wins }}</td><td>{{ t.losses }}</td>
+      <td>{{ t.pf }}</td><td>{{ t.pa }}</td>{% if weeks_played %}<td>{{ t.streak or "—" }}</td>{% endif %}</tr>
+  {% endfor %}
+</table>
+</div>
+
+{% if weeks_played %}
+<h2 class="section-label">Under the Hood</h2>
+<p class="meta">Deterministic context through week {{ weeks_played }}: all-play treats every team as
+having played every other team each week; efficiency is actual starters vs the best legal lineup.</p>
+<div class="tablewrap">
+<table>
+  <tr><th scope="col">Team</th><th scope="col">All-Play</th><th scope="col">Scoring Rank</th><th scope="col">Lineup Efficiency</th></tr>
+  {% for t in standings %}
+  <tr><td class="wrap">{{ t.name }}</td>
+      <td>{{ t.all_play or "—" }}</td>
+      <td>{{ t.points_rank }}</td>
+      <td>{{ t.efficiency or "—" }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+{% endblock %}

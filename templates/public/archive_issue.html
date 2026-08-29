@@ -1,0 +1,13 @@
+{% extends "public/base.html" %}
+{% block title %}{{ item.title }} — Archive{% endblock %}
+{% block content %}
+<p class="meta"><span class="tag">Imported Historical Issue</span>
+{{ item.origin }}{% if item.season %} · {{ item.season }} season{% endif %}{% if item.week %} · Week {{ item.week }}{% endif %}</p>
+<h2 class="section-label">{{ item.title }}</h2>
+<article>
+  {% for para in item.paragraphs %}
+  <p>{{ para }}</p>
+  {% endfor %}
+</article>
+<p><a href="{{ lroot }}archive/index.html">← Back to the archive</a></p>
+{% endblock %}
