@@ -1,0 +1,29 @@
+{% extends "desk/base.html" %}
+{% block title %}Publish result — {{ league.display_name }} {{ issue_key }}{% endblock %}
+{% block masthead_right %}<a href="{{ edit_base }}">← back to editor</a>{% endblock %}
+{% block content %}
+<h2>{{ "Done" if all_ok else "Stopped" }} — {{ league.display_name }} · {{ season }} · {{ issue_key }}</h2>
+<table>
+  <tr><th></th><th>Step</th><th>Detail</th></tr>
+  {% for st in steps %}
+  <tr>
+    <td style="font-size:1.1rem">{{ "✅" if st.ok else "❌" }}</td>
+    <td><b>{{ st.name }}</b></td>
+    <td class="meta">{{ st.detail }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% if all_ok and steps | selectattr("name", "equalto", "Production verification") | list %}
+  <div class="card" style="border:2px solid #2f6b2f; background:#eef7ee">
+    <b>Live.</b> Production: <a href="{{ production_url }}">{{ production_url }}</a><br>
+    This issue: <a href="{{ issue_url }}">{{ issue_url }}</a>
+  </div>
+{% elif all_ok %}
+  <div class="card">Published locally. Deploy any time from the
+    <a href="{{ edit_base }}/publish">publish screen</a>.</div>
+{% else %}
+  <div class="card warn">Nothing was deployed past the first failed step. The live site is
+    unchanged. Fix the issue and retry from the <a href="{{ edit_base }}/publish">publish screen</a>.</div>
+{% endif %}
+<p><a href="{{ edit_base }}">← back to the editor</a></p>
+{% endblock %}

@@ -49,20 +49,43 @@ anywhere still requires explicit approval. The build audits its own output
 and fails on private material; `test_all_internal_links_resolve` guards
 link integrity.
 
+## The authoring experience (rebuilt this tranche)
+
+- **Launch**: double-click `Launch Commissioner Desk.cmd` (repo root) or
+  the "League Commissioner Desk" desktop shortcut. It health-checks
+  (`/health`), handles port conflicts (already-running Desk -> just opens
+  the browser; foreign process on 8026 -> nearby free port, clearly
+  stated), logs to `logs/desk-startup.log`, and opens
+  http://localhost:8026/commissioner when actually ready. Closing the
+  terminal window stops the Desk (no zombie ports). The original defect:
+  a stale process on 8026 made `scripts/desk.py` print the URL after a
+  buried bind error and exit 0.
+- **Issue Editor** (`/commissioner/{league}/{season}/issue/{key}/edit`,
+  reached via EDIT ISSUE buttons on the Desk home): whole issue on one
+  screen. Blockers panel with jump links / READY TO PUBLISH; per-section
+  cards (capsules split per team on `###` headings) with debounced
+  autosave + Save All, base-hash conflict detection (two tabs cannot
+  silently clobber each other), per-section approve gated on blocked
+  markers, Preview section, full private Preview (banner-marked),
+  History (last 50 revisions per section in SQLite, Restore), Request
+  rewrite -> `REVISION_REQUESTS.md` for Claude Code, side-by-side
+  proposal review (`proposals/<section>.md`, Accept/Keep, never silent
+  replacement), inline rankings table, team-name manager, Publish… with
+  Publish Locally / Publish & Deploy (build + audit + Vercel + URL
+  verification; stops at the first failed step).
+- Commissioner edits mark a section `commissioner-edited`; authoring
+  rebuilds only ever write briefs/AUTHORING files, never prose files.
+
 ## Weekly issue cycle (the whole thing)
 
-1. `.venv\Scripts\python.exe scripts\sync.py`
-2. `.venv\Scripts\python.exe scripts\build_weekly_packet.py --league <slug> --week <N>`
-   (weekly) or the Desk issue-workspace Build button
-3. Desk (`scripts\desk.py`, localhost:8026, private): decisions, angles,
-   team names, rankings
-4. Claude Code: work the issue's AUTHORING_INDEX.md / matchup packets with
-   the my-writing-style skill
-5. Desk: edit, approve modules (ROUGH marker must go), PUBLISH -> frozen
-   snapshot under published/ (commit it)
-6. `.venv\Scripts\python.exe scripts\build_public_site.py`
-7. Deploy per docs/DEPLOY.md (cd dist; npx vercel link --yes --project
-   league-page; npx vercel deploy --prod --yes)
+1. Double-click `Launch Commissioner Desk.cmd`.
+2. Desk: issue workspace Build (packets + briefs), decisions, angles.
+3. Claude Code: work the issue's AUTHORING_INDEX.md / matchup packets with
+   the my-writing-style skill; later, "work all pending rewrite requests".
+4. EDIT ISSUE: edit inline, approve sections, clear blockers.
+5. Publish… -> Publish & Deploy (or Publish Locally + the manual CLI in
+   docs/DEPLOY.md). Commit the new published/ snapshot.
+6. Stale data? `.venv\Scripts\python.exe scripts\sync.py` first.
 
 ## Data state
 

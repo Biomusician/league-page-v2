@@ -265,6 +265,40 @@ CREATE TABLE IF NOT EXISTS matchup_state (
     updated_at TEXT NOT NULL,
     PRIMARY KEY (league_slug, season, week, matchup_slug)
 );
+
+CREATE TABLE IF NOT EXISTS prose_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    league_slug TEXT NOT NULL,
+    season TEXT NOT NULL,
+    issue_key TEXT NOT NULL,
+    section TEXT NOT NULL,          -- module key ("lowdown", "hardware", ...)
+    source TEXT NOT NULL,           -- what replaced this text: commissioner-save |
+                                    -- restore | proposal-accept
+    prior_text TEXT NOT NULL,       -- the text as it was BEFORE that change
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS section_prose_state (
+    league_slug TEXT NOT NULL,
+    season TEXT NOT NULL,
+    issue_key TEXT NOT NULL,
+    section TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'generated',  -- generated | commissioner-edited
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (league_slug, season, issue_key, section)
+);
+
+CREATE TABLE IF NOT EXISTS issue_revision_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    league_slug TEXT NOT NULL,
+    season TEXT NOT NULL,
+    issue_key TEXT NOT NULL,
+    section TEXT NOT NULL,
+    note TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open',      -- open | done | withdrawn
+    created_at TEXT NOT NULL,
+    resolved_at TEXT
+);
 """
 
 
@@ -937,3 +971,93 @@ class Storage:
             (league_slug, season, week),
         ).fetchall()
         return {r["matchup_slug"]: dict(r) for r in rows}
+
+    # -- issue editor: revisions, prose state, rewrite requests ---------
+
+    def add_prose_revision(self, league_slug: str, season: str, issue_key: str,
+                           section: str, prior_text: str, source: str) -> int:
+        with self._cursor() as cur:
+            cur.execute(
+                "INSERT INTO prose_revisions "
+                "(league_slug, season, issue_key, section, source, prior_text, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (league_slug, season, issue_key, section, source, prior_text, utcnow_iso()),
+            )
+            rid = cur.lastrowid
+            # keep the last 50 per section; this is undo, not an archive
+            cur.execute(
+                "DELETE FROM prose_revisions WHERE league_slug=? AND season=? "
+                "AND issue_key=? AND section=? AND id NOT IN ("
+                "  SELECT id FROM prose_revisions WHERE league_slug=? AND season=? "
+                "  AND issue_key=? AND section=? ORDER BY id DESC LIMIT 50)",
+                (league_slug, season, issue_key, section) * 2,
+            )
+        return rid
+
+    def get_prose_revisions(self, league_slug: str, season: str, issue_key: str,
+                            section: str, limit: int = 10) -> list[dict]:
+        rows = self._conn.execute(
+            "SELECT id, source, prior_text, created_at FROM prose_revisions "
+            "WHERE league_slug=? AND season=? AND issue_key=? AND section=? "
+            "ORDER BY id DESC LIMIT ?",
+            (league_slug, season, issue_key, section, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_prose_revision(self, revision_id: int) -> dict | None:
+        row = self._conn.execute(
+            "SELECT * FROM prose_revisions WHERE id=?", (revision_id,)).fetchone()
+        return dict(row) if row else None
+
+    def set_prose_state(self, league_slug: str, season: str, issue_key: str,
+                        section: str, state: str) -> None:
+        if state not in ("generated", "commissioner-edited"):
+            raise ValueError(f"unknown prose state: {state}")
+        with self._cursor() as cur:
+            cur.execute(
+                "INSERT INTO section_prose_state "
+                "(league_slug, season, issue_key, section, state, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(league_slug, season, issue_key, section) DO UPDATE SET "
+                "state=excluded.state, updated_at=excluded.updated_at",
+                (league_slug, season, issue_key, section, state, utcnow_iso()),
+            )
+
+    def get_prose_states(self, league_slug: str, season: str, issue_key: str) -> dict[str, str]:
+        rows = self._conn.execute(
+            "SELECT section, state FROM section_prose_state "
+            "WHERE league_slug=? AND season=? AND issue_key=?",
+            (league_slug, season, issue_key),
+        ).fetchall()
+        return {r["section"]: r["state"] for r in rows}
+
+    def add_rewrite_request(self, league_slug: str, season: str, issue_key: str,
+                            section: str, note: str) -> int:
+        with self._cursor() as cur:
+            cur.execute(
+                "INSERT INTO issue_revision_requests "
+                "(league_slug, season, issue_key, section, note, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (league_slug, season, issue_key, section, note.strip(), utcnow_iso()),
+            )
+            return cur.lastrowid
+
+    def list_rewrite_requests(self, league_slug: str, season: str, issue_key: str,
+                              status: str | None = "open") -> list[dict]:
+        q = ("SELECT * FROM issue_revision_requests "
+             "WHERE league_slug=? AND season=? AND issue_key=?")
+        params: list = [league_slug, season, issue_key]
+        if status:
+            q += " AND status=?"
+            params.append(status)
+        rows = self._conn.execute(q + " ORDER BY id", params).fetchall()
+        return [dict(r) for r in rows]
+
+    def resolve_rewrite_requests(self, league_slug: str, season: str, issue_key: str,
+                                 section: str, status: str = "done") -> None:
+        with self._cursor() as cur:
+            cur.execute(
+                "UPDATE issue_revision_requests SET status=?, resolved_at=? "
+                "WHERE league_slug=? AND season=? AND issue_key=? AND section=? AND status='open'",
+                (status, utcnow_iso(), league_slug, season, issue_key, section),
+            )

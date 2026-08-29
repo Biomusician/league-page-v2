@@ -1,0 +1,46 @@
+{% extends "desk/base.html" %}
+{% block title %}Publish {{ league.display_name }} {{ issue_key }}?{% endblock %}
+{% block masthead_right %}<a href="{{ edit_base }}">← back to editor</a>{% endblock %}
+{% block content %}
+<h2>Publish {{ league.display_name }} · {{ season }} · {{ issue_key }}</h2>
+
+{% if blockers %}
+  <div class="card" style="border:2px solid var(--accent); background:#fdf1ef">
+    <b>Cannot publish yet — {{ blockers|length }} blocker(s):</b>
+    <ul>{% for b in blockers %}<li><a href="{{ edit_base }}#{{ b.anchor }}">{{ b.text }}</a></li>{% endfor %}</ul>
+    <p class="meta">Fix these in the <a href="{{ edit_base }}">editor</a>; this page will show
+      READY when the gates pass. Publishing is impossible until then.</p>
+  </div>
+{% else %}
+  <div class="card" style="border:2px solid #2f6b2f; background:#eef7ee">
+    <b>READY TO PUBLISH.</b> All gates pass: every included module approved, no blocked
+    markers, all public team names confirmed.
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Publish locally</h3>
+    <p class="meta">Freezes the immutable snapshot under <code>published/</code> and rebuilds
+      the audited <code>dist/</code>. Nothing leaves this machine.</p>
+    <form method="post" action="{{ edit_base }}/publish-local"
+          onsubmit="return confirm('Freeze and publish this issue locally?')">
+      <input type="hidden" name="confirm" value="yes">
+      <button class="primary">Publish Locally</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Publish &amp; Deploy to production</h3>
+    <p class="meta">Snapshot → audited public build → Vercel production
+      (<code>{{ production_url }}</code>) → verification. The deploy is skipped
+      automatically if the build or privacy audit fails.</p>
+    <form method="post" action="{{ edit_base }}/publish-deploy"
+          onsubmit="return confirm('Deploy to the LIVE public site now?')">
+      <input type="hidden" name="confirm" value="yes">
+      <label><input type="checkbox" name="confirm_deploy" value="yes">
+        I want this issue live on the public internet.</label><br><br>
+      <button>Publish &amp; Deploy</button>
+    </form>
+  </div>
+{% endif %}
+<p><a href="{{ edit_base }}/full-preview">Preview the full issue first →</a></p>
+{% endblock %}

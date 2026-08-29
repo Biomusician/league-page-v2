@@ -1,0 +1,346 @@
+{% extends "desk/base.html" %}
+{% block title %}Edit {{ league.display_name }} {{ issue_key }} — Commissioner's Desk{% endblock %}
+{% block masthead_right %}
+  <a href="{{ base }}">workspace</a> ·
+  <a href="{{ edit_base }}/full-preview">full preview</a> ·
+  <a href="/commissioner">desk home</a>
+{% endblock %}
+{% block content %}
+<style>
+  .topbar { position:sticky; top:0; z-index:5; background:var(--paper); border-bottom:1px solid var(--line);
+            padding:.5rem 0; display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
+  #savestate { margin-left:auto; font-size:.85rem; color:var(--muted); }
+  #savestate.dirty { color:#8a6d00; font-weight:bold; }
+  #savestate.error { color:var(--accent); font-weight:bold; }
+  .blockers { border:2px solid var(--accent); background:#fdf1ef; }
+  .blockers ul { margin:.3rem 0 .2rem; padding-left:1.2rem; }
+  .ready { border:2px solid #2f6b2f; background:#eef7ee; color:#2f6b2f; font-weight:bold; }
+  details.sec { margin:.8rem 0; }
+  details.sec > summary { display:flex; gap:.6rem; align-items:baseline; flex-wrap:wrap;
+                          font-size:1.05rem; font-weight:bold; list-style:none; }
+  details.sec > summary::before { content:"▸ "; }
+  details.sec[open] > summary::before { content:"▾ "; }
+  .chip { font-size:.72rem; font-weight:normal; padding:.08rem .45rem; border-radius:3px;
+          border:1px solid var(--line); background:#efede7; }
+  .chip.approved { background:#e2f0e2; border-color:#8fbc8f; color:#2f6b2f; }
+  .chip.edited { background:#fff3cd; border-color:#e0c96a; }
+  .chip.excluded { background:#eee; color:var(--muted); text-decoration:line-through; }
+  textarea.prose { width:100%; font-family:Consolas, monospace; font-size:.92rem; line-height:1.45; }
+  .cardctl { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 .2rem; align-items:center; }
+  .subcard { border-top:1px dashed var(--line); padding-top:.5rem; margin-top:.7rem; }
+  .subcard h4 { margin:.1rem 0 .3rem; }
+  .previewbox { border:1px solid var(--line); background:#fffdf8; padding:.6rem 1rem; margin:.4rem 0; }
+  .proposal { border:2px solid #3a5a8c; background:#f0f4fb; padding:.6rem .9rem; margin:.5rem 0; }
+  .compare { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+  @media (max-width:56rem) { .compare { grid-template-columns:1fr; } }
+  .revlist { font-size:.85rem; }
+  .revlist li { margin:.25rem 0; }
+  .namegrid td input[type=text] { width:14rem; }
+</style>
+
+<div class="topbar">
+  <button class="primary" onclick="saveAll()">Save All</button>
+  <a href="{{ edit_base }}/full-preview"><button type="button">Preview Full Issue</button></a>
+  <a href="{{ edit_base }}/publish"><button type="button">Publish…</button></a>
+  <button type="button" onclick="expandAll(true)">Expand All</button>
+  <button type="button" onclick="collapseApproved()">Collapse Approved</button>
+  <span id="savestate">All changes saved</span>
+</div>
+
+<h2 style="margin-top:1rem">{{ league.display_name }} · {{ season }} · {{ issue_key }}</h2>
+<p class="meta">
+  status: <b>{{ (issue_row or {}).get("status") or "not started" }}</b>
+  {% if issue_row and issue_row.get("updated_at") %} · last change {{ issue_row["updated_at"] }}{% endif %}
+  {% if open_request_count %} · {{ open_request_count }} open rewrite request(s) for Claude Code{% endif %}
+</p>
+
+{% if blockers %}
+<div class="card blockers" id="blockers">
+  <b>{{ blockers|length }} publication blocker(s)</b>
+  <ul>
+    {% for b in blockers %}<li><a href="#{{ b.anchor }}">{{ b.text }}</a></li>{% endfor %}
+  </ul>
+</div>
+{% else %}
+<div class="card ready">READY TO PUBLISH — no blockers. Use Publish… above.</div>
+{% endif %}
+
+{% set neutral = name_rows | selectattr("neutral") | list %}
+<details class="sec card" id="sec-team-names" {% if neutral %}open{% endif %}>
+  <summary>Team names <span class="chip {% if neutral %}edited{% else %}approved{% endif %}">
+    {{ neutral|length }} unresolved</span></summary>
+  <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/team-names">
+    <input type="hidden" name="back" value="{{ edit_base }}#sec-team-names">
+    <table class="namegrid">
+      <tr><th>Roster</th><th>Current public name</th><th>Set name</th></tr>
+      {% for r in name_rows %}
+      <tr>
+        <td>{{ r.roster_id }}</td>
+        <td>{{ r.name or "—" }} <span class="meta">({{ r.source or "unresolved" }})</span></td>
+        <td><input type="text" name="name_{{ r.roster_id }}" placeholder="{% if r.neutral %}real team name{% endif %}"></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div class="cardctl"><button class="primary">Confirm names</button>
+      <span class="meta">Sleeper team names are already safe; handles never are.</span></div>
+  </form>
+</details>
+
+{% for c in cards %}
+<details class="sec card" id="sec-{{ c.module_key }}"
+         {% if c.included and not c.approved and c.kind != "auto" %}open{% endif %}>
+  <summary>
+    {{ c.title }}
+    {% if not c.included %}<span class="chip excluded">excluded</span>{% endif %}
+    {% if c.kind == "auto" %}<span class="chip approved">automatic</span>
+    {% else %}
+      <span class="chip {% if c.approved %}approved{% endif %}" data-role="approve-chip"
+            data-section="{{ c.module_key }}">{{ "approved" if c.approved else "not approved" }}</span>
+      {% if c.editable %}<span class="chip {% if c.prose_state == 'commissioner-edited' %}edited{% endif %}"
+            data-role="state-chip" data-section="{{ c.module_key }}">{{ c.prose_state }}</span>{% endif %}
+    {% endif %}
+    {% if c.detail %}<span class="meta">{{ c.detail }}</span>{% endif %}
+  </summary>
+
+  <div class="cardctl">
+    <form method="post" action="{{ edit_base }}/module" class="inline">
+      <input type="hidden" name="module_key" value="{{ c.module_key }}">
+      {% if c.included %}<button name="action" value="exclude">Exclude from issue</button>
+      {% else %}<button name="action" value="include">Include in issue</button>{% endif %}
+      <input type="hidden" name="position" value="">
+    </form>
+    {% if c.kind != "auto" %}
+      <button type="button" onclick="approve('{{ c.module_key }}', true)">Approve</button>
+      <button type="button" onclick="approve('{{ c.module_key }}', false)">Unapprove</button>
+    {% endif %}
+    {% if c.editable %}
+      <button type="button" onclick="previewSection('{{ c.module_key }}')">Preview section</button>
+      <button type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
+      <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
+      {% if c.module_key == "lowdown" and c.generated_source %}
+        <button type="button" onclick="resetGenerated()">Reset to generated draft</button>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  {% for r in c.requests %}
+    <p class="meta">✎ open rewrite request {{ r.id }}: “{{ r.note }}” — tell Claude Code:
+      <code>work all pending rewrite requests for {{ league.slug }} {{ issue_key }}</code></p>
+  {% endfor %}
+
+  {% if c.proposal %}
+  <div class="proposal">
+    <b>Claude proposal awaiting review</b> — your current text is untouched until you accept.
+    <div class="compare">
+      <div><div class="meta">Current (yours)</div>
+        <textarea class="prose" rows="14" readonly>{{ c.chunks | map(attribute="text") | join("") }}</textarea></div>
+      <div><div class="meta">Proposed (Claude)</div>
+        <textarea class="prose" rows="14" readonly>{{ c.proposal }}</textarea></div>
+    </div>
+    <div class="cardctl">
+      <button class="primary" type="button" onclick="proposal('{{ c.module_key }}', 'accept')">Accept proposal</button>
+      <button type="button" onclick="proposal('{{ c.module_key }}', 'discard')">Keep current (discard)</button>
+      <span class="meta">Accepting snapshots your current text to History first.</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if c.editable %}
+    {% if c.missing %}<p class="meta">No content yet. Type below to create it, or build the
+      authoring packet and have Claude Code draft it.</p>{% endif %}
+    {% for ch in c.chunks %}
+      <div class="{% if c.chunk_count > 1 %}subcard{% endif %}">
+        {% if ch.heading %}<h4>{{ ch.heading }}</h4>{% endif %}
+        <textarea class="prose autosave" data-section="{{ c.module_key }}"
+                  data-sha="{{ ch.sha }}"
+                  {% if c.chunk_count > 1 %}data-chunk-index="{{ ch.index }}"
+                  data-chunk-count="{{ c.chunk_count }}"{% endif %}
+                  rows="{{ [4, [ch.text.count('\n') + 2, 26] | min] | max }}">{{ ch.text }}</textarea>
+      </div>
+    {% endfor %}
+    <div class="previewbox" id="preview-{{ c.module_key }}" hidden></div>
+    <div class="revlist" id="revs-{{ c.module_key }}" hidden></div>
+  {% elif c.kind == "power" %}
+    {% if c.rankings %}
+    <form method="post" action="{{ edit_base }}/rankings">
+      <input type="hidden" name="label" value="{{ c.label }}">
+      <table>
+        <tr><th>Roster</th><th>Rank</th><th>Tier</th><th>Rationale</th></tr>
+        {% for p in c.rankings %}
+        <tr>
+          <td>{{ p.roster_id }}</td>
+          <td><input type="text" name="rank_{{ p.roster_id }}" value="{{ p.rank or '' }}" size="3"></td>
+          <td><input type="text" name="tier_{{ p.roster_id }}" value="{{ p.tier or '' }}" size="3"></td>
+          <td><input type="text" name="note_{{ p.roster_id }}" value="{{ p.note or '' }}" style="width:95%"></td>
+        </tr>
+        {% endfor %}
+      </table>
+      <div class="cardctl"><button class="primary">Save rankings</button>
+        <a href="{{ base | replace('/issue/' + issue_key, '') }}/rankings/{{ c.label }}">full rankings screen →</a></div>
+    </form>
+    {% else %}
+      <p class="meta">No "{{ c.label }}" rankings saved yet —
+        <a href="{{ base | replace('/issue/' + issue_key, '') }}/rankings/{{ c.label }}">set them here</a>.</p>
+    {% endif %}
+  {% elif c.kind == "auto" %}
+    <p class="meta">Masthead renders automatically from league theme + issue metadata.</p>
+  {% else %}
+    <p class="meta">{{ c.detail or c.status }}</p>
+  {% endif %}
+</details>
+{% endfor %}
+
+{% if week is not none %}
+<h2>Common Tactical Picture — matchup previews</h2>
+{% for mc in matchup_cards %}
+<details class="sec card" id="sec-{{ mc.section }}" {% if mc.status not in ("approved", "locked") %}open{% endif %}>
+  <summary>{{ mc.title }}
+    <span class="chip {% if mc.status in ('approved','locked') %}approved{% endif %}"
+          data-role="approve-chip" data-section="{{ mc.section }}">{{ mc.status }}</span>
+    <span class="chip">{{ mc.prominence or "?" }}</span>
+    <span class="meta">angle: {{ mc.angle }}</span>
+  </summary>
+  <div class="cardctl">
+    <button type="button" onclick="approve('{{ mc.section }}', true)">Approve</button>
+    <button type="button" onclick="approve('{{ mc.section }}', false)">Unapprove</button>
+    <button type="button" onclick="askRewrite('{{ mc.section }}')">Request rewrite</button>
+    <a href="{{ base | replace('/issue/' + issue_key, '') }}/week/{{ week }}/matchups/{{ mc.slug }}">Matchup Lab →</a>
+  </div>
+  <textarea class="prose autosave" data-section="{{ mc.section }}" data-sha="{{ mc.sha }}"
+            rows="{{ [4, [mc.text.count('\n') + 2, 26] | min] | max }}">{{ mc.text }}</textarea>
+</details>
+{% endfor %}
+{% endif %}
+
+<script>
+const EDIT = {{ edit_base | tojson }};
+const dirty = new Map();   // element -> true
+let saveTimer = null;
+
+function setState(cls, text) {
+  const el = document.getElementById("savestate");
+  el.className = cls; el.textContent = text;
+}
+
+document.querySelectorAll("textarea.autosave").forEach(ta => {
+  ta.addEventListener("input", () => {
+    dirty.set(ta, true);
+    setState("dirty", "Unsaved changes…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveAll, 1500);
+  });
+});
+
+async function saveOne(ta) {
+  const body = {
+    section: ta.dataset.section,
+    text: ta.value,
+    base_sha: ta.dataset.sha,
+  };
+  if (ta.dataset.chunkIndex !== undefined) {
+    body.chunk_index = parseInt(ta.dataset.chunkIndex);
+    body.chunk_count = parseInt(ta.dataset.chunkCount);
+  }
+  const r = await fetch(EDIT + "/save", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  if (r.status === 409) { setState("error", "Conflict: this section changed elsewhere. Reload the page."); return false; }
+  if (!r.ok) { setState("error", "Error saving — try Save All again."); return false; }
+  const data = await r.json();
+  ta.dataset.sha = data.sha;
+  dirty.delete(ta);
+  const chip = document.querySelector(`[data-role="state-chip"][data-section="${ta.dataset.section}"]`);
+  if (chip && data.state) { chip.textContent = data.state; chip.classList.add("edited"); }
+  return true;
+}
+
+async function saveAll() {
+  const pending = [...dirty.keys()];
+  if (!pending.length) { setState("", "All changes saved"); return; }
+  setState("dirty", "Saving…");
+  let ok = true;
+  for (const ta of pending) ok = (await saveOne(ta)) && ok;
+  if (ok) setState("", "Saved " + new Date().toLocaleTimeString());
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (dirty.size) { e.preventDefault(); e.returnValue = ""; }
+});
+
+async function approve(section, on) {
+  await saveAll();
+  const r = await fetch(EDIT + "/approve", {method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({section, action: on ? "approve" : "unapprove"})});
+  const data = await r.json();
+  if (!r.ok) { alert("Cannot approve: " + (data.error || r.status)); return; }
+  const chip = document.querySelector(`[data-role="approve-chip"][data-section="${section}"]`);
+  if (chip) { chip.textContent = on ? "approved" : "not approved"; chip.classList.toggle("approved", on); }
+}
+
+async function previewSection(section) {
+  await saveAll();
+  const box = document.getElementById("preview-" + section);
+  const r = await fetch(EDIT + `/preview-section?section=${encodeURIComponent(section)}`);
+  const data = await r.json();
+  box.innerHTML = data.ok ? data.html : "<em>no content</em>";
+  box.hidden = !box.hidden ? true : false;
+}
+
+async function showRevisions(section) {
+  const box = document.getElementById("revs-" + section);
+  if (!box.hidden) { box.hidden = true; return; }
+  const r = await fetch(EDIT + `/revisions?section=${encodeURIComponent(section)}`);
+  const data = await r.json();
+  if (!data.revisions.length) { box.innerHTML = "<em>no saved revisions yet</em>"; }
+  else {
+    box.innerHTML = "<ul>" + data.revisions.map(rev =>
+      `<li><b>${rev.created_at}</b> (${rev.source}, ${rev.chars} chars) ` +
+      `<button type="button" onclick="restoreRev('${section}', ${rev.id})">Restore</button>` +
+      `<br><span class="meta">${rev.preview.replace(/</g, "&lt;")}…</span></li>`).join("") + "</ul>";
+  }
+  box.hidden = false;
+}
+
+async function restoreRev(section, id) {
+  if (!confirm("Restore this earlier version? Your current text is snapshotted first.")) return;
+  const r = await fetch(EDIT + "/restore", {method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({section, revision_id: id})});
+  if (r.ok) location.reload(); else alert("Restore failed.");
+}
+
+async function askRewrite(section) {
+  const note = prompt("What should Claude change? (e.g. 'shorten by 25%', 'different joke')");
+  if (!note) return;
+  const r = await fetch(EDIT + "/request-rewrite", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify({section, note})});
+  if (r.ok) location.reload(); else alert("Could not record the request.");
+}
+
+async function proposal(section, action) {
+  if (action === "accept" &&
+      !confirm("Replace your current text with Claude's proposal? Current text goes to History.")) return;
+  const r = await fetch(EDIT + "/proposal", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify({section, action})});
+  if (r.ok) location.reload(); else alert("Proposal action failed.");
+}
+
+async function resetGenerated() {
+  if (!confirm("Replace the Lowdown with the generated rough draft? Your current text goes to History, and approval is cleared.")) return;
+  const r = await fetch(EDIT + "/reset-generated", {method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({section: "lowdown", confirm: "yes"})});
+  if (r.ok) location.reload(); else alert("Reset failed.");
+}
+
+function expandAll(open) {
+  document.querySelectorAll("details.sec").forEach(d => d.open = open);
+}
+function collapseApproved() {
+  document.querySelectorAll("details.sec").forEach(d => {
+    const chip = d.querySelector('[data-role="approve-chip"]');
+    if (chip && chip.classList.contains("approved")) d.open = false;
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "desk/base.html" %}
+{% block title %}Private preview — {{ league.display_name }} {{ issue_key }}{% endblock %}
+{% block masthead_right %}<a href="{{ edit_base }}">← back to editor</a>{% endblock %}
+{% block content %}
+<style>
+  .banner { position:sticky; top:0; z-index:5; background:#7a2318; color:#fff; text-align:center;
+            padding:.45rem; letter-spacing:.12em; font-weight:bold; }
+  article.issue { background:#fffdf8; border:1px solid var(--line); max-width:52rem;
+                  margin:1.2rem auto; padding:2rem 2.4rem 3rem; line-height:1.6; }
+  article.issue h1.mast { text-align:center; letter-spacing:.14em; text-transform:uppercase;
+                          border-bottom:3px double var(--ink); padding-bottom:.6rem; }
+  article.issue .theme { text-align:center; font-variant:small-caps; letter-spacing:.15em;
+                         color:var(--muted); margin-bottom:1.6rem; }
+  article.issue h2.sect { border-left:6px solid var(--accent); padding-left:.6rem; margin-top:2.2rem; }
+  .unapproved { border:1px dashed var(--accent); padding:.15rem .5rem; color:var(--accent);
+                font-size:.75rem; display:inline-block; margin-left:.5rem; vertical-align:middle; }
+</style>
+<div class="banner">PRIVATE COMMISSIONER PREVIEW — NOT PUBLISHED</div>
+{% if warnings %}
+<div class="card warn"><b>{{ warnings|length }} blocker(s) would stop publication:</b>
+  {{ warnings | join(" · ") }}</div>
+{% endif %}
+<article class="issue">
+  <h1 class="mast">{{ league.display_name }}</h1>
+  <div class="theme">{{ league.subtitle }} · {{ season }} · {{ issue_key }}
+    {% if theme %} · {{ theme }}{% endif %}</div>
+  {% for s in sections %}
+    <h2 class="sect" id="{{ s.anchor }}">{{ s.title }}
+      {% if not s.approved %}<span class="unapproved">not approved</span>{% endif %}</h2>
+    {{ s.html | safe }}
+  {% endfor %}
+</article>
+<p style="text-align:center"><a href="{{ edit_base }}">← back to editor</a></p>
+{% endblock %}

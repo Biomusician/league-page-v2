@@ -1,19 +1,31 @@
 {% extends "desk/base.html" %}
 {% block content %}
-<h2>What needs my attention?</h2>
+<style>
+  .bigcta { display:inline-block; padding:.55rem 1.2rem; background:var(--ink); color:var(--paper);
+            border-radius:4px; text-decoration:none; font-weight:bold; letter-spacing:.03em; }
+  .bigcta.secondary { background:var(--card); color:var(--ink); border:1px solid var(--ink); }
+  .ctarow { display:flex; gap:.7rem; flex-wrap:wrap; margin:.7rem 0 .3rem; }
+</style>
+<h2>Commissioner's Desk</h2>
 {% for c in cards %}
 <div class="card">
-  <h3 style="margin:.1rem 0">{{ c.league.display_name }} <span class="meta">— {{ c.season }} · {{ c.league.subtitle }}</span></h3>
+  <h3 style="margin:.1rem 0">{{ c.league.display_name }}
+    <span class="meta">— {{ c.season }} · {{ c.league.subtitle }}</span></h3>
   <ul class="facts">
-    <li>League status: <b>{{ c.league_status }}</b> · Draft: <b>{{ c.draft_status }}</b> ({{ c.picks }} picks)</li>
-    <li>Story decisions recorded: {{ c.story_decisions }} · Award decisions: {{ c.award_decisions }}</li>
-    <li>Draft Issue: <b>{{ c.issue_status }}</b></li>
+    <li>Draft Issue: <b>{{ c.issue_status }}</b> · draft {{ c.draft_status }} ({{ c.picks }} picks)</li>
+    <li>Week {{ c.current_week }}: <b>{{ c.week_issue_status }}</b> · league {{ c.league_status }}</li>
   </ul>
   {% if c.season %}
-  <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/draft">Draft Issue workspace →</a>
-  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/week-{{ "%02d"|format(c.current_week) }}">Week {{ c.current_week }} workspace →</a>
-  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/week/{{ c.current_week }}/matchups">Matchup Lab →</a>
-  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/draft-review">Draft Review →</a>
+  <div class="ctarow">
+    <a class="bigcta" href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/draft/edit">EDIT DRAFT ISSUE</a>
+    <a class="bigcta secondary" href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/week-{{ "%02d"|format(c.current_week) }}/edit">EDIT WEEK {{ c.current_week }}</a>
+  </div>
+  <span class="meta">
+    <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/draft">draft workspace</a>
+    · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/week/{{ c.current_week }}/matchups">Matchup Lab</a>
+    · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/draft-review">draft review</a>
+    · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/rankings/preseason">rankings</a>
+  </span>
   {% endif %}
 </div>
 {% endfor %}

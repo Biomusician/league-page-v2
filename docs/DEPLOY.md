@@ -64,15 +64,20 @@ never move old ones.
 
 ## Publishing a new issue (the whole cycle)
 
-1. `.venv\Scripts\python.exe scripts\sync.py`
-2. Desk (`scripts\desk.py`) → issue workspace → Build → make decisions
-   (Review Packet shows everything on one screen)
-3. Claude Code: work `editorial/<season>/<league>/<issue>/AUTHORING_INDEX.md`
-   with the my-writing-style skill
-4. Desk: edit, approve modules, PUBLISH (freezes a snapshot under
-   `published/` — commit it)
-5. `.venv\Scripts\python.exe scripts\build_public_site.py`
-6. Deploy `dist/` to Vercel production (three commands above).
+1. Double-click **`Launch Commissioner Desk.cmd`** (repo root, or the
+   desktop shortcut). Browser opens at http://localhost:8026/commissioner.
+2. Desk: issue workspace → Build → make decisions; Claude Code works
+   `editorial/<season>/<league>/<issue>/AUTHORING_INDEX.md` with the
+   my-writing-style skill.
+3. Click **EDIT ISSUE**: edit every section inline, approve, fix the
+   listed blockers.
+4. **Publish… → Publish & Deploy**: freezes the snapshot, rebuilds the
+   audited `dist/`, deploys to Vercel production, and verifies the live
+   URLs. (Publish Locally does everything except deploy; the manual CLI
+   commands above remain the troubleshooting fallback.)
+5. Commit the new `published/` snapshot.
+
+Sync first if the data is stale: `.venv\Scripts\python.exe scripts\sync.py`.
 
 Republishing an old issue is deliberate: re-run PUBLISH on that issue;
 normal rebuilds never touch frozen snapshots.

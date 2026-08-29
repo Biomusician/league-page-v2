@@ -36,6 +36,46 @@ def _week_of(issue_key: str) -> int | None:
     return int(issue_key.removeprefix("week-")) if issue_key.startswith("week-") else None
 
 
+DEFAULT_PORT = 8026
+
+
+def probe_health(port: int, timeout: float = 2.0) -> dict | None:
+    """Return /health JSON if a Commissioner's Desk answers on this port."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=timeout) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        return data if data.get("app") == "commissioner-desk" else None
+    except Exception:
+        return None
+
+
+def port_is_free(port: int) -> bool:
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+            return True
+        except OSError:
+            return False
+
+
+def pick_port(preferred: int = DEFAULT_PORT) -> tuple[int, str]:
+    """(port, situation) where situation is 'free', 'already-running'
+    (a healthy Desk owns the preferred port), or 'fallback' (a foreign
+    process owns it; a nearby free port was chosen instead)."""
+    if port_is_free(preferred):
+        return preferred, "free"
+    if probe_health(preferred):
+        return preferred, "already-running"
+    for candidate in range(preferred + 1, preferred + 21):
+        if port_is_free(candidate):
+            return candidate, "fallback"
+    raise RuntimeError(f"No free port found in {preferred}-{preferred + 20}.")
+
+
 def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     app = FastAPI(title="Commissioner's Desk", docs_url=None, redoc_url=None)
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -79,6 +119,28 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     def root():
         return RedirectResponse("/commissioner", status_code=302)
 
+    @app.get("/health")
+    def health():
+        """Launcher readiness probe. Status facts only — no private values."""
+        try:
+            with storage() as s:
+                leagues_loaded = sum(1 for lg in LEAGUES if s.get_league(lg.league_id))
+                season = None
+                for lg in LEAGUES:
+                    data = s.get_league(lg.league_id) or {}
+                    season = season or data.get("season")
+            return {
+                "status": "ok",
+                "app": "commissioner-desk",
+                "database": "ok",
+                "season": season,
+                "leagues_loaded": leagues_loaded,
+                "leagues_configured": len(LEAGUES),
+            }
+        except Exception as exc:
+            return {"status": "error", "app": "commissioner-desk",
+                    "error": type(exc).__name__}
+
     @app.get("/commissioner")
     def home(request: Request):
         cards = []
@@ -92,7 +154,10 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 decided = len(s.get_story_decisions(league.slug, season, "draft"))
                 awards_decided = len(s.get_award_decisions(league.slug, season, "draft"))
                 issue = s.get_issue(league.slug, season, "draft")
+                wk = int(s.get_meta("current_week") or 1)
+                week_issue = s.get_issue(league.slug, season, f"week-{wk:02d}")
                 cards.append({
+                    "week_issue_status": week_issue["status"] if week_issue else "not started",
                     "league": league,
                     "season": season,
                     "current_week": int(s.get_meta("current_week") or 1),
@@ -712,5 +777,9 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                                 matchup_slug=slug, revision_requests=reqs,
                                 status="ready_to_draft")
         return _back(league_slug, season, week, slug, "#draft")
+
+    from leaguepage.desk_editor import register_editor
+
+    register_editor(app, storage, templates)
 
     return app

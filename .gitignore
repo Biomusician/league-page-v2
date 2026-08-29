@@ -14,3 +14,4 @@ editorial/managers.json
 # Regenerable packet/dossier output carries manager display names from the DB.
 editorial/**/generated/
 editorial/**/dossiers/
+logs/
