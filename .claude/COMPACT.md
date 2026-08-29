@@ -59,9 +59,17 @@ Read before resuming substantive work:
   (117 passing, network-free) — run them before claiming work done.
 - Commit locally at checkpoints without asking; pushing is a separate,
   gated decision.
-- Compaction standing instruction from Jonathan (2026-08-29): compaction
-  runs automatically at ~80% context via the autoCompactWindow setting;
-  after any compaction, re-read this file's pointers before resuming.
+- Compaction standing instruction from Jonathan (2026-08-29): auto-compact
+  fires at 800K tokens of Fable 5's native 1M context window
+  (`autoCompactWindow: 800000` in user settings; interactive equivalent:
+  `/autocompact 800k`, Claude Code v2.1.221+). After any compaction,
+  re-read this file's pointers before resuming.
+- Two complementary mechanisms: `/compact <instructions>` steers the
+  compaction summary itself; this file is re-injected into context
+  afterward by a SessionStart hook with matcher "compact" regardless of
+  trigger. (Verified on Claude Code 2.1.247: SessionStart/compact is the
+  documented post-compaction injection point; PostCompact hooks exist but
+  their stdout is not added to context.)
 
 ## When summarizing (manual /compact guidance)
 
