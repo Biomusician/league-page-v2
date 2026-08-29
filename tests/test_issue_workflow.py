@@ -124,6 +124,8 @@ def test_intel_module_omits_itself_early(env):
 
 
 def test_publish_gates_and_full_publish(env):
+    import json
+
     client, db, league, tmp = env
     idir = tmp / "editorial" / "2026" / "surfeit" / "week-01"
     # keep the issue minimal: only masthead + lowdown included
@@ -137,8 +139,9 @@ def test_publish_gates_and_full_publish(env):
         f"<!-- {ROUGH_DRAFT_MARKER} -->\nNot ready.", encoding="utf-8")
     with Storage(db) as s:
         with pytest.raises(pub.PublishError, match="marker|approved"):
-            pub.publish_assembled_issue(s, league, "2026", "week-01", week=1)
-    # clean + approved -> publishes; site contains the words and the credit
+            pub.publish_assembled_issue(s, league, "2026", "week-01", week=1,
+                                        published_dir=tmp / "published")
+    # clean + approved -> publishes a frozen snapshot
     (idir / "lowdown" / "lowdown.md").write_text(
         "# The Lowdown\n\nWeek one happened. Three things follow from that.\n\n"
         "<!-- usage: frame=competitive -->\n",
@@ -146,17 +149,16 @@ def test_publish_gates_and_full_publish(env):
     client.post("/commissioner/surfeit/2026/issue/week-01/lowdown",
                 data={"lowdown_text": "", "action": "approve"})
     with Storage(db) as s:
-        out = pub.publish_assembled_issue(s, league, "2026", "week-01", week=1)
+        out = pub.publish_assembled_issue(s, league, "2026", "week-01", week=1,
+                                          published_dir=tmp / "published")
         issue = s.get_issue("surfeit", "2026", "week-01")
-    html = out.read_text(encoding="utf-8")
-    assert "Week one happened" in html
-    assert "by the Commissioner" in html
-    assert ROUGH_DRAFT_MARKER not in html and "TEST DRAFT" not in html
-    assert "<!--" not in html.split("</header>")[1]  # no editorial comments in body
+    snap = json.loads(out.read_text(encoding="utf-8"))
+    lowdown = next(s_ for s_ in snap["sections"] if s_["module_key"] == "lowdown")
+    assert "Week one happened" in lowdown["content_md"]
+    assert lowdown["credit"] == "by the Commissioner"
+    assert "<!--" not in lowdown["content_md"]  # editorial comments stripped
+    assert ROUGH_DRAFT_MARKER not in out.read_text(encoding="utf-8")
     assert issue["status"] == "published"
-    # league home lists the published issue
-    home = (tmp / "site" / "surfeit" / "index.html").read_text(encoding="utf-8")
-    assert "week-01" in home
 
 
 def test_unresolved_public_name_blocks_publish(tmp_path, monkeypatch):

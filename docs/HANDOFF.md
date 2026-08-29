@@ -1,7 +1,35 @@
 # HANDOFF
 
-Updated 2026-08-29 (end of Phase 5.1 + Phase 6 Weekly Editorial Desk tranche).
-Read docs/SPEC.md (product spec) and docs/DECISIONS.md (architecture) first.
+Updated 2026-08-29 (end of Phase 7 — operationalized). Read docs/SPEC.md,
+docs/DECISIONS.md, and docs/DEPLOY.md.
+
+## Phase 7 state
+
+- **Public site**: `scripts/build_public_site.py` renders a fully static
+  dist/ (root league selector, both league sites with the full navigation:
+  home/front page, Common Tactical Picture, standings + Under the Hood,
+  Peer and Near-Peer, teams + team pages with confirmed-coalition flags,
+  Force Flow log + Moves That Mattered, draft board with labeled reference
+  provenance, Black Box with population labels, archive with verbatim
+  historical issues, stable issue permalinks). Published issues render only
+  from frozen `published/` snapshots (immutable on rebuild; republish is
+  explicit). The build audits its own output and fails on private material;
+  current builds are clean. `--preview surfeit:draft` gives dist-preview/
+  (banner-flagged, never deploy). Local preview:
+  `python -m http.server 8777 --directory dist`.
+- **Disco draft: COMPLETE (228/228)** — analytics, dossiers, editorial
+  packet, draft-issue workspace, and review packet all generated; the
+  12-team flow needed zero special-casing. 1 player (Will Howard) has no
+  superflex reference rank; his delta is honestly omitted.
+- **Surfeit Draft Issue**: TEST scaffolding archived to
+  editorial/2026/surfeit/draft/test-archive/ and stripped from working
+  copies; capsules re-written across diverse Force Design frames; Lowdown
+  edit-passed. Everything remains ROUGH/unapproved awaiting Jonathan.
+- **Commissioner Review Packet**: /commissioner/{league}/{season}/issue/
+  {key}/review — every decision on one screen with labeled SYSTEM
+  recommendations (never written into decision tables). Both leagues'
+  packets flag their unresolved names (surfeit rosters 2/4/5/6/10, disco
+  6/10/11) with editorial name suggestions for Surfeit.
 
 ## Phase 6 state — the issue pipeline is end-to-end
 

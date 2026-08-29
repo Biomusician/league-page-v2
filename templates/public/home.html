@@ -4,7 +4,7 @@
 
 {% if latest %}
 <section class="hero" aria-labelledby="lowdown-hero">
-  <p class="meta">{{ latest.issue_label }} · {{ latest.published_at[:10] }}{% if latest.preview %} · <strong>UNPUBLISHED COMMISSIONER PREVIEW</strong>{% endif %}</p>
+  <p class="meta">{{ latest.issue_label }}{% if latest.published_at %} · {{ latest.published_at[:10] }}{% endif %}{% if latest.preview %} · <strong>UNPUBLISHED COMMISSIONER PREVIEW</strong>{% endif %}</p>
   {% if latest.lowdown_excerpt_html %}
   <h2 class="section-label" id="lowdown-hero">The Lowdown</h2>
   <div class="lede">{{ latest.lowdown_excerpt_html | safe }}</div>

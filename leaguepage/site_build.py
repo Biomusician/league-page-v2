@@ -82,6 +82,14 @@ def _load_snapshots(league: League, published_dir: Path) -> list[dict]:
     return snaps
 
 
+def _strip_duplicate_heading(content_md: str, title: str) -> str:
+    """Drop a leading markdown heading that just repeats the module title."""
+    lines = content_md.lstrip().splitlines()
+    if lines and re.match(rf"#+\s*{re.escape(title)}\s*$", lines[0], re.I):
+        return "\n".join(lines[1:]).lstrip()
+    return content_md
+
+
 def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
     sections = []
     for s in snap["sections"]:
@@ -89,7 +97,7 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
             "anchor": s["module_key"],
             "title": s["title"],
             "credit": s.get("credit"),
-            "html": _render_md(s["content_md"]),
+            "html": _render_md(_strip_duplicate_heading(s["content_md"], s["title"])),
         })
     lowdown = next((s for s in snap["sections"] if s["module_key"] == "lowdown"), None)
     excerpt = None
@@ -107,16 +115,19 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
     }
 
 
+MAX_SCAN_WEEK = 18  # scan the whole stored season regardless of current_week
+
+
 def _standings_rows(storage: Storage, league: League, names: dict[int, dict],
                     week: int) -> tuple[list[dict], int]:
     rosters = storage.get_rosters(league.league_id)
-    scores = weekly_scores(storage, league.league_id, week)
+    scores = weekly_scores(storage, league.league_id, MAX_SCAN_WEEK)
     ap = all_play(scores)
     weeks_played = len({wk for rows in scores.values() for wk, _ in rows})
     analysis = analyze_week(storage, league, week) if weeks_played else None
     a_teams = {t["roster_id"]: t for t in (analysis or {}).get("teams", {}).values()} if analysis else {}
     pa: dict[int, float] = defaultdict(float)
-    for wk in range(1, week + 1):
+    for wk in range(1, MAX_SCAN_WEEK + 1):
         rows = [r for r in storage.get_matchups(league.league_id, wk) if r.get("matchup_id") is not None]
         by_mid: dict[int, list[dict]] = defaultdict(list)
         for r in rows:
@@ -324,7 +335,7 @@ def build_league(
             if dec["decision"] in ("awarded", "manual"):
                 published_awards.append({"award_key": key, "winner": dec.get("winner"),
                                          "issue": f"{snap['season']} {snap['issue_label']}"})
-    scores = weekly_scores(storage, league.league_id, week)
+    scores = weekly_scores(storage, league.league_id, MAX_SCAN_WEEK)
     ap = all_play(scores)
     team_cards = []
     for r in storage.get_rosters(league.league_id):
@@ -365,7 +376,7 @@ def build_league(
 
     # transactions (Force Flow)
     log = []
-    for wk in range(1, week + 1):
+    for wk in range(1, MAX_SCAN_WEEK + 1):
         for t in storage.get_transactions(league.league_id, wk):
             if t.get("status") != "complete":
                 continue
