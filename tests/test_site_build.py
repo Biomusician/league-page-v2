@@ -232,3 +232,27 @@ def test_preview_issue_flagged_and_confined_to_preview_build(site_env):
     page = (tmp / "dist-preview" / "surfeit" / SEASON / "draft" / "index.html").read_text(encoding="utf-8")
     assert "UNPUBLISHED COMMISSIONER PREVIEW" in page
     assert "Draft issue preview words" in page
+
+
+def test_all_internal_links_resolve(site_env):
+    """Regression: lroot once counted depth from the site root instead of the
+    league root, leaving every nav link one level too high (404s everywhere)."""
+    import posixpath
+    import re
+    db, tmp = site_env
+    _publish_minimal(db, tmp, TEST_SURFEIT, "week-01", "# The Lowdown\n\nWords.")
+    _build(db, tmp)
+    dist = tmp / "dist"
+    bad = []
+    for page in dist.rglob("*.html"):
+        page_dir = page.parent.relative_to(dist).as_posix()
+        html = page.read_text(encoding="utf-8")
+        for _attr, url in re.findall(r'(href|src)="([^"]+)"', html):
+            if url.startswith(("http:", "https:", "mailto:", "#")):
+                continue
+            target = posixpath.normpath(
+                posixpath.join(page_dir if page_dir != "." else "", url.split("#")[0]))
+            t = dist / target
+            if target.startswith("..") or not (t.is_file() or (t / "index.html").is_file()):
+                bad.append((page.relative_to(dist).as_posix(), url))
+    assert bad == []

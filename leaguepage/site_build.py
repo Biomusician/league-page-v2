@@ -222,7 +222,10 @@ def build_league(
     snaps = _load_snapshots(league, published_dir)
 
     def render(rel: str, template: str, depth: int, **ctx) -> None:
-        lroot = "../" * depth
+        # lroot is the prefix from this page back to the LEAGUE root. Derive it
+        # from the output path itself; the historical depth argument counted
+        # from the site root and left every relative link one level too high.
+        lroot = "../" * rel.count("/")
         html = env.get_template(template).render(
             league=league, season=season, lroot=lroot, **ctx)
         _write(out_dir, f"{league.slug}/{rel}", html, pages)

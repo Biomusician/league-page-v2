@@ -18,6 +18,7 @@
   header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
   header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
                              border:1px solid #2c343d; }
+  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
   nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
   nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
   nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
@@ -94,6 +95,7 @@
 {% if league %}
 <header class="masthead">
   {% if league.slug == "disco" %}<img class="logo" src="{{ lroot }}../assets/disco-logo-banner.jpg" alt="" width="800" height="300">{% endif %}
+  {% if league.slug == "surfeit" %}<img class="logo-badge" src="{{ lroot }}../assets/surfeit-logo.jpg" alt="" width="1250" height="1250">{% endif %}
   <h1><a href="{{ lroot }}index.html">{{ league.display_name }}</a></h1>
   <div class="sub">{{ league.subtitle }} · {{ season }}</div>
 </header>
