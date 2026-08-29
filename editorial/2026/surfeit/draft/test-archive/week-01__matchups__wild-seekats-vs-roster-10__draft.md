@@ -1,3 +1,4 @@
+<!-- TEST DRAFT - Phase 5 authoring dry run - not for publication -->
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
 <!-- Naming note: "the Discount Warehouse" is a provisional label for the unnamed roster drafting from slot 10, pending a real team name. -->
 

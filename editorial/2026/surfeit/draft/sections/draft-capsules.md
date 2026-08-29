@@ -1,100 +1,111 @@
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
-<!-- TEST DRAFT - Phase 6 acceptance run - not for publication -->
 <!-- Reference ranks throughout: FantasyPros ECR, half PPR, retrieved 29 Aug 2026. -->
+<!-- Teams without confirmed public names appear as "Roster N (name pending)". -->
 
 ## Team Draft Capsules
 
 ### Statistical Anomalies
 
-My own team grades first and hardest, per league law. The good: Ja'Marr Chase
-at 1.06, Burrow at pick 66 (16 below sticker), and a real stack to show for
-it. The bad: I drafted one tight end all night, in round 14, and it was Juwan
-Johnson; the league median first TE went in round 7. The ugly: MarShawn Lloyd
-45 spots early and a kicker in round 13. The Bengals passing game is carrying
-my whole season on one airframe. Inspect accordingly.
+My own team grades first and hardest, per league law. The plan accepted risk
+in exactly one place, and it was the wrong place: one tight end all night, in
+round 14, and it was Juwan Johnson, seven rounds after the league's median
+first TE. Everywhere else the assumptions look defensible: Ja'Marr Chase at
+1.06, Burrow at pick 66 running 16 below his consensus rank, a real stack
+binding them. MarShawn Lloyd 45 spots early is a bet I will be explaining to
+the review board. My season is a single assumption wearing a helmet: the
+Bengals stay healthy. Somebody write that down for False Assumptions.
 
 ### Roster 2 (name pending)
 
-The all-in Chicago portfolio: Caleb Williams at pick 96 was the second-best
-discount of the draft at 29 below consensus, and he arrives pre-stacked with
-Colston Loveland and Luther Burden. There's a Denver annex too (Dobbins,
-Sutton, the Broncos DST), so this roster answers to two city councils. Mike
-Washington 50 spots early is the lottery ticket taped to the back of the
-plan. When the Bears offense cooks, this team eats twice; the reverse also
-ships.
+A one-axis campaign plan. Caleb Williams at pick 96 came 29 below consensus
+and arrives pre-stacked with Colston Loveland and Luther Burden, so the main
+effort is Chicago, full stop. The supporting effort is, unexpectedly, Denver:
+Dobbins, Sutton, and the Broncos DST. Mass on two cities, economy of force
+everywhere else, and Mike Washington 50 spots early as the deep reserve.
+When the main effort advances, this team wins twice at once. When Chicago
+stalls, there is no branch plan. That's the trade, and it was made on purpose.
 
 ### SHACtin a fool
 
-The most balanced sheet in the league: Bijan at 1.02, Hampton and Nabers by
-round 3, and Lamar Jackson at exactly sticker price, which is the draft
-equivalent of paying MSRP and feeling fine about it. Jaxson Dart came 23
-below consensus and brings his own Nabers stack. The quirks: first tight end
-in round 11 (Pitts, 18 below sticker, so at least the wait was billed
-correctly) and two defenses rostered, an attrition reserve for a position
-the rest of us stream. Redundancy is a strategy. So is hoarding.
+The most balanced capability portfolio in the league: Bijan at 1.02, Hampton
+and Nabers inside three rounds, Lamar Jackson at exactly his consensus number.
+The Dart-to-Nabers stack came 23 spots cheap, and Kyle Pitts at round 11 was
+billed correctly for once, 18 below sticker. Then the doctrine gets
+interesting: two rostered defenses, an attrition reserve for the one position
+the rest of us treat as expendable. Nobody balances a portfolio this
+carefully by accident. The question is whether balance wins anything before
+week 8.
 
 ### Roster 4 (name pending)
 
-Fifteen picks, zero defenses. That is the headline, the subhead, and the
-pull quote. Around the divestment sits genuinely sharp work: Brock Bowers in
-round 3, the Dak-to-CeeDee stack 17 below sticker, Marvin Harrison 20 below,
-and seven wideouts of depth. This is a portfolio manager who found defense
-beneath the investment threshold and acted on it. Doctrine says divest to
-invest. We'll see what the audit says by Week 4.
+Fifteen picks, zero defenses. That is a force-structure decision, not an
+oversight: an entire warfighting function divested, with the freed capacity
+reinvested in seven wideouts, Brock Bowers in round 3, the Dak-to-CeeDee
+stack 17 below sticker, and Marvin Harrison 20 below. The doctrine name is
+divest-to-invest; the operational bet is that streamed defense costs nothing
+in a league this size. If the bet holds, this is the smartest roster in the
+draft. If it fails, the after-action report writes itself.
 
 ### Roster 5 (name pending)
 
-Jonathan Taylor at 1.04 anchors an RB-first build, with Kyren Williams right
-behind and Cam Skattebo 16 spots early as the swing. The quiet masterstroke:
-two starting quarterbacks for late-round money, Herbert at 13 below sticker
-with his own McConkey stack, then Goff at pick 137, a 28-spot discount. The
-kicker went 95 spots early, but kickers are a faith-based community and I
-respect religious freedom. Solid hull, unglamorous rigging.
+Built for graceful degradation. Jonathan Taylor at 1.04 and Kyren Williams
+anchor the ground game, and the quarterback plan has redundancy the rest of
+us skipped: Herbert at 13 below consensus with his own McConkey stack, then
+Goff at pick 137, 28 spots below his number, as the backup power supply. Cam
+Skattebo 16 early is the one aggressive line. No single failure takes this
+team off the air, which is more than most of the league can claim. The
+ceiling question is fair; the floor question is answered.
 
 ### Roster 6 (name pending)
 
-Three Lions on one roster: Amon-Ra at 1.08, LaPorta 34 spots early, and Jake
-Bates 91 spots early, which makes Detroit's bye week a self-inflicted
-national emergency. Bucky Irving at 26 below consensus says the reaches were
-at least aimed at upside. Hurts at pick 68 was fair trade. This team rises
-and falls with one NFC North schedule, and it chose that on purpose.
+Every scenario this team ran ends in Detroit. Amon-Ra at 1.08, LaPorta 34
+spots early, and Jake Bates 91 spots early make three Lions and one very
+concentrated threat model. Bucky Irving at 26 below consensus and Derrick
+Henry in round 2 keep the backfield honest, and Hurts at pick 68 was fair
+value. But the design never asked what happens the week Detroit rests
+starters or draws a monsoon. One city holds the campaign together. Detroit
+had better be everything the wargame assumed.
 
 ### Wild SeeKats
 
-The league's only two-signature command structure drafted like the auditors
-were in the room: Gibbs at 1.01, A.J. Brown seven below sticker, and never a
-skill player more than 14 spots off consensus all night. That is the most
-disciplined card in the league, and with co-managers, every pick had a
-second set of initials on it. No stacks, no stunts, no exposure concentration.
-Process this clean either wins quietly or bores its way to the sixth seed.
+The league's only two-signature command structure, and it drafted like
+mission command actually works: Gibbs at 1.01, A.J. Brown seven below
+sticker, and never a skill pick more than 14 spots off consensus all night.
+Two managers, one intent, zero improvisation; the white cell would sign off
+on every move. There are no stacks and no concentration bets, which means no
+spectacular wins and no self-inflicted losses. Disciplined forces don't make
+highlights. They make playoffs, usually.
 
 ### L'entente Discordiale
 
-Conviction, concentrated: three 49ers (CMC, Evans, Jordan James) and three
-Bills (Allen, Kincaid, the DST), with Allen at 11 below sticker and Evans at
-18 below funding the position. Then the flagship purchase: Jordan James at
-pick 123 against a consensus rank of 254, the largest reach in league
-history, which as of this issue is one draft long. Two NFL locker rooms now
-carry this franchise. Concurrency works until one production line slips.
+Coalition warfare with a coalition supply chain: three 49ers (CMC, Evans,
+Jordan James) and three Bills (Allen, Kincaid, the DST), two national
+production lines carrying one franchise. Allen at 11 below sticker and Evans
+at 18 below funded the buildup; Jordan James at pick 123 against a consensus
+rank of 254 is the interoperability gamble nobody else would sign. Alliances
+concentrate power and concentrate failure the same way: one bad week in
+Santa Clara or Orchard Park and the whole coalition feels it. Magnifique,
+potentially.
 
 ### Swifty Mahomey
 
-Named the team after Mahomes in August, drafted him at pick 114 in December
-terms: round 12, seven rounds after the league's median first QB, and still
-12 below sticker, so the paperwork calls it a win. The supporting force is a
-full Rams ecosystem (Stafford, Davante, the DST, even the kicker), plus a
-Kelce buy 30 spots early to complete the KC stack. Two stacks, four LAR
-assets, one very patient naming convention. The brand finally matches the
-inventory.
+A branch plan with one decision point, executed with unsettling patience.
+The team wore Mahomes' name from August while the actual Mahomes sat on the
+board for eleven rounds; the branch finally executed at pick 114, twelve
+spots below his consensus number, so the wait was not even a discount lost.
+Around the decision point: a full Rams package (Stafford at 26 below,
+Davante, the DST, the kicker) and a Kelce buy completing the KC stack. Two
+stacks, four LAR assets, one very deliberate sequence of moves. Patience is
+a weapon. So is a backup plan that scores.
 
 ### Roster 10 (name pending)
 
-The Draft Crusher by the numbers: Trevor Lawrence 37 below consensus, Josh
-Jacobs 28, Terry McLaurin 24, Tee Higgins 18, Drake London 16. Nearly every
-pick after round 4 came at a discount, and the board never noticed. Saquon
-and Achane up top keep the floor honest while the clearance rack fills the
-bench. If value drafting were audited like contracts, this team would be the
-one vendor with clean books. Naming the outfit is apparently the only task
-still on backlog.
+Cost imposition as a draft strategy. While the rest of the room paid market
+rates, this roster acquired Trevor Lawrence 37 below consensus, Josh Jacobs
+28, Terry McLaurin 24, Tee Higgins 18, and Drake London 16, stacking
+combat power the board kept mispricing. Saquon and Achane at the top keep
+the force credible while the bargains fill every echelon behind them. That
+is competitive advantage by exploiting the other side's assumptions, which
+is the most Surfeit thing any of us did all night. Now name the team.
 
-<!-- usage: angle=draft:capsules frame=roster-construction callback=none joke_family=procurement-comparison -->
+<!-- usage: angle=draft:capsules frame=force-design-mixed callback=none joke_family=none -->

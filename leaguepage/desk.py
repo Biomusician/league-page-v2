@@ -460,6 +460,24 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}", status_code=303)
 
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/review")
+    def review_packet(request: Request, league_slug: str, season: str, issue_key: str):
+        import markdown as md
+
+        from leaguepage.review_packet import build_review_packet
+
+        league = get_league(league_slug)
+        with storage() as s:
+            candidates = _candidates_for(s, league, season, issue_key)
+            awards = _awards_for(s, league, season, issue_key)
+            path = build_review_packet(s, league, season, issue_key,
+                                       awards=awards, candidates=candidates)
+        html = md.markdown(path.read_text(encoding="utf-8"), extensions=["tables"])
+        return templates.TemplateResponse(request, "desk/review.html", {
+            "league": league, "season": season, "issue_key": issue_key,
+            "packet_html": html, "packet_path": path.as_posix(),
+        })
+
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/stories")
     def story_board(request: Request, league_slug: str, season: str, issue_key: str):
         ctx = _workspace_context(league_slug, season, issue_key)

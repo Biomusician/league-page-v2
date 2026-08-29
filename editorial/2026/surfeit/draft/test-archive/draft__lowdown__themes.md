@@ -1,3 +1,5 @@
+<!-- TEST DRAFT - Phase 6 acceptance run - Claude-generated theme proposals -->
+
 # Three Lowdown frames for the Surfeit Draft Issue
 
 ## 1. Assumption-Based Planning (institutional / Futures frame)

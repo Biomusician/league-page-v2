@@ -1,3 +1,5 @@
+<!-- TEST DRAFT - Phase 6 acceptance run - outline for theme 1 (Assumption-Based Planning) -->
+
 # Rough outline - "Every Draft Is a List of Assumptions"
 
 1. **Premise up front (conclusion first).** A draft is a set of published

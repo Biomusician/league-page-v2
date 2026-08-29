@@ -1,4 +1,5 @@
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
+<!-- TEST DRAFT - Phase 6 acceptance run - not for publication -->
 
 # The Lowdown
 
@@ -23,8 +24,8 @@ waiting, landing the actual Patrick Mahomes at pick 114 after wearing his
 name all August.
 
 Still, assumption-heavy plans win wars all the time. The waiver wire is
-industrial mobilization; half of these bets get bailed out by October and we
-all pretend the plan worked.
+industrial mobilization; half of these bets get bailed out, zero questions asked, by
+October and we all pretend the plan worked.
 
 The difference this year is that the assumptions are being tracked. False
 Assumptions will read them back later, verbatim, with dates. Mine included.

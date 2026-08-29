@@ -11,6 +11,9 @@
   {% endfor %}
 </div>
 
+<p><a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/review"><b>Open the Commissioner Review Packet →</b></a>
+<span class="meta">every decision on one screen; the boards hold the detail</span></p>
+
 <h2>What remains before this issue can publish?</h2>
 {% if warnings %}
   {% for w in warnings %}<div class="warn">{{ w }}</div>{% endfor %}

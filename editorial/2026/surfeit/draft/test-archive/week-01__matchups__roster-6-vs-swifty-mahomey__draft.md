@@ -1,3 +1,4 @@
+<!-- TEST DRAFT - Phase 5 authoring dry run - not for publication -->
 <!-- Naming note: "the Motor City Annex" is a provisional label for the unnamed roster drafting from slot 8, pending a real team name. -->
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
 

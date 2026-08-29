@@ -1,4 +1,5 @@
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
+<!-- TEST DRAFT - Phase 6 acceptance run - award blurbs for the three TEST-decided awards only -->
 
 ## Draft Hardware
 

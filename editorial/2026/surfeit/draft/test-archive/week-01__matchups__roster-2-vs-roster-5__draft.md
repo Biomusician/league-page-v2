@@ -1,3 +1,4 @@
+<!-- TEST DRAFT - Phase 5 authoring dry run - not for publication -->
 <!-- Naming note: "the Chicago Syndicate" (draft slot 5) and "Goff Season" (draft slot 4) are provisional labels for unnamed rosters, pending real team names. -->
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
 
