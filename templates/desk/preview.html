@@ -1,0 +1,13 @@
+{% extends "desk/base.html" %}
+{% block title %}Preview — {{ issue_key }}{% endblock %}
+{% block masthead_right %}<a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/builder">← builder</a>{% endblock %}
+{% block content %}
+<h2>Issue preview <span class="meta">(commissioner view; unapproved sections flagged)</span></h2>
+{% for w in warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+{% for s in sections %}
+<div class="card">
+  <h3>{{ s.title }} {% if not s.approved %}<span class="decision">(NOT APPROVED)</span>{% endif %}</h3>
+  <div>{{ s.html | safe }}</div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -10,8 +10,10 @@
     <li>Draft Issue: <b>{{ c.issue_status }}</b></li>
   </ul>
   {% if c.season %}
-  <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/draft-review">Open Draft Review →</a>
-  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/week/{{ c.current_week }}/matchups">Week {{ c.current_week }} Matchup Lab →</a>
+  <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/draft">Draft Issue workspace →</a>
+  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/week-{{ "%02d"|format(c.current_week) }}">Week {{ c.current_week }} workspace →</a>
+  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/week/{{ c.current_week }}/matchups">Matchup Lab →</a>
+  · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/draft-review">Draft Review →</a>
   {% endif %}
 </div>
 {% endfor %}

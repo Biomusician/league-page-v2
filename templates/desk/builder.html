@@ -1,0 +1,37 @@
+{% extends "desk/base.html" %}
+{% block title %}Issue Builder — {{ issue_key }}{% endblock %}
+{% block masthead_right %}<a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}">← {{ issue_key }} workspace</a>{% endblock %}
+{% block content %}
+<h2>Issue Builder <span class="meta">— editorial sequence; not every issue needs every section</span></h2>
+
+{% for w in warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+
+{% for m in modules %}
+<div class="card">
+  <b>{{ m.title }}</b>
+  <span class="meta">[{{ m.module_key }}] pos {{ m.position }} · {{ m.status }}{% if m.detail %} — {{ m.detail }}{% endif %}</span>
+  {% if not m.included %}<span class="decision">EXCLUDED</span>{% endif %}
+  {% if m.approved %}<span class="decision">APPROVED</span>{% endif %}
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/builder/module">
+    <input type="hidden" name="module_key" value="{{ m.module_key }}">
+    {% if m.included %}<button name="action" value="exclude">Exclude</button>{% else %}<button name="action" value="include">Include</button>{% endif %}
+    {% if m.kind != "auto" %}
+      {% if m.approved %}<button name="action" value="unapprove">Unapprove</button>
+      {% else %}<button name="action" value="approve" class="primary">Approve section</button>{% endif %}
+    {% endif %}
+    <input type="text" name="position" size="2" placeholder="#">
+    <button name="action" value="move">Move</button>
+    <input type="text" name="custom_title" size="24" placeholder="custom title">
+    <button name="action" value="retitle">Retitle</button>
+  </form>
+</div>
+{% endfor %}
+
+<div class="card">
+  <a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/preview"><b>Preview assembled issue →</b></a>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/publish">
+    <button class="primary" {% if warnings %}disabled{% endif %}>PUBLISH {{ issue_key|upper }}</button>
+    {% if warnings %}<span class="meta">blocked by the warnings above</span>{% endif %}
+  </form>
+</div>
+{% endblock %}

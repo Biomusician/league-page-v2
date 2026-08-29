@@ -1,0 +1,51 @@
+{% extends "desk/base.html" %}
+{% block title %}Awards Board — {{ issue_key }}{% endblock %}
+{% block masthead_right %}<a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}">← {{ issue_key }} workspace</a>{% endblock %}
+{% block content %}
+<h2>Award Slate</h2>
+<div class="card">
+  <b>Strong:</b> {{ slate.strong|join(", ") or "—" }}<br>
+  <b>Possible:</b> {{ slate.possible|join(", ") or "—" }}<br>
+  <b>No worthwhile candidate:</b> {{ slate.none|join(", ") or "—" }}
+  <div class="meta">Never create filler because a template has an award slot; skip freely.</div>
+</div>
+
+<h2>Nominations <span class="meta">(the system nominates; you award)</span></h2>
+{% for aw in awards %}
+<div class="card">
+  <b>{{ aw.award_name }}</b> <span class="meta">[{{ aw.kind }} · slate: {{ aw.slate or ("possible" if aw.nominees else "none") }}]</span>
+  <div class="meta">{{ aw.metric }}</div>
+  {% set d = award_decisions.get(aw.award_key) %}
+  {% if d %}<div class="decision">→ {{ d.decision|upper }}{% if d.winner %}: {{ d.winner }}{% endif %}{% if d.note %} — “{{ d.note }}”{% endif %}</div>{% endif %}
+  {% if aw.nominees %}
+  <ol class="facts">
+    {% for n in aw.nominees %}
+    <li><b>{% if n.player %}{{ n.player }} ({{ n.team_slug }}){% else %}{{ n.team_slug }}{% endif %}</b>
+        {% if n.metric_value is defined and n.metric_value is not none %}<span class="meta">metric {{ n.metric_value }}</span>{% endif %}
+        {% if n.outcome_changing %}<span class="decision">outcome-changing</span>{% endif %}
+      <ul>{% for f in n.facts %}<li class="meta">{{ f }}</li>{% endfor %}</ul>
+      <details><summary class="meta">evidence</summary><ul>{% for e in n.evidence %}<li><code>{{ e }}</code></li>{% endfor %}</ul></details>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}<div class="meta">No legitimate candidate this week.</div>{% endif %}
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/awards">
+    <input type="hidden" name="award_key" value="{{ aw.award_key }}">
+    <input type="text" name="winner" placeholder="winner" size="26">
+    <button name="decision" value="awarded" class="primary">Award</button>
+    <button name="decision" value="manual">Manual winner</button>
+    <button name="decision" value="rejected">Skip this issue</button>
+    <input type="text" name="note" placeholder="note" size="22">
+  </form>
+</div>
+{% endfor %}
+<div class="card">
+  <b>Commissioner-defined award</b>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/awards">
+    <input type="text" name="award_key" placeholder="award key (kebab-case)" size="22" required>
+    <input type="text" name="winner" placeholder="winner" size="24">
+    <input type="text" name="note" placeholder="what it is / why" size="34">
+    <button name="decision" value="manual" class="primary">Create + award</button>
+  </form>
+</div>
+{% endblock %}

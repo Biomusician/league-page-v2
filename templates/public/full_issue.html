@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ league.display_name }} — {{ season }} {{ issue_label }}</title>
+{% include "public/_theme.html" %}
+</head>
+<body>
+<header class="masthead">
+  <h1>{{ league.display_name }}</h1>
+  <div class="sub">{{ league.subtitle }} · {{ season }} · {{ issue_label }}</div>
+</header>
+<nav class="leaguenav">
+  <a href="../index.html">Home</a>
+  <a href="../index.html#standings">Standings</a>
+  <a href="../index.html#teams">Teams</a>
+  <a href="../index.html#archive">Archive</a>
+</nav>
+<main>
+{% for s in sections %}
+<section class="module">
+  <h2 class="section-label">{{ s.title }}</h2>
+  {% if s.credit %}<div class="credit">{{ s.credit }}</div>{% endif %}
+  <div>{{ s.html | safe }}</div>
+</section>
+{% endfor %}
+</main>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ league.display_name }}</title>
+{% include "public/_theme.html" %}
+</head>
+<body>
+<header class="masthead">
+  <h1>{{ league.display_name }}</h1>
+  <div class="sub">{{ league.subtitle }} · {{ season }}</div>
+</header>
+<nav class="leaguenav">
+  <a href="index.html">Home</a>
+  {% if latest %}<a href="{{ latest.href }}">Common Tactical Picture</a>{% endif %}
+  <a href="#standings">Standings</a>
+  <a href="#teams">Teams</a>
+  {% for p in published %}{% if p.issue_key == "draft" %}<a href="{{ p.href }}">Draft</a>{% endif %}{% endfor %}
+  <a href="#archive">Archive</a>
+</nav>
+<main>
+
+{% if latest %}
+<section class="module">
+  <h2 class="section-label">Current Issue</h2>
+  <p><a href="{{ latest.href }}"><b>{{ latest.season }} {{ latest.label }}</b></a> — read the latest issue.</p>
+</section>
+{% else %}
+<section class="module">
+  <h2 class="section-label">Current Issue</h2>
+  <p>No issue published yet this season. The presses are warming up.</p>
+</section>
+{% endif %}
+
+<section class="module" id="standings">
+  <h2 class="section-label">Standings</h2>
+  <table>
+    <tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>PF</th></tr>
+    {% for t in standings %}
+    <tr><td>{{ loop.index }}</td><td>{{ t.name }}</td><td>{{ t.wins }}</td><td>{{ t.losses }}</td><td>{{ t.fpts }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+
+<section class="module" id="teams">
+  <h2 class="section-label">Teams</h2>
+  <ul>
+    {% for t in standings %}<li>{{ t.name }} ({{ t.wins }}-{{ t.losses }})</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="module" id="archive">
+  <h2 class="section-label">Archive</h2>
+  {% if published %}
+  <ul>
+    {% for p in published %}<li><a href="{{ p.href }}">{{ p.season }} — {{ p.label }}</a></li>{% endfor %}
+  </ul>
+  {% else %}
+  <p>Published issues will collect here.</p>
+  {% endif %}
+</section>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{% extends "desk/base.html" %}
+{% block title %}False Assumptions — {{ league.display_name }}{% endblock %}
+{% block masthead_right %}{{ league.display_name }} · {{ season }} · False Assumptions desk{% endblock %}
+{% block content %}
+<h2>False Assumptions <span class="meta">— original wording is immutable; you evaluate, the system never auto-falsifies</span></h2>
+{% for t in takes %}
+<div class="card">
+  <b>“{{ t.quote }}”</b>
+  <div class="meta">take:{{ t.take_id }} · subject {{ t.subject }} · {{ t.context or "?" }} {{ t.season }} ·
+    source {{ t.source }} · tracked {{ t.created_at[:10] }} · status <b>{{ t.status }}</b>
+    {% if t.confidence %} · stated confidence: {{ t.confidence }}{% endif %}
+    {% if t.resolution %} · evaluation: {{ t.resolution }}{% endif %}</div>
+  <div class="meta">System confidence: evaluation requires multiple weeks of evidence;
+    one bad week never falsifies a take.</div>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/false-assumptions/{{ t.take_id }}">
+    <input type="text" name="issue_key" placeholder="issue (e.g. week-04)" size="12">
+    <button name="action" value="use" class="primary">Use as False Assumption</button>
+    <button name="action" value="too_early">Still Too Early</button>
+    <button name="action" value="validate">Validate Instead</button>
+    <button name="action" value="retire">Retire</button>
+    <input type="text" name="resolution" placeholder="what the evidence shows" size="32">
+  </form>
+</div>
+{% endfor %}
+{% if not takes %}<div class="card">No tracked takes yet. Track them from the draft review or story boards.</div>{% endif %}
+{% endblock %}

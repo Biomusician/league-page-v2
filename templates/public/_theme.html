@@ -1,0 +1,52 @@
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; line-height:1.55; }
+  main { max-width:48rem; margin:0 auto; padding:1.5rem 1.2rem 4rem; }
+  header.masthead { text-align:center; padding:1.8rem 1rem 1rem; }
+  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; }
+  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; }
+  nav.leaguenav { text-align:center; padding:.5rem 0 .9rem; font-size:.85rem; }
+  nav.leaguenav a { margin:0 .55rem; text-decoration:none; }
+  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.05rem; }
+  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  table { border-collapse:collapse; }
+  td, th { padding:.3rem .6rem; text-align:left; }
+  blockquote { margin-left:0; padding-left:1rem; }
+  section.module { margin:2.2rem 0; }
+{% if league.theme == "disco" %}
+  /* DISCO CHAT — CRC / battle-management board: dark panel, amber track
+     symbology accents, status-board section labels. Restrained; a board,
+     never a radar-screen costume. */
+  body { background:#14181d; color:#e8e4d8; font-family: Georgia, 'Times New Roman', serif; }
+  header.masthead { border-bottom:3px double #e8a33d; }
+  header.masthead h1 { font-size:2.5rem; color:#e8a33d; }
+  header.masthead .sub { color:#8fa8b8; }
+  nav.leaguenav { border-bottom:1px solid #2c343d; }
+  nav.leaguenav a { color:#8fa8b8; }
+  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
+  h2.section-label::before { content:"▸ "; color:#8fa8b8; }
+  a { color:#e8a33d; }
+  section.module { border-top:1px solid #2c343d; padding-top:.8rem; }
+  .credit { color:#8fa8b8; }
+  td, th { border:1px solid #2c343d; }
+  th { background:#1c2229; color:#e8a33d; }
+  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+{% else %}
+  /* THE SURFEIT — Force Design / Futures analytic product: light paper,
+     deep navy structure, assessment-document typography. */
+  body { background:#f4f4f0; color:#1b2733; font-family: Georgia, 'Times New Roman', serif; }
+  header.masthead { border-bottom:4px solid #1b3a5c; }
+  header.masthead h1 { font-size:2.5rem; color:#1b3a5c; }
+  header.masthead .sub { color:#4f6b85; }
+  nav.leaguenav { border-bottom:1px solid #cfd6dc; background:#eceee9; }
+  nav.leaguenav a { color:#1b3a5c; }
+  h2.section-label { color:#1b3a5c; border-bottom:2px solid #1b3a5c; padding-bottom:.2rem; }
+  h2.section-label::after { content: " ·"; color:#b0332a; }
+  a { color:#b0332a; }
+  section.module { }
+  .credit { color:#4f6b85; }
+  td, th { border:1px solid #cfd6dc; }
+  th { background:#e2e6e2; color:#1b3a5c; }
+  blockquote { border-left:3px solid #b0332a; color:#41505e; }
+{% endif %}
+</style>

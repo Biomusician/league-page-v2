@@ -94,6 +94,89 @@ def publish_issue(
     return out
 
 
+def publish_assembled_issue(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    *,
+    site_dir: Path | None = None,
+    base_dir: Path | None = None,
+    week: int | None = None,
+) -> Path:
+    """Publish a fully assembled issue (weekly or draft) to the public site.
+    Enforces: every included module approved, no blocked markers, all public
+    team names resolved. Then refreshes the league home page."""
+    from leaguepage.issue_builder import assemble_issue
+
+    try:
+        assembled = assemble_issue(storage, league, season, issue_key,
+                                   base_dir=base_dir, week=week, enforce=True)
+    except ValueError as exc:
+        raise PublishError(str(exc)) from exc
+
+    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
+    template = env.get_template("public/full_issue.html")
+    sections = []
+    for s in assembled["sections"]:
+        if s["kind"] == "auto":
+            continue
+        if s.get("content_md"):
+            sections.append({
+                "title": s["title"],
+                "html": markdown.markdown(s["content_md"], extensions=["tables", "smarty"]),
+                "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
+            })
+    html = template.render(league=league, season=season, issue_key=issue_key,
+                           issue_label=issue_key.replace("week-", "Week ").replace("draft", "Draft Issue"),
+                           sections=sections)
+    out = (site_dir or SITE_DIR) / league.slug / season / f"{issue_key}.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(html, encoding="utf-8")
+    storage.set_issue_status(league_slug=league.slug, season=season, issue_key=issue_key,
+                             status="published", published_path=out.as_posix())
+    render_league_home(storage, league, site_dir=site_dir)
+    return out
+
+
+def render_league_home(storage: Storage, league: League, *, site_dir: Path | None = None) -> Path:
+    """League front page: latest published issue, archive of published issues,
+    standings, teams. Only published content and public names appear."""
+    from leaguepage.team_names import resolve_public_names
+
+    league_data = storage.get_league(league.league_id) or {}
+    season = str(league_data.get("season") or "")
+    names = resolve_public_names(storage, league)
+    rosters = storage.get_rosters(league.league_id)
+    standings = []
+    for r in sorted(rosters, key=lambda r: (-(r.get("settings") or {}).get("wins", 0),
+                                            -float((r.get("settings") or {}).get("fpts", 0)))):
+        s = r.get("settings") or {}
+        nm = names.get(r["roster_id"], {}).get("name")
+        standings.append({
+            "name": nm or f"Roster {r['roster_id']}",
+            "wins": s.get("wins", 0), "losses": s.get("losses", 0),
+            "fpts": round(float(s.get("fpts", 0)) + float(s.get("fpts_decimal", 0)) / 100, 1),
+        })
+    published = [
+        dict(row) for row in storage._conn.execute(
+            "SELECT * FROM issues WHERE league_slug=? AND status='published' "
+            "ORDER BY season DESC, issue_key DESC", (league.slug,)).fetchall()
+    ]
+    for p in published:
+        p["href"] = f"{p['season']}/{p['issue_key']}.html"
+        p["label"] = p["issue_key"].replace("week-", "Week ").replace("draft", "Draft Issue")
+    env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
+    html = env.get_template("public/league_home.html").render(
+        league=league, season=season, standings=standings, published=published,
+        latest=published[0] if published else None,
+    )
+    out = (site_dir or SITE_DIR) / league.slug / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(html, encoding="utf-8")
+    return out
+
+
 def render_week(
     storage: Storage,
     league: League,

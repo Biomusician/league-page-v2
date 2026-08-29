@@ -1,0 +1,37 @@
+{% extends "desk/base.html" %}
+{% block title %}Story Board — {{ issue_key }}{% endblock %}
+{% block masthead_right %}<a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}">← {{ issue_key }} workspace</a>{% endblock %}
+{% block content %}
+<h2>Story Board <span class="meta">({{ candidates|length }} candidates)</span></h2>
+{% for c in candidates %}
+<div class="card">
+  <b>{{ c.headline }}</b> <span class="meta">[{{ c.category }}]{% if c.confidence %} · {{ c.confidence }}{% endif %}</span>
+  {% set d = decisions.get(c.candidate_id) %}
+  {% if d %}<span class="decision">→ {{ d.decision|upper }}{% if d.route %} → {{ d.route }}{% endif %}{% if d.note %} — “{{ d.note }}”{% endif %}</span>{% endif %}
+  {% if c.why %}<div class="meta">why surfaced: {{ c.why }}</div>{% endif %}
+  <ul class="facts">{% for f in c.facts %}<li>{{ f }}</li>{% endfor %}</ul>
+  {% if c.recommended_sections %}<div class="meta">recommended section(s): {{ c.recommended_sections|join(", ") }}</div>{% endif %}
+  <details><summary>evidence</summary><ul class="facts">{% for e in c.evidence %}<li><code>{{ e }}</code></li>{% endfor %}</ul></details>
+  <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/stories">
+    <input type="hidden" name="candidate_id" value="{{ c.candidate_id }}">
+    <button name="decision" value="include" class="primary">Include</button>
+    <button name="decision" value="save">Save</button>
+    <button name="decision" value="ignore">Ignore</button>
+    <select name="route">
+      <option value="">route: auto</option>
+      <option value="lowdown">→ Lowdown</option>
+      <option value="matchup">→ Matchup</option>
+      <option value="awards">→ Award consideration</option>
+      <option value="tracks">→ Tracks of Interest</option>
+      <option value="fades">→ Fades</option>
+      <option value="force-flow">→ Force Flow</option>
+      <option value="black-box">→ Black Box</option>
+      {% if league.slug == "surfeit" %}<option value="false-assumptions">→ False Assumptions</option>{% endif %}
+      <option value="custom">→ Custom section</option>
+    </select>
+    <input type="text" name="note" placeholder="note" size="24">
+  </form>
+</div>
+{% endfor %}
+{% if not candidates %}<div class="warn">No candidates — sync data and run Build on the workspace.</div>{% endif %}
+{% endblock %}

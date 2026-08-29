@@ -1,0 +1,40 @@
+{% extends "desk/base.html" %}
+{% block title %}Lowdown Prep — {{ issue_key }}{% endblock %}
+{% block masthead_right %}<a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}">← {{ issue_key }} workspace</a>{% endblock %}
+{% block content %}
+<h2>The Lowdown <span class="meta">(commissioner-authored, commissioner-credited)</span></h2>
+
+<div class="card">
+  <b>Claude Code steps</b>
+  <ol class="facts">
+    <li>Themes: <code>Generate lowdown themes for {{ league.slug }} {{ issue_key }} per {{ lowdown_dir }}/AUTHORING.md</code></li>
+    <li>Outline (after you pick a theme): <code>Generate the lowdown outline for the selected theme</code></li>
+    <li>Rough draft (your explicit request): <code>Generate Rough Lowdown for {{ league.slug }} {{ issue_key }}</code></li>
+  </ol>
+  <div class="meta">The rough draft always carries the ROUGH DRAFT marker and cannot publish; your edited lowdown.md is what runs, credited to you.</div>
+</div>
+
+{% for name in ["PREP.md", "themes.md", "outline.md", "rough-lowdown.md"] %}
+{% if files[name] %}
+<div class="card">
+  <details {% if name in ("themes.md", "outline.md") %}open{% endif %}>
+    <summary><b>{{ name }}</b></summary>
+    <pre style="white-space:pre-wrap; font-family:inherit">{{ files[name] }}</pre>
+  </details>
+</div>
+{% endif %}
+{% endfor %}
+
+<div class="card">
+  <b>Your Lowdown (lowdown.md)</b>
+  <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/lowdown">
+    <textarea name="lowdown_text" rows="16" style="width:100%">{{ files["lowdown.md"] or files["rough-lowdown.md"] or "" }}</textarea>
+    <div>
+      <button name="action" value="save" class="primary">Save my edit</button>
+      <button name="action" value="approve">Approve</button>
+      <button name="action" value="unapprove">Unapprove</button>
+      <span class="meta">Approve is blocked while the ROUGH DRAFT marker remains.</span>
+    </div>
+  </form>
+</div>
+{% endblock %}
