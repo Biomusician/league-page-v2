@@ -17,4 +17,9 @@ editorial/**/generated/
 editorial/**/dossiers/
 # App-generated prep packs also carry manager display names; regenerable.
 editorial/**/PREP.md
+# Jonathan's own matchup notes reference managers by handle; local-only,
+# like managers.json (decision 2026-08-30).
+editorial/**/commissioner_notes.md
+# Git-history backup bundles stay local.
+*.bundle
 logs/
