@@ -105,18 +105,11 @@ def generate_angles(
         da = draft_context.get(a["team_slug"]) or {}
         db = draft_context.get(b["team_slug"]) or {}
         if da and db:
-            from leaguepage.config import get_league
             from leaguepage.matchup_interest import format_position_mix
-            from leaguepage.team_names import resolve_public_names
-
-            try:
-                resolved = resolve_public_names(storage, get_league(league))
-            except Exception:
-                resolved = {}
 
             def _nm(t: dict) -> str:
-                pub = (resolved.get(t.get("roster_id")) or {}).get("name")
-                return pub or t.get("team_name") or t["team_slug"]
+                return (t.get("display_name") or t.get("team_name")
+                        or t["team_slug"])
 
             name_a, name_b = _nm(a), _nm(b)
             premise = (f"Construction contrast: {name_a} opened its draft "

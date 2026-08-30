@@ -11,7 +11,7 @@
 {% set m = sm.matchup %}
 {% set a = m.teams[0] %}{% set b = m.teams[1] %}
 
-<h2>{{ a.team_name or a.team_slug }} vs {{ b.team_name or b.team_slug }}
+<h2>{{ a.display_name or a.team_name or a.team_slug }} vs {{ b.display_name or b.team_name or b.team_slug }}
   <span class="score">{{ (sm.state.prominence_override if sm.state else none) or sm.recommended_prominence }}</span>
   <span class="meta">status: {{ status }}{% if status == "ready_to_draft" %} · <b>Ready for Claude Code</b>{% endif %}</span>
 </h2>
@@ -19,7 +19,7 @@
 <h2 id="facts">FACTS</h2>
 <div class="card">
   <table>
-    <tr><th></th><th>{{ a.team_slug }}</th><th>{{ b.team_slug }}</th></tr>
+    <tr><th></th><th>{{ a.display_name or a.team_slug }}</th><th>{{ b.display_name or b.team_slug }}</th></tr>
     <tr><td>Managers</td><td>{{ a.manager_display_names|join(", ") }}{% if a.co_managed %} (co-managed){% endif %}</td>
         <td>{{ b.manager_display_names|join(", ") }}{% if b.co_managed %} (co-managed){% endif %}</td></tr>
     <tr><td>Record</td><td>{{ a.record.wins }}-{{ a.record.losses }} ({{ a.record.fpts }} PF)</td>

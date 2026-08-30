@@ -261,6 +261,11 @@ def weekly_story_candidates(
     team_slugs = {t["roster_id"]: s for s, t in analysis["teams"].items()}
     candidates: list[dict] = []
 
+    def _mlabel(m: dict) -> str:
+        # headlines are human-facing: public label, never the internal slug
+        return " vs ".join(t.get("display_name") or t.get("team_name")
+                           or t["team_slug"] for t in m["teams"])
+
     # matchup interest tops (link into Matchup Lab rather than duplicating it)
     ranked = sorted(computed_week["scored"],
                     key=lambda s: -(s["competitive_importance"]["score"] + s["story_value"]["score"]))
@@ -268,7 +273,7 @@ def weekly_story_candidates(
         m = s["matchup"]
         candidates.append(_cand(
             f"story:matchup:{m['matchup_slug']}", "matchup",
-            f"Matchup: {m['matchup_slug']} "
+            f"Matchup: {_mlabel(m)} "
             f"(CI {s['competitive_importance']['score']}, SV {s['story_value']['score']})",
             teams=[t["team_slug"] for t in m["teams"]],
             facts=[c["label"] for c in s["competitive_importance"]["components"][:3]],
@@ -289,20 +294,22 @@ def weekly_story_candidates(
         low = min((t for m in played for t in m["teams"]), key=lambda t: t["points"])
         candidates += [
             _cand(f"story:blowout:{week}", "result",
-                  f"Blowout: {big['matchup_slug']} decided by {margin(big):g}",
+                  f"Blowout: {_mlabel(big)} decided by {margin(big):g}",
                   teams=[t["team_slug"] for t in big["teams"]], ev=big["evidence"],
                   why="Largest margin of the week.", sections=["lowdown", "ctp"]),
             _cand(f"story:photo-finish:{week}", "result",
-                  f"Photo finish: {close['matchup_slug']} decided by {margin(close):g}",
+                  f"Photo finish: {_mlabel(close)} decided by {margin(close):g}",
                   teams=[t["team_slug"] for t in close["teams"]], ev=close["evidence"],
                   why="Narrowest margin of the week.", sections=["lowdown", "ctp"]),
             _cand(f"story:high-score:{week}", "result",
-                  f"Week-high score: {high['team_slug']} with {high['points']:g}",
+                  f"Week-high score: "
+                  f"{high.get('display_name') or high['team_slug']} with {high['points']:g}",
                   teams=[high["team_slug"]],
                   ev=[evidence.roster_ref(league.league_id, high["roster_id"])],
                   why="Highest score of the week.", sections=["lowdown"]),
             _cand(f"story:low-score:{week}", "result",
-                  f"Week-low score: {low['team_slug']} with {low['points']:g}",
+                  f"Week-low score: "
+                  f"{low.get('display_name') or low['team_slug']} with {low['points']:g}",
                   teams=[low["team_slug"]],
                   ev=[evidence.roster_ref(league.league_id, low["roster_id"])],
                   why="Lowest score of the week.", sections=["lowdown", "awards"]),

@@ -4,6 +4,28 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## Browser-only weekly workflow (2026-08-30, final tranche of the day)
+
+- **SYNC SLEEPER button** on Desk home: `leaguepage/sync_jobs.py`, same
+  async-job pattern as publish (POST returns instantly, polling UI,
+  duplicate clicks join). One job = both leagues' Sleeper sync + snapshots
+  + transaction contexts + automatic `refresh_issue_research` for every
+  existing current-week workspace — the Build step is folded in, so
+  briefs are fresh right after sync. Runs in-process (no subprocess, no
+  shell). Home shows Synced timestamp, per-league summary (week, teams,
+  new transactions, renames), Show Sync Details, and failure keeps the
+  successful league. Terminal sync is fallback only (README updated).
+- **Prose protection**: the refresh path is the Build button's own logic —
+  commissioner_notes.md never overwritten, content files only created
+  when absent; guarded by test_refresh_preserves_commissioner_prose.
+- **display_name everywhere humans read**: matchup analysis teams now
+  carry `display_name` (override > Sleeper name > "Roster N"); Matchup
+  Lab titles, matchup detail headers, story-candidate headlines, and
+  angle premises use it. Slugs (`roster-N-vs-...`) remain the stable
+  internal identity for paths/URLs by design and never churn on renames.
+- 206 tests. Measured workflow: launcher → Sync (1 click, ~3s) →
+  Edit Week N (1 click) → click a textarea (1 click) → typing.
+
 ## Calibration tranche (2026-08-30, after the feature tranche below)
 
 - K/DST verdict: overall FantasyPros ECR ranks special teams below the

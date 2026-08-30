@@ -130,7 +130,8 @@ never move old ones.
    commands above remain the troubleshooting fallback.)
 5. Commit the new `published/` snapshot.
 
-Sync first if the data is stale: `.venv\Scripts\python.exe scripts\sync.py`.
+Sync first if the data is stale: click **SYNC SLEEPER** on the Desk home
+(the CLI `scripts\sync.py` does the same thing, as a fallback).
 
 Republishing an old issue is deliberate: re-run PUBLISH on that issue;
 normal rebuilds never touch frozen snapshots.

@@ -4,8 +4,8 @@
 {% block content %}
 
 {% if not computed %}
-<div class="warn">No matchup data for week {{ week }}. Run <code>scripts/sync.py</code>, then
-<code>scripts/build_weekly_packet.py --league {{ league.slug }} --week {{ week }}</code>.</div>
+<div class="warn">No matchup data for week {{ week }} yet. Go to the
+<a href="/commissioner">Desk home</a> and click <b>SYNC SLEEPER</b>, then come back.</div>
 {% else %}
 
 <p class="meta">Weeks played: {{ computed.analysis.weeks_played }} ·
@@ -13,8 +13,8 @@ Interest scores are editorial heuristics with visible components (open a matchup
 
 {% for r in rows %}
 <div class="card">
-  <b><a href="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ r.slug }}">{{ r.matchup.teams[0].team_name or r.matchup.teams[0].team_slug }}
-  vs {{ r.matchup.teams[1].team_name or r.matchup.teams[1].team_slug }}</a></b>
+  <b><a href="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ r.slug }}">{{ r.matchup.teams[0].display_name or r.matchup.teams[0].team_name or r.matchup.teams[0].team_slug }}
+  vs {{ r.matchup.teams[1].display_name or r.matchup.teams[1].team_name or r.matchup.teams[1].team_slug }}</a></b>
   <span class="score">{{ r.effective_prominence }}</span>
   {% if r.state and r.state.prominence_override %}<span class="meta">(override; recommended {{ r.recommended_prominence }})</span>{% endif %}
   <div class="meta">

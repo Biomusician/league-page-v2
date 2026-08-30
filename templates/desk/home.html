@@ -7,6 +7,83 @@
   .ctarow { display:flex; gap:.7rem; flex-wrap:wrap; margin:.7rem 0 .3rem; }
 </style>
 <h2>Commissioner's Desk</h2>
+
+<div class="card" id="syncpanel">
+  <form method="post" action="/commissioner/sync-start" id="syncform" style="display:inline">
+    <button class="bigcta" type="submit" id="syncbtn"
+            {% if sync_job and sync_job.state == "running" %}disabled{% endif %}>
+      SYNC SLEEPER</button>
+  </form>
+  <span class="meta" id="synced-line">
+    {% if sync_job and sync_job.state == "running" %}Sync running…
+    {% elif last_sync %}Synced {{ last_sync[:16].replace("T", " ") }}
+    {% else %}Not synced yet this session.{% endif %}
+  </span>
+  <div id="syncprogress" style="display:none; margin-top:.5rem"></div>
+  <div id="syncsummary" style="margin-top:.4rem">
+    {% if sync_job and sync_job.state != "running" %}
+    {% if sync_job.state == "succeeded" %}<b>Sync complete.</b>{% else %}
+    <b>Sync failed:</b> <span class="meta">{{ sync_job.error }}</span>{% endif %}
+    {% for lg in sync_job.summary %}
+    <div class="meta">{{ lg.league }}:
+      {% if lg.ok %}week {{ lg.week }} · {{ lg.teams }} teams
+        {%- if lg.new_transactions %} · {{ lg.new_transactions }} new transaction(s){% endif %}
+        {%- if lg.renames %} · renamed: {{ lg.renames | join("; ") }}{% endif %}
+        {%- if lg.warnings %} · {{ lg.warnings | join("; ") }}{% endif %}
+      {% else %}FAILED — {{ lg.error }}{% endif %}
+    </div>
+    {% endfor %}
+    {% if sync_job.stages %}
+    <details><summary class="meta">Show Sync Details</summary>
+      <ul class="facts">
+        {% for st in sync_job.stages %}
+        <li>{{ st.name }}: {{ st.status }}{% if st.detail %} — {{ st.detail }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var btn = document.getElementById("syncbtn");
+  var prog = document.getElementById("syncprogress");
+  var running = {{ "true" if sync_job and sync_job.state == "running" else "false" }};
+
+  function render(job) {
+    if (!job) return;
+    prog.style.display = "block";
+    prog.innerHTML = job.stages.map(function (st) {
+      var mark = st.status === "ok" ? "✅" : st.status === "failed" ? "❌"
+        : st.status === "running" ? "⏳" : "·";
+      return "<div class='meta'>" + mark + " " + st.name +
+        (st.detail ? " — " + st.detail : "") + "</div>";
+    }).join("");
+  }
+
+  function poll() {
+    fetch("/commissioner/sync-status").then(function (r) { return r.json(); })
+      .then(function (data) {
+        var job = data.job;
+        if (!job) return;
+        render(job);
+        if (job.state === "running") { setTimeout(poll, 800); }
+        else { window.location.reload(); }
+      }).catch(function () { setTimeout(poll, 2000); });
+  }
+
+  document.getElementById("syncform").addEventListener("submit", function () {
+    btn.disabled = true;
+    btn.textContent = "SYNCING…";
+    // the POST redirects home; polling resumes there via `running`
+  });
+  if (running) { btn.disabled = true; poll(); }
+})();
+</script>
+
 {% for c in cards %}
 <div class="card">
   <h3 style="margin:.1rem 0">{{ c.league.display_name }}

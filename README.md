@@ -36,10 +36,23 @@ Troubleshooting fallback (what the launcher runs for you):
 .venv\Scripts\python.exe scripts\desk.py
 ```
 
-## Quick start (data + tests)
+## The weekly workflow (all in the browser)
+
+1. Double-click **`Launch Commissioner Desk`**
+2. Click **SYNC SLEEPER** (pulls both leagues, records snapshots and move
+   context, and refreshes the writing briefs for the current week's
+   workspaces — no separate Build step)
+3. Click **EDIT WEEK N**
+4. Write
+5. Preview / approve
+6. **Publish & Deploy**
+
+No terminal needed. The CLI below is troubleshooting fallback only.
+
+## Troubleshooting / data CLI
 
 ```
-.venv\Scripts\python.exe scripts\sync.py            # pull Sleeper data for both leagues
+.venv\Scripts\python.exe scripts\sync.py            # same sync the Desk button runs
 .venv\Scripts\python.exe scripts\import_archive.py  # index archive/*.md into the DB
 .venv\Scripts\python.exe scripts\seed_editorial.py  # refresh editorial/managers.json from synced data
 .venv\Scripts\python.exe -m pytest tests\ -q        # run the test suite

@@ -204,6 +204,17 @@ def analyze_week(
         for i, r in enumerate(sorted(rosters, key=lambda r: -team_record(r)["fpts"]))
     }
 
+    # Human-facing labels resolve through the public-name precedence
+    # (commissioner override > Sleeper name > neutral Roster N); slugs stay
+    # on the Sleeper-name-or-roster-N rule for stability (they land in git
+    # paths and URLs and must not churn on display renames).
+    from leaguepage.team_names import resolve_public_names
+
+    try:
+        public = resolve_public_names(storage, league)
+    except Exception:
+        public = {}
+
     teams: dict[int, dict] = {}
     used_slugs: set[str] = set()
     for r in rosters:
@@ -214,6 +225,9 @@ def analyze_week(
         slug = base if base not in used_slugs else f"{base}-{r['roster_id']}"
         used_slugs.add(slug)
         identity["team_slug"] = slug
+        identity["display_name"] = ((public.get(r["roster_id"]) or {}).get("name")
+                                    or identity["team_name"]
+                                    or f"Roster {r['roster_id']}")
         rec = team_record(r)
         history = scores.get(r["roster_id"], [])
         results = []

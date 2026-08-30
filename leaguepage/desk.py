@@ -36,6 +36,53 @@ def _week_of(issue_key: str) -> int | None:
     return int(issue_key.removeprefix("week-")) if issue_key.startswith("week-") else None
 
 
+def candidates_for(s: Storage, league, season: str, issue_key: str) -> list[dict]:
+    """Story candidates for an issue (weekly or draft). Module-level so the
+    sync job can refresh research with exactly the Build button's logic."""
+    week = _week_of(issue_key)
+    coalitions = load_coalitions()
+    if week is not None:
+        computed = compute_week(s, league, week)
+        if not computed:
+            return []
+        return weekly_story_candidates(s, league, week, computed, coalitions=coalitions)
+    analysis = analyze_league_draft(s, league, managers=load_managers(),
+                                    adp=load_adp_for_league(league))
+    if not analysis:
+        return []
+    return draft_story_candidates(analysis, storage=s, managers=load_managers(),
+                                  coalitions=coalitions)
+
+
+def awards_for(s: Storage, league, season: str, issue_key: str) -> list[dict]:
+    week = _week_of(issue_key)
+    if week is not None:
+        ranks = {p["roster_id"]: p["rank"]
+                 for p in s.get_power_rankings(league.slug, season, "preseason")
+                 if p.get("rank")}
+        return weekly_award_nominations(s, league, week, preseason_ranks=ranks or None)
+    analysis = analyze_league_draft(s, league, managers=load_managers(),
+                                    adp=load_adp_for_league(league))
+    return draft_award_nominations(analysis) if analysis else []
+
+
+def refresh_issue_research(s: Storage, league, season: str, issue_key: str) -> None:
+    """Regenerate an issue's research layer: matchup packets, prep, section
+    authoring, index. Never touches commissioner prose, approvals, decisions,
+    or rankings — packet builds preserve commissioner_notes.md, and content
+    files are only created when absent."""
+    week = _week_of(issue_key)
+    if week is not None:
+        from leaguepage.matchup_packet import build_weekly_packet
+
+        build_weekly_packet(s, league, week)
+    candidates = candidates_for(s, league, season, issue_key)
+    awards = awards_for(s, league, season, issue_key)
+    build_lowdown_prep(s, league, season, issue_key, candidates)
+    build_section_authoring(s, league, season, issue_key, candidates, awards)
+    write_authoring_index(league, season, issue_key)
+
+
 DEFAULT_PORT = 8026
 
 
@@ -157,8 +204,24 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             return {"status": "error", "app": "commissioner-desk",
                     "error": type(exc).__name__}
 
+    @app.post("/commissioner/sync-start")
+    def sync_start():
+        from leaguepage import sync_jobs
+
+        sync_jobs.start_sync_job(db_path)
+        return RedirectResponse("/commissioner", status_code=303)
+
+    @app.get("/commissioner/sync-status")
+    def sync_status():
+        from leaguepage import sync_jobs
+
+        job = sync_jobs.get_sync_job()
+        return {"job": job}
+
     @app.get("/commissioner")
     def home(request: Request):
+        from leaguepage import sync_jobs
+
         cards = []
         with storage() as s:
             for league in LEAGUES:
@@ -184,7 +247,10 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                     "award_decisions": awards_decided,
                     "issue_status": issue["status"] if issue else "not started",
                 })
-        return templates.TemplateResponse(request, "desk/home.html", {"cards": cards})
+            last_sync = s.get_meta(sync_jobs.LAST_SYNC_KEY)
+        job = sync_jobs.get_sync_job()
+        return templates.TemplateResponse(request, "desk/home.html", {
+            "cards": cards, "last_sync": last_sync, "sync_job": job})
 
     @app.get("/commissioner/{league_slug}/{season}/draft-review")
     def draft_review(request: Request, league_slug: str, season: str):
@@ -426,30 +492,10 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     # ------------------------------------------------------------------
 
     def _candidates_for(s: Storage, league, season: str, issue_key: str) -> list[dict]:
-        week = _week_of(issue_key)
-        coalitions = load_coalitions()
-        if week is not None:
-            computed = compute_week(s, league, week)
-            if not computed:
-                return []
-            return weekly_story_candidates(s, league, week, computed, coalitions=coalitions)
-        analysis = analyze_league_draft(s, league, managers=load_managers(),
-                                        adp=load_adp_for_league(league))
-        if not analysis:
-            return []
-        return draft_story_candidates(analysis, storage=s, managers=load_managers(),
-                                      coalitions=coalitions)
+        return candidates_for(s, league, season, issue_key)
 
     def _awards_for(s: Storage, league, season: str, issue_key: str) -> list[dict]:
-        week = _week_of(issue_key)
-        if week is not None:
-            ranks = {p["roster_id"]: p["rank"]
-                     for p in s.get_power_rankings(league.slug, season, "preseason")
-                     if p.get("rank")}
-            return weekly_award_nominations(s, league, week, preseason_ranks=ranks or None)
-        analysis = analyze_league_draft(s, league, managers=load_managers(),
-                                        adp=load_adp_for_league(league))
-        return draft_award_nominations(analysis) if analysis else []
+        return awards_for(s, league, season, issue_key)
 
     def _workspace_context(league_slug: str, season: str, issue_key: str) -> dict:
         league = get_league(league_slug)
@@ -506,17 +552,8 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/build")
     def issue_build(league_slug: str, season: str, issue_key: str):
         league = get_league(league_slug)
-        week = _week_of(issue_key)
         with storage() as s:
-            if week is not None:
-                from leaguepage.matchup_packet import build_weekly_packet
-
-                build_weekly_packet(s, league, week)
-            candidates = _candidates_for(s, league, season, issue_key)
-            awards = _awards_for(s, league, season, issue_key)
-            build_lowdown_prep(s, league, season, issue_key, candidates)
-            build_section_authoring(s, league, season, issue_key, candidates, awards)
-            write_authoring_index(league, season, issue_key)
+            refresh_issue_research(s, league, season, issue_key)
             if not s.get_issue(league_slug, season, issue_key):
                 s.set_issue_status(league_slug=league_slug, season=season,
                                    issue_key=issue_key, status="generated")
