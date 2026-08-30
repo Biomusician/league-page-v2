@@ -1,40 +1,70 @@
 {% extends "desk/base.html" %}
-{% block title %}Publish {{ league.display_name }} {{ issue_key }}?{% endblock %}
+{% block title %}Publish {{ league.display_name }} {{ issue_key }}{% endblock %}
 {% block masthead_right %}<a href="{{ edit_base }}">← back to editor</a>{% endblock %}
 {% block content %}
+<style>
+  .stages { list-style:none; padding:0; margin:.5rem 0; }
+  .stages li { padding:.35rem .2rem; border-bottom:1px dotted var(--line); }
+  .stages .st { display:inline-block; width:1.6rem; }
+  .ok2 { border:2px solid #2f6b2f; background:#eef7ee; }
+  .bad { border:2px solid var(--accent); background:#fdf1ef; }
+  pre.logtail { background:#1a1c20; color:#d8d5cd; padding:.7rem; font-size:.78rem;
+                overflow-x:auto; max-height:22rem; }
+  .statebar { display:flex; gap:1.4rem; flex-wrap:wrap; font-size:.9rem; }
+</style>
+
 <h2>Publish {{ league.display_name }} · {{ season }} · {{ issue_key }}</h2>
 
+<div class="card statebar">
+  <span>Snapshot: <b>{{ (issue_row or {}).get("status") or "not started" }}</b>
+    {% if issue_row and issue_row.get("updated_at") %}<span class="meta">({{ issue_row["updated_at"][:16] }})</span>{% endif %}</span>
+  <span>Production:
+    {% if deploy_state and deploy_state.state == "deployed" %}
+      <b style="color:#2f6b2f">deployed</b> <span class="meta">({{ deploy_state.at[:16] }}{% if deploy_state.deployment_id %} · {{ deploy_state.deployment_id }}{% endif %})</span>
+    {% elif deploy_state %}
+      <b style="color:var(--accent)">deploy failed</b> <span class="meta">({{ deploy_state.at[:16] }})</span>
+    {% else %}<span class="meta">never deployed from this issue</span>{% endif %}
+  </span>
+</div>
+
+<div id="jobpanel">
+{% if job %}
+  <div class="card" id="jobcard">
+    <b id="jobtitle">{{ "Publishing…" if job.state == "running" else
+       ("Published successfully" if job.state == "succeeded" else "Publish failed") }}</b>
+    <ul class="stages" id="stagelist"></ul>
+    <div id="jobresult"></div>
+  </div>
+{% endif %}
+</div>
+
+<div id="actions" {% if job and job.state == "running" %}hidden{% endif %}>
 {% if blockers %}
-  <div class="card" style="border:2px solid var(--accent); background:#fdf1ef">
+  <div class="card bad">
     <b>Cannot publish yet — {{ blockers|length }} blocker(s):</b>
     <ul>{% for b in blockers %}<li><a href="{{ edit_base }}#{{ b.anchor }}">{{ b.text }}</a></li>{% endfor %}</ul>
-    <p class="meta">Fix these in the <a href="{{ edit_base }}">editor</a>; this page will show
-      READY when the gates pass. Publishing is impossible until then.</p>
   </div>
 {% else %}
-  <div class="card" style="border:2px solid #2f6b2f; background:#eef7ee">
-    <b>READY TO PUBLISH.</b> All gates pass: every included module approved, no blocked
-    markers, all public team names confirmed.
-  </div>
-
+  <div class="card ok2"><b>READY TO PUBLISH.</b> All gates pass.</div>
   <div class="card">
     <h3 style="margin-top:0">Publish locally</h3>
     <p class="meta">Freezes the immutable snapshot under <code>published/</code> and rebuilds
       the audited <code>dist/</code>. Nothing leaves this machine.</p>
-    <form method="post" action="{{ edit_base }}/publish-local"
+    <form method="post" action="{{ edit_base }}/publish-start"
           onsubmit="return confirm('Freeze and publish this issue locally?')">
+      <input type="hidden" name="mode" value="local">
       <input type="hidden" name="confirm" value="yes">
       <button class="primary">Publish Locally</button>
     </form>
   </div>
-
   <div class="card">
     <h3 style="margin-top:0">Publish &amp; Deploy to production</h3>
-    <p class="meta">Snapshot → audited public build → Vercel production
-      (<code>{{ production_url }}</code>) → verification. The deploy is skipped
-      automatically if the build or privacy audit fails.</p>
-    <form method="post" action="{{ edit_base }}/publish-deploy"
+    <p class="meta">Snapshot → audited build → Vercel production
+      (<code>{{ production_url }}</code>) → verification. Stops at the first failed
+      step; a failed audit never deploys.</p>
+    <form method="post" action="{{ edit_base }}/publish-start"
           onsubmit="return confirm('Deploy to the LIVE public site now?')">
+      <input type="hidden" name="mode" value="deploy">
       <input type="hidden" name="confirm" value="yes">
       <label><input type="checkbox" name="confirm_deploy" value="yes">
         I want this issue live on the public internet.</label><br><br>
@@ -43,4 +73,53 @@
   </div>
 {% endif %}
 <p><a href="{{ edit_base }}/full-preview">Preview the full issue first →</a></p>
+</div>
+
+<script>
+const STATUS = {{ (edit_base ~ "/publish-status") | tojson }};
+const ISSUE_URL = {{ (production_url ~ "/" ~ league.slug ~ "/" ~ season ~ "/" ~ issue_key ~ "/") | tojson }};
+const initialState = {{ (job.state if job else "none") | tojson }};
+const ICON = {pending: "·", running: "⏳", ok: "✅", fail: "❌"};
+
+function render(data) {
+  const job = data.job;
+  if (!job) return;
+  const list = document.getElementById("stagelist");
+  if (list) {
+    list.innerHTML = job.stages.map(s =>
+      `<li><span class="st">${ICON[s.status] || "·"}</span> ${s.name}` +
+      (s.detail ? ` <span class="meta">${s.detail.replace(/</g, "&lt;")}</span>` : "") +
+      `</li>`).join("");
+  }
+  const res = document.getElementById("jobresult");
+  const title = document.getElementById("jobtitle");
+  if (job.state === "succeeded") {
+    title.textContent = "Published successfully";
+    res.innerHTML = job.mode === "deploy"
+      ? `<p><a href="${ISSUE_URL}" target="_blank"><button class="primary" type="button">Open Published Issue</button></a>
+         <span class="meta">${job.ended_at || ""}${job.deployment_id ? " · " + job.deployment_id : ""}</span></p>`
+      : `<p class="meta">Snapshot frozen and public build ready. Deploy any time below.</p>`;
+  } else if (job.state === "failed") {
+    title.textContent = "Publish failed";
+    res.innerHTML = `<details><summary>Show Publish Details</summary>
+      <pre class="logtail">${(data.log_tail || "(no log)").replace(/</g, "&lt;")}</pre></details>
+      <p class="meta">Nothing past the failed step ran. The live site is unchanged unless the
+      deploy stage itself reported success.</p>`;
+  }
+}
+
+async function poll() {
+  const r = await fetch(STATUS);
+  if (!r.ok) return;
+  const data = await r.json();
+  render(data);
+  const st = data.job ? data.job.state : "none";
+  if (st === "running") {
+    setTimeout(poll, 1500);
+  } else if (initialState === "running" && st !== "running") {
+    location.reload();   // rerender final state server-side, re-enable actions
+  }
+}
+{% if job %}poll();{% endif %}
+</script>
 {% endblock %}

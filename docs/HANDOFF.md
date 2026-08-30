@@ -124,6 +124,38 @@ link integrity.
 - autoCompactWindow: 800000 in ~/.claude/settings.json (Fable 5 native 1M
   window; ~80%). Interactive equivalent: /autocompact 800k.
 
+## Publish pipeline (job model, 2026-08-30)
+
+Publishing from the editor is asynchronous: POST publish-start returns in
+under a second, a daemon thread runs snapshot -> build/audit -> (deploy ->
+verify), and the publish page polls publish-status, showing each stage
+live. One job per issue at a time (duplicate clicks join the running job);
+every child process runs stdin-closed with explicit timeouts and
+tree-kill (`npx --yes vercel@latest ... --yes`); a failed or timed-out
+stage stops the pipeline, is shown with Show Publish Details (log tail),
+and never reports success. Logs: logs/publish-{league}-{issue}.log
+(gitignored, credential-redacting). The deploy outcome lives separately
+from the snapshot lifecycle in meta deploy_state:{league}:{season}:{issue}
+("published" still means only "snapshot frozen locally"). Root cause of
+the old hang: one synchronous POST held the browser through the whole
+pipeline (30-90s, indefinitely if npx ever prompted on stdin) while the
+publish actually succeeded, inviting double deploys.
+
+## Comments (giscus boundary, not yet activated)
+
+Published native issue pages can carry a giscus (GitHub Discussions)
+comments section: config in leaguepage/config.py COMMENTS (all values
+public client-side config; empty repo = disabled, the current state).
+Per-issue thread identity is data-term "league:season:issue" (stable
+across domain moves); imported historical archive pages never get
+comments; per-issue opt-out via disabled_issues. Graceful failure: the
+issue renders fully if giscus is down. Moderation happens in GitHub
+Discussions on the comments repo. ACTIVATION (Jonathan, one-time): create
+a PUBLIC comments-only repo (never the private source), enable
+Discussions, install the giscus app on it, copy the four values from
+giscus.app into COMMENTS, rebuild + deploy. Note: commenters need GitHub
+accounts.
+
 ## Voice (authoritative)
 
 .claude/skills/my-writing-style/SKILL.md — supplied by Jonathan, installed

@@ -256,3 +256,37 @@ def test_all_internal_links_resolve(site_env):
             if target.startswith("..") or not (t.is_file() or (t / "index.html").is_file()):
                 bad.append((page.relative_to(dist).as_posix(), url))
     assert bad == []
+
+
+def test_comments_disabled_by_default_nowhere_in_dist(site_env):
+    db, tmp = site_env
+    _publish_minimal(db, tmp, TEST_SURFEIT, "week-01", "# The Lowdown\n\nWords.")
+    _build(db, tmp)
+    blob = "\n".join(p.read_text(encoding="utf-8")
+                     for p in (tmp / "dist").rglob("*.html"))
+    assert "giscus" not in blob
+
+
+def test_comments_enabled_on_native_issues_only(site_env, monkeypatch):
+    import leaguepage.config as cfg
+
+    db, tmp = site_env
+    monkeypatch.setattr(cfg, "COMMENTS", {
+        "repo": "example/league-comments", "repo_id": "R_test",
+        "category": "Issues", "category_id": "DIC_test",
+        "disabled_issues": [f"surfeit:{SEASON}:week-02"]})
+    _publish_minimal(db, tmp, TEST_SURFEIT, "week-01", "# The Lowdown\n\nWeek one.")
+    _publish_minimal(db, tmp, TEST_SURFEIT, "week-02", "# The Lowdown\n\nWeek two.")
+    _build(db, tmp)
+    w1 = (tmp / "dist" / "surfeit" / SEASON / "week-01" / "index.html").read_text(encoding="utf-8")
+    w2 = (tmp / "dist" / "surfeit" / SEASON / "week-02" / "index.html").read_text(encoding="utf-8")
+    assert "giscus.app/client.js" in w1
+    assert f'data-term="surfeit:{SEASON}:week-01"' in w1     # stable per-issue thread
+    assert "Comments" in w1 and "<noscript>" in w1           # graceful failure text
+    assert "giscus" not in w2                                # per-issue opt-out works
+    # imported historical issues stay read-only
+    for page in (tmp / "dist" / "disco" / "archive").rglob("a*/index.html"):
+        assert "giscus" not in page.read_text(encoding="utf-8")
+    # comments wrapper leaks nothing private and the audit still passes
+    assert "commissioner" not in w1.split("giscus")[1][:600].lower()
+    assert audit_output(tmp / "dist") == []

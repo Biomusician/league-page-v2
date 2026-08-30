@@ -82,7 +82,7 @@ the Draft page.
 
 Two outside gauges for calibration, both pulled 2026-08-30. FantasyPros grades the room on a curve: ten of twelve boards got a B+ or better, and nobody failed. The Fantasy Footballers put my board first at 100, which proves their model is rigorous and unbiased (I am totally objective). Where all three methods agree, believe it; where they argue, that's a season preview.
 
-**FantasyPros draft grades**
+**Fantasy Footballers draft grades**
 
 | Rk | Team | Grade | PPG |
 |---:|------|:-----:|----:|
@@ -99,7 +99,7 @@ Two outside gauges for calibration, both pulled 2026-08-30. FantasyPros grades t
 | 11 | Stafford and Sons | B | 134.4 |
 | 12 | Double TDs | B | 125.7 |
 
-**Fantasy Footballers draft rankings**
+**Fantasy Pros draft rankings**
 
 | Rk | Team | Score |
 |---:|------|------:|

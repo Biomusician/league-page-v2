@@ -36,6 +36,21 @@ class League:
     adp_source: str = ""  # refdata/adp/<key>.json reference-rank snapshot
 
 
+# Public comments (giscus / GitHub Discussions) on published issue pages.
+# All values are PUBLIC by design (giscus config is client-side); no secrets.
+# To activate: create a public comments-only GitHub repo (NEVER the private
+# League-Page source), enable Discussions, install the giscus app on it,
+# then paste the four values from https://giscus.app here. Empty repo =
+# comments disabled everywhere; imported historical archive pages never get
+# comments; list "league:season:issue" in disabled_issues to opt one out.
+COMMENTS = {
+    "repo": "",            # e.g. "biomusician/league-page-comments"
+    "repo_id": "",
+    "category": "",        # e.g. "Announcements" or a dedicated "Issues" category
+    "category_id": "",
+    "disabled_issues": [],
+}
+
 LEAGUES: list[League] = [
     League(
         slug="disco",

@@ -15,4 +15,27 @@
   <div>{{ s.html | safe }}</div>
 </section>
 {% endfor %}
+{% if comments %}
+<section class="module comments" id="comments">
+  <h2 class="section-label">Comments</h2>
+  <p class="meta">League discussion for this issue. Sign in with GitHub to post.</p>
+  <script src="https://giscus.app/client.js"
+          data-repo="{{ comments.repo }}"
+          data-repo-id="{{ comments.repo_id }}"
+          data-category="{{ comments.category }}"
+          data-category-id="{{ comments.category_id }}"
+          data-mapping="specific"
+          data-term="{{ comments.term }}"
+          data-strict="0"
+          data-reactions-enabled="1"
+          data-emit-metadata="0"
+          data-input-position="bottom"
+          data-theme="{{ comments.theme }}"
+          data-lang="en"
+          crossorigin="anonymous"
+          async>
+  </script>
+  <noscript><p class="meta">Comments need JavaScript; the issue above reads fine without it.</p></noscript>
+</section>
+{% endif %}
 {% endblock %}

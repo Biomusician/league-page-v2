@@ -486,107 +486,50 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
     # ------------------------------------------------ publish / deploy
 
+
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish")
     def publish_confirm(request: Request, league_slug: str, season: str, issue_key: str):
+        from leaguepage import publish_jobs
+
         ctx = _editor_context(league_slug, season, issue_key)
+        ctx["job"] = publish_jobs.get_job_for(league_slug, season, issue_key)
+        with storage() as s:
+            ctx["deploy_state"] = publish_jobs.deploy_state(s, league_slug, season, issue_key)
         return templates.TemplateResponse(request, "desk/publish_confirm.html", ctx)
 
-    def _do_publish(league_slug: str, season: str, issue_key: str):
-        from leaguepage.publish import publish_assembled_issue
+    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish-start")
+    def publish_start(league_slug: str, season: str, issue_key: str,
+                      mode: str = Form(...), confirm: str = Form(""),
+                      confirm_deploy: str = Form("")):
+        from leaguepage import publish_jobs
 
-        league = get_league(league_slug)
+        back = f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish"
+        if mode not in ("local", "deploy") or confirm != "yes"                 or (mode == "deploy" and confirm_deploy != "yes"):
+            return RedirectResponse(back + "?error=confirm", status_code=303)
+        publish_jobs.start_publish_job(db_path_of(), league_slug, season, issue_key, mode)
+        return RedirectResponse(back, status_code=303)
+
+    def db_path_of():
+        # the desk's storage factory closes over its db_path; jobs need it
         with storage() as s:
-            return publish_assembled_issue(s, league, season, issue_key,
-                                           week=_week_of(issue_key))
+            return s.db_path
 
-    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish-local")
-    def publish_local(request: Request, league_slug: str, season: str, issue_key: str,
-                      confirm: str = Form("")):
-        steps: list[dict] = []
-        if confirm != "yes":
-            steps.append({"name": "Confirmation", "ok": False, "detail": "not confirmed"})
-            return templates.TemplateResponse(request, "desk/publish_result.html",
-                                              _result_ctx(league_slug, season, issue_key, steps))
-        steps.extend(_publish_and_build(league_slug, season, issue_key))
-        return templates.TemplateResponse(request, "desk/publish_result.html",
-                                          _result_ctx(league_slug, season, issue_key, steps))
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish-status")
+    def publish_status(league_slug: str, season: str, issue_key: str):
+        from leaguepage import publish_jobs
 
-    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish-deploy")
-    def publish_deploy(request: Request, league_slug: str, season: str, issue_key: str,
-                       confirm: str = Form(""), confirm_deploy: str = Form("")):
-        steps: list[dict] = []
-        if confirm != "yes" or confirm_deploy != "yes":
-            steps.append({"name": "Confirmation", "ok": False,
-                          "detail": "Publish & Deploy needs both confirmations checked."})
-            return templates.TemplateResponse(request, "desk/publish_result.html",
-                                              _result_ctx(league_slug, season, issue_key, steps))
-        steps.extend(_publish_and_build(league_slug, season, issue_key))
-        if all(st["ok"] for st in steps):
-            steps.extend(_deploy_production())
-            if all(st["ok"] for st in steps):
-                steps.append(_verify_production(league_slug, season, issue_key))
-        return templates.TemplateResponse(request, "desk/publish_result.html",
-                                          _result_ctx(league_slug, season, issue_key, steps))
-
-    def _result_ctx(league_slug, season, issue_key, steps):
-        return {"league": get_league(league_slug), "season": season, "issue_key": issue_key,
-                "steps": steps, "all_ok": all(st["ok"] for st in steps),
-                "production_url": PRODUCTION_URL,
-                "issue_url": f"{PRODUCTION_URL}/{league_slug}/{season}/{issue_key}/",
-                "edit_base": f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit"}
-
-    def _publish_and_build(league_slug: str, season: str, issue_key: str) -> list[dict]:
-        from leaguepage.publish import PublishError
-
-        steps = []
-        try:
-            snap = _do_publish(league_slug, season, issue_key)
-            steps.append({"name": "Publish snapshot", "ok": True, "detail": str(snap)})
-        except (PublishError, ValueError) as exc:
-            steps.append({"name": "Publish snapshot", "ok": False, "detail": str(exc)})
-            return steps
-        py = REPO_ROOT / ".venv" / "Scripts" / "python.exe"
-        proc = subprocess.run(
-            [str(py if py.exists() else sys.executable), str(REPO_ROOT / "scripts" / "build_public_site.py")],
-            cwd=REPO_ROOT, capture_output=True, text=True, timeout=300)
-        detail = (proc.stdout or "").strip().splitlines()[-2:]
-        steps.append({"name": "Public build + privacy audit", "ok": proc.returncode == 0,
-                      "detail": " / ".join(detail) or (proc.stderr or "").strip()[-300:]})
-        return steps
-
-    def _deploy_production() -> list[dict]:
-        steps = []
-        npx = shutil.which("npx") or shutil.which("npx.cmd")
-        if not npx:
-            return [{"name": "Vercel deploy", "ok": False,
-                     "detail": "npx not found on PATH; deploy from a terminal instead"}]
-        try:
-            link = subprocess.run([npx, "vercel@latest", "link", "--yes",
-                                   "--project", VERCEL_PROJECT],
-                                  cwd=DIST_DIR, capture_output=True, text=True, timeout=180)
-            steps.append({"name": "Vercel link", "ok": link.returncode == 0,
-                          "detail": (link.stderr or link.stdout or "").strip()[-200:]})
-            if link.returncode != 0:
-                return steps
-            dep = subprocess.run([npx, "vercel@latest", "deploy", "--prod", "--yes"],
-                                 cwd=DIST_DIR, capture_output=True, text=True, timeout=600)
-            out = (dep.stdout or "") + (dep.stderr or "")
-            steps.append({"name": "Vercel production deploy", "ok": dep.returncode == 0,
-                          "detail": out.strip()[-300:]})
-        except subprocess.TimeoutExpired:
-            steps.append({"name": "Vercel deploy", "ok": False, "detail": "timed out"})
-        return steps
-
-    def _verify_production(league_slug: str, season: str, issue_key: str) -> dict:
-        import urllib.request
-
-        checks = []
-        for path in ("/", f"/{league_slug}/", f"/{league_slug}/{season}/{issue_key}/"):
-            try:
-                with urllib.request.urlopen(PRODUCTION_URL + path, timeout=20) as resp:
-                    checks.append((path, resp.status))
-            except Exception:
-                checks.append((path, 0))
-        ok = all(code == 200 for _, code in checks)
-        return {"name": "Production verification", "ok": ok,
-                "detail": ", ".join(f"{p} -> {c or 'unreachable'}" for p, c in checks)}
+        job = publish_jobs.get_job_for(league_slug, season, issue_key)
+        with storage() as s:
+            dstate = publish_jobs.deploy_state(s, league_slug, season, issue_key)
+        payload: dict = {"deploy_state": dstate}
+        if job:
+            payload["job"] = {k: job[k] for k in
+                              ("job_id", "mode", "state", "created_at", "ended_at",
+                               "stages", "production_url", "issue_url", "deployment_id")}
+            if job["state"] == "failed":
+                try:
+                    payload["log_tail"] = Path(job["log_path"]).read_text(
+                        encoding="utf-8")[-3000:]
+                except OSError:
+                    payload["log_tail"] = "(log unavailable)"
+        return JSONResponse(payload)

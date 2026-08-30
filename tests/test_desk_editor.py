@@ -178,56 +178,6 @@ def test_full_preview_shows_unapproved_and_banner(env):
     assert "Original words." in r.text
 
 
-def test_publish_local_blocked_then_succeeds(env, monkeypatch):
-    client, db, idir = env
-    calls = []
-    monkeypatch.setattr(de.subprocess, "run",
-                        lambda *a, **k: calls.append(a) or type(
-                            "P", (), {"returncode": 0, "stdout": "ok\nclean", "stderr": ""})())
-    # lowdown not approved yet -> publish must fail, no snapshot
-    r = client.post(f"{EDIT}/publish-local", data={"confirm": "yes"})
-    assert "❌" in r.text and not (cfg.PUBLISHED_DIR / "surfeit").exists()
-    # approve lowdown, exclude everything else
-    with Storage(db) as s:
-        for key in ("hardware", "draft-capsules", "ctp", "power", "tracks", "fades",
-                    "forceflow", "blackbox", "false-assumptions", "branches"):
-            s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                              module_key=key, included=0)
-        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                          module_key="lowdown", approved=1)
-    r = client.post(f"{EDIT}/publish-local", data={"confirm": "yes"})
-    assert "❌" not in r.text
-    assert (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json").exists()
-    assert calls  # public build was invoked
-
-
-def test_publish_deploy_stops_on_failed_build(env, monkeypatch):
-    client, db, idir = env
-    with Storage(db) as s:
-        for key in ("hardware", "draft-capsules", "ctp", "power", "tracks", "fades",
-                    "forceflow", "blackbox", "false-assumptions", "branches"):
-            s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                              module_key=key, included=0)
-        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                          module_key="lowdown", approved=1)
-    deploys = []
-    def fake_run(cmd, **kw):
-        if "build_public_site.py" in str(cmd):
-            return type("P", (), {"returncode": 1, "stdout": "", "stderr": "audit FAILED"})()
-        deploys.append(cmd)
-        return type("P", (), {"returncode": 0, "stdout": "", "stderr": ""})()
-    monkeypatch.setattr(de.subprocess, "run", fake_run)
-    r = client.post(f"{EDIT}/publish-deploy",
-                    data={"confirm": "yes", "confirm_deploy": "yes"})
-    assert "❌" in r.text and deploys == []  # deploy never ran
-
-
-def test_publish_deploy_requires_both_confirmations(env):
-    client, db, idir = env
-    r = client.post(f"{EDIT}/publish-deploy", data={"confirm": "yes"})
-    assert "Confirmation" in r.text and "❌" in r.text
-
-
 def test_health_endpoint(env):
     client, db, idir = env
     data = client.get("/health").json()
@@ -258,23 +208,6 @@ def test_empty_section_with_brief_still_blocks_publication(env):
     assert "Cannot publish yet" in r.text        # excellent ghost != written
 
 
-def test_ghost_text_never_reaches_published_snapshot(env, monkeypatch):
-    client, db, idir = env
-    monkeypatch.setattr(de.subprocess, "run",
-                        lambda *a, **k: type("P", (), {"returncode": 0,
-                                                       "stdout": "ok", "stderr": ""})())
-    with Storage(db) as s:
-        for key in ("hardware", "draft-capsules", "ctp", "power", "tracks", "fades",
-                    "forceflow", "blackbox", "false-assumptions", "branches", "custom"):
-            s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                              module_key=key, included=0)
-        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                          module_key="lowdown", approved=1)
-    client.post(f"{EDIT}/publish-local", data={"confirm": "yes"})
-    snap = (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json").read_text(encoding="utf-8")
-    assert "Writing suggestions" not in snap and "WORTH MENTIONING" not in snap
-
-
 def test_matchup_proposal_path_is_windows_safe(env):
     from pathlib import Path
     assert ":" not in str(Path("proposals") / "matchup--a-vs-b.md")
@@ -284,3 +217,153 @@ def test_matchup_proposal_path_is_windows_safe(env):
                     json={"section": "lowdown", "note": "x"})
     assert r.status_code == 200
     assert "matchup--<slug>" in (idir / "REVISION_REQUESTS.md").read_text(encoding="utf-8")
+
+# ---------------------------------------------------------- publish jobs
+
+import time
+
+import leaguepage.publish_jobs as pj
+
+
+@pytest.fixture
+def jobs_env(env, monkeypatch):
+    """Job registry isolated per test; subprocess + network mocked."""
+    client, db, idir = env
+    monkeypatch.setattr(pj, "_JOBS", {})
+    monkeypatch.setattr(pj, "_ACTIVE", {})
+    calls = []
+
+    def fake_run(job, cmd, *, cwd, timeout):
+        calls.append(cmd)
+        import subprocess
+        return subprocess.CompletedProcess(cmd, 0, "Built ok\naudit clean", "")
+
+    monkeypatch.setattr(pj, "_run", fake_run)
+    monkeypatch.setitem(pj._STAGE_FNS, "verify", lambda job, dbp: "/ -> 200 (mocked)")
+    return client, db, idir, calls
+
+
+def _approve_only_lowdown(db):
+    with Storage(db) as s:
+        for key in ("hardware", "draft-capsules", "ctp", "power", "tracks", "fades",
+                    "forceflow", "blackbox", "false-assumptions", "branches", "custom"):
+            s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
+                              module_key=key, included=0)
+        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
+                          module_key="lowdown", approved=1)
+
+
+def _wait_job(client, timeout=8.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        data = client.get(f"{EDIT}/publish-status").json()
+        if data.get("job") and data["job"]["state"] != "running":
+            return data
+        time.sleep(0.05)
+    raise AssertionError("job did not finish (would previously have hung)")
+
+
+def test_publish_start_requires_confirmations(jobs_env):
+    client, db, idir, calls = jobs_env
+    r = client.post(f"{EDIT}/publish-start", data={"mode": "deploy", "confirm": "yes"},
+                    follow_redirects=False)
+    assert r.status_code == 303 and "error=confirm" in r.headers["location"]
+    assert pj._JOBS == {}  # nothing started
+
+
+def test_publish_job_blocked_snapshot_fails_fast(jobs_env):
+    client, db, idir, calls = jobs_env  # lowdown not approved -> gate blocks
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    data = _wait_job(client)
+    job = data["job"]
+    assert job["state"] == "failed"
+    assert job["stages"][0]["status"] == "fail" and "blocked" in job["stages"][0]["detail"]
+    assert calls == []  # build never ran
+    assert "log_tail" in data  # Show Publish Details has content
+
+
+def test_publish_local_job_succeeds_with_stages(jobs_env):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    job = _wait_job(client)["job"]
+    assert job["state"] == "succeeded"
+    assert [s["status"] for s in job["stages"]] == ["ok", "ok"]
+    assert (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json").exists()
+    assert any("build_public_site" in " ".join(c) for c in calls)
+    snap = (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json").read_text(encoding="utf-8")
+    assert "Writing suggestions" not in snap and "WORTH MENTIONING" not in snap
+
+
+def test_deploy_job_success_records_state_and_url(jobs_env):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes"})
+    data = _wait_job(client)
+    job = data["job"]
+    assert job["state"] == "succeeded"
+    assert job["issue_url"].endswith(f"/surfeit/{SEASON}/draft/")
+    assert data["deploy_state"]["state"] == "deployed"
+    assert any("vercel@latest" in " ".join(c) and "deploy" in c for c in calls)
+    assert all("--yes" in c for c in calls if "vercel@latest" in " ".join(c))
+
+
+def test_build_failure_prevents_deploy(jobs_env, monkeypatch):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+
+    def failing_run(job, cmd, *, cwd, timeout):
+        calls.append(cmd)
+        import subprocess
+        if "build_public_site" in " ".join(cmd):
+            return subprocess.CompletedProcess(cmd, 1, "", "privacy audit FAILED")
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(pj, "_run", failing_run)
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes"})
+    data = _wait_job(client)
+    job = data["job"]
+    assert job["state"] == "failed"
+    assert pj._stage(job, "build")["status"] == "fail"
+    assert pj._stage(job, "deploy")["status"] == "pending"      # never ran
+    assert not any("vercel@latest" in " ".join(c) for c in calls)
+    assert data["deploy_state"]["state"] == "deploy-failed"     # separate from snapshot
+    assert (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json").exists()  # local ok
+
+
+def test_timeout_fails_stage_instead_of_hanging(jobs_env, monkeypatch):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+
+    def timing_out(job, cmd, *, cwd, timeout):
+        raise pj.StageError("timed out after 1s (process terminated)")
+
+    monkeypatch.setattr(pj, "_run", timing_out)
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    job = _wait_job(client)["job"]
+    assert job["state"] == "failed"
+    assert "timed out" in pj._stage(job, "build")["detail"]
+
+
+def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+    gate = time.time() + 0.6
+
+    def slow_run(job, cmd, *, cwd, timeout):
+        while time.time() < gate:
+            time.sleep(0.02)
+        import subprocess
+        return subprocess.CompletedProcess(cmd, 0, "ok", "")
+
+    monkeypatch.setattr(pj, "_run", slow_run)
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    assert len(pj._JOBS) == 1        # second click joined the running job
+    data = _wait_job(client)
+    assert data["job"]["state"] == "succeeded"
+    # refresh recovery: status still reports the finished job afterwards
+    again = client.get(f"{EDIT}/publish-status").json()
+    assert again["job"]["job_id"] == data["job"]["job_id"]

@@ -173,6 +173,23 @@ def _team_slugs(storage: Storage, league: League, names: dict[int, dict]) -> dic
     return out
 
 
+def _comments_ctx(league: League, season: str, issue_key: str) -> dict | None:
+    """giscus config for a published native issue page, or None. All values
+    are public client-side config by design; imported historical archive
+    pages never call this, so they stay read-only."""
+    from leaguepage.config import COMMENTS
+
+    c = COMMENTS
+    if not (c.get("repo") and c.get("repo_id") and c.get("category_id")):
+        return None
+    term = f"{league.slug}:{season}:{issue_key}"
+    if term in (c.get("disabled_issues") or []):
+        return None
+    return {"repo": c["repo"], "repo_id": c["repo_id"], "category": c.get("category", ""),
+            "category_id": c["category_id"], "term": term,
+            "theme": "dark" if league.theme == "disco" else "light"}
+
+
 def _coalition_card(coalitions: dict, league: League, rid: int) -> dict | None:
     for c in coalitions.get("coalitions", []):
         m = c.get("roster_mapping") or {}
@@ -237,7 +254,8 @@ def build_league(
         if latest_ctx is None:
             latest_ctx = ctx
         render(f"{snap['season']}/{snap['issue_key']}/index.html", "public/issue_page.html",
-               2, issue=ctx, current_nav=None)
+               2, issue=ctx, current_nav=None,
+               comments=_comments_ctx(league, snap["season"], snap["issue_key"]))
 
     # optional commissioner preview of an unpublished issue (dist-preview only)
     if preview_issue:
