@@ -84,3 +84,27 @@ every delta the app shows names the dataset ("FantasyPros ECR", not "ADP"). The
 importer is an abstraction — any CSV/JSON source with the documented shape can
 replace or sit beside it. Missing players yield "no reference rank", never a
 fabricated value.
+
+## 2026-08-30 - Private GitHub hosting; Vercel deploys the site branch, never the source
+
+Source lives in PRIVATE repo Biomusician/league-page-v2 (the 2022 public fork
+Biomusician/league-page is unrelated and preserved). Vercel's Git integration
+would serve the repository root as static files, and the public build cannot
+run in CI anyway (it reads the private local SQLite DB), so the deployment
+unit stays the locally built, privacy-audited dist/: scripts/push_site_branch.py
+syncs it to the "site" branch, which is the Vercel production branch. A
+vercel.json on both branches sets git.deploymentEnabled.main=false so a main
+push can never deploy. Chosen over committing public-safe build inputs for CI
+because that refactor would enlarge the privacy surface for zero reader-visible
+gain.
+
+Before the first main push, history (23 commits) was purged with
+git-filter-repo: commissioner_notes.md and PREP.md removed from all commits,
+two handle strings replaced in old blobs. Rationale: the standing rule is that
+real Sleeper handles never enter git at all, and "the repo is private" is one
+compromised account away from not mattering. Commissioner notes are local-only
+files now, like managers.json. Pre-rewrite history: local bundle
+League-Page-pre-github-history-2026-08-30.bundle (gitignored) plus the
+2026-08-29 private bundle. scripts/audit_repo_privacy.py gates future main
+pushes; the site branch is audited by site_build.audit_output at build time
+instead (it knows the verbatim-archive and public-team-name exemptions).

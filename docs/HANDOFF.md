@@ -21,13 +21,16 @@ playbook), POST_MVP.md (backlog).
   committing private inputs.
 - The Desk's Publish & Deploy still uses the direct CLI path (Option A);
   the Git path is a proven alternative, not yet wired into the Desk.
-- **`main` is NOT pushed yet.** `scripts/audit_repo_privacy.py` (run it
-  before any main push; `--history` for all commits) fails on 4
-  `editorial/**/commissioner_notes.md` files containing private Sleeper
-  handles, and history also carries those plus a few since-fixed spots
-  (old COMPACT.md, old test fixture, PREP.md packs). Waiting on Jonathan's
-  decision: rewrite/purge history vs push as-is to the private repo.
-  Handles in `archive/` are exempt (verbatim, deliberately public).
+- **`main` is pushed and tracks origin.** Before the push (Jonathan's
+  call, 2026-08-30) the local history was purged with git-filter-repo:
+  `commissioner_notes.md` and `PREP.md` stripped from all commits and two
+  handle strings replaced in old blobs; commissioner notes are now
+  local-only files like managers.json. Full pre-rewrite history lives in
+  `League-Page-pre-github-history-2026-08-30.bundle` (repo root,
+  gitignored, never push it). `scripts/audit_repo_privacy.py --history`
+  must be clean before any future main push; it audits source history
+  only (`site` is audited at build time, and handles in `archive/` are
+  verbatim-public).
 - Vercel credentials: real login done by Jonathan 2026-08-30 (`npx.cmd
   vercel login`). Claude sessions see a phantom overlay copy of
   auth.json; only Jonathan's own terminal counts (see DEPLOY.md).
