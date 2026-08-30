@@ -4,6 +4,32 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## Calibration tranche (2026-08-30, after the feature tranche below)
+
+- K/DST verdict: overall FantasyPros ECR ranks special teams below the
+  draftable range (best K #202, best DST #186 on the 1QB board), so their
+  huge "reaches" are reference artifacts. Headline Biggest Reaches/Steals
+  are skill-position only; K/DST get a Special Teams Outliers box with
+  within-position context and a disclosure. Per-pick rows unchanged.
+  Disco's superflex board (no K/DST, QB #1 overall) confirmed correct.
+- Draft reference snapshots are hash-pinned in tests/test_calibration.py:
+  re-importing rankings mid-season FAILS tests by design. A new season's
+  board belongs under a NEW source key.
+- Transaction engine: surplus = usable depth (startable-quality players
+  beyond lineup demand); questionable needs a materially bad drop side +
+  one more wrong signal; medium confidence says "One plausible rationale";
+  low collapses to "Rationale unclear"; move lines are type-aware
+  ("Claimed X for N FAAB"); dropped players now get reference-derived
+  values (a real bug: they read 0, disabling drop-side checks); curated
+  Force Flow is ordered by editorial priority (trade > FAAB > weakness
+  fix > shift > churn).
+- Sortable tables remember per-page sort in sessionStorage (Back keeps a
+  comparison). Ghost lowdown briefs flag repetition when the boldest
+  pick/best value already appears in 2+ published issues.
+- Browser-pane note: the screenshot compositor reliably fails on scrolled
+  positions of these pages; the workaround is a tall emulated viewport
+  (resize_window height ~2400) and screenshots from scroll position 0.
+
 ## Draft value + transaction rationale + sortable tables (2026-08-30)
 
 - **Draft value**: `leaguepage/draft_value.py` classifies every pick against
