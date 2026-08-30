@@ -1,27 +1,26 @@
 ## Draft Power Rankings
 
-*"Every ranking is objective until you read your own, then you should take it up in league chat."* -Me
+*"Every ranking is objective until you read your own; then just complain about it in league chat."*
 
-All models are wrong, but some are useful; the scores below are just math, and the order is the math's fault. I compared every one of the 228 picks to FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means the room let value fall to you, negative means you went and got your guys early. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge.
+All models are wrong, but some are useful; the scores below are just math, and the order is the math's fault not mine. I (with some LLM help, because 228 picks is way to many to do manually) compared every one of the 228 picks to FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means we let value fall to you, negative means you went and got your guys early, which hurt you in the model. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge. Complain about it, crow over your high ranking, but the incoming season, injuries, etc. are inevitable.
 
 ### 1. The Dude (+179)
 
-The board champion, and it wasn't close. Daniel Jones 68 picks after his consensus rank, Malik Willis 58 after his, in a superflex league where the rest of us treated quarterbacks like launching an E-3 sortie FMC - completely optional. Nineteen picks, plus-179. Enough said.
+The board champion and it wasn't (that) close. Daniel Jones 68 picks after his consensus rank, Malik Willis 58 after his, in a superflex league where the rest of us treated quarterbacks like launching an E-3 sortie FMC - completely optional. Though, I wouldn't necessarily love those QBs on my team if I could avoid it. Nineteen picks, plus-179. 'Nuff said.
 
 ### 2. George & Friends (DIP) (+140)
 
-Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick discount. This is the guy at the yard sale who knows which boxes have the good records. Don't love that he drafted three Titans, and not sure he does either now that he realizes it.
+Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick discount. This is the guy at the yard sale who knows which boxes have the good vinyl. Don't love that he drafted three Titans, and not sure he does either now that he realizes it.
 
 ### 3. Love Sutton Brocks (EMCO) (+84)
 
-Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay triple for upside, and only one real reach (Jarquez Hunter, minus-60). Plus-84 without ever making the room gasp. Textbook.
+Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay triple for upside, and only one real reach (Jarquez Hunter, minus-60). Plus-84 without even turning heads in the draft room. Textbook.
 
 ### 4. Tua Girls One Kupp (Ethen) (+67)
 
 Tre' Harris at a 42-pick discount and four tight ends, which is either depth
 or a cry for help; the plus-67 says depth. Two quarterbacks in superflex is
-the thin spot, and everyone at this table knows it.
-
+where he's gonna run into issues, but maybe he has a plan that's not Carson Beck off waivers.
 ### 5. VHS Cowboys (Juan) (+47)
 
 Geno Smith 42 picks late and nine receivers. Dead even with the team below
@@ -33,40 +32,37 @@ Jacksonville exposure at zero.
 My board. The math says plus-47 and fifth-ish; the eyes say I built the only
 four-player NFL stack in the league, out of Jaguars. Tuten, Washington,
 Meyers, Strange. I looked at Jacksonville's offense and said "more, please,
-four times." I am totally objective, and the tiebreaker sent me here, and I
-earned it.
+four times." I did not realize this during the draft, and I completely regret it.
 
 ### 7. Hand me a White Claw (PITCH) (+16)
 
 Four quarterbacks and a Tampa triple, held to plus-16 by the Quinshon
 Judkins reach (minus-35). Right side of zero, wrong side of memorable. A
-perfectly cromulent draft.
+perfectly fine draft.
 
 ### 8. Babe (confedfatties) (-49)
 
 Aaron Rodgers 35 picks late was the good idea. Carson Beck 81 picks early
-was the other idea. Four quarterbacks and two stacks means the plan had
+was definitely an idea of some kind. Four quarterbacks and two stacks means the plan had
 conviction; minus-49 means the plan had a tab.
 
 ### 9. All Barkley No Bite (Sealed) (-133)
 
 Two three-player city bets (New Orleans and Tampa) and an Audric Estime
-pick that beat consensus to the podium by 69 spots. The name says Barkley;
-the board says the bite went first.
-
+pick that beat consensus to the board by 69 spots. The name says Barkley;
+the draft rank says the bit coulda been sharper.
 ### 10. Secret Asian Man (POP) (-204)
 
 Nine wideouts and an Atlanta triple, financed by paying early on almost
-every window. Terrance Ferguson at plus-34 shows the eye is there; the
-other eighteen picks show the patience went TDY.
+every window. Terrance Ferguson at plus-34 shows he has a plan for the player; the
+other eighteen picks show he has confidence in his process vs. ECR.
 
 ### 11. Stafford and Sons (Fingers) (-493)
 
 One pick is carrying 244 points of this all by itself: Jahdae Walker at 145
 against a consensus rank of 389. That is the single boldest call any of the
 twelve of us made, and if it hits, this whole column gets read back to me
-in January. The Baltimore triple says there is a real plan here. The wagon
-is simply very heavy at the crossing.
+in January. The Baltimore triple says there is a real plan here.
 
 ### 12. Double TDs (Double) (-511)
 
@@ -75,9 +71,8 @@ Jayden Daniels at pick 10 is fine. James Conner 141 early and Ty Simpson
 the tourniquet arriving late. Respect for the conviction. Woof for the math.
 
 The scoreboard settles all of this starting Thursday, and I look forward to
-The Dude printing this out and framing it. Full board with every delta is on
-the Draft page.
-
+The Dude printing this out and framing it on his Det 9/CC wall. Full board with every delta is on
+the Draft page. Back next weekend for week 1 matchups!
 ### Second Opinions
 
 Two outside gauges for calibration, both pulled 2026-08-30. FantasyPros grades the room on a curve: ten of twelve boards got a B+ or better, and nobody failed. The Fantasy Footballers put my board first at 100, which proves their model is rigorous and unbiased (I am totally objective). Where all three methods agree, believe it; where they argue, that's a season preview.

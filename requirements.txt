@@ -6,3 +6,4 @@ markdown
 python-multipart
 httpx
 pytest
+watchfiles

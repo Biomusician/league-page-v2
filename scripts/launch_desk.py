@@ -61,7 +61,8 @@ def main() -> int:
 
         from leaguepage.desk import DEFAULT_PORT, create_app, pick_port, probe_health
 
-        port, situation = pick_port(DEFAULT_PORT)
+        preferred = int(os.environ.get("LEAGUEPAGE_DESK_PORT", DEFAULT_PORT))
+        port, situation = pick_port(preferred)
         if situation == "already-running":
             health = probe_health(port) or {}
             url = f"http://localhost:{port}/commissioner"
@@ -80,7 +81,15 @@ def main() -> int:
 
         threading.Thread(target=_open_when_healthy, args=(port, log), daemon=True).start()
         print(f"  Starting the Commissioner's Desk on http://localhost:{port} ...", flush=True)
-        uvicorn.run(create_app(), host="127.0.0.1", port=port,
+        # reload=True: when League-Page code is updated (e.g. by a Claude Code
+        # session) while the Desk is open, the server restarts itself with the
+        # new routes. Without this, hot-loaded templates can post to routes an
+        # old process never registered (the publish-start 404, 2026-08-31).
+        # Watch ONLY the package dir: editorial/, data/ and logs/ churn must
+        # never bounce the server.
+        uvicorn.run("leaguepage.desk:create_app", factory=True,
+                    host="127.0.0.1", port=port,
+                    reload=True, reload_dirs=[str(REPO / "leaguepage")],
                     log_level="info", access_log=False, log_config=None)
         return 0
     except KeyboardInterrupt:
