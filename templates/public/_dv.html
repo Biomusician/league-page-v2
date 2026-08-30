@@ -1,0 +1,19 @@
+{# Draft-value rendering macro. `d` is draft_value.classify_pick output.
+   REACH/STEAL carry the worded label (color is never the only signal);
+   lesser deviations show the signed number with a mild tint; on-board
+   picks stay quiet. Callers put d.sort_value in data-sort-value. #}
+{% macro dv(d) -%}
+{%- if not d -%}
+—
+{%- elif d.draft_value_class == "REACH" -%}
+<span class="dv dv-strong dv-reach" style="--dvi:{{ d.intensity }}">{{ d.label }}</span>
+{%- elif d.draft_value_class == "STEAL" -%}
+<span class="dv dv-strong dv-steal" style="--dvi:{{ d.intensity }}">{{ d.label }}</span>
+{%- elif d.draft_value_class == "ON BOARD" -%}
+<span class="meta">on board</span>
+{%- elif d.picks_early -%}
+<span class="dv dv-reach" style="--dvi:{{ d.intensity }}">{{ d.short }}</span>
+{%- else -%}
+<span class="dv dv-steal" style="--dvi:{{ d.intensity }}">{{ d.short }}</span>
+{%- endif -%}
+{%- endmacro %}

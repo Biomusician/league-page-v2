@@ -28,6 +28,10 @@
   details summary { cursor:pointer; color:var(--muted); }
   .warn { background:#fff3cd; border:1px solid #e0c96a; padding:.5rem .8rem; border-radius:4px; }
   code { background:#eeece6; padding:0 .25rem; }
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
 </style>
 </head>
 <body>
@@ -38,5 +42,6 @@
 <main>
 {% block content %}{% endblock %}
 </main>
+<script src="/static/sortable.js" defer></script>
 </body>
 </html>

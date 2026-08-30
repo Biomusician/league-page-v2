@@ -1,4 +1,5 @@
 {% extends "public/base.html" %}
+{% from "public/_dv.html" import dv %}
 {% block title %}{{ league.display_name }} — Draft{% endblock %}
 {% block content %}
 <h2 class="section-label">Draft · {{ season }}</h2>
@@ -11,6 +12,34 @@
 <p><a href="{{ lroot }}{{ recap_href }}">Read the editorial Draft Issue →</a></p>
 {% endif %}
 
+{% if reaches or steals %}
+<section class="module">
+  <h2 class="section-label">Market Deviations</h2>
+  <div class="teamgrid">
+    {% if reaches %}
+    <div class="card">
+      <strong>Biggest Reaches</strong>
+      <ul>
+        {% for p in reaches %}
+        <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }})</span><br>{{ dv(p.dv) }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if steals %}
+    <div class="card">
+      <strong>Biggest Steals</strong>
+      <ul>
+        {% for p in steals %}
+        <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }})</span><br>{{ dv(p.dv) }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
 <section class="module">
   <h2 class="section-label">Team-by-Team</h2>
   <p class="meta">{% for t in team_sections %}<a href="#team-{{ t.slug }}">{{ t.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
@@ -18,13 +47,17 @@
   <div class="card" id="team-{{ t.slug }}">
     <strong>{{ t.name }}</strong> <span class="meta">{{ t.position_counts }}</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       {% for p in t.picks %}
       <tr><td>{{ p.round }}</td><td>{{ p.pick_no }}</td><td class="wrap">{{ p.name }}</td>
-          <td>{{ p.position }}</td><td>{{ p.nfl_team or "—" }}</td>
+          <td>{{ p.position }}</td>
           <td>{{ p.adp if p.adp is not none else "—" }}</td>
-          <td>{{ "%+g"|format(p.delta) if p.delta is not none else "—" }}</td></tr>
+          <td data-sort-value="{{ p.dv.sort_value if p.dv else '' }}">{{ dv(p.dv) }}</td></tr>
       {% endfor %}
     </table>
     </div>
@@ -34,19 +67,28 @@
 
 <section class="module">
   <h2 class="section-label">Full Board</h2>
+  <p class="meta">Sort Draft Value ascending for the biggest reaches, descending for the biggest steals.</p>
   <div class="tablewrap">
-  <table>
-    <tr><th scope="col">Pick</th><th scope="col">Rd</th><th scope="col">Team</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number">Pick</th>
+        <th scope="col" data-sort-type="number">Rd</th>
+        <th scope="col">Team</th><th scope="col">Player</th><th scope="col">Pos</th>
+        <th scope="col" data-sort-type="number">Ref</th>
+        <th scope="col" data-sort-type="number">Draft Value</th></tr>
     {% for p in board %}
     <tr><td>{{ p.pick_no }}</td><td>{{ p.round }}</td><td class="wrap">{{ p.team }}</td>
         <td class="wrap">{{ p.name }}</td><td>{{ p.position }}</td>
         <td>{{ p.adp if p.adp is not none else "—" }}</td>
-        <td>{{ "%+g"|format(p.delta) if p.delta is not none else "—" }}</td></tr>
+        <td data-sort-value="{{ p.dv.sort_value if p.dv else '' }}">{{ dv(p.dv) }}</td></tr>
     {% endfor %}
   </table>
   </div>
 </section>
-<p class="meta">Reference ranks ("Ref"): {{ adp_provenance or "no reference source" }}.
-A negative Δ means a pick ahead of that reference; the number is a fact, the verdict is editorial.</p>
+<p class="meta">Reach/Steal compares each pick with the league's stored reference
+board ({{ adp_provenance or "no reference source" }}). REACH means the player
+went at least one full league round ({{ league_size }} picks here) earlier than
+reference; STEAL means at least one full round later. Color deepens with the
+size of the deviation and saturates at three rounds. This measures draft-market
+value against a reference board — not whether the pick ultimately succeeds.</p>
 {% endif %}
 {% endblock %}

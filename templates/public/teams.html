@@ -14,13 +14,14 @@
 </div>
 
 <h2 class="section-label">Positional Strength — League Comparison</h2>
+<p class="meta">Click a position to rank the league's rooms; click again to reverse.</p>
 <div class="tablewrap">
-<table>
-  <tr><th scope="col">Team</th>
-    {% for pos in positions %}<th scope="col">{{ pos }}</th>{% endfor %}</tr>
+<table data-sortable>
+  <tr><th scope="col" data-sort-type="text">Team</th>
+    {% for pos in positions %}<th scope="col" data-sort-type="number">{{ pos }}</th>{% endfor %}</tr>
   {% for t in teams %}
-  <tr><td class="wrap"><a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a></td>
-    {% for pos in positions %}<td>{{ t.pos_ranks[pos] }}</td>{% endfor %}</tr>
+  <tr><td class="wrap" data-sort-value="{{ t.name }}"><a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a></td>
+    {% for pos in positions %}<td data-sort-value="{{ t.pos_ranks[pos] }}">{{ t.pos_ranks[pos] }}</td>{% endfor %}</tr>
   {% endfor %}
 </table>
 </div>

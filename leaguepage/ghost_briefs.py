@@ -146,11 +146,22 @@ def _build(storage, league, season, issue_key, section, week) -> dict:
                     analysis["league_biggest_reaches"][:6] + analysis["league_biggest_values"][:6]]
 
     elif section == "draft-capsules":
+        from leaguepage.draft_value import consensus_style, team_draft_profile
+
+        profs = {t["roster_id"]: team_draft_profile(t, analysis["total_teams"])
+                 for t in analysis["teams"]}
+        styles = consensus_style(profs)
         lines.append("ONE LINE PER TEAM (net vs consensus; best; worst; shape)")
         for t, net in nets:
             nm = names.get(t["roster_id"], t["team_slug"])
             bv, br = t.get("biggest_value"), t.get("biggest_reach")
             bits = [f"net {net:+g}"]
+            pr = profs[t["roster_id"]]
+            if pr["reach_picks"] or pr["steal_picks"]:
+                bits.append(f"{pr['reach_picks']}x >=1rd early, "
+                            f"{pr['steal_picks']}x >=1rd late")
+            if styles.get(t["roster_id"]):
+                bits.append(styles[t["roster_id"]])
             if bv:
                 bits.append(f"best {bv['name']} {bv['delta']:+g}")
             if br:
@@ -202,7 +213,16 @@ def _build(storage, league, season, issue_key, section, week) -> dict:
         lines.append("• Counterpoint: consensus value is one input; roster ceilings and")
         lines.append("  schedule are yours to weigh. The ranking is a commissioner call.")
 
-    else:  # custom / tracks / fades / forceflow / blackbox / branches ...
+    elif section == "forceflow":
+        lines.append("MEANINGFUL MOVES (rationale engine; inferred, never stated intent)")
+        moves = _move_lines(storage, league, limit=5)
+        lines += moves or ["• (no meaningful transactions yet)"]
+        lines.append("")
+        lines.append("STRONGEST NUMBERS")
+        for p in top_reach[:1] + top_value[:1]:
+            lines.append(f"• {_fmt_delta(p)}")
+
+    else:  # custom / tracks / fades / blackbox / branches ...
         decisions = storage.get_story_decisions(league.slug, season, issue_key)
         routed = _candidate_lines(storage, league, season, issue_key,
                                   analysis, managers, coalitions, names, limit=10)
@@ -292,6 +312,12 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
             lines.append("")
             lines.append("RECENT SHIFTS")
             lines += relevant[:3]
+        moves = _move_lines(storage, league,
+                            rids=[a["roster_id"], b["roster_id"]], limit=2)
+        if moves:
+            lines.append("")
+            lines.append("RECENT MOVES AFFECTING THIS MATCHUP (inferred, not stated intent)")
+            lines += moves
     except Exception:
         pass
 
@@ -313,3 +339,36 @@ def _weeks_played(storage: Storage, league: League) -> int:
 
     scores = weekly_scores(storage, league.league_id, 18)
     return max((len(v) for v in scores.values()), default=0)
+
+
+def _move_lines(storage: Storage, league: League, *, rids=None,
+                limit: int = 4) -> list[str]:
+    """Private ammunition from the transaction rationale engine: facts and
+    the inferred reading, never a written paragraph."""
+    from leaguepage.transaction_analysis import analyze_transactions
+
+    lines: list[str] = []
+    shown = 0
+    for row in analyze_transactions(storage, league,
+                                    _weeks_played(storage, league)):
+        if not row.get("significant"):
+            continue
+        if rids is not None and not (set(row["rids"]) & set(rids)):
+            continue
+        adds = ", ".join(a["name"] for a in row["adds"]) or "—"
+        drops = ", ".join(d["name"] for d in row["drops"]) or "—"
+        bits = [f"wk {row['week']}", row["type"]]
+        if row.get("faab"):
+            bits.append(f"{row['faab']} FAAB "
+                        f"({round(row['faab_share'] * 100)}% of budget)")
+        lines.append(f"• +{adds} / −{drops} ({', '.join(bits)})")
+        if row["rationale"].get("text"):
+            lines.append(f"  {row['rationale']['text']}")
+        if row.get("rank_shift"):
+            lines.append(f"  Positional shift: {row['rank_shift']}")
+        if row.get("outcome"):
+            lines.append(f"  {row['outcome']}")
+        shown += 1
+        if shown >= limit:
+            break
+    return lines

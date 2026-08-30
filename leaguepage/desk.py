@@ -126,6 +126,15 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     def root():
         return RedirectResponse("/commissioner", status_code=302)
 
+    @app.get("/static/sortable.js")
+    def sortable_js():
+        from fastapi.responses import FileResponse
+
+        from leaguepage.config import STATIC_DIR
+
+        return FileResponse(STATIC_DIR / "sortable.js",
+                            media_type="text/javascript")
+
     @app.get("/health")
     def health():
         """Launcher readiness probe. Status facts only — no private values."""

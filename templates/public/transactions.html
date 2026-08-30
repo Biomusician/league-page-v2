@@ -16,13 +16,37 @@
 </section>
 {% endif %}
 
+{% if meaningful %}
+<section class="module">
+  <h2 class="section-label">Reading the Moves</h2>
+  {% for m in meaningful %}
+  <div class="card">
+    <strong>{{ m.line }}</strong> — {{ m.team }}
+    <span class="meta">(wk {{ m.week }} · {{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %})</span>
+    {% if m.questionable %} <span class="tag warn">QUESTIONABLE MOVE</span>{% endif %}
+    {% if m.text %}<p>{{ m.text }}{% if m.rank_shift %} <span class="meta">({{ m.rank_shift }})</span>{% endif %}</p>{% endif %}
+    {% if m.outcome %}<p class="meta">{{ m.outcome }}</p>{% endif %}
+  </div>
+  {% endfor %}
+  <p class="meta">Move rationales are inferred from roster construction,
+  positional strength, transaction cost, and available context. They describe
+  plausible roster logic, not the manager's stated intent unless explicitly
+  noted.</p>
+</section>
+{% endif %}
+
 <section class="module">
   <h2 class="section-label">Transaction Log</h2>
-  <p class="meta">The full reference log. Not everything here mattered; that is what the section above is for.</p>
+  <p class="meta">The full reference log. Not everything here mattered; that is what the sections above are for.</p>
   {% if log %}
   <div class="tablewrap">
-  <table>
-    <tr><th scope="col">Week</th><th scope="col">Type</th><th scope="col">Team</th><th scope="col">Added</th><th scope="col">Dropped</th><th scope="col">FAAB</th></tr>
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number" data-sort-dir="desc">Week</th>
+        <th scope="col" data-sort-type="text">Type</th>
+        <th scope="col" data-sort-type="text">Team</th>
+        <th scope="col" data-sort-type="text">Added</th>
+        <th scope="col" data-sort-type="text">Dropped</th>
+        <th scope="col" data-sort-type="number" data-sort-dir="desc">FAAB</th></tr>
     {% for t in log %}
     <tr><td>{{ t.week }}</td><td>{{ t.type }}</td><td class="wrap">{{ t.team }}</td>
         <td class="wrap">{{ t.adds or "—" }}</td><td class="wrap">{{ t.drops or "—" }}</td><td>{{ t.faab or "—" }}</td></tr>

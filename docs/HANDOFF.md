@@ -4,6 +4,45 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## Draft value + transaction rationale + sortable tables (2026-08-30)
+
+- **Draft value**: `leaguepage/draft_value.py` classifies every pick against
+  the stored FantasyPros ECR snapshot (delta = pick_no − ref; negative =
+  early). One full league round (total_teams, read dynamically: 12 Disco /
+  10 Surfeit) = REACH/STEAL; ±2 picks = on board; between = EARLY/VALUE
+  (shown as signed numbers, not labels). Visual intensity =
+  |delta|/league_size capped at 3 rounds (`--dvi` CSS var + color-mix);
+  words always carry the meaning. Surfaces: Draft page (Market Deviations
+  top-5s, per-team tables, full board), Team page Draft Recap (biggest
+  reach/steal + per-pick), ghost briefs (draft-capsules get reach/steal
+  counts + consensus-following/defying tags). Methodology note on both
+  pages says market value, not a draft grade.
+- **Transaction rationale**: `leaguepage/transaction_analysis.py` infers
+  plausible roster logic (weakness / depth / injury-drop / surplus /
+  rebalance / streaming), labels no-story moves "Rationale unclear", and
+  "questionable" only on ≥2 wrong-direction signals with no positive
+  rationale. Wording is always "Likely/Possible rationale" — never manager
+  intent; confidence is internal-only. Before/after positional ranks are
+  persisted at sync (`txn_ctx:{league}:{txn_id}` meta,
+  `record_transaction_contexts` called from scripts/sync.py; render omits
+  the delta when no trustworthy context exists). Post-move outcome (starts/
+  points since) is separate and never rewrites the original reading.
+  Surfaces: Force Flow "Reading the Moves" + full log, Team page Key
+  Moves, matchup + forceflow ghost briefs, story candidates
+  (weekly_signals). FAAB now reads settings.waiver_bid (the old
+  waiver_budget-only sum missed all waiver claims).
+- **Sortable tables**: `static/sortable.js` (vanilla, progressive; served
+  to the Desk at /static/sortable.js) — opt in with `<table data-sortable>`,
+  th `data-sort-type`/`data-sort-dir`/`data-nosort`, td `data-sort-value`.
+  Click cycle asc→desc→canonical; missing values sink; stable ties;
+  keyboard + aria-sort. Sortable: teams matrix, standings (+under-hood,
+  playoff via defaults), draft tables, team Draft Recap, Force Flow log,
+  Desk team-names panel. Deliberately fixed: issue prose, curated
+  editorial sections, the Desk power-ranking form (authorial order).
+- 188 tests passing. Real-data checks: Jahdae Walker (Disco) = REACH ·
+  244 picks early; Jordan James (Surfeit) = REACH · 131 early; Surfeit
+  QB sort puts Los Bandidos (#1) first.
+
 ## GitHub + Vercel Git integration (2026-08-30)
 
 - Source is hosted at **https://github.com/Biomusician/league-page-v2**

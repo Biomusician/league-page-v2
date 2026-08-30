@@ -46,6 +46,15 @@ def main() -> int:
             if played:
                 record_snapshot(storage, r.league, season, played)
 
+            # persist per-transaction before/after positional context while
+            # values are still current; render never reconstructs it later
+            from leaguepage.transaction_analysis import record_transaction_contexts
+
+            stored = record_transaction_contexts(storage, r.league)
+            if stored:
+                print(f"       stored positional context for {stored} "
+                      f"transaction(s) in {r.league.slug}")
+
     print(f"\nFantasy week: {week} (NFL season_type: {season_type})")
     ok = True
     for r in results:

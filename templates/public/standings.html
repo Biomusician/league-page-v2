@@ -3,9 +3,13 @@
 {% block content %}
 <h2 class="section-label">Standings</h2>
 <div class="tablewrap">
-<table>
-  <tr><th scope="col">#</th><th scope="col">Team</th><th scope="col">W</th><th scope="col">L</th>
-      <th scope="col">PF</th><th scope="col">PA</th>{% if weeks_played %}<th scope="col">Streak</th>{% endif %}</tr>
+<table data-sortable>
+  <tr><th scope="col" data-sort-type="number">#</th><th scope="col" data-sort-type="text">Team</th>
+      <th scope="col" data-sort-type="number" data-sort-dir="desc">W</th>
+      <th scope="col" data-sort-type="number" data-sort-dir="desc">L</th>
+      <th scope="col" data-sort-type="number" data-sort-dir="desc">PF</th>
+      <th scope="col" data-sort-type="number" data-sort-dir="desc">PA</th>
+      {% if weeks_played %}<th scope="col" data-nosort>Streak</th>{% endif %}</tr>
   {% for t in standings %}
   <tr><td>{{ loop.index }}</td><td class="wrap">{{ t.name }}</td><td>{{ t.wins }}</td><td>{{ t.losses }}</td>
       <td>{{ t.pf }}</td><td>{{ t.pa }}</td>{% if weeks_played %}<td>{{ t.streak or "—" }}</td>{% endif %}</tr>
@@ -48,11 +52,14 @@ season many times from each team's observed scoring only; preseason rankings pla
 <p class="meta">Deterministic context through week {{ weeks_played }}: all-play treats every team as
 having played every other team each week; efficiency is actual starters vs the best legal lineup.</p>
 <div class="tablewrap">
-<table>
-  <tr><th scope="col">Team</th><th scope="col">All-Play</th><th scope="col">Scoring Rank</th><th scope="col">Lineup Efficiency</th></tr>
+<table data-sortable>
+  <tr><th scope="col" data-sort-type="text">Team</th>
+      <th scope="col" data-sort-type="number" data-sort-dir="desc">All-Play</th>
+      <th scope="col" data-sort-type="number">Scoring Rank</th>
+      <th scope="col" data-sort-type="number" data-sort-dir="desc">Lineup Efficiency</th></tr>
   {% for t in standings %}
   <tr><td class="wrap">{{ t.name }}</td>
-      <td>{{ t.all_play or "—" }}</td>
+      <td data-sort-value="{{ t.all_play.split('-')[0] if t.all_play else '' }}">{{ t.all_play or "—" }}</td>
       <td>{{ t.points_rank }}</td>
       <td>{{ t.efficiency or "—" }}</td></tr>
   {% endfor %}

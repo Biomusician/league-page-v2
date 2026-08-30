@@ -99,9 +99,10 @@
     set one. Manager context below is PRIVATE Desk-only help and never publishes.</p>
   <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/team-names">
     <input type="hidden" name="back" value="{{ edit_base }}#sec-team-names">
-    <table class="namegrid">
-      <tr><th>#</th><th>Sleeper team</th><th>Private manager context</th>
-          <th>Public name</th><th>Override</th></tr>
+    <table class="namegrid" data-sortable>
+      <tr><th data-sort-type="number">#</th><th data-sort-type="text">Sleeper team</th>
+          <th data-sort-type="text">Private manager context</th>
+          <th data-sort-type="text">Public name</th><th data-nosort>Override</th></tr>
       {% for r in name_rows %}
       <tr>
         <td>{{ r.roster_id }}</td>

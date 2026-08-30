@@ -1,4 +1,5 @@
 {% extends "public/base.html" %}
+{% from "public/_dv.html" import dv %}
 {% block title %}{{ team.name }} — {{ league.display_name }}{% endblock %}
 {% block content %}
 <h2 class="section-label">{{ team.name }}</h2>
@@ -52,7 +53,51 @@
 {% if team.key_moves %}
 <section class="module">
   <h2 class="section-label">Key Moves</h2>
-  <ul>{% for m in team.key_moves %}<li>{{ m }}</li>{% endfor %}</ul>
+  <ul>
+    {% for m in team.key_moves %}
+    <li>{{ m.line }} <span class="meta">(wk {{ m.week }} · {{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %})</span>
+      {% if m.questionable %} <span class="tag warn">QUESTIONABLE MOVE</span>{% endif %}
+      {% if m.text %}<div class="meta">{{ m.text }}{% if m.rank_shift %} ({{ m.rank_shift }}){% endif %}{% if m.outcome %} {{ m.outcome }}{% endif %}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="meta">Move rationales are inferred from roster construction,
+  positional strength, and transaction cost. They describe plausible roster
+  logic, not the manager's stated intent.</p>
+</section>
+{% endif %}
+
+{% if team.draft_recap and team.draft_recap.picks %}
+<section class="module">
+  <h2 class="section-label">Draft Recap</h2>
+  {% if team.draft_recap.biggest_reach or team.draft_recap.biggest_steal %}
+  <p>
+    {% if team.draft_recap.biggest_reach %}{% set br = team.draft_recap.biggest_reach %}
+    <b>Biggest Reach:</b> {{ br.name }} <span class="meta">(pick {{ br.pick_no }} · ref {{ br.adp }})</span> — {{ dv(br.dv) }}<br>
+    {% endif %}
+    {% if team.draft_recap.biggest_steal %}{% set bs = team.draft_recap.biggest_steal %}
+    <b>Best Steal:</b> {{ bs.name }} <span class="meta">(pick {{ bs.pick_no }} · ref {{ bs.adp }})</span> — {{ dv(bs.dv) }}
+    {% endif %}
+  </p>
+  {% endif %}
+  <div class="tablewrap">
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number">Rd</th>
+        <th scope="col" data-sort-type="number">Pick</th>
+        <th scope="col">Player</th><th scope="col">Pos</th>
+        <th scope="col" data-sort-type="number">Ref</th>
+        <th scope="col" data-sort-type="number">Draft Value</th></tr>
+    {% for p in team.draft_recap.picks %}
+    <tr><td>{{ p.round }}</td><td>{{ p.pick_no }}</td><td class="wrap">{{ p.name }}</td>
+        <td>{{ p.position }}</td>
+        <td>{{ p.adp if p.adp is not none else "—" }}</td>
+        <td data-sort-value="{{ p.dv.sort_value if p.dv else '' }}">{{ dv(p.dv) }}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p class="meta">Reach/Steal compares selection slot with the league's stored
+  reference board; one full round here is {{ team.league_size }} picks. It
+  measures draft-market value, not whether the pick works out.</p>
 </section>
 {% endif %}
 

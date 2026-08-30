@@ -398,7 +398,7 @@ def build_league(
 
     # deterministic team analytics: positional strength, form, outlook
     from leaguepage.team_analytics import (
-        key_moves, label_for_rank, playoff_outlook, positional_profile,
+        label_for_rank, playoff_outlook, positional_profile,
         recent_form, scoring_streaks, snapshot_deltas, strengths_weaknesses,
         team_outlook,
     )
@@ -408,8 +408,56 @@ def build_league(
     outlook = playoff_outlook(storage, league, week)
     form = recent_form(storage, league, week)
     streak_map = scoring_streaks(storage, league, week)
-    moves = key_moves(storage, league, week) if weeks_played_league else {}
     deltas = snapshot_deltas(storage, league, season, weeks_played_league)
+
+    # transaction rationale: Force Flow reading + team Key Moves. The
+    # internal confidence field never reaches a template context.
+    from leaguepage.transaction_analysis import analyze_transactions
+
+    tx_rows = analyze_transactions(storage, league, MAX_SCAN_WEEK)
+    tx_by_rid: dict[int, list[dict]] = {}
+    for _row in tx_rows:
+        if _row.get("significant"):
+            for _rid in _row["rids"]:
+                tx_by_rid.setdefault(_rid, []).append(_row)
+
+    def _move_ctx(row: dict) -> dict:
+        adds_s = ", ".join(a["name"] for a in row["adds"])
+        drops_s = ", ".join(d["name"] for d in row["drops"])
+        if adds_s and drops_s:
+            line = f"Added {adds_s} · dropped {drops_s}"
+        elif adds_s:
+            line = f"Added {adds_s}"
+        else:
+            line = f"Dropped {drops_s}"
+        return {"week": row["week"], "type": row["type"], "line": line,
+                "adds": adds_s, "drops": drops_s, "faab": row["faab"],
+                "text": row["rationale"]["text"],
+                "questionable": row["rationale"]["kind"] == "questionable",
+                "rank_shift": row.get("rank_shift"),
+                "outcome": row.get("outcome")}
+
+    # draft market value: shared by the draft page and team Draft Recaps
+    from leaguepage.adp import load_adp_for_league
+    from leaguepage.draft_analysis import analyze_league_draft
+    from leaguepage.draft_value import classify_pick
+
+    draft_analysis = analyze_league_draft(storage, league, managers={},
+                                          adp=load_adp_for_league(league))
+    league_size = (draft_analysis or {}).get("total_teams") or profile["n"]
+    recap_by_rid: dict[int, dict] = {}
+    if draft_analysis:
+        for t in draft_analysis["teams"]:
+            _picks = [dict(p, dv=classify_pick(p.get("delta"), league_size))
+                      for p in t["picks_by_round"]]
+            br, bs = t.get("biggest_reach"), t.get("biggest_value")
+            recap_by_rid[t["roster_id"]] = {
+                "picks": _picks,
+                "biggest_reach": (dict(br, dv=classify_pick(br["delta"], league_size))
+                                  if br and br["delta"] <= -league_size else None),
+                "biggest_steal": (dict(bs, dv=classify_pick(bs["delta"], league_size))
+                                  if bs and bs["delta"] >= league_size else None),
+            }
 
     team_cards = []
     for r in storage.get_rosters(league.league_id):
@@ -482,39 +530,33 @@ def build_league(
                                                     week, profile=profile),
                      "trend": trend_lines,
                      "playoff": playoff_line,
-                     "key_moves": [m["note"] for m in moves.get(rid, [])],
+                     "key_moves": [_move_ctx(m) for m in tx_by_rid.get(rid, [])[-3:]],
+                     "draft_recap": recap_by_rid.get(rid),
+                     "league_size": league_size,
                      "stage": profile["stage"]},
                current_nav="Teams")
     render("teams/index.html", "public/teams.html", 2,
            teams=team_cards, positions=profile["positions"],
            stage=profile["stage"], current_nav="Teams")
 
-    # transactions (Force Flow)
-    log = []
-    for wk in range(1, MAX_SCAN_WEEK + 1):
-        for t in storage.get_transactions(league.league_id, wk):
-            if t.get("status") != "complete":
-                continue
-            def _names_for(mapping):
-                return ", ".join((storage.get_player(pid) or {}).get("full_name") or pid
-                                 for pid in (mapping or {}))
-            rids = set((t.get("adds") or {}).values()) | set((t.get("drops") or {}).values())
-            log.append({
-                "week": wk, "type": (t.get("type") or "?").replace("_", " "),
-                "team": ", ".join(sorted(names[rid]["name"] or f"Roster {rid}" for rid in rids)),
-                "adds": _names_for(t.get("adds")), "drops": _names_for(t.get("drops")),
-                "faab": sum(x.get("amount", 0) for x in (t.get("waiver_budget") or [])) or None,
-            })
+    # transactions (Force Flow): analytical reading + full reference log
+    log, meaningful = [], []
+    for row in tx_rows:
+        team_label = ", ".join(names[rid]["name"] or f"Roster {rid}"
+                               for rid in row["rids"])
+        ctx = dict(_move_ctx(row), team=team_label)
+        log.append(ctx)
+        if row.get("significant"):
+            meaningful.append(ctx)
     render("transactions/index.html", "public/transactions.html", 2,
-           log=log, editorial_sections=_published_module_sections(snaps, "forceflow"),
+           log=log, meaningful=meaningful,
+           editorial_sections=_published_module_sections(snaps, "forceflow"),
            current_nav="Force Flow")
 
     # draft page
-    from leaguepage.adp import load_adp_for_league
-    from leaguepage.draft_analysis import analyze_league_draft
-
-    analysis = analyze_league_draft(storage, league, managers={}, adp=load_adp_for_league(league))
+    analysis = draft_analysis
     board, team_sections, status_line, prov = [], [], "", None
+    reaches_ctx, steals_ctx = [], []
     if analysis and analysis["picks"]:
         prov = analysis.get("adp_provenance")
         status_line = (f"{analysis['pick_count']} of {analysis.get('expected_pick_count') or '?'} picks "
@@ -527,16 +569,29 @@ def build_league(
         for p in analysis["picks"]:
             board.append({**{k: p[k] for k in ("pick_no", "round", "name", "position",
                                                "nfl_team", "adp", "delta")},
-                          "team": public_of.get(p["team_slug"], p["team_slug"])})
+                          "team": public_of.get(p["team_slug"], p["team_slug"]),
+                          "team_slug": p["team_slug"],
+                          "dv": classify_pick(p["delta"], league_size)})
         for t in analysis["teams"]:
             team_sections.append({
                 "slug": t["team_slug"], "name": public_of[t["team_slug"]],
                 "position_counts": ", ".join(f"{n} {pos}" for pos, n in t["position_counts"].items()),
-                "picks": t["picks_by_round"],
+                "picks": recap_by_rid.get(t["roster_id"], {}).get("picks", []),
             })
+
+        def _headline_ctx(p: dict) -> dict:
+            return {"name": p["name"], "pick_no": p["pick_no"], "adp": p["adp"],
+                    "team": public_of.get(p["team_slug"], p["team_slug"]),
+                    "team_slug": p["team_slug"],
+                    "dv": classify_pick(p["delta"], league_size)}
+        reaches_ctx = [_headline_ctx(p) for p in analysis["league_biggest_reaches"]
+                       if p["delta"] <= -league_size]
+        steals_ctx = [_headline_ctx(p) for p in analysis["league_biggest_values"]
+                      if p["delta"] >= league_size]
     recap = next((s for s in snaps if s["issue_key"] == "draft"), None)
     render("draft/index.html", "public/draft.html", 2,
            board=board, team_sections=team_sections, status_line=status_line,
+           reaches=reaches_ctx, steals=steals_ctx, league_size=league_size,
            adp_provenance=prov, recap_href=recap["href"] if recap else None,
            current_nav="Draft")
 

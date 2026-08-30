@@ -371,4 +371,17 @@ def weekly_story_candidates(
     except Exception:
         pass
 
+    # transaction rationale layer: meaningful moves become Force Flow /
+    # story candidates (large FAAB, weakness fixed, questionable fit)
+    try:
+        from leaguepage.transaction_analysis import transaction_story_candidates
+
+        for c in transaction_story_candidates(storage, league, week):
+            candidates.append(_cand(
+                f"txn:{c['headline']}", "transaction", c["headline"],
+                facts=c["support"], ev=[],
+                why=c["angle"], sections=["forceflow", "tracks"]))
+    except Exception:
+        pass
+
     return candidates

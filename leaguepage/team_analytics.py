@@ -83,14 +83,18 @@ def _season_ppg(storage: Storage, league_id: str, through_week: int) -> dict[str
 
 
 def player_values(storage: Storage, league: League, *, adp=None,
-                  weeks_played: int = 0) -> tuple[dict[str, dict], str]:
-    """player_id -> {name, position, value}; plus the methodology stage."""
+                  weeks_played: int = 0,
+                  rosters: list[dict] | None = None) -> tuple[dict[str, dict], str]:
+    """player_id -> {name, position, value}; plus the methodology stage.
+    `rosters` overrides stored rosters (reconstructed pre-transaction
+    states); default is the live synced rosters."""
     adp = adp if adp is not None else load_adp_for_league(league)
     ppg = (_season_ppg(storage, league.league_id, weeks_played)
            if weeks_played >= IN_SEASON_MIN_WEEKS else {})
     stage = "in-season blend" if ppg else "preseason (consensus ranks)"
     out: dict[str, dict] = {}
-    for r in storage.get_rosters(league.league_id):
+    for r in (rosters if rosters is not None
+              else storage.get_rosters(league.league_id)):
         for pid in (r.get("players") or []):
             if pid in out:
                 continue
@@ -126,16 +130,21 @@ def _fill_lineup(slots: list[str], pool: dict[str, list[dict]]) -> dict[str, lis
 
 
 def positional_profile(storage: Storage, league: League, *, adp=None,
-                       weeks_played: int = 0) -> dict:
+                       weeks_played: int = 0,
+                       rosters: list[dict] | None = None) -> dict:
     """{'stage', 'positions', 'teams': {rid: {pos: {...}}}, 'ranks': {pos:
-    {rid: rank}}, 'starter_ranks', 'depth_ranks'}"""
+    {rid: rank}}, 'starter_ranks', 'depth_ranks'}. `rosters` overrides the
+    stored rosters (reconstructed pre-transaction states)."""
     data = storage.get_league(league.league_id) or {}
     slots = lineup_slots(data)
     positions = league_positions(data)
-    values, stage = player_values(storage, league, adp=adp, weeks_played=weeks_played)
+    if rosters is None:
+        rosters = storage.get_rosters(league.league_id)
+    values, stage = player_values(storage, league, adp=adp,
+                                  weeks_played=weeks_played, rosters=rosters)
 
     teams: dict[int, dict] = {}
-    for r in storage.get_rosters(league.league_id):
+    for r in rosters:
         rid = r["roster_id"]
         by_pos: dict[str, list[dict]] = {}
         for pid in (r.get("players") or []):
