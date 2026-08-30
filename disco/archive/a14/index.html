@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disco 12 — Archive</title>
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
+  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
+  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
+  .skip:focus { left:.5rem; }
+  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
+  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
+  header.masthead h1 a { text-decoration:none; color:inherit; }
+  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
+  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
+                             border:1px solid #2c343d; }
+  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
+  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
+  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
+                                    height:auto; border:1px solid #2c343d; }
+  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
+  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
+  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
+  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
+  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  .tablewrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; }
+  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
+  td.wrap { white-space:normal; }
+  blockquote { margin-left:0; padding-left:1rem; }
+  section.module { margin:2rem 0; }
+  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
+  .card.feature { }
+  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
+  .meta { font-size:.85rem; }
+  .hero p.lede { font-size:1.12rem; }
+  .flags { font-size:1.05rem; letter-spacing:.15em; }
+  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
+  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  @media (max-width: 640px) {
+    nav.leaguenav { font-size:.82rem; }
+    nav.leaguenav a { margin:0 .3rem; }
+    main { padding:1rem .8rem 3rem; }
+  }
+
+  /* DISCO CHAT — CRC battle-management board. Dark slate environment,
+     amber status accent, status-board hierarchy. A publication made by CRC
+     people; a board, never a movie radar. */
+  body { background:#14181d; color:#e8e4d8; }
+  header.masthead { border-bottom:3px double #e8a33d; background:#101418; }
+  header.masthead h1 { color:#e8a33d; }
+  header.masthead .sub { color:#8fa8b8; }
+  nav.leaguenav { background:#101418; border-bottom:1px solid #2c343d; }
+  nav.leaguenav a { color:#a9bcc8; }
+  nav.leaguenav a[aria-current="page"] { color:#e8a33d; border-bottom:2px solid #e8a33d; }
+  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
+  a { color:#e8a33d; }
+  .card { background:#1a2027; border:1px solid #2c343d; }
+  .card.feature { border:2px solid #e8a33d; }
+  .tag { background:#2c343d; color:#e8a33d; }
+  .tag.prom { background:#e8a33d; color:#14181d; }
+  td, th { border:1px solid #2c343d; }
+  th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
+  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+  .meta, .credit, footer.colophon { color:#8fa8b8; }
+  section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
+
+
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="masthead">
+  <img class="logo-mark" src="../../../assets/disco-logo-light.png" alt="" width="800" height="300">
+  
+  <h1><a href="../../index.html">DISCO CHAT</a></h1>
+  <div class="sub">Operational / League Control and Reporting Center · 2026</div>
+</header>
+<nav class="leaguenav" aria-label="League navigation">
+  
+  
+  <a href="../../index.html" >Home</a>
+  
+  <a href="../../matchups/index.html" >Common Tactical Picture</a>
+  
+  <a href="../../power/index.html" >Peer and Near-Peer</a>
+  
+  <a href="../../transactions/index.html" >Force Flow</a>
+  
+  <a href="../../draft/index.html" >Draft</a>
+  
+  <a href="../../black-box/index.html" >Black Box</a>
+  
+  <a href="../../standings/index.html" >Standings</a>
+  
+  <a href="../../teams/index.html" >Teams</a>
+  
+  <a href="../../archive/index.html" aria-current="page">Archive</a>
+  
+</nav>
+
+<main id="content">
+
+<p class="meta"><span class="tag">Imported Historical Issue</span>
+Disco Chat · 2019 season · Week 12</p>
+<h2 class="section-label">Disco 12</h2>
+<article>
+  
+  <p>Disco Chat
+Vol 1.XII</p>
+  
+  <p>The Lowdown
+Alternatively, the Down-low
+Week 11 was the 3rd-worst week in the league, with teams averaging only 108.8 points. Hopefully you survived, but if you’re thinking of throwing in the towel, there’s still hope!
+With only two weeks of regular season fantasy left (and one week of BYEs!), the playoff picture has clarified a bit at the top, but it’s still a mad dash for the two first-round BYEs and the bottom seed. It’s conceivable that someone could make the playoffs and win it all with a 5-8 regular season record. It would piss the other 5 of us off, for sure, but that would make the victory all the sweeter. The more unfair our victory is in fantasy, the more we relish it. Do I care that one player scored over 30% of my points? My waiver wire add outscored my opponent’s stud? My nobody randomly exploded? Sure, but mostly just to rub it in my opponent’s face. So keep on keeping on, you fantasy assholes.
+9-2 Browns FTW (PITCH) only has to win 1 more week to lock in a first round BYE.
+7-4 Anomalies (McLovin) is locked into the playoffs. He has to win the same number of games as Fatties and Raphi Bomb to earn a first round BYE.
+7-4 Corn Fed Fatties (Babe) is locked into the playoffs. He has to win one more game than Anomalies to earn a first round BYE, or close a significant points gap for the tiebreaker.
+6-5 Raphi Bomb (Fingers) can only miss the playoffs if he drops two games, while HOP or Juan go undefeated. He can earn a first round BYE by winning one more game than Anomalies and Fatties and winning the points tiebreaker (which he currently leads).
+6-5 Ain’t That a Mitch (DIP) can only miss the playoffs if he drops two games, while HOP or Juan go undefeated.
+5-6 Ain’t Got No Luck (Double) has to win the same number of games as Stars or Inches to edge them out of the last playoff spot.
+4-7 Trophy Wife (EMCO) is leading the pack of contenders fighting for a playoff spot. She just has to win 1 more game than Double to make it in, while beating out HOP/Double. She is currently winning the points tiebreaker between Stars and Inches.
+4-7 Rising Stars (Juan) could make the playoffs if he does better than HOP/EMCO/Double the next two weeks. He is winning the points tiebreaker against HOP, but losing against EMCO.
+4-7 The Couple Inches (HOP) could make the playoffs if he does better than Juan/EMCO/Double the next two weeks. He is losing the points tiebreaker between EMCO and Juan.
+2-9 The Dude is playing for the draft pick of his choice next year in the consolation bowl.</p>
+  
+  <p>This Week’s Matchups
+The Race to the Playoffs
+NFL Teams on BYE: Cardinals, Chiefs, Chargers, Vikings</p>
+  
+  <p>Ain’t That a Mitch (DIP) 6-5 vs Browns 4 The Win (Pitch) 9-2 (65/35)
+Upset Special
+Significant BYEs: DIP is down Melvin Gordon and Keenan Allen; PITCH is full-up.
+Even with PITCH full-up, I give the advantage here to DIP, coming off a few strong games, with a healthy lineup that’s out for blood. Plus, we all know PITCH is too busy at SOS solving the AF’s problems to play fantasy.</p>
+  
+  <p>Ain’t Got No Luck (Double) 5-6 vs The Couple Inches (HOP) 4-7 (65/35)
+Significant BYEs: Double’s down Hunter Henry; HOP’s missing Damien Williams, David Johnson, Austin Ekeler, and Stefon Diggs.
+It’s time to drop Minshew for a waiver wire RB, HOP. It’ll be an uphill battle against Double for you with your BYE week woes, but it’s never too late. Double’s missing his TE1, so all is not lost. Even so, I like Double’s chances to improve his odds of making the playoffs this week, effectively knocking out HOP.</p>
+  
+  <p>Trophy Wife (EMCO) 4-7 vs Corn-Fed Fatties (Babe) 7-4 (70/30)
+Palindrome Special
+Significant BYEs: EMCO’s going without Thielen; Babe’s missing Mahomes and Kelce
+Looking at the records alone, you give this one to Babe, but without Mahomes and Kelce, and with Deshaun Watson coming off his worst game of the season, I like EMCO’s chances to improve to 5-7 and give herself a shot at the playoffs.</p>
+  
+  <p>Raphi Bomb (Cooke) 6-5 vs Anomalies (McLovin) 7-4 (40/60)
+Significant BYEs: I’m missing Kyler Murray, Larry Fitz, and Tyreek; Finger’s down Dalvin Cook.
+Raphi Bomb is still one of the strongest teams in the league, despite his 5 losses, and even without the RB2 on the year Dalvin Cook, his team looks poised to crush me in what should be a fairly even matchup. I’m not giving up as the slight underdog, as I need to win this to get a chance at a week 1 BYE.</p>
+  
+  <p>Rising Stars (Juan) 4-7 vs The Dude (The Dude) 3-8 (65/35)
+Spoiler Special
+Significant BYEs: Juan’s missing Kenyan Drake and Christian Kirk; the Dude’s down Kirk Cousins.
+This is a must-win for Rising Stars, but the Dude could continue to play spoiler as he did last week. He’s got an uphill battle against a solid squad from Juan, and he’s still the underdog even though Stars are missing a couple key offensive pieces.</p>
+  
+  <p>GM of the Week
+““Buddy, I don&#39;t know who you are, but you&#39;re about to get chlamydia..” - Fingers, probably
+&#34;Words are bullshit. They’re just useless sounds that we make with our stupid mouths.&#34; - Fingers
+It was Fingers, but he didn’t write anything because he was too busy riding his motorcycle. He named his team Raphi Bomb because of a fantasy football show called The League, and he’s been playing fantasy football long enough to be the Power Rankings #1 team for most of the year this year, thanks to his savvy (lucky?) drafting of Dalvin Cook. He has the best mustache in the league, and probably is one of the top-2 most country people we have here, as well as the most likely to depart the military in the next year. Also, his family are practically real estate tycoons, and he has a lot of business smarts. Next time you see him, give him shit for not answering the questions.</p>
+  
+  <p>The Highlights
+Week’s Best Decision
+PITCH could have easily decided to bench Jimmy Garoppolo after his 9.02 point performance last week, but she trotted him out again, even over her own Baker Mayfield, and was rewarded with a career game of 31.66 points.
+Start of the Week
+Calvin Ridley had only 1 game over 20 points or more this season, but The Dude still rolled him out, and was rewarded with 24.3 fantasy points, his best performance of the season, and enough to score him a rare W against Raphi Bomb. 
+Five Dolla Winner
+In terms of wins:$5 ratio, the Dude is far ahead of the rest of us. Of his 3 wins, 2 of them have counted for the highest score in the league. Well done, and keep abiding.
+________________</p>
+  
+  <p>The Lowlights
+        ________________
+Week’s Worst Decision
+I don’t care if he’s been terrible, you don’t bench Stefon Diggs for the likes of JuJu or Damien Williams, especially with Thielen out. But HOP did it anyway, and missed out on 20.6 points.
+Stud Duds
+0.0 Tyreek Hill (Anomalies)
+4.0 Deshaun Watson (Corn Fed Fatties)
+5.3 Amari Cooper (Rising Stars)
+8.5 Darth Vader, QB NE (Rising Stars)
+4.3 Brian Hill (Show Me Your TDs)
+4.8 Cooper Kupp (Anomalies)
+The Toilet Bowl
+In the battle to the bottom, I (Anomalies) managed to eke out a win with the second-worst score in the league this week at 91.34 points, “carried” by performances from James Conner (2.1), Tyreek Hill (0.0), and Cooper Kupp (4.8).
+Biggest Loser
+Putting up the 4th-highest score just wasn’t enough to carry Raphi Bomb to victory against The Dude. Even with a  ridiculous 30+ performance from John Brown, Fingers falls to 6-5.</p>
+  
+  <p>Five Dolla Hall o’ Fame
+Week 1: Rising Stars (Juan) 150.18 points
+Week 2: Ain&#39;t That a Mitch (DIP) 136.34 points
+Week 3: Ain&#39;t Got No Luck (Double) 155.26 points
+Week 4: Raphi Bomb (Cooke) 143.30 points
+Week 5: Ain&#39;t That a Mitch (DIP) 164.86 points
+Week 6: Anomalies (McLovin) 147.10 points
+Week 7: The Dude (The Dude) 138.46 points
+Week 8: Anomalies (McLovin) 157.80 points
+Week 9: Trophy Wife (EMCO) 140.22 points
+Week 10: Ain&#39;t That a Mitch (DIP) 152.62 points
+Week 11: The Dude (The Dude) 133.76 points</p>
+  
+  <p>Everyone Sucks
+QB: Jeff Driskel 27.5
+RB: Gus Edwards 17.2
+RB: Tarik Cohen 15.9
+WR: Randall Cobb 19.5
+WR: Jakeem Grant 17.4
+TE: Ryan Griffin 19.4
+FLEX: Devante Parker 17.0
+FLEX: Ross Dwelley 15.4
+DST: Falcons 26.0
+Total: 175.3</p>
+  
+  <p>Didn&#39;t Suck:
+DIP and EMCO Week 5
+McLovin Week 8
+DIP Week 10</p>
+  
+  <p>Power Rankings</p>
+  
+</article>
+<p><a href="../../archive/index.html">← Back to the archive</a></p>
+
+</main>
+<footer class="colophon">
+  <img class="logo-footer" src="../../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  DISCO CHAT · 2026 · <a href="../../../index.html">League select</a>
+</footer>
+</body>
+</html>

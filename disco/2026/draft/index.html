@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DISCO CHAT — 2026 Draft Issue</title>
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
+  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
+  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
+  .skip:focus { left:.5rem; }
+  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
+  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
+  header.masthead h1 a { text-decoration:none; color:inherit; }
+  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
+  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
+                             border:1px solid #2c343d; }
+  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
+  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
+  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
+                                    height:auto; border:1px solid #2c343d; }
+  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
+  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
+  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
+  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
+  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  .tablewrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; }
+  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
+  td.wrap { white-space:normal; }
+  blockquote { margin-left:0; padding-left:1rem; }
+  section.module { margin:2rem 0; }
+  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
+  .card.feature { }
+  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
+  .meta { font-size:.85rem; }
+  .hero p.lede { font-size:1.12rem; }
+  .flags { font-size:1.05rem; letter-spacing:.15em; }
+  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
+  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  @media (max-width: 640px) {
+    nav.leaguenav { font-size:.82rem; }
+    nav.leaguenav a { margin:0 .3rem; }
+    main { padding:1rem .8rem 3rem; }
+  }
+
+  /* DISCO CHAT — CRC battle-management board. Dark slate environment,
+     amber status accent, status-board hierarchy. A publication made by CRC
+     people; a board, never a movie radar. */
+  body { background:#14181d; color:#e8e4d8; }
+  header.masthead { border-bottom:3px double #e8a33d; background:#101418; }
+  header.masthead h1 { color:#e8a33d; }
+  header.masthead .sub { color:#8fa8b8; }
+  nav.leaguenav { background:#101418; border-bottom:1px solid #2c343d; }
+  nav.leaguenav a { color:#a9bcc8; }
+  nav.leaguenav a[aria-current="page"] { color:#e8a33d; border-bottom:2px solid #e8a33d; }
+  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
+  a { color:#e8a33d; }
+  .card { background:#1a2027; border:1px solid #2c343d; }
+  .card.feature { border:2px solid #e8a33d; }
+  .tag { background:#2c343d; color:#e8a33d; }
+  .tag.prom { background:#e8a33d; color:#14181d; }
+  td, th { border:1px solid #2c343d; }
+  th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
+  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+  .meta, .credit, footer.colophon { color:#8fa8b8; }
+  section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
+
+
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="masthead">
+  <img class="logo-mark" src="../../../assets/disco-logo-light.png" alt="" width="800" height="300">
+  
+  <h1><a href="../../index.html">DISCO CHAT</a></h1>
+  <div class="sub">Operational / League Control and Reporting Center · 2026</div>
+</header>
+<nav class="leaguenav" aria-label="League navigation">
+  
+  
+  <a href="../../index.html" >Home</a>
+  
+  <a href="../../matchups/index.html" >Common Tactical Picture</a>
+  
+  <a href="../../power/index.html" >Peer and Near-Peer</a>
+  
+  <a href="../../transactions/index.html" >Force Flow</a>
+  
+  <a href="../../draft/index.html" >Draft</a>
+  
+  <a href="../../black-box/index.html" >Black Box</a>
+  
+  <a href="../../standings/index.html" >Standings</a>
+  
+  <a href="../../teams/index.html" >Teams</a>
+  
+  <a href="../../archive/index.html" >Archive</a>
+  
+</nav>
+
+<main id="content">
+
+
+<p class="meta">Draft Issue · 2026 · published 2026-08-30</p>
+
+<section class="module" id="lowdown">
+  <h2 class="section-label">The Lowdown</h2>
+  <div class="credit">by the Commissioner</div>
+  <div><h2>Vol 8.I: Back On Station</h2>
+<p>Disco Chat is back on the air for the 8th season, and the initial picture is exactly as cluttered as you&rsquo;re used to with BC3. Here&rsquo;s how every season actually starts. When an ACS (especially if it used to be an OSS) first stands up, it&rsquo;s chaos: every track is ambiguous and half the returns are spoofed or erroneous, Our draft this year was the same. Twelve of us dropped 228 tracks on the scope in one night, every single one declared friendly by the (battle?) manager who put it there.. The season is the judge; by Halloween we&rsquo;ll know who spent the draft deccing chaff. I am solidly middle-of-the-pack per my rankings, which balances my core belief that I am a fantasy drafting god with the reality that I&rsquo;ve finished last more times than I&rsquo;d ever admit publicly.</p>
+<p>The full draft board, with every pick&rsquo;s delta against consensus rank, is on the site, and so is the archive: every recoverable issue of Disco Chat. Good luck to everyone aside from my opponents, to whom I wish a season of very average (or below average) performances. Godspeed everyone! Matchup write-ups next week!</p></div>
+</section>
+
+<section class="module" id="custom">
+  <h2 class="section-label">Draft Power Rankings</h2>
+  
+  <div><p><em>&ldquo;Every ranking is objective until you read your own and it&rsquo;s low; then just complain about it in league chat.&rdquo;</em></p>
+<p>All models are wrong, but some are useful; the scores below are just math, and the order is the math&rsquo;s fault not mine. I (with some LLM help, because 228 picks is way to many to do manually) compared every one of the 228 picks to FantasyPros&rsquo; superflex consensus board, and each team&rsquo;s number is the sum of its deltas: positive means we let value fall to you, negative means you went and got your guys early, which hurt you in the model. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge. Complain about it, crow over your high ranking, but the incoming season, injuries, etc. are inevitable.</p>
+<h3>1. The Dude (+179)</h3>
+<p>The board champion and it wasn&rsquo;t (that) close. Daniel Jones 68 picks after his consensus rank, Malik Willis 58 after his, in a superflex league where the rest of us treated quarterbacks like launching an E-3 sortie FMC - completely optional. Though, I wouldn&rsquo;t necessarily love those QBs on my team if I could avoid it. Nineteen picks, plus-179. &lsquo;Nuff said.</p>
+<h3>2. George &amp; Friends (DIP) (+140)</h3>
+<p>Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick discount. This is the guy at the yard sale who knows which boxes have the good vinyl. Don&rsquo;t love that he drafted three Titans, and not sure he does either now that he realizes it.</p>
+<h3>3. Love Sutton Brocks (EMCO) (+84)</h3>
+<p>Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay triple for upside, and only one real reach (Jarquez Hunter, minus-60). Plus-84 without even turning heads in the draft room. Textbook.</p>
+<h3>4. Tua Girls One Kupp (Ethen) (+67)</h3>
+<p>Tre&rsquo; Harris at a 42-pick discount and four tight ends, which is either depth
+or a cry for help; the plus-67 says depth. Two quarterbacks in superflex is
+where he&rsquo;s gonna run into issues, but maybe he has a plan that&rsquo;s not Carson Beck off waivers.</p>
+<h3>5. VHS Cowboys (Juan) (+47)</h3>
+<p>Geno Smith 42 picks late and nine receivers. Dead even with the team below
+at plus-47, and the tiebreaker is simple: VHS Cowboys kept their
+Jacksonville exposure at zero.</p>
+<h3>6. Statistical Anomalies (McLovin) (+47)</h3>
+<p>My board. The math says plus-47 and fifth-ish; the eyes say I built the only
+four-player NFL stack in the league, out of Jaguars. Tuten, Washington,
+Meyers, Strange. I looked at Jacksonville&rsquo;s offense and said &ldquo;more, please,
+four times.&rdquo; I did not realize this during the draft, and I completely regret it.</p>
+<h3>7. Hand me a White Claw (PITCH) (+16)</h3>
+<p>Four quarterbacks and a Tampa triple, held to plus-16 by the Quinshon
+Judkins reach (minus-35). Right side of zero, wrong side of memorable. A
+perfectly fine draft.</p>
+<h3>8. Babe (confedfatties) (-49)</h3>
+<p>Aaron Rodgers 35 picks late was the good idea. Carson Beck 81 picks early
+was definitely an idea of some kind. Four quarterbacks and two stacks means the plan had
+conviction; minus-49 means the plan had a tab.</p>
+<h3>9. All Barkley No Bite (Sealed) (-133)</h3>
+<p>Two three-player city bets (New Orleans and Tampa) and an Audric Estime
+pick that beat consensus to the board by 69 spots. The name says Barkley;
+the draft rank says the bit coulda been sharper.</p>
+<h3>10. Secret Asian Man (POP) (-204)</h3>
+<p>Nine wideouts and an Atlanta triple, financed by paying early on almost
+every window. Terrance Ferguson at plus-34 shows he has a plan for the player; the
+other eighteen picks show he has confidence in his process vs. ECR.</p>
+<h3>11. Stafford and Sons (Fingers) (-493)</h3>
+<p>One pick is carrying 244 points of this all by itself: Jahdae Walker at 145
+against a consensus rank of 389. That is the single boldest call any of the
+twelve of us made, and if it hits, this whole column gets read back to me
+in January. The Baltimore triple says there is a real plan here.</p>
+<h3>12. Double TDs (Double) (-511)</h3>
+<p>Jayden Daniels at pick 10 is fine. James Conner 141 early and Ty Simpson
+130 early is how a board bleeds out in the middle rounds, and minus-511 is
+the tourniquet arriving late. Respect for the conviction. Woof for the math.</p>
+<p>The scoreboard settles all of this starting Thursday, and I look forward to
+The Dude printing this out and framing it on his Det 9/CC wall. Full board with every delta is on
+the Draft page. Back next weekend for week 1 matchups!</p>
+<h3>Second Opinions</h3>
+<p>Two outside gauges for calibration, both pulled 2026-08-30. FantasyPros grades the room on a curve: ten of twelve boards got a B+ or better, and nobody failed. The Fantasy Footballers put my board first at 100, which proves their model is rigorous and unbiased (I am totally objective). Where all three methods agree, believe it; where they argue, that&rsquo;s a season preview.</p>
+<p><strong>Fantasy Footballers draft grades</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Rk</th>
+<th>Team</th>
+<th style="text-align: center;">Grade</th>
+<th style="text-align: right;">PPG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>George &amp; Friends</td>
+<td style="text-align: center;">A-</td>
+<td style="text-align: right;">140.0</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>The Dude</td>
+<td style="text-align: center;">A-</td>
+<td style="text-align: right;">140.0</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Statistical Anomalies</td>
+<td style="text-align: center;">A-</td>
+<td style="text-align: right;">139.6</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Tua Girls One Kupp</td>
+<td style="text-align: center;">A-</td>
+<td style="text-align: right;">137.7</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>Corn-Fed Fatties</td>
+<td style="text-align: center;">B+</td>
+<td style="text-align: right;">136.5</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Love Sutton Brocks</td>
+<td style="text-align: center;">B+</td>
+<td style="text-align: right;">133.7</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>VHS Cowboys</td>
+<td style="text-align: center;">B+</td>
+<td style="text-align: right;">133.4</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>Secret Asian Man</td>
+<td style="text-align: center;">B+</td>
+<td style="text-align: right;">131.1</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>Hand me a White Claw</td>
+<td style="text-align: center;">B+</td>
+<td style="text-align: right;">128.1</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>All Barkley No Bite</td>
+<td style="text-align: center;">B+</td>
+<td style="text-align: right;">127.7</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td>Stafford and Sons</td>
+<td style="text-align: center;">B</td>
+<td style="text-align: right;">134.4</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td>Double TDs</td>
+<td style="text-align: center;">B</td>
+<td style="text-align: right;">125.7</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Fantasy Pros draft rankings</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Rk</th>
+<th>Team</th>
+<th style="text-align: right;">Score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td>Statistical Anomalies</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>The Dude</td>
+<td style="text-align: right;">99</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Love Sutton Brocks</td>
+<td style="text-align: right;">97</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Tua Girls One Kupp</td>
+<td style="text-align: right;">96</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td>VHS Cowboys</td>
+<td style="text-align: right;">95</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td>Hand me a White Claw</td>
+<td style="text-align: right;">91</td>
+</tr>
+<tr>
+<td style="text-align: right;">7</td>
+<td>George &amp; Friends</td>
+<td style="text-align: right;">90</td>
+</tr>
+<tr>
+<td style="text-align: right;">8</td>
+<td>Corn-Fed Fatties</td>
+<td style="text-align: right;">88</td>
+</tr>
+<tr>
+<td style="text-align: right;">9</td>
+<td>All Barkley No Bite</td>
+<td style="text-align: right;">86</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td>Secret Asian Man</td>
+<td style="text-align: right;">85</td>
+</tr>
+<tr>
+<td style="text-align: right;">11</td>
+<td>Double TDs</td>
+<td style="text-align: right;">83</td>
+</tr>
+<tr>
+<td style="text-align: right;">12</td>
+<td>Stafford and Sons</td>
+<td style="text-align: right;">80</td>
+</tr>
+</tbody>
+</table></div>
+</section>
+
+
+
+</main>
+<footer class="colophon">
+  <img class="logo-footer" src="../../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  DISCO CHAT · 2026 · <a href="../../../index.html">League select</a>
+</footer>
+</body>
+</html>

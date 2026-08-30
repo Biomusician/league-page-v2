@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disco 17 — Archive</title>
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
+  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
+  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
+  .skip:focus { left:.5rem; }
+  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
+  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
+  header.masthead h1 a { text-decoration:none; color:inherit; }
+  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
+  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
+                             border:1px solid #2c343d; }
+  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
+  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
+  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
+                                    height:auto; border:1px solid #2c343d; }
+  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
+  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
+  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
+  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
+  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  .tablewrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; }
+  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
+  td.wrap { white-space:normal; }
+  blockquote { margin-left:0; padding-left:1rem; }
+  section.module { margin:2rem 0; }
+  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
+  .card.feature { }
+  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
+  .meta { font-size:.85rem; }
+  .hero p.lede { font-size:1.12rem; }
+  .flags { font-size:1.05rem; letter-spacing:.15em; }
+  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
+  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  @media (max-width: 640px) {
+    nav.leaguenav { font-size:.82rem; }
+    nav.leaguenav a { margin:0 .3rem; }
+    main { padding:1rem .8rem 3rem; }
+  }
+
+  /* DISCO CHAT — CRC battle-management board. Dark slate environment,
+     amber status accent, status-board hierarchy. A publication made by CRC
+     people; a board, never a movie radar. */
+  body { background:#14181d; color:#e8e4d8; }
+  header.masthead { border-bottom:3px double #e8a33d; background:#101418; }
+  header.masthead h1 { color:#e8a33d; }
+  header.masthead .sub { color:#8fa8b8; }
+  nav.leaguenav { background:#101418; border-bottom:1px solid #2c343d; }
+  nav.leaguenav a { color:#a9bcc8; }
+  nav.leaguenav a[aria-current="page"] { color:#e8a33d; border-bottom:2px solid #e8a33d; }
+  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
+  a { color:#e8a33d; }
+  .card { background:#1a2027; border:1px solid #2c343d; }
+  .card.feature { border:2px solid #e8a33d; }
+  .tag { background:#2c343d; color:#e8a33d; }
+  .tag.prom { background:#e8a33d; color:#14181d; }
+  td, th { border:1px solid #2c343d; }
+  th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
+  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+  .meta, .credit, footer.colophon { color:#8fa8b8; }
+  section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
+
+
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="masthead">
+  <img class="logo-mark" src="../../../assets/disco-logo-light.png" alt="" width="800" height="300">
+  
+  <h1><a href="../../index.html">DISCO CHAT</a></h1>
+  <div class="sub">Operational / League Control and Reporting Center · 2026</div>
+</header>
+<nav class="leaguenav" aria-label="League navigation">
+  
+  
+  <a href="../../index.html" >Home</a>
+  
+  <a href="../../matchups/index.html" >Common Tactical Picture</a>
+  
+  <a href="../../power/index.html" >Peer and Near-Peer</a>
+  
+  <a href="../../transactions/index.html" >Force Flow</a>
+  
+  <a href="../../draft/index.html" >Draft</a>
+  
+  <a href="../../black-box/index.html" >Black Box</a>
+  
+  <a href="../../standings/index.html" >Standings</a>
+  
+  <a href="../../teams/index.html" >Teams</a>
+  
+  <a href="../../archive/index.html" aria-current="page">Archive</a>
+  
+</nav>
+
+<main id="content">
+
+<p class="meta"><span class="tag">Imported Historical Issue</span>
+Disco Chat · 2019 season · Week 17</p>
+<h2 class="section-label">Disco 17</h2>
+<article>
+  
+  <p>Disco Chat
+Vol I.XVI</p>
+  
+  <p>The Lowdown
+It is Finished
+Merry Christmas, Happy New Year, and see below for a couple interesting graphics gleaned from the Power Rankings I posted every week. Interesting to see how the</p>
+  
+  <p>A Draft in Review
+Hindsight is 20/20
+Now that the season’s done, it’s time to take a look back at the draft, and ID some of the biggest winners and losers in each round. So let’s go, starting with round 1:
+Round 1:
+Winner: CMC (EMCO)
+Loser: David Johnson (HOP)
+Round 2:
+Winner: Julio Jones (Babe)
+Loser: Antonio Brown (Double) / JuJu (HOP x2)
+Round 3:
+Winner: Aaron Jones (DIP)
+Loser: Devonta Freeman (The Dude)
+Round 4:
+Winner: George Kittle (DIP x2)
+Loser: Aaron Rodgers (The Dude x2) / Damien Williams (Babe)
+Round 5:
+Winner: Chris Godwin (Fingers)
+Loser: OJ Howard (HOP x3)
+Round 6:
+Winner: Miles Sanders (Double)
+Loser: Matt Ryan (HOP x4)
+Round 7:
+Winner: Jarvis Landry (HOP)
+Loser: TY Hilton (EMCO)
+Round 8:
+Winner: DJ Moore, WR12 (HOP x2)
+Loser: AJ Green, WR681 (PITCH)
+Round 9:
+Winner: Austin Ekeler, RB8 (HOP x3)
+Loser: Matt Breida, RB42 (Babe x2)
+Round 10:
+Winner: Kenyan Drake, RB16 (The Dude)
+Loser: Cam Newton, QB50 (McLovin)
+Round 11:
+Winner: Lamar Jackson, QB1 (EMCO x2)
+Loser: Sammy Watkins, WR46 (DIP)
+Round 12:
+Winner: Rashaad Penny,  (DIP x3)
+Loser: Kalen Ballage,  (McLovin x2)
+Round 13:
+Winner: Kyler Murray, QB8 (McLovin)
+Loser: Geronimo Allison, WR88 (Babe x3)
+Round 14:
+Winner: Mark Andrews, TE2 (Babe)
+Loser: Donte Moncrief, WR189 (Fingers)
+Round 15:
+Winner: Jamison Crowder, WR32 (Fingers x2)
+Loser: Justin Jackson, RB87 (DIP x2)
+Best Pick of the Draft: Lamar Jackson (EMCO)
+Worst Pick of the Draft: Antonio Brown (Double)</p>
+  
+  <p>The Highlights
+You Win Some
+Week’s Best Decision
+Julio’s been having a rough stretch, with 9, 0, and 9 points in his last 3 matches. But he still carried the Fatties to victory with a 31.9 point effort this week. Way to trust the player, not the history.
+Five Dolla Winner
+The Fatties are making money move these last few weeks, with a consecutive $5 performance, and 147 points, his highest mark of the season. Well done!
+________________</p>
+  
+  <p>The Lowlights
+You Lose Some
+    ________________
+Week’s Worst Decision
+Jimmy G should have been a great start against Atlanta, but for whatever reason, the 49ers couldn’t get it going for PITCH against the Falcons. Twelve points just didn’t quite cut it against her husband at the QB position.
+The Toilet Bowl
+Double wasn’t playing around in the race to the bottom, and beat HOP by almost 30 points. HOP wins the worst team award, a picture of which will be posted shortly.</p>
+  
+  <p>Five Dolla Hall o’ Fame
+Week 1: Rising Stars (Juan) 150.18 points
+Week 2: Ain&#39;t That a Mitch (DIP) 136.34 points
+Week 3: Ain&#39;t Got No Luck (Double) 155.26 points
+Week 4: Raphi Bomb (Cooke) 143.30 points
+Week 5: Ain&#39;t That a Mitch (DIP) 164.86 points (x2 winner)
+Week 6: Anomalies (McLovin) 147.10 points
+Week 7: The Dude (The Dude) 138.46 points (x2 winner)
+Week 8: Anomalies (McLovin) 157.80 points (x2 winner)
+Week 9: Trophy Wife (EMCO) 140.22 points
+Week 10: Ain&#39;t That a Mitch (DIP) 152.62 points (x2 winner)
+Week 11: The Dude (The Dude) 133.76 points (x2 winner)
+Week 12: Corn-Fed Fatties (Babe) 122.72 points
+Week 13: The Dude (The Dude) 142.92 points (x3 winner)
+Week 14: Corn-Fed Fatties (Babe) 137.18 points (x2 winner)
+Week 15: Corn-Fed Fatties (Babe) 149.42 points (x3 winner)</p>
+  
+  <p>Everyone Sucks
+QB: Fitzmagic 19.5
+RB: Tony Pollard 21.3
+RB: AD 16.6
+WR: Anthony Miller 22.3
+WR: Chris Conley 18.9
+TE: Jonnu Smith 14.2
+FLEX: Greg Ward 15.6
+FLEX: Wes Hills 15.2
+DST: Vikings 32.0
+Total: 175.6</p>
+  
+  <p>Didn&#39;t Suck:
+DIP and EMCO Week 5
+McLovin Week 8
+DIP Week 10</p>
+  
+  <p>Power Rankings</p>
+  
+</article>
+<p><a href="../../archive/index.html">← Back to the archive</a></p>
+
+</main>
+<footer class="colophon">
+  <img class="logo-footer" src="../../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  DISCO CHAT · 2026 · <a href="../../../index.html">League select</a>
+</footer>
+</body>
+</html>

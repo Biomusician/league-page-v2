@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>League Analysis: Time the First — Archive</title>
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
+  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
+  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
+  .skip:focus { left:.5rem; }
+  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
+  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
+  header.masthead h1 a { text-decoration:none; color:inherit; }
+  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
+  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
+                             border:1px solid #2c343d; }
+  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
+  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
+  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
+                                    height:auto; border:1px solid #2c343d; }
+  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
+  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
+  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
+  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
+  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  .tablewrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; }
+  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
+  td.wrap { white-space:normal; }
+  blockquote { margin-left:0; padding-left:1rem; }
+  section.module { margin:2rem 0; }
+  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
+  .card.feature { }
+  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
+  .meta { font-size:.85rem; }
+  .hero p.lede { font-size:1.12rem; }
+  .flags { font-size:1.05rem; letter-spacing:.15em; }
+  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
+  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  @media (max-width: 640px) {
+    nav.leaguenav { font-size:.82rem; }
+    nav.leaguenav a { margin:0 .3rem; }
+    main { padding:1rem .8rem 3rem; }
+  }
+
+  /* DISCO CHAT — CRC battle-management board. Dark slate environment,
+     amber status accent, status-board hierarchy. A publication made by CRC
+     people; a board, never a movie radar. */
+  body { background:#14181d; color:#e8e4d8; }
+  header.masthead { border-bottom:3px double #e8a33d; background:#101418; }
+  header.masthead h1 { color:#e8a33d; }
+  header.masthead .sub { color:#8fa8b8; }
+  nav.leaguenav { background:#101418; border-bottom:1px solid #2c343d; }
+  nav.leaguenav a { color:#a9bcc8; }
+  nav.leaguenav a[aria-current="page"] { color:#e8a33d; border-bottom:2px solid #e8a33d; }
+  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
+  a { color:#e8a33d; }
+  .card { background:#1a2027; border:1px solid #2c343d; }
+  .card.feature { border:2px solid #e8a33d; }
+  .tag { background:#2c343d; color:#e8a33d; }
+  .tag.prom { background:#e8a33d; color:#14181d; }
+  td, th { border:1px solid #2c343d; }
+  th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
+  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+  .meta, .credit, footer.colophon { color:#8fa8b8; }
+  section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
+
+
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="masthead">
+  <img class="logo-mark" src="../../../assets/disco-logo-light.png" alt="" width="800" height="300">
+  
+  <h1><a href="../../index.html">DISCO CHAT</a></h1>
+  <div class="sub">Operational / League Control and Reporting Center · 2026</div>
+</header>
+<nav class="leaguenav" aria-label="League navigation">
+  
+  
+  <a href="../../index.html" >Home</a>
+  
+  <a href="../../matchups/index.html" >Common Tactical Picture</a>
+  
+  <a href="../../power/index.html" >Peer and Near-Peer</a>
+  
+  <a href="../../transactions/index.html" >Force Flow</a>
+  
+  <a href="../../draft/index.html" >Draft</a>
+  
+  <a href="../../black-box/index.html" >Black Box</a>
+  
+  <a href="../../standings/index.html" >Standings</a>
+  
+  <a href="../../teams/index.html" >Teams</a>
+  
+  <a href="../../archive/index.html" aria-current="page">Archive</a>
+  
+</nav>
+
+<main id="content">
+
+<p class="meta"><span class="tag">Imported Historical Issue</span>
+Big Daddy AF · 2019 season</p>
+<h2 class="section-label">League Analysis: Time the First</h2>
+<article>
+  
+  <p>Analysis AF: Pre-Draft
+“Too Much Time on My Hands”</p>
+  
+  <p>Dynasty never stops, and it definitely doesn’t start with the draft. It’s never too early for a league write-up, so here we are. It’s far too early to do in-depth analyses of matchups, power rankings, and personalities, but that hasn’t stopped most of the fantasy sites from churning out content far before the start of the preseason, so it’s not going to stop us either.</p>
+  
+  <p>By the Numbers</p>
+  
+  <p>Never judge a book by its cover, unless the cover is someone’s username. Whether it’s the year you joined the site, birth year, favorite number, or first available number, having a number in your username is definitely popular:</p>
+  
+  <p>It’s poor form to offend people before you’ve had a chance to offer them trades, so I’ll let you draw your own conclusions about people too lazy to think of unique usernames. Speaking of drawing your own conclusions, here’s a world cloud built around our conversations thus far. Clearly, the draft is important to us.</p>
+  
+  <p>This just shows how much people are talking about other people, not including instances where people typed names but forgot to add spaces before or after a name (Bazingamade this typo would not have counted.) From this, we see that we’ve all naturally gravitated around the commissionucleus, mostly with gripes and complaints. I’m as disappointed as you are by the Hoelbrooks showing up on there.</p>
+  
+  <p>Speaking of names, let’s take a look at this year’s team names, as well as how many Google Results each of them have (queries: fantasy football “[team name]”):</p>
+  
+  <p>Team Name
+	Results
+	[Blank]
+	DNP
+	Olmstead Land Sharks
+	0
+	Boston Poindexters
+	27
+	Hot Chubb Time Machine
+	296
+	The Mixon Administration
+	324
+	To Khalil a Mackingbird
+	739
+	U.S. Trash
+	2,130
+	Statistical Anomalies
+	5,480
+	Porkchop Express
+	6,030
+	Show Me Your TDs
+	16,400</p>
+  
+  <p>Takeaway: Basic is already tanking, but the earliest instance of Show Me Your TDs was in 2002. Originally I titled the right column “How Lame?” but after my team appeared so high on the list, my ego got the better of me. It’s not even a great mini-study on how common team names are, but by the time that became clear, I was too far into the Googling.</p>
+  
+  <p>Scouting Report</p>
+  
+  <p>Several individuals have already unconsciously identified themselves as natural fits for our league home, Sleeper. Quincy, Cody, and Kelsey have flown under the radar in early league conversations, and if I didn’t know who they were, I wouldn’t even know who they were or what they were doing here. They’re basically the Foster Moreaus, Mack Hollinses, and Darrel Williams of our league. You’ve only heard of them if you’ve been paying an unhealthy amount of attention. Hopefully they’re better at fantasy than conversation.</p>
+  
+  <p>On the other side of the pendulum, we have individuals like Bazinga, Basic, and even The Commish willing to wade into the muck of daily conversation like it’s nothing. File your hurt feelings reports elsewhere, because minds are being spoken, bets are being made, and there are going to be winners and losers.</p>
+  
+  <p>Current Power Rankings</p>
+  
+  <p>Drafter
+	Score
+	Pick
+	Football Equivalent
+	The Commish
+	44
+	8
+	Eric Decker
+	Bazinga
+	36
+	1
+	Jason Garrett
+	Bull
+	35
+	5
+	Kellen Clemens
+	McLovin
+	3-4
+	6
+	Demaryius Thomas
+	Quincy King
+	28
+	9
+	Mark Sanchez
+	Cody Martin
+	27
+	4
+	Joe Flacco
+	Denzel Neal
+	20
+	3
+	Michael Vick
+	Basic
+	14
+	7
+	Martavius Bryant
+	Distro
+	Frank Gore / 34
+	10
+	Vince Young (QB)
+	Kelsey
+	Frank Gore
+	2
+	Oscar Davenport (QB)</p>
+  
+  <p>I picked the most interesting players around your score, not the most famous, most talented, or most likely to have the same spirit animal as you. Johnny Manziel - sorry, JOHN Manziel - scored a 32 (and so did Ezekiel Elliott) and we know how that turned out, so don’t take it too seriously. Deal with it.</p>
+  
+  <p>League Drama</p>
+  
+  <p>The draft date hadn’t even been set for FOUR DAYS until someone chimed up that it wouldn’t work after all. After bouncing back a couple weeks, the draft was once again set in stone. For now.</p>
+  
+  <p>Harsh words were nearly spoken betwixt Basic, McLovin, Bazinga, and Distro, as they expressed their differing opinions on America’s Team, The Dallas Cowboys. Chat colors were changed, pictures were added, bets were made (and immediately judged unwise by Bull) - it was the best of times.</p>
+  
+  <p>People feel strongly about DSTs and kickers. They’re basically the appendices, tonsils, and wisdom teeth of fantasy football, but people can’t stand the initial pain of letting them go, even though they cause nothing but grief and misfortune down the road. They’re like vestigial organs that may have been fun or useful in redraft, but have no place in the highly-evolved machinery of dynasty fantasy football. After some spirited conversation, majority ruled. Season goal: Beat the Commish and Bull by having my streaming kicker and defense go off, even though their skill positions performed better.</p>
+  
+  <p>Conclusion and Awards</p>
+  
+  <p>Hot take: Foster Moreau (who?) will win the league
+Most likely to succeed: A Durham (there are two of them; the odds are doubled)
+Least likely to collude: Also the Durhams; I don’t think there’s a better rivalry in the league atm
+Most likely to love the Browns: Basic, runner-up Bazinga
+Taco: Kelsey
+Bettingest: McLovin
+Most likely to write 1 pointless analysis, then never do it again: Also McLovin</p>
+  
+</article>
+<p><a href="../../archive/index.html">← Back to the archive</a></p>
+
+</main>
+<footer class="colophon">
+  <img class="logo-footer" src="../../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  DISCO CHAT · 2026 · <a href="../../../index.html">League select</a>
+</footer>
+</body>
+</html>

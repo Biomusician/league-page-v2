@@ -1,0 +1,2542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DISCO CHAT — Draft</title>
+<style>
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
+  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
+  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
+  .skip:focus { left:.5rem; }
+  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
+  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
+  header.masthead h1 a { text-decoration:none; color:inherit; }
+  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
+  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
+                             border:1px solid #2c343d; }
+  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
+  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
+  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
+                                    height:auto; border:1px solid #2c343d; }
+  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
+  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
+  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
+  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
+  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  .tablewrap { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; }
+  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
+  td.wrap { white-space:normal; }
+  blockquote { margin-left:0; padding-left:1rem; }
+  section.module { margin:2rem 0; }
+  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
+  .card.feature { }
+  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
+  .meta { font-size:.85rem; }
+  .hero p.lede { font-size:1.12rem; }
+  .flags { font-size:1.05rem; letter-spacing:.15em; }
+  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
+  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  @media (max-width: 640px) {
+    nav.leaguenav { font-size:.82rem; }
+    nav.leaguenav a { margin:0 .3rem; }
+    main { padding:1rem .8rem 3rem; }
+  }
+
+  /* DISCO CHAT — CRC battle-management board. Dark slate environment,
+     amber status accent, status-board hierarchy. A publication made by CRC
+     people; a board, never a movie radar. */
+  body { background:#14181d; color:#e8e4d8; }
+  header.masthead { border-bottom:3px double #e8a33d; background:#101418; }
+  header.masthead h1 { color:#e8a33d; }
+  header.masthead .sub { color:#8fa8b8; }
+  nav.leaguenav { background:#101418; border-bottom:1px solid #2c343d; }
+  nav.leaguenav a { color:#a9bcc8; }
+  nav.leaguenav a[aria-current="page"] { color:#e8a33d; border-bottom:2px solid #e8a33d; }
+  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
+  a { color:#e8a33d; }
+  .card { background:#1a2027; border:1px solid #2c343d; }
+  .card.feature { border:2px solid #e8a33d; }
+  .tag { background:#2c343d; color:#e8a33d; }
+  .tag.prom { background:#e8a33d; color:#14181d; }
+  td, th { border:1px solid #2c343d; }
+  th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
+  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+  .meta, .credit, footer.colophon { color:#8fa8b8; }
+  section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
+
+
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="masthead">
+  <img class="logo-mark" src="../../assets/disco-logo-light.png" alt="" width="800" height="300">
+  
+  <h1><a href="../index.html">DISCO CHAT</a></h1>
+  <div class="sub">Operational / League Control and Reporting Center · 2026</div>
+</header>
+<nav class="leaguenav" aria-label="League navigation">
+  
+  
+  <a href="../index.html" >Home</a>
+  
+  <a href="../matchups/index.html" >Common Tactical Picture</a>
+  
+  <a href="../power/index.html" >Peer and Near-Peer</a>
+  
+  <a href="../transactions/index.html" >Force Flow</a>
+  
+  <a href="../draft/index.html" aria-current="page">Draft</a>
+  
+  <a href="../black-box/index.html" >Black Box</a>
+  
+  <a href="../standings/index.html" >Standings</a>
+  
+  <a href="../teams/index.html" >Teams</a>
+  
+  <a href="../archive/index.html" >Archive</a>
+  
+</nav>
+
+<main id="content">
+
+<h2 class="section-label">Draft · 2026</h2>
+
+<p class="meta">228 of 228 picks (complete); 12 teams, 19 rounds, snake.</p>
+
+
+<p><a href="../2026/draft/index.html">Read the editorial Draft Issue →</a></p>
+
+
+<section class="module">
+  <h2 class="section-label">Team-by-Team</h2>
+  <p class="meta"><a href="#team-statistical-anomalies">Statistical Anomalies (McLovin)</a> · <a href="#team-tua-girls-one-kupp">Tua Girls One Kupp (HOP)</a> · <a href="#team-vhs-cowboys">VHS Cowboys (Juan)</a> · <a href="#team-stafford-son">Stafford and Sons (Fingers)</a> · <a href="#team-love-sutton-brocks">Love Sutton Brocks (EMCO)</a> · <a href="#team-roster-6">The Dude Abides (The Dude)</a> · <a href="#team-all-barkley-no-bite">All Barkley No Bite (Sealed)</a> · <a href="#team-george-friends">George &amp; Friends (DIP)</a> · <a href="#team-hand-me-a-white-claw">Hand me a White Claw (PITCH)</a> · <a href="#team-roster-10">Corn-Fed Fatties (Babe)</a> · <a href="#team-roster-11">Double TDs (Double)</a> · <a href="#team-secret-asian-man">Secret Asian Man (POP)</a></p>
+  
+  <div class="card" id="team-statistical-anomalies">
+    <strong>Statistical Anomalies (McLovin)</strong> <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>5</td><td class="wrap">Lamar Jackson</td>
+          <td>QB</td><td>BAL</td>
+          <td>2.0</td>
+          <td>+3</td></tr>
+      
+      <tr><td>2</td><td>20</td><td class="wrap">Chase Brown</td>
+          <td>RB</td><td>CIN</td>
+          <td>35.0</td>
+          <td>-15</td></tr>
+      
+      <tr><td>3</td><td>29</td><td class="wrap">Omarion Hampton</td>
+          <td>RB</td><td>LAC</td>
+          <td>38.0</td>
+          <td>-9</td></tr>
+      
+      <tr><td>4</td><td>44</td><td class="wrap">Jaxson Dart</td>
+          <td>QB</td><td>NYG</td>
+          <td>24.0</td>
+          <td>+20</td></tr>
+      
+      <tr><td>5</td><td>53</td><td class="wrap">Garrett Wilson</td>
+          <td>WR</td><td>NYJ</td>
+          <td>67.0</td>
+          <td>-14</td></tr>
+      
+      <tr><td>6</td><td>68</td><td class="wrap">Luther Burden</td>
+          <td>WR</td><td>CHI</td>
+          <td>74.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>7</td><td>77</td><td class="wrap">Bhayshul Tuten</td>
+          <td>RB</td><td>JAX</td>
+          <td>83.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>8</td><td>92</td><td class="wrap">Parker Washington</td>
+          <td>WR</td><td>JAX</td>
+          <td>88.0</td>
+          <td>+4</td></tr>
+      
+      <tr><td>9</td><td>101</td><td class="wrap">Rhamondre Stevenson</td>
+          <td>RB</td><td>NE</td>
+          <td>90.0</td>
+          <td>+11</td></tr>
+      
+      <tr><td>10</td><td>116</td><td class="wrap">Quentin Johnston</td>
+          <td>WR</td><td>LAC</td>
+          <td>104.0</td>
+          <td>+12</td></tr>
+      
+      <tr><td>11</td><td>125</td><td class="wrap">Jacory Croskey-Merritt</td>
+          <td>RB</td><td>WAS</td>
+          <td>109.0</td>
+          <td>+16</td></tr>
+      
+      <tr><td>12</td><td>140</td><td class="wrap">Juwan Johnson</td>
+          <td>TE</td><td>NO</td>
+          <td>144.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>13</td><td>149</td><td class="wrap">Jakobi Meyers</td>
+          <td>WR</td><td>JAX</td>
+          <td>127.0</td>
+          <td>+22</td></tr>
+      
+      <tr><td>14</td><td>164</td><td class="wrap">Brenton Strange</td>
+          <td>TE</td><td>JAX</td>
+          <td>157.0</td>
+          <td>+7</td></tr>
+      
+      <tr><td>15</td><td>173</td><td class="wrap">Zach Charbonnet</td>
+          <td>RB</td><td>SEA</td>
+          <td>146.0</td>
+          <td>+27</td></tr>
+      
+      <tr><td>16</td><td>188</td><td class="wrap">Tua Tagovailoa</td>
+          <td>QB</td><td>ATL</td>
+          <td>159.0</td>
+          <td>+29</td></tr>
+      
+      <tr><td>17</td><td>197</td><td class="wrap">Greg Dulcich</td>
+          <td>TE</td><td>MIA</td>
+          <td>221.0</td>
+          <td>-24</td></tr>
+      
+      <tr><td>18</td><td>212</td><td class="wrap">Dontayvion Wicks</td>
+          <td>WR</td><td>PHI</td>
+          <td>176.0</td>
+          <td>+36</td></tr>
+      
+      <tr><td>19</td><td>221</td><td class="wrap">DeMario Douglas</td>
+          <td>WR</td><td>NE</td>
+          <td>283.0</td>
+          <td>-62</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-tua-girls-one-kupp">
+    <strong>Tua Girls One Kupp (HOP)</strong> <span class="meta">2 QB, 6 RB, 4 TE, 7 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>3</td><td class="wrap">Bijan Robinson</td>
+          <td>RB</td><td>ATL</td>
+          <td>9.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>2</td><td>22</td><td class="wrap">Drake London</td>
+          <td>WR</td><td>ATL</td>
+          <td>30.0</td>
+          <td>-8</td></tr>
+      
+      <tr><td>3</td><td>27</td><td class="wrap">Caleb Williams</td>
+          <td>QB</td><td>CHI</td>
+          <td>8.0</td>
+          <td>+19</td></tr>
+      
+      <tr><td>4</td><td>46</td><td class="wrap">Tetairoa McMillan</td>
+          <td>WR</td><td>CAR</td>
+          <td>55.0</td>
+          <td>-9</td></tr>
+      
+      <tr><td>5</td><td>51</td><td class="wrap">Patrick Mahomes</td>
+          <td>QB</td><td>KC</td>
+          <td>26.0</td>
+          <td>+25</td></tr>
+      
+      <tr><td>6</td><td>70</td><td class="wrap">Harold Fannin</td>
+          <td>TE</td><td>CLE</td>
+          <td>106.0</td>
+          <td>-36</td></tr>
+      
+      <tr><td>7</td><td>75</td><td class="wrap">TreVeyon Henderson</td>
+          <td>RB</td><td>NE</td>
+          <td>86.0</td>
+          <td>-11</td></tr>
+      
+      <tr><td>8</td><td>94</td><td class="wrap">Mike Evans</td>
+          <td>WR</td><td>SF</td>
+          <td>80.0</td>
+          <td>+14</td></tr>
+      
+      <tr><td>9</td><td>99</td><td class="wrap">Tony Pollard</td>
+          <td>RB</td><td>TEN</td>
+          <td>92.0</td>
+          <td>+7</td></tr>
+      
+      <tr><td>10</td><td>118</td><td class="wrap">Jordan Addison</td>
+          <td>WR</td><td>MIN</td>
+          <td>114.0</td>
+          <td>+4</td></tr>
+      
+      <tr><td>11</td><td>123</td><td class="wrap">Michael Pittman</td>
+          <td>WR</td><td>PIT</td>
+          <td>118.0</td>
+          <td>+5</td></tr>
+      
+      <tr><td>12</td><td>142</td><td class="wrap">Jordyn Tyson</td>
+          <td>WR</td><td>NO</td>
+          <td>142.0</td>
+          <td>+0</td></tr>
+      
+      <tr><td>13</td><td>147</td><td class="wrap">Aaron Jones</td>
+          <td>RB</td><td>MIN</td>
+          <td>130.0</td>
+          <td>+17</td></tr>
+      
+      <tr><td>14</td><td>166</td><td class="wrap">T.J. Hockenson</td>
+          <td>TE</td><td>MIN</td>
+          <td>197.0</td>
+          <td>-31</td></tr>
+      
+      <tr><td>15</td><td>171</td><td class="wrap">Alvin Kamara</td>
+          <td>RB</td><td>NO</td>
+          <td>167.0</td>
+          <td>+4</td></tr>
+      
+      <tr><td>16</td><td>190</td><td class="wrap">Emmett Johnson</td>
+          <td>RB</td><td>KC</td>
+          <td>175.0</td>
+          <td>+15</td></tr>
+      
+      <tr><td>17</td><td>195</td><td class="wrap">AJ Barner</td>
+          <td>TE</td><td>SEA</td>
+          <td>178.0</td>
+          <td>+17</td></tr>
+      
+      <tr><td>18</td><td>214</td><td class="wrap">David Njoku</td>
+          <td>TE</td><td>LAC</td>
+          <td>215.0</td>
+          <td>-1</td></tr>
+      
+      <tr><td>19</td><td>219</td><td class="wrap">Tre&#39; Harris</td>
+          <td>WR</td><td>LAC</td>
+          <td>177.0</td>
+          <td>+42</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-vhs-cowboys">
+    <strong>VHS Cowboys (Juan)</strong> <span class="meta">3 QB, 5 RB, 2 TE, 9 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>2</td><td class="wrap">Josh Allen</td>
+          <td>QB</td><td>BUF</td>
+          <td>1.0</td>
+          <td>+1</td></tr>
+      
+      <tr><td>2</td><td>23</td><td class="wrap">Dak Prescott</td>
+          <td>QB</td><td>DAL</td>
+          <td>14.0</td>
+          <td>+9</td></tr>
+      
+      <tr><td>3</td><td>26</td><td class="wrap">A.J. Brown</td>
+          <td>WR</td><td>NE</td>
+          <td>25.0</td>
+          <td>+1</td></tr>
+      
+      <tr><td>4</td><td>47</td><td class="wrap">Javonte Williams</td>
+          <td>RB</td><td>DAL</td>
+          <td>52.0</td>
+          <td>-5</td></tr>
+      
+      <tr><td>5</td><td>50</td><td class="wrap">Tyler Warren</td>
+          <td>TE</td><td>IND</td>
+          <td>81.0</td>
+          <td>-31</td></tr>
+      
+      <tr><td>6</td><td>71</td><td class="wrap">Terry McLaurin</td>
+          <td>WR</td><td>WAS</td>
+          <td>69.0</td>
+          <td>+2</td></tr>
+      
+      <tr><td>7</td><td>74</td><td class="wrap">David Montgomery</td>
+          <td>RB</td><td>HOU</td>
+          <td>76.0</td>
+          <td>-2</td></tr>
+      
+      <tr><td>8</td><td>95</td><td class="wrap">Marvin Harrison</td>
+          <td>WR</td><td>ARI</td>
+          <td>89.0</td>
+          <td>+6</td></tr>
+      
+      <tr><td>9</td><td>98</td><td class="wrap">Chuba Hubbard</td>
+          <td>RB</td><td>CAR</td>
+          <td>112.0</td>
+          <td>-14</td></tr>
+      
+      <tr><td>10</td><td>119</td><td class="wrap">Jayden Reed</td>
+          <td>WR</td><td>GB</td>
+          <td>117.0</td>
+          <td>+2</td></tr>
+      
+      <tr><td>11</td><td>122</td><td class="wrap">Stefon Diggs</td>
+          <td>WR</td><td>WAS</td>
+          <td>133.0</td>
+          <td>-11</td></tr>
+      
+      <tr><td>12</td><td>143</td><td class="wrap">Geno Smith</td>
+          <td>QB</td><td>NYJ</td>
+          <td>101.0</td>
+          <td>+42</td></tr>
+      
+      <tr><td>13</td><td>146</td><td class="wrap">Oronde Gadsden</td>
+          <td>TE</td><td>LAC</td>
+          <td>179.0</td>
+          <td>-33</td></tr>
+      
+      <tr><td>14</td><td>167</td><td class="wrap">Denzel Boston</td>
+          <td>WR</td><td>CLE</td>
+          <td>160.0</td>
+          <td>+7</td></tr>
+      
+      <tr><td>15</td><td>170</td><td class="wrap">Tyrone Tracy</td>
+          <td>RB</td><td>NYG</td>
+          <td>161.0</td>
+          <td>+9</td></tr>
+      
+      <tr><td>16</td><td>191</td><td class="wrap">Jauan Jennings</td>
+          <td>WR</td><td>MIN</td>
+          <td>172.0</td>
+          <td>+19</td></tr>
+      
+      <tr><td>17</td><td>194</td><td class="wrap">Jerry Jeudy</td>
+          <td>WR</td><td>CLE</td>
+          <td>173.0</td>
+          <td>+21</td></tr>
+      
+      <tr><td>18</td><td>215</td><td class="wrap">Jaylen Wright</td>
+          <td>RB</td><td>MIA</td>
+          <td>209.0</td>
+          <td>+6</td></tr>
+      
+      <tr><td>19</td><td>218</td><td class="wrap">Isaac TeSlaa</td>
+          <td>WR</td><td>DET</td>
+          <td>200.0</td>
+          <td>+18</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-stafford-son">
+    <strong>Stafford and Sons (Fingers)</strong> <span class="meta">2 QB, 6 RB, 3 TE, 8 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>1</td><td class="wrap">Jahmyr Gibbs</td>
+          <td>RB</td><td>DET</td>
+          <td>7.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>2</td><td>24</td><td class="wrap">George Pickens</td>
+          <td>WR</td><td>DAL</td>
+          <td>34.0</td>
+          <td>-10</td></tr>
+      
+      <tr><td>3</td><td>25</td><td class="wrap">Derrick Henry</td>
+          <td>RB</td><td>BAL</td>
+          <td>27.0</td>
+          <td>-2</td></tr>
+      
+      <tr><td>4</td><td>48</td><td class="wrap">Ladd McConkey</td>
+          <td>WR</td><td>LAC</td>
+          <td>59.0</td>
+          <td>-11</td></tr>
+      
+      <tr><td>5</td><td>49</td><td class="wrap">Bucky Irving</td>
+          <td>RB</td><td>TB</td>
+          <td>75.0</td>
+          <td>-26</td></tr>
+      
+      <tr><td>6</td><td>72</td><td class="wrap">DJ Moore</td>
+          <td>WR</td><td>BUF</td>
+          <td>79.0</td>
+          <td>-7</td></tr>
+      
+      <tr><td>7</td><td>73</td><td class="wrap">Matthew Stafford</td>
+          <td>QB</td><td>LAR</td>
+          <td>31.0</td>
+          <td>+42</td></tr>
+      
+      <tr><td>8</td><td>96</td><td class="wrap">Sam Darnold</td>
+          <td>QB</td><td>SEA</td>
+          <td>61.0</td>
+          <td>+35</td></tr>
+      
+      <tr><td>9</td><td>97</td><td class="wrap">Travis Kelce</td>
+          <td>TE</td><td>KC</td>
+          <td>119.0</td>
+          <td>-22</td></tr>
+      
+      <tr><td>10</td><td>120</td><td class="wrap">Troy Franklin</td>
+          <td>WR</td><td>DEN</td>
+          <td>212.0</td>
+          <td>-92</td></tr>
+      
+      <tr><td>11</td><td>121</td><td class="wrap">Mark Andrews</td>
+          <td>TE</td><td>BAL</td>
+          <td>129.0</td>
+          <td>-8</td></tr>
+      
+      <tr><td>12</td><td>144</td><td class="wrap">Rashod Bateman</td>
+          <td>WR</td><td>BAL</td>
+          <td>195.0</td>
+          <td>-51</td></tr>
+      
+      <tr><td>13</td><td>145</td><td class="wrap">Jahdae Walker</td>
+          <td>WR</td><td>CHI</td>
+          <td>389.0</td>
+          <td>-244</td></tr>
+      
+      <tr><td>14</td><td>168</td><td class="wrap">Calvin Ridley</td>
+          <td>WR</td><td>TEN</td>
+          <td>180.0</td>
+          <td>-12</td></tr>
+      
+      <tr><td>15</td><td>169</td><td class="wrap">Cole Kmet</td>
+          <td>TE</td><td>CHI</td>
+          <td>291.0</td>
+          <td>-122</td></tr>
+      
+      <tr><td>16</td><td>192</td><td class="wrap">Braelon Allen</td>
+          <td>RB</td><td>NYJ</td>
+          <td>155.0</td>
+          <td>+37</td></tr>
+      
+      <tr><td>17</td><td>193</td><td class="wrap">Nicholas Singleton</td>
+          <td>RB</td><td>TEN</td>
+          <td>187.0</td>
+          <td>+6</td></tr>
+      
+      <tr><td>18</td><td>216</td><td class="wrap">Najee Harris</td>
+          <td>RB</td><td>NYG</td>
+          <td>222.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>19</td><td>217</td><td class="wrap">Cooper Kupp</td>
+          <td>WR</td><td>SEA</td>
+          <td>211.0</td>
+          <td>+6</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-love-sutton-brocks">
+    <strong>Love Sutton Brocks (EMCO)</strong> <span class="meta">3 QB, 7 RB, 3 TE, 6 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>4</td><td class="wrap">Puka Nacua</td>
+          <td>WR</td><td>LAR</td>
+          <td>12.0</td>
+          <td>-8</td></tr>
+      
+      <tr><td>2</td><td>21</td><td class="wrap">Saquon Barkley</td>
+          <td>RB</td><td>PHI</td>
+          <td>28.0</td>
+          <td>-7</td></tr>
+      
+      <tr><td>3</td><td>28</td><td class="wrap">Brock Bowers</td>
+          <td>TE</td><td>LV</td>
+          <td>33.0</td>
+          <td>-5</td></tr>
+      
+      <tr><td>4</td><td>45</td><td class="wrap">Brock Purdy</td>
+          <td>QB</td><td>SF</td>
+          <td>21.0</td>
+          <td>+24</td></tr>
+      
+      <tr><td>5</td><td>52</td><td class="wrap">Rashee Rice</td>
+          <td>WR</td><td>KC</td>
+          <td>48.0</td>
+          <td>+4</td></tr>
+      
+      <tr><td>6</td><td>69</td><td class="wrap">Josh Jacobs</td>
+          <td>RB</td><td>GB</td>
+          <td>57.0</td>
+          <td>+12</td></tr>
+      
+      <tr><td>7</td><td>76</td><td class="wrap">Jordan Love</td>
+          <td>QB</td><td>GB</td>
+          <td>44.0</td>
+          <td>+32</td></tr>
+      
+      <tr><td>8</td><td>93</td><td class="wrap">Jaylen Warren</td>
+          <td>RB</td><td>PIT</td>
+          <td>94.0</td>
+          <td>-1</td></tr>
+      
+      <tr><td>9</td><td>100</td><td class="wrap">Courtland Sutton</td>
+          <td>WR</td><td>DEN</td>
+          <td>100.0</td>
+          <td>+0</td></tr>
+      
+      <tr><td>10</td><td>117</td><td class="wrap">Jake Ferguson</td>
+          <td>TE</td><td>DAL</td>
+          <td>139.0</td>
+          <td>-22</td></tr>
+      
+      <tr><td>11</td><td>124</td><td class="wrap">Jordan Mason</td>
+          <td>RB</td><td>MIN</td>
+          <td>111.0</td>
+          <td>+13</td></tr>
+      
+      <tr><td>12</td><td>141</td><td class="wrap">Matthew Golden</td>
+          <td>WR</td><td>GB</td>
+          <td>136.0</td>
+          <td>+5</td></tr>
+      
+      <tr><td>13</td><td>148</td><td class="wrap">Wan&#39;Dale Robinson</td>
+          <td>WR</td><td>TEN</td>
+          <td>131.0</td>
+          <td>+17</td></tr>
+      
+      <tr><td>14</td><td>165</td><td class="wrap">Kenyon Sadiq</td>
+          <td>TE</td><td>NYJ</td>
+          <td>190.0</td>
+          <td>-25</td></tr>
+      
+      <tr><td>15</td><td>172</td><td class="wrap">Tank Bigsby</td>
+          <td>RB</td><td>PHI</td>
+          <td>147.0</td>
+          <td>+25</td></tr>
+      
+      <tr><td>16</td><td>189</td><td class="wrap">Keaton Mitchell</td>
+          <td>RB</td><td>LAC</td>
+          <td>151.0</td>
+          <td>+38</td></tr>
+      
+      <tr><td>17</td><td>196</td><td class="wrap">Shedeur Sanders</td>
+          <td>QB</td><td>CLE</td>
+          <td>203.0</td>
+          <td>-7</td></tr>
+      
+      <tr><td>18</td><td>213</td><td class="wrap">Adonai Mitchell</td>
+          <td>WR</td><td>NYJ</td>
+          <td>164.0</td>
+          <td>+49</td></tr>
+      
+      <tr><td>19</td><td>220</td><td class="wrap">Jarquez Hunter</td>
+          <td>RB</td><td>MIA</td>
+          <td>280.0</td>
+          <td>-60</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-roster-6">
+    <strong>The Dude Abides (The Dude)</strong> <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>9</td><td class="wrap">Amon-Ra St. Brown</td>
+          <td>WR</td><td>DET</td>
+          <td>15.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>2</td><td>16</td><td class="wrap">Christian McCaffrey</td>
+          <td>RB</td><td>SF</td>
+          <td>20.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>3</td><td>33</td><td class="wrap">Trey McBride</td>
+          <td>TE</td><td>ARI</td>
+          <td>40.0</td>
+          <td>-7</td></tr>
+      
+      <tr><td>4</td><td>40</td><td class="wrap">Trevor Lawrence</td>
+          <td>QB</td><td>JAX</td>
+          <td>16.0</td>
+          <td>+24</td></tr>
+      
+      <tr><td>5</td><td>57</td><td class="wrap">Zay Flowers</td>
+          <td>WR</td><td>BAL</td>
+          <td>47.0</td>
+          <td>+10</td></tr>
+      
+      <tr><td>6</td><td>64</td><td class="wrap">Cam Skattebo</td>
+          <td>RB</td><td>NYG</td>
+          <td>77.0</td>
+          <td>-13</td></tr>
+      
+      <tr><td>7</td><td>81</td><td class="wrap">Davante Adams</td>
+          <td>WR</td><td>LAR</td>
+          <td>64.0</td>
+          <td>+17</td></tr>
+      
+      <tr><td>8</td><td>88</td><td class="wrap">Dalton Kincaid</td>
+          <td>TE</td><td>BUF</td>
+          <td>115.0</td>
+          <td>-27</td></tr>
+      
+      <tr><td>9</td><td>105</td><td class="wrap">Blake Corum</td>
+          <td>RB</td><td>LAR</td>
+          <td>105.0</td>
+          <td>+0</td></tr>
+      
+      <tr><td>10</td><td>112</td><td class="wrap">Malik Willis</td>
+          <td>QB</td><td>MIA</td>
+          <td>54.0</td>
+          <td>+58</td></tr>
+      
+      <tr><td>11</td><td>129</td><td class="wrap">Jonathon Brooks</td>
+          <td>RB</td><td>CAR</td>
+          <td>99.0</td>
+          <td>+30</td></tr>
+      
+      <tr><td>12</td><td>136</td><td class="wrap">Daniel Jones</td>
+          <td>QB</td><td>IND</td>
+          <td>68.0</td>
+          <td>+68</td></tr>
+      
+      <tr><td>13</td><td>153</td><td class="wrap">Rashid Shaheed</td>
+          <td>WR</td><td>SEA</td>
+          <td>145.0</td>
+          <td>+8</td></tr>
+      
+      <tr><td>14</td><td>160</td><td class="wrap">Brian Robinson</td>
+          <td>RB</td><td>ATL</td>
+          <td>156.0</td>
+          <td>+4</td></tr>
+      
+      <tr><td>15</td><td>177</td><td class="wrap">Malik Washington</td>
+          <td>WR</td><td>MIA</td>
+          <td>192.0</td>
+          <td>-15</td></tr>
+      
+      <tr><td>16</td><td>184</td><td class="wrap">Dylan Sampson</td>
+          <td>RB</td><td>CLE</td>
+          <td>163.0</td>
+          <td>+21</td></tr>
+      
+      <tr><td>17</td><td>201</td><td class="wrap">Pat Freiermuth</td>
+          <td>TE</td><td>PIT</td>
+          <td>205.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>18</td><td>208</td><td class="wrap">Ryan Flournoy</td>
+          <td>WR</td><td>DAL</td>
+          <td>185.0</td>
+          <td>+23</td></tr>
+      
+      <tr><td>19</td><td>225</td><td class="wrap">Devaughn Vele</td>
+          <td>WR</td><td>NO</td>
+          <td>233.0</td>
+          <td>-8</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-all-barkley-no-bite">
+    <strong>All Barkley No Bite (Sealed)</strong> <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>7</td><td class="wrap">De&#39;Von Achane</td>
+          <td>RB</td><td>MIA</td>
+          <td>39.0</td>
+          <td>-32</td></tr>
+      
+      <tr><td>2</td><td>18</td><td class="wrap">Justin Jefferson</td>
+          <td>WR</td><td>MIN</td>
+          <td>22.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>3</td><td>31</td><td class="wrap">Justin Herbert</td>
+          <td>QB</td><td>LAC</td>
+          <td>11.0</td>
+          <td>+20</td></tr>
+      
+      <tr><td>4</td><td>42</td><td class="wrap">Tee Higgins</td>
+          <td>WR</td><td>CIN</td>
+          <td>49.0</td>
+          <td>-7</td></tr>
+      
+      <tr><td>5</td><td>55</td><td class="wrap">Jared Goff</td>
+          <td>QB</td><td>DET</td>
+          <td>32.0</td>
+          <td>+23</td></tr>
+      
+      <tr><td>6</td><td>66</td><td class="wrap">Travis Etienne</td>
+          <td>RB</td><td>NO</td>
+          <td>65.0</td>
+          <td>+1</td></tr>
+      
+      <tr><td>7</td><td>79</td><td class="wrap">Tyler Shough</td>
+          <td>QB</td><td>NO</td>
+          <td>51.0</td>
+          <td>+28</td></tr>
+      
+      <tr><td>8</td><td>90</td><td class="wrap">Hunter Henry</td>
+          <td>TE</td><td>NE</td>
+          <td>152.0</td>
+          <td>-62</td></tr>
+      
+      <tr><td>9</td><td>103</td><td class="wrap">Chris Godwin</td>
+          <td>WR</td><td>TB</td>
+          <td>108.0</td>
+          <td>-5</td></tr>
+      
+      <tr><td>10</td><td>114</td><td class="wrap">Kenny Gainwell</td>
+          <td>RB</td><td>TB</td>
+          <td>126.0</td>
+          <td>-12</td></tr>
+      
+      <tr><td>11</td><td>127</td><td class="wrap">KC Concepcion</td>
+          <td>WR</td><td>CLE</td>
+          <td>135.0</td>
+          <td>-8</td></tr>
+      
+      <tr><td>12</td><td>138</td><td class="wrap">Dallas Goedert</td>
+          <td>TE</td><td>PHI</td>
+          <td>122.0</td>
+          <td>+16</td></tr>
+      
+      <tr><td>13</td><td>151</td><td class="wrap">Jonah Coleman</td>
+          <td>RB</td><td>DEN</td>
+          <td>150.0</td>
+          <td>+1</td></tr>
+      
+      <tr><td>14</td><td>162</td><td class="wrap">Keenan Allen</td>
+          <td>WR</td><td>IND</td>
+          <td>201.0</td>
+          <td>-39</td></tr>
+      
+      <tr><td>15</td><td>175</td><td class="wrap">Omar Cooper</td>
+          <td>WR</td><td>NYJ</td>
+          <td>181.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>16</td><td>186</td><td class="wrap">Kaelon Black</td>
+          <td>RB</td><td>SF</td>
+          <td>206.0</td>
+          <td>-20</td></tr>
+      
+      <tr><td>17</td><td>199</td><td class="wrap">Tre Tucker</td>
+          <td>WR</td><td>LV</td>
+          <td>166.0</td>
+          <td>+33</td></tr>
+      
+      <tr><td>18</td><td>210</td><td class="wrap">Audric Estime</td>
+          <td>RB</td><td>NO</td>
+          <td>279.0</td>
+          <td>-69</td></tr>
+      
+      <tr><td>19</td><td>223</td><td class="wrap">Cade Otton</td>
+          <td>TE</td><td>TB</td>
+          <td>214.0</td>
+          <td>+9</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-george-friends">
+    <strong>George &amp; Friends (DIP)</strong> <span class="meta">4 QB, 4 RB, 2 TE, 9 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>6</td><td class="wrap">Ja&#39;Marr Chase</td>
+          <td>WR</td><td>CIN</td>
+          <td>10.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>2</td><td>19</td><td class="wrap">Kenneth Walker</td>
+          <td>RB</td><td>KC</td>
+          <td>36.0</td>
+          <td>-17</td></tr>
+      
+      <tr><td>3</td><td>30</td><td class="wrap">Nico Collins</td>
+          <td>WR</td><td>HOU</td>
+          <td>29.0</td>
+          <td>+1</td></tr>
+      
+      <tr><td>4</td><td>43</td><td class="wrap">Colston Loveland</td>
+          <td>TE</td><td>CHI</td>
+          <td>53.0</td>
+          <td>-10</td></tr>
+      
+      <tr><td>5</td><td>54</td><td class="wrap">D&#39;Andre Swift</td>
+          <td>RB</td><td>CHI</td>
+          <td>70.0</td>
+          <td>-16</td></tr>
+      
+      <tr><td>6</td><td>67</td><td class="wrap">Carnell Tate</td>
+          <td>WR</td><td>TEN</td>
+          <td>93.0</td>
+          <td>-26</td></tr>
+      
+      <tr><td>7</td><td>78</td><td class="wrap">Kyler Murray</td>
+          <td>QB</td><td>MIN</td>
+          <td>37.0</td>
+          <td>+41</td></tr>
+      
+      <tr><td>8</td><td>91</td><td class="wrap">Christian Watson</td>
+          <td>WR</td><td>GB</td>
+          <td>72.0</td>
+          <td>+19</td></tr>
+      
+      <tr><td>9</td><td>102</td><td class="wrap">J.K. Dobbins</td>
+          <td>RB</td><td>DEN</td>
+          <td>98.0</td>
+          <td>+4</td></tr>
+      
+      <tr><td>10</td><td>115</td><td class="wrap">Cam Ward</td>
+          <td>QB</td><td>TEN</td>
+          <td>71.0</td>
+          <td>+44</td></tr>
+      
+      <tr><td>11</td><td>126</td><td class="wrap">De&#39;Zhaun Stribling</td>
+          <td>WR</td><td>SF</td>
+          <td>141.0</td>
+          <td>-15</td></tr>
+      
+      <tr><td>12</td><td>139</td><td class="wrap">Jalen Coker</td>
+          <td>WR</td><td>CAR</td>
+          <td>143.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>13</td><td>150</td><td class="wrap">Jacoby Brissett</td>
+          <td>QB</td><td>ARI</td>
+          <td>87.0</td>
+          <td>+63</td></tr>
+      
+      <tr><td>14</td><td>163</td><td class="wrap">MarShawn Lloyd</td>
+          <td>RB</td><td>GB</td>
+          <td>158.0</td>
+          <td>+5</td></tr>
+      
+      <tr><td>15</td><td>174</td><td class="wrap">Jalen Nailor</td>
+          <td>WR</td><td>LV</td>
+          <td>184.0</td>
+          <td>-10</td></tr>
+      
+      <tr><td>16</td><td>187</td><td class="wrap">Kayshon Boutte</td>
+          <td>WR</td><td>HOU</td>
+          <td>168.0</td>
+          <td>+19</td></tr>
+      
+      <tr><td>17</td><td>198</td><td class="wrap">Deshaun Watson</td>
+          <td>QB</td><td>CLE</td>
+          <td>186.0</td>
+          <td>+12</td></tr>
+      
+      <tr><td>18</td><td>211</td><td class="wrap">Pat Bryant</td>
+          <td>WR</td><td>DEN</td>
+          <td>191.0</td>
+          <td>+20</td></tr>
+      
+      <tr><td>19</td><td>222</td><td class="wrap">Gunnar Helm</td>
+          <td>TE</td><td>TEN</td>
+          <td>208.0</td>
+          <td>+14</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-hand-me-a-white-claw">
+    <strong>Hand me a White Claw (PITCH)</strong> <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>11</td><td class="wrap">Drake Maye</td>
+          <td>QB</td><td>NE</td>
+          <td>3.0</td>
+          <td>+8</td></tr>
+      
+      <tr><td>2</td><td>14</td><td class="wrap">CeeDee Lamb</td>
+          <td>WR</td><td>DAL</td>
+          <td>19.0</td>
+          <td>-5</td></tr>
+      
+      <tr><td>3</td><td>35</td><td class="wrap">Chris Olave</td>
+          <td>WR</td><td>NO</td>
+          <td>41.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>4</td><td>38</td><td class="wrap">Quinshon Judkins</td>
+          <td>RB</td><td>CLE</td>
+          <td>73.0</td>
+          <td>-35</td></tr>
+      
+      <tr><td>5</td><td>59</td><td class="wrap">Emeka Egbuka</td>
+          <td>WR</td><td>TB</td>
+          <td>56.0</td>
+          <td>+3</td></tr>
+      
+      <tr><td>6</td><td>62</td><td class="wrap">Baker Mayfield</td>
+          <td>QB</td><td>TB</td>
+          <td>45.0</td>
+          <td>+17</td></tr>
+      
+      <tr><td>7</td><td>83</td><td class="wrap">Tucker Kraft</td>
+          <td>TE</td><td>GB</td>
+          <td>85.0</td>
+          <td>-2</td></tr>
+      
+      <tr><td>8</td><td>86</td><td class="wrap">RJ Harvey</td>
+          <td>RB</td><td>DEN</td>
+          <td>120.0</td>
+          <td>-34</td></tr>
+      
+      <tr><td>9</td><td>107</td><td class="wrap">Michael Wilson</td>
+          <td>WR</td><td>ARI</td>
+          <td>113.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>10</td><td>110</td><td class="wrap">Kyle Monangai</td>
+          <td>RB</td><td>CHI</td>
+          <td>116.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>11</td><td>131</td><td class="wrap">Fernando Mendoza</td>
+          <td>QB</td><td>LV</td>
+          <td>140.0</td>
+          <td>-9</td></tr>
+      
+      <tr><td>12</td><td>134</td><td class="wrap">Isaiah Likely</td>
+          <td>TE</td><td>NYG</td>
+          <td>125.0</td>
+          <td>+9</td></tr>
+      
+      <tr><td>13</td><td>155</td><td class="wrap">Rachaad White</td>
+          <td>RB</td><td>WAS</td>
+          <td>123.0</td>
+          <td>+32</td></tr>
+      
+      <tr><td>14</td><td>158</td><td class="wrap">Chris Rodriguez</td>
+          <td>RB</td><td>JAX</td>
+          <td>128.0</td>
+          <td>+30</td></tr>
+      
+      <tr><td>15</td><td>179</td><td class="wrap">Isiah Pacheco</td>
+          <td>RB</td><td>DET</td>
+          <td>154.0</td>
+          <td>+25</td></tr>
+      
+      <tr><td>16</td><td>182</td><td class="wrap">Tank Dell</td>
+          <td>WR</td><td>HOU</td>
+          <td>202.0</td>
+          <td>-20</td></tr>
+      
+      <tr><td>17</td><td>203</td><td class="wrap">Jalen McMillan</td>
+          <td>WR</td><td>TB</td>
+          <td>169.0</td>
+          <td>+34</td></tr>
+      
+      <tr><td>18</td><td>206</td><td class="wrap">Malachi Fields</td>
+          <td>WR</td><td>NYG</td>
+          <td>225.0</td>
+          <td>-19</td></tr>
+      
+      <tr><td>19</td><td>227</td><td class="wrap">Will Howard</td>
+          <td>QB</td><td>PIT</td>
+          <td>—</td>
+          <td>—</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-roster-10">
+    <strong>Corn-Fed Fatties (Babe)</strong> <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>8</td><td class="wrap">Jaxon Smith-Njigba</td>
+          <td>WR</td><td>SEA</td>
+          <td>13.0</td>
+          <td>-5</td></tr>
+      
+      <tr><td>2</td><td>17</td><td class="wrap">Jonathan Taylor</td>
+          <td>RB</td><td>IND</td>
+          <td>17.0</td>
+          <td>+0</td></tr>
+      
+      <tr><td>3</td><td>32</td><td class="wrap">Ashton Jeanty</td>
+          <td>RB</td><td>LV</td>
+          <td>43.0</td>
+          <td>-11</td></tr>
+      
+      <tr><td>4</td><td>41</td><td class="wrap">Bo Nix</td>
+          <td>QB</td><td>DEN</td>
+          <td>23.0</td>
+          <td>+18</td></tr>
+      
+      <tr><td>5</td><td>56</td><td class="wrap">Jaylen Waddle</td>
+          <td>WR</td><td>DEN</td>
+          <td>60.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>6</td><td>65</td><td class="wrap">Sam LaPorta</td>
+          <td>TE</td><td>DET</td>
+          <td>96.0</td>
+          <td>-31</td></tr>
+      
+      <tr><td>7</td><td>80</td><td class="wrap">C.J. Stroud</td>
+          <td>QB</td><td>HOU</td>
+          <td>62.0</td>
+          <td>+18</td></tr>
+      
+      <tr><td>8</td><td>89</td><td class="wrap">Jadarian Price</td>
+          <td>RB</td><td>SEA</td>
+          <td>84.0</td>
+          <td>+5</td></tr>
+      
+      <tr><td>9</td><td>104</td><td class="wrap">Alec Pierce</td>
+          <td>WR</td><td>IND</td>
+          <td>103.0</td>
+          <td>+1</td></tr>
+      
+      <tr><td>10</td><td>113</td><td class="wrap">Xavier Worthy</td>
+          <td>WR</td><td>KC</td>
+          <td>132.0</td>
+          <td>-19</td></tr>
+      
+      <tr><td>11</td><td>128</td><td class="wrap">Deebo Samuel</td>
+          <td>WR</td><td>SF</td>
+          <td>148.0</td>
+          <td>-20</td></tr>
+      
+      <tr><td>12</td><td>137</td><td class="wrap">Aaron Rodgers</td>
+          <td>QB</td><td>PIT</td>
+          <td>102.0</td>
+          <td>+35</td></tr>
+      
+      <tr><td>13</td><td>152</td><td class="wrap">Khalil Shakir</td>
+          <td>WR</td><td>BUF</td>
+          <td>149.0</td>
+          <td>+3</td></tr>
+      
+      <tr><td>14</td><td>161</td><td class="wrap">Dalton Schultz</td>
+          <td>TE</td><td>HOU</td>
+          <td>174.0</td>
+          <td>-13</td></tr>
+      
+      <tr><td>15</td><td>176</td><td class="wrap">Mike Washington</td>
+          <td>RB</td><td>LV</td>
+          <td>162.0</td>
+          <td>+14</td></tr>
+      
+      <tr><td>16</td><td>185</td><td class="wrap">Travis Hunter</td>
+          <td>WR</td><td>JAX</td>
+          <td>188.0</td>
+          <td>-3</td></tr>
+      
+      <tr><td>17</td><td>200</td><td class="wrap">Ray Davis</td>
+          <td>RB</td><td>BUF</td>
+          <td>182.0</td>
+          <td>+18</td></tr>
+      
+      <tr><td>18</td><td>209</td><td class="wrap">Kimani Vidal</td>
+          <td>RB</td><td>LAC</td>
+          <td>183.0</td>
+          <td>+26</td></tr>
+      
+      <tr><td>19</td><td>224</td><td class="wrap">Carson Beck</td>
+          <td>QB</td><td>ARI</td>
+          <td>305.0</td>
+          <td>-81</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-roster-11">
+    <strong>Double TDs (Double)</strong> <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>10</td><td class="wrap">Jayden Daniels</td>
+          <td>QB</td><td>WAS</td>
+          <td>5.0</td>
+          <td>+5</td></tr>
+      
+      <tr><td>2</td><td>15</td><td class="wrap">Jalen Hurts</td>
+          <td>QB</td><td>PHI</td>
+          <td>6.0</td>
+          <td>+9</td></tr>
+      
+      <tr><td>3</td><td>34</td><td class="wrap">Malik Nabers</td>
+          <td>WR</td><td>NYG</td>
+          <td>42.0</td>
+          <td>-8</td></tr>
+      
+      <tr><td>4</td><td>39</td><td class="wrap">Breece Hall</td>
+          <td>RB</td><td>NYJ</td>
+          <td>58.0</td>
+          <td>-19</td></tr>
+      
+      <tr><td>5</td><td>58</td><td class="wrap">DeVonta Smith</td>
+          <td>WR</td><td>PHI</td>
+          <td>50.0</td>
+          <td>+8</td></tr>
+      
+      <tr><td>6</td><td>63</td><td class="wrap">James Conner</td>
+          <td>RB</td><td>ARI</td>
+          <td>204.0</td>
+          <td>-141</td></tr>
+      
+      <tr><td>7</td><td>82</td><td class="wrap">DK Metcalf</td>
+          <td>WR</td><td>PIT</td>
+          <td>95.0</td>
+          <td>-13</td></tr>
+      
+      <tr><td>8</td><td>87</td><td class="wrap">George Kittle</td>
+          <td>TE</td><td>SF</td>
+          <td>110.0</td>
+          <td>-23</td></tr>
+      
+      <tr><td>9</td><td>106</td><td class="wrap">Rico Dowdle</td>
+          <td>RB</td><td>PIT</td>
+          <td>97.0</td>
+          <td>+9</td></tr>
+      
+      <tr><td>10</td><td>111</td><td class="wrap">Josh Downs</td>
+          <td>WR</td><td>IND</td>
+          <td>124.0</td>
+          <td>-13</td></tr>
+      
+      <tr><td>11</td><td>130</td><td class="wrap">Tyjae Spears</td>
+          <td>RB</td><td>TEN</td>
+          <td>153.0</td>
+          <td>-23</td></tr>
+      
+      <tr><td>12</td><td>135</td><td class="wrap">Darnell Mooney</td>
+          <td>WR</td><td>NYG</td>
+          <td>207.0</td>
+          <td>-72</td></tr>
+      
+      <tr><td>13</td><td>154</td><td class="wrap">Kirk Cousins</td>
+          <td>QB</td><td>LV</td>
+          <td>189.0</td>
+          <td>-35</td></tr>
+      
+      <tr><td>14</td><td>159</td><td class="wrap">Ja&#39;Kobi Lane</td>
+          <td>WR</td><td>BAL</td>
+          <td>213.0</td>
+          <td>-54</td></tr>
+      
+      <tr><td>15</td><td>178</td><td class="wrap">Chig Okonkwo</td>
+          <td>TE</td><td>WAS</td>
+          <td>165.0</td>
+          <td>+13</td></tr>
+      
+      <tr><td>16</td><td>183</td><td class="wrap">Caleb Douglas</td>
+          <td>WR</td><td>MIA</td>
+          <td>226.0</td>
+          <td>-43</td></tr>
+      
+      <tr><td>17</td><td>202</td><td class="wrap">Kaytron Allen</td>
+          <td>RB</td><td>WAS</td>
+          <td>194.0</td>
+          <td>+8</td></tr>
+      
+      <tr><td>18</td><td>207</td><td class="wrap">Jaydon Blue</td>
+          <td>RB</td><td>DAL</td>
+          <td>196.0</td>
+          <td>+11</td></tr>
+      
+      <tr><td>19</td><td>226</td><td class="wrap">Ty Simpson</td>
+          <td>QB</td><td>LAR</td>
+          <td>356.0</td>
+          <td>-130</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+  <div class="card" id="team-secret-asian-man">
+    <strong>Secret Asian Man (POP)</strong> <span class="meta">3 QB, 5 RB, 2 TE, 9 WR</span>
+    <div class="tablewrap">
+    <table>
+      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+      
+      <tr><td>1</td><td>12</td><td class="wrap">James Cook</td>
+          <td>RB</td><td>BUF</td>
+          <td>18.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>2</td><td>13</td><td class="wrap">Joe Burrow</td>
+          <td>QB</td><td>CIN</td>
+          <td>4.0</td>
+          <td>+9</td></tr>
+      
+      <tr><td>3</td><td>36</td><td class="wrap">Jeremiyah Love</td>
+          <td>RB</td><td>ARI</td>
+          <td>63.0</td>
+          <td>-27</td></tr>
+      
+      <tr><td>4</td><td>37</td><td class="wrap">Kyren Williams</td>
+          <td>RB</td><td>LAR</td>
+          <td>46.0</td>
+          <td>-9</td></tr>
+      
+      <tr><td>5</td><td>60</td><td class="wrap">Jameson Williams</td>
+          <td>WR</td><td>DET</td>
+          <td>66.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>6</td><td>61</td><td class="wrap">Rome Odunze</td>
+          <td>WR</td><td>CHI</td>
+          <td>78.0</td>
+          <td>-17</td></tr>
+      
+      <tr><td>7</td><td>84</td><td class="wrap">Kyle Pitts</td>
+          <td>TE</td><td>ATL</td>
+          <td>107.0</td>
+          <td>-23</td></tr>
+      
+      <tr><td>8</td><td>85</td><td class="wrap">Brian Thomas</td>
+          <td>WR</td><td>JAX</td>
+          <td>91.0</td>
+          <td>-6</td></tr>
+      
+      <tr><td>9</td><td>108</td><td class="wrap">Makai Lemon</td>
+          <td>WR</td><td>PHI</td>
+          <td>121.0</td>
+          <td>-13</td></tr>
+      
+      <tr><td>10</td><td>109</td><td class="wrap">Bryce Young</td>
+          <td>QB</td><td>CAR</td>
+          <td>82.0</td>
+          <td>+27</td></tr>
+      
+      <tr><td>11</td><td>132</td><td class="wrap">Romeo Doubs</td>
+          <td>WR</td><td>NE</td>
+          <td>134.0</td>
+          <td>-2</td></tr>
+      
+      <tr><td>12</td><td>133</td><td class="wrap">Tyler Allgeier</td>
+          <td>RB</td><td>ARI</td>
+          <td>137.0</td>
+          <td>-4</td></tr>
+      
+      <tr><td>13</td><td>156</td><td class="wrap">Woody Marks</td>
+          <td>RB</td><td>HOU</td>
+          <td>138.0</td>
+          <td>+18</td></tr>
+      
+      <tr><td>14</td><td>157</td><td class="wrap">Michael Penix</td>
+          <td>QB</td><td>ATL</td>
+          <td>170.0</td>
+          <td>-13</td></tr>
+      
+      <tr><td>15</td><td>180</td><td class="wrap">Cyrus Allen</td>
+          <td>WR</td><td>KC</td>
+          <td>248.0</td>
+          <td>-68</td></tr>
+      
+      <tr><td>16</td><td>181</td><td class="wrap">Antonio Williams</td>
+          <td>WR</td><td>WAS</td>
+          <td>218.0</td>
+          <td>-37</td></tr>
+      
+      <tr><td>17</td><td>204</td><td class="wrap">Zachariah Branch</td>
+          <td>WR</td><td>ATL</td>
+          <td>217.0</td>
+          <td>-13</td></tr>
+      
+      <tr><td>18</td><td>205</td><td class="wrap">Terrance Ferguson</td>
+          <td>TE</td><td>LAR</td>
+          <td>171.0</td>
+          <td>+34</td></tr>
+      
+      <tr><td>19</td><td>228</td><td class="wrap">Tyreek Hill</td>
+          <td>WR</td><td>—</td>
+          <td>276.0</td>
+          <td>-48</td></tr>
+      
+    </table>
+    </div>
+  </div>
+  
+</section>
+
+<section class="module">
+  <h2 class="section-label">Full Board</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th scope="col">Pick</th><th scope="col">Rd</th><th scope="col">Team</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    
+    <tr><td>1</td><td>1</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Jahmyr Gibbs</td><td>RB</td>
+        <td>7.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>2</td><td>1</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Josh Allen</td><td>QB</td>
+        <td>1.0</td>
+        <td>+1</td></tr>
+    
+    <tr><td>3</td><td>1</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Bijan Robinson</td><td>RB</td>
+        <td>9.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>4</td><td>1</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Puka Nacua</td><td>WR</td>
+        <td>12.0</td>
+        <td>-8</td></tr>
+    
+    <tr><td>5</td><td>1</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Lamar Jackson</td><td>QB</td>
+        <td>2.0</td>
+        <td>+3</td></tr>
+    
+    <tr><td>6</td><td>1</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Ja&#39;Marr Chase</td><td>WR</td>
+        <td>10.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>7</td><td>1</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">De&#39;Von Achane</td><td>RB</td>
+        <td>39.0</td>
+        <td>-32</td></tr>
+    
+    <tr><td>8</td><td>1</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Jaxon Smith-Njigba</td><td>WR</td>
+        <td>13.0</td>
+        <td>-5</td></tr>
+    
+    <tr><td>9</td><td>1</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Amon-Ra St. Brown</td><td>WR</td>
+        <td>15.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>10</td><td>1</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Jayden Daniels</td><td>QB</td>
+        <td>5.0</td>
+        <td>+5</td></tr>
+    
+    <tr><td>11</td><td>1</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Drake Maye</td><td>QB</td>
+        <td>3.0</td>
+        <td>+8</td></tr>
+    
+    <tr><td>12</td><td>1</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">James Cook</td><td>RB</td>
+        <td>18.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>13</td><td>2</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Joe Burrow</td><td>QB</td>
+        <td>4.0</td>
+        <td>+9</td></tr>
+    
+    <tr><td>14</td><td>2</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">CeeDee Lamb</td><td>WR</td>
+        <td>19.0</td>
+        <td>-5</td></tr>
+    
+    <tr><td>15</td><td>2</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Jalen Hurts</td><td>QB</td>
+        <td>6.0</td>
+        <td>+9</td></tr>
+    
+    <tr><td>16</td><td>2</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Christian McCaffrey</td><td>RB</td>
+        <td>20.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>17</td><td>2</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Jonathan Taylor</td><td>RB</td>
+        <td>17.0</td>
+        <td>+0</td></tr>
+    
+    <tr><td>18</td><td>2</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Justin Jefferson</td><td>WR</td>
+        <td>22.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>19</td><td>2</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Kenneth Walker</td><td>RB</td>
+        <td>36.0</td>
+        <td>-17</td></tr>
+    
+    <tr><td>20</td><td>2</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Chase Brown</td><td>RB</td>
+        <td>35.0</td>
+        <td>-15</td></tr>
+    
+    <tr><td>21</td><td>2</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Saquon Barkley</td><td>RB</td>
+        <td>28.0</td>
+        <td>-7</td></tr>
+    
+    <tr><td>22</td><td>2</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Drake London</td><td>WR</td>
+        <td>30.0</td>
+        <td>-8</td></tr>
+    
+    <tr><td>23</td><td>2</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Dak Prescott</td><td>QB</td>
+        <td>14.0</td>
+        <td>+9</td></tr>
+    
+    <tr><td>24</td><td>2</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">George Pickens</td><td>WR</td>
+        <td>34.0</td>
+        <td>-10</td></tr>
+    
+    <tr><td>25</td><td>3</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Derrick Henry</td><td>RB</td>
+        <td>27.0</td>
+        <td>-2</td></tr>
+    
+    <tr><td>26</td><td>3</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">A.J. Brown</td><td>WR</td>
+        <td>25.0</td>
+        <td>+1</td></tr>
+    
+    <tr><td>27</td><td>3</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Caleb Williams</td><td>QB</td>
+        <td>8.0</td>
+        <td>+19</td></tr>
+    
+    <tr><td>28</td><td>3</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Brock Bowers</td><td>TE</td>
+        <td>33.0</td>
+        <td>-5</td></tr>
+    
+    <tr><td>29</td><td>3</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Omarion Hampton</td><td>RB</td>
+        <td>38.0</td>
+        <td>-9</td></tr>
+    
+    <tr><td>30</td><td>3</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Nico Collins</td><td>WR</td>
+        <td>29.0</td>
+        <td>+1</td></tr>
+    
+    <tr><td>31</td><td>3</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Justin Herbert</td><td>QB</td>
+        <td>11.0</td>
+        <td>+20</td></tr>
+    
+    <tr><td>32</td><td>3</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Ashton Jeanty</td><td>RB</td>
+        <td>43.0</td>
+        <td>-11</td></tr>
+    
+    <tr><td>33</td><td>3</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Trey McBride</td><td>TE</td>
+        <td>40.0</td>
+        <td>-7</td></tr>
+    
+    <tr><td>34</td><td>3</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Malik Nabers</td><td>WR</td>
+        <td>42.0</td>
+        <td>-8</td></tr>
+    
+    <tr><td>35</td><td>3</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Chris Olave</td><td>WR</td>
+        <td>41.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>36</td><td>3</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Jeremiyah Love</td><td>RB</td>
+        <td>63.0</td>
+        <td>-27</td></tr>
+    
+    <tr><td>37</td><td>4</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Kyren Williams</td><td>RB</td>
+        <td>46.0</td>
+        <td>-9</td></tr>
+    
+    <tr><td>38</td><td>4</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Quinshon Judkins</td><td>RB</td>
+        <td>73.0</td>
+        <td>-35</td></tr>
+    
+    <tr><td>39</td><td>4</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Breece Hall</td><td>RB</td>
+        <td>58.0</td>
+        <td>-19</td></tr>
+    
+    <tr><td>40</td><td>4</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Trevor Lawrence</td><td>QB</td>
+        <td>16.0</td>
+        <td>+24</td></tr>
+    
+    <tr><td>41</td><td>4</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Bo Nix</td><td>QB</td>
+        <td>23.0</td>
+        <td>+18</td></tr>
+    
+    <tr><td>42</td><td>4</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Tee Higgins</td><td>WR</td>
+        <td>49.0</td>
+        <td>-7</td></tr>
+    
+    <tr><td>43</td><td>4</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Colston Loveland</td><td>TE</td>
+        <td>53.0</td>
+        <td>-10</td></tr>
+    
+    <tr><td>44</td><td>4</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Jaxson Dart</td><td>QB</td>
+        <td>24.0</td>
+        <td>+20</td></tr>
+    
+    <tr><td>45</td><td>4</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Brock Purdy</td><td>QB</td>
+        <td>21.0</td>
+        <td>+24</td></tr>
+    
+    <tr><td>46</td><td>4</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Tetairoa McMillan</td><td>WR</td>
+        <td>55.0</td>
+        <td>-9</td></tr>
+    
+    <tr><td>47</td><td>4</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Javonte Williams</td><td>RB</td>
+        <td>52.0</td>
+        <td>-5</td></tr>
+    
+    <tr><td>48</td><td>4</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Ladd McConkey</td><td>WR</td>
+        <td>59.0</td>
+        <td>-11</td></tr>
+    
+    <tr><td>49</td><td>5</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Bucky Irving</td><td>RB</td>
+        <td>75.0</td>
+        <td>-26</td></tr>
+    
+    <tr><td>50</td><td>5</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Tyler Warren</td><td>TE</td>
+        <td>81.0</td>
+        <td>-31</td></tr>
+    
+    <tr><td>51</td><td>5</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Patrick Mahomes</td><td>QB</td>
+        <td>26.0</td>
+        <td>+25</td></tr>
+    
+    <tr><td>52</td><td>5</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Rashee Rice</td><td>WR</td>
+        <td>48.0</td>
+        <td>+4</td></tr>
+    
+    <tr><td>53</td><td>5</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Garrett Wilson</td><td>WR</td>
+        <td>67.0</td>
+        <td>-14</td></tr>
+    
+    <tr><td>54</td><td>5</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">D&#39;Andre Swift</td><td>RB</td>
+        <td>70.0</td>
+        <td>-16</td></tr>
+    
+    <tr><td>55</td><td>5</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Jared Goff</td><td>QB</td>
+        <td>32.0</td>
+        <td>+23</td></tr>
+    
+    <tr><td>56</td><td>5</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Jaylen Waddle</td><td>WR</td>
+        <td>60.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>57</td><td>5</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Zay Flowers</td><td>WR</td>
+        <td>47.0</td>
+        <td>+10</td></tr>
+    
+    <tr><td>58</td><td>5</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">DeVonta Smith</td><td>WR</td>
+        <td>50.0</td>
+        <td>+8</td></tr>
+    
+    <tr><td>59</td><td>5</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Emeka Egbuka</td><td>WR</td>
+        <td>56.0</td>
+        <td>+3</td></tr>
+    
+    <tr><td>60</td><td>5</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Jameson Williams</td><td>WR</td>
+        <td>66.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>61</td><td>6</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Rome Odunze</td><td>WR</td>
+        <td>78.0</td>
+        <td>-17</td></tr>
+    
+    <tr><td>62</td><td>6</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Baker Mayfield</td><td>QB</td>
+        <td>45.0</td>
+        <td>+17</td></tr>
+    
+    <tr><td>63</td><td>6</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">James Conner</td><td>RB</td>
+        <td>204.0</td>
+        <td>-141</td></tr>
+    
+    <tr><td>64</td><td>6</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Cam Skattebo</td><td>RB</td>
+        <td>77.0</td>
+        <td>-13</td></tr>
+    
+    <tr><td>65</td><td>6</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Sam LaPorta</td><td>TE</td>
+        <td>96.0</td>
+        <td>-31</td></tr>
+    
+    <tr><td>66</td><td>6</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Travis Etienne</td><td>RB</td>
+        <td>65.0</td>
+        <td>+1</td></tr>
+    
+    <tr><td>67</td><td>6</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Carnell Tate</td><td>WR</td>
+        <td>93.0</td>
+        <td>-26</td></tr>
+    
+    <tr><td>68</td><td>6</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Luther Burden</td><td>WR</td>
+        <td>74.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>69</td><td>6</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Josh Jacobs</td><td>RB</td>
+        <td>57.0</td>
+        <td>+12</td></tr>
+    
+    <tr><td>70</td><td>6</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Harold Fannin</td><td>TE</td>
+        <td>106.0</td>
+        <td>-36</td></tr>
+    
+    <tr><td>71</td><td>6</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Terry McLaurin</td><td>WR</td>
+        <td>69.0</td>
+        <td>+2</td></tr>
+    
+    <tr><td>72</td><td>6</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">DJ Moore</td><td>WR</td>
+        <td>79.0</td>
+        <td>-7</td></tr>
+    
+    <tr><td>73</td><td>7</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Matthew Stafford</td><td>QB</td>
+        <td>31.0</td>
+        <td>+42</td></tr>
+    
+    <tr><td>74</td><td>7</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">David Montgomery</td><td>RB</td>
+        <td>76.0</td>
+        <td>-2</td></tr>
+    
+    <tr><td>75</td><td>7</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">TreVeyon Henderson</td><td>RB</td>
+        <td>86.0</td>
+        <td>-11</td></tr>
+    
+    <tr><td>76</td><td>7</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Jordan Love</td><td>QB</td>
+        <td>44.0</td>
+        <td>+32</td></tr>
+    
+    <tr><td>77</td><td>7</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Bhayshul Tuten</td><td>RB</td>
+        <td>83.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>78</td><td>7</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Kyler Murray</td><td>QB</td>
+        <td>37.0</td>
+        <td>+41</td></tr>
+    
+    <tr><td>79</td><td>7</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Tyler Shough</td><td>QB</td>
+        <td>51.0</td>
+        <td>+28</td></tr>
+    
+    <tr><td>80</td><td>7</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">C.J. Stroud</td><td>QB</td>
+        <td>62.0</td>
+        <td>+18</td></tr>
+    
+    <tr><td>81</td><td>7</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Davante Adams</td><td>WR</td>
+        <td>64.0</td>
+        <td>+17</td></tr>
+    
+    <tr><td>82</td><td>7</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">DK Metcalf</td><td>WR</td>
+        <td>95.0</td>
+        <td>-13</td></tr>
+    
+    <tr><td>83</td><td>7</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Tucker Kraft</td><td>TE</td>
+        <td>85.0</td>
+        <td>-2</td></tr>
+    
+    <tr><td>84</td><td>7</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Kyle Pitts</td><td>TE</td>
+        <td>107.0</td>
+        <td>-23</td></tr>
+    
+    <tr><td>85</td><td>8</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Brian Thomas</td><td>WR</td>
+        <td>91.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>86</td><td>8</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">RJ Harvey</td><td>RB</td>
+        <td>120.0</td>
+        <td>-34</td></tr>
+    
+    <tr><td>87</td><td>8</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">George Kittle</td><td>TE</td>
+        <td>110.0</td>
+        <td>-23</td></tr>
+    
+    <tr><td>88</td><td>8</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Dalton Kincaid</td><td>TE</td>
+        <td>115.0</td>
+        <td>-27</td></tr>
+    
+    <tr><td>89</td><td>8</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Jadarian Price</td><td>RB</td>
+        <td>84.0</td>
+        <td>+5</td></tr>
+    
+    <tr><td>90</td><td>8</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Hunter Henry</td><td>TE</td>
+        <td>152.0</td>
+        <td>-62</td></tr>
+    
+    <tr><td>91</td><td>8</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Christian Watson</td><td>WR</td>
+        <td>72.0</td>
+        <td>+19</td></tr>
+    
+    <tr><td>92</td><td>8</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Parker Washington</td><td>WR</td>
+        <td>88.0</td>
+        <td>+4</td></tr>
+    
+    <tr><td>93</td><td>8</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Jaylen Warren</td><td>RB</td>
+        <td>94.0</td>
+        <td>-1</td></tr>
+    
+    <tr><td>94</td><td>8</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Mike Evans</td><td>WR</td>
+        <td>80.0</td>
+        <td>+14</td></tr>
+    
+    <tr><td>95</td><td>8</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Marvin Harrison</td><td>WR</td>
+        <td>89.0</td>
+        <td>+6</td></tr>
+    
+    <tr><td>96</td><td>8</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Sam Darnold</td><td>QB</td>
+        <td>61.0</td>
+        <td>+35</td></tr>
+    
+    <tr><td>97</td><td>9</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Travis Kelce</td><td>TE</td>
+        <td>119.0</td>
+        <td>-22</td></tr>
+    
+    <tr><td>98</td><td>9</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Chuba Hubbard</td><td>RB</td>
+        <td>112.0</td>
+        <td>-14</td></tr>
+    
+    <tr><td>99</td><td>9</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Tony Pollard</td><td>RB</td>
+        <td>92.0</td>
+        <td>+7</td></tr>
+    
+    <tr><td>100</td><td>9</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Courtland Sutton</td><td>WR</td>
+        <td>100.0</td>
+        <td>+0</td></tr>
+    
+    <tr><td>101</td><td>9</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Rhamondre Stevenson</td><td>RB</td>
+        <td>90.0</td>
+        <td>+11</td></tr>
+    
+    <tr><td>102</td><td>9</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">J.K. Dobbins</td><td>RB</td>
+        <td>98.0</td>
+        <td>+4</td></tr>
+    
+    <tr><td>103</td><td>9</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Chris Godwin</td><td>WR</td>
+        <td>108.0</td>
+        <td>-5</td></tr>
+    
+    <tr><td>104</td><td>9</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Alec Pierce</td><td>WR</td>
+        <td>103.0</td>
+        <td>+1</td></tr>
+    
+    <tr><td>105</td><td>9</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Blake Corum</td><td>RB</td>
+        <td>105.0</td>
+        <td>+0</td></tr>
+    
+    <tr><td>106</td><td>9</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Rico Dowdle</td><td>RB</td>
+        <td>97.0</td>
+        <td>+9</td></tr>
+    
+    <tr><td>107</td><td>9</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Michael Wilson</td><td>WR</td>
+        <td>113.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>108</td><td>9</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Makai Lemon</td><td>WR</td>
+        <td>121.0</td>
+        <td>-13</td></tr>
+    
+    <tr><td>109</td><td>10</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Bryce Young</td><td>QB</td>
+        <td>82.0</td>
+        <td>+27</td></tr>
+    
+    <tr><td>110</td><td>10</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Kyle Monangai</td><td>RB</td>
+        <td>116.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>111</td><td>10</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Josh Downs</td><td>WR</td>
+        <td>124.0</td>
+        <td>-13</td></tr>
+    
+    <tr><td>112</td><td>10</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Malik Willis</td><td>QB</td>
+        <td>54.0</td>
+        <td>+58</td></tr>
+    
+    <tr><td>113</td><td>10</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Xavier Worthy</td><td>WR</td>
+        <td>132.0</td>
+        <td>-19</td></tr>
+    
+    <tr><td>114</td><td>10</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Kenny Gainwell</td><td>RB</td>
+        <td>126.0</td>
+        <td>-12</td></tr>
+    
+    <tr><td>115</td><td>10</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Cam Ward</td><td>QB</td>
+        <td>71.0</td>
+        <td>+44</td></tr>
+    
+    <tr><td>116</td><td>10</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Quentin Johnston</td><td>WR</td>
+        <td>104.0</td>
+        <td>+12</td></tr>
+    
+    <tr><td>117</td><td>10</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Jake Ferguson</td><td>TE</td>
+        <td>139.0</td>
+        <td>-22</td></tr>
+    
+    <tr><td>118</td><td>10</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Jordan Addison</td><td>WR</td>
+        <td>114.0</td>
+        <td>+4</td></tr>
+    
+    <tr><td>119</td><td>10</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Jayden Reed</td><td>WR</td>
+        <td>117.0</td>
+        <td>+2</td></tr>
+    
+    <tr><td>120</td><td>10</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Troy Franklin</td><td>WR</td>
+        <td>212.0</td>
+        <td>-92</td></tr>
+    
+    <tr><td>121</td><td>11</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Mark Andrews</td><td>TE</td>
+        <td>129.0</td>
+        <td>-8</td></tr>
+    
+    <tr><td>122</td><td>11</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Stefon Diggs</td><td>WR</td>
+        <td>133.0</td>
+        <td>-11</td></tr>
+    
+    <tr><td>123</td><td>11</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Michael Pittman</td><td>WR</td>
+        <td>118.0</td>
+        <td>+5</td></tr>
+    
+    <tr><td>124</td><td>11</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Jordan Mason</td><td>RB</td>
+        <td>111.0</td>
+        <td>+13</td></tr>
+    
+    <tr><td>125</td><td>11</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Jacory Croskey-Merritt</td><td>RB</td>
+        <td>109.0</td>
+        <td>+16</td></tr>
+    
+    <tr><td>126</td><td>11</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">De&#39;Zhaun Stribling</td><td>WR</td>
+        <td>141.0</td>
+        <td>-15</td></tr>
+    
+    <tr><td>127</td><td>11</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">KC Concepcion</td><td>WR</td>
+        <td>135.0</td>
+        <td>-8</td></tr>
+    
+    <tr><td>128</td><td>11</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Deebo Samuel</td><td>WR</td>
+        <td>148.0</td>
+        <td>-20</td></tr>
+    
+    <tr><td>129</td><td>11</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Jonathon Brooks</td><td>RB</td>
+        <td>99.0</td>
+        <td>+30</td></tr>
+    
+    <tr><td>130</td><td>11</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Tyjae Spears</td><td>RB</td>
+        <td>153.0</td>
+        <td>-23</td></tr>
+    
+    <tr><td>131</td><td>11</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Fernando Mendoza</td><td>QB</td>
+        <td>140.0</td>
+        <td>-9</td></tr>
+    
+    <tr><td>132</td><td>11</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Romeo Doubs</td><td>WR</td>
+        <td>134.0</td>
+        <td>-2</td></tr>
+    
+    <tr><td>133</td><td>12</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Tyler Allgeier</td><td>RB</td>
+        <td>137.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>134</td><td>12</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Isaiah Likely</td><td>TE</td>
+        <td>125.0</td>
+        <td>+9</td></tr>
+    
+    <tr><td>135</td><td>12</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Darnell Mooney</td><td>WR</td>
+        <td>207.0</td>
+        <td>-72</td></tr>
+    
+    <tr><td>136</td><td>12</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Daniel Jones</td><td>QB</td>
+        <td>68.0</td>
+        <td>+68</td></tr>
+    
+    <tr><td>137</td><td>12</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Aaron Rodgers</td><td>QB</td>
+        <td>102.0</td>
+        <td>+35</td></tr>
+    
+    <tr><td>138</td><td>12</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Dallas Goedert</td><td>TE</td>
+        <td>122.0</td>
+        <td>+16</td></tr>
+    
+    <tr><td>139</td><td>12</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Jalen Coker</td><td>WR</td>
+        <td>143.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>140</td><td>12</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Juwan Johnson</td><td>TE</td>
+        <td>144.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>141</td><td>12</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Matthew Golden</td><td>WR</td>
+        <td>136.0</td>
+        <td>+5</td></tr>
+    
+    <tr><td>142</td><td>12</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Jordyn Tyson</td><td>WR</td>
+        <td>142.0</td>
+        <td>+0</td></tr>
+    
+    <tr><td>143</td><td>12</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Geno Smith</td><td>QB</td>
+        <td>101.0</td>
+        <td>+42</td></tr>
+    
+    <tr><td>144</td><td>12</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Rashod Bateman</td><td>WR</td>
+        <td>195.0</td>
+        <td>-51</td></tr>
+    
+    <tr><td>145</td><td>13</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Jahdae Walker</td><td>WR</td>
+        <td>389.0</td>
+        <td>-244</td></tr>
+    
+    <tr><td>146</td><td>13</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Oronde Gadsden</td><td>TE</td>
+        <td>179.0</td>
+        <td>-33</td></tr>
+    
+    <tr><td>147</td><td>13</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Aaron Jones</td><td>RB</td>
+        <td>130.0</td>
+        <td>+17</td></tr>
+    
+    <tr><td>148</td><td>13</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Wan&#39;Dale Robinson</td><td>WR</td>
+        <td>131.0</td>
+        <td>+17</td></tr>
+    
+    <tr><td>149</td><td>13</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Jakobi Meyers</td><td>WR</td>
+        <td>127.0</td>
+        <td>+22</td></tr>
+    
+    <tr><td>150</td><td>13</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Jacoby Brissett</td><td>QB</td>
+        <td>87.0</td>
+        <td>+63</td></tr>
+    
+    <tr><td>151</td><td>13</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Jonah Coleman</td><td>RB</td>
+        <td>150.0</td>
+        <td>+1</td></tr>
+    
+    <tr><td>152</td><td>13</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Khalil Shakir</td><td>WR</td>
+        <td>149.0</td>
+        <td>+3</td></tr>
+    
+    <tr><td>153</td><td>13</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Rashid Shaheed</td><td>WR</td>
+        <td>145.0</td>
+        <td>+8</td></tr>
+    
+    <tr><td>154</td><td>13</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Kirk Cousins</td><td>QB</td>
+        <td>189.0</td>
+        <td>-35</td></tr>
+    
+    <tr><td>155</td><td>13</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Rachaad White</td><td>RB</td>
+        <td>123.0</td>
+        <td>+32</td></tr>
+    
+    <tr><td>156</td><td>13</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Woody Marks</td><td>RB</td>
+        <td>138.0</td>
+        <td>+18</td></tr>
+    
+    <tr><td>157</td><td>14</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Michael Penix</td><td>QB</td>
+        <td>170.0</td>
+        <td>-13</td></tr>
+    
+    <tr><td>158</td><td>14</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Chris Rodriguez</td><td>RB</td>
+        <td>128.0</td>
+        <td>+30</td></tr>
+    
+    <tr><td>159</td><td>14</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Ja&#39;Kobi Lane</td><td>WR</td>
+        <td>213.0</td>
+        <td>-54</td></tr>
+    
+    <tr><td>160</td><td>14</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Brian Robinson</td><td>RB</td>
+        <td>156.0</td>
+        <td>+4</td></tr>
+    
+    <tr><td>161</td><td>14</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Dalton Schultz</td><td>TE</td>
+        <td>174.0</td>
+        <td>-13</td></tr>
+    
+    <tr><td>162</td><td>14</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Keenan Allen</td><td>WR</td>
+        <td>201.0</td>
+        <td>-39</td></tr>
+    
+    <tr><td>163</td><td>14</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">MarShawn Lloyd</td><td>RB</td>
+        <td>158.0</td>
+        <td>+5</td></tr>
+    
+    <tr><td>164</td><td>14</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Brenton Strange</td><td>TE</td>
+        <td>157.0</td>
+        <td>+7</td></tr>
+    
+    <tr><td>165</td><td>14</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Kenyon Sadiq</td><td>TE</td>
+        <td>190.0</td>
+        <td>-25</td></tr>
+    
+    <tr><td>166</td><td>14</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">T.J. Hockenson</td><td>TE</td>
+        <td>197.0</td>
+        <td>-31</td></tr>
+    
+    <tr><td>167</td><td>14</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Denzel Boston</td><td>WR</td>
+        <td>160.0</td>
+        <td>+7</td></tr>
+    
+    <tr><td>168</td><td>14</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Calvin Ridley</td><td>WR</td>
+        <td>180.0</td>
+        <td>-12</td></tr>
+    
+    <tr><td>169</td><td>15</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Cole Kmet</td><td>TE</td>
+        <td>291.0</td>
+        <td>-122</td></tr>
+    
+    <tr><td>170</td><td>15</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Tyrone Tracy</td><td>RB</td>
+        <td>161.0</td>
+        <td>+9</td></tr>
+    
+    <tr><td>171</td><td>15</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Alvin Kamara</td><td>RB</td>
+        <td>167.0</td>
+        <td>+4</td></tr>
+    
+    <tr><td>172</td><td>15</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Tank Bigsby</td><td>RB</td>
+        <td>147.0</td>
+        <td>+25</td></tr>
+    
+    <tr><td>173</td><td>15</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Zach Charbonnet</td><td>RB</td>
+        <td>146.0</td>
+        <td>+27</td></tr>
+    
+    <tr><td>174</td><td>15</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Jalen Nailor</td><td>WR</td>
+        <td>184.0</td>
+        <td>-10</td></tr>
+    
+    <tr><td>175</td><td>15</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Omar Cooper</td><td>WR</td>
+        <td>181.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>176</td><td>15</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Mike Washington</td><td>RB</td>
+        <td>162.0</td>
+        <td>+14</td></tr>
+    
+    <tr><td>177</td><td>15</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Malik Washington</td><td>WR</td>
+        <td>192.0</td>
+        <td>-15</td></tr>
+    
+    <tr><td>178</td><td>15</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Chig Okonkwo</td><td>TE</td>
+        <td>165.0</td>
+        <td>+13</td></tr>
+    
+    <tr><td>179</td><td>15</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Isiah Pacheco</td><td>RB</td>
+        <td>154.0</td>
+        <td>+25</td></tr>
+    
+    <tr><td>180</td><td>15</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Cyrus Allen</td><td>WR</td>
+        <td>248.0</td>
+        <td>-68</td></tr>
+    
+    <tr><td>181</td><td>16</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Antonio Williams</td><td>WR</td>
+        <td>218.0</td>
+        <td>-37</td></tr>
+    
+    <tr><td>182</td><td>16</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Tank Dell</td><td>WR</td>
+        <td>202.0</td>
+        <td>-20</td></tr>
+    
+    <tr><td>183</td><td>16</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Caleb Douglas</td><td>WR</td>
+        <td>226.0</td>
+        <td>-43</td></tr>
+    
+    <tr><td>184</td><td>16</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Dylan Sampson</td><td>RB</td>
+        <td>163.0</td>
+        <td>+21</td></tr>
+    
+    <tr><td>185</td><td>16</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Travis Hunter</td><td>WR</td>
+        <td>188.0</td>
+        <td>-3</td></tr>
+    
+    <tr><td>186</td><td>16</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Kaelon Black</td><td>RB</td>
+        <td>206.0</td>
+        <td>-20</td></tr>
+    
+    <tr><td>187</td><td>16</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Kayshon Boutte</td><td>WR</td>
+        <td>168.0</td>
+        <td>+19</td></tr>
+    
+    <tr><td>188</td><td>16</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Tua Tagovailoa</td><td>QB</td>
+        <td>159.0</td>
+        <td>+29</td></tr>
+    
+    <tr><td>189</td><td>16</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Keaton Mitchell</td><td>RB</td>
+        <td>151.0</td>
+        <td>+38</td></tr>
+    
+    <tr><td>190</td><td>16</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Emmett Johnson</td><td>RB</td>
+        <td>175.0</td>
+        <td>+15</td></tr>
+    
+    <tr><td>191</td><td>16</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Jauan Jennings</td><td>WR</td>
+        <td>172.0</td>
+        <td>+19</td></tr>
+    
+    <tr><td>192</td><td>16</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Braelon Allen</td><td>RB</td>
+        <td>155.0</td>
+        <td>+37</td></tr>
+    
+    <tr><td>193</td><td>17</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Nicholas Singleton</td><td>RB</td>
+        <td>187.0</td>
+        <td>+6</td></tr>
+    
+    <tr><td>194</td><td>17</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Jerry Jeudy</td><td>WR</td>
+        <td>173.0</td>
+        <td>+21</td></tr>
+    
+    <tr><td>195</td><td>17</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">AJ Barner</td><td>TE</td>
+        <td>178.0</td>
+        <td>+17</td></tr>
+    
+    <tr><td>196</td><td>17</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Shedeur Sanders</td><td>QB</td>
+        <td>203.0</td>
+        <td>-7</td></tr>
+    
+    <tr><td>197</td><td>17</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Greg Dulcich</td><td>TE</td>
+        <td>221.0</td>
+        <td>-24</td></tr>
+    
+    <tr><td>198</td><td>17</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Deshaun Watson</td><td>QB</td>
+        <td>186.0</td>
+        <td>+12</td></tr>
+    
+    <tr><td>199</td><td>17</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Tre Tucker</td><td>WR</td>
+        <td>166.0</td>
+        <td>+33</td></tr>
+    
+    <tr><td>200</td><td>17</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Ray Davis</td><td>RB</td>
+        <td>182.0</td>
+        <td>+18</td></tr>
+    
+    <tr><td>201</td><td>17</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Pat Freiermuth</td><td>TE</td>
+        <td>205.0</td>
+        <td>-4</td></tr>
+    
+    <tr><td>202</td><td>17</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Kaytron Allen</td><td>RB</td>
+        <td>194.0</td>
+        <td>+8</td></tr>
+    
+    <tr><td>203</td><td>17</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Jalen McMillan</td><td>WR</td>
+        <td>169.0</td>
+        <td>+34</td></tr>
+    
+    <tr><td>204</td><td>17</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Zachariah Branch</td><td>WR</td>
+        <td>217.0</td>
+        <td>-13</td></tr>
+    
+    <tr><td>205</td><td>18</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Terrance Ferguson</td><td>TE</td>
+        <td>171.0</td>
+        <td>+34</td></tr>
+    
+    <tr><td>206</td><td>18</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Malachi Fields</td><td>WR</td>
+        <td>225.0</td>
+        <td>-19</td></tr>
+    
+    <tr><td>207</td><td>18</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Jaydon Blue</td><td>RB</td>
+        <td>196.0</td>
+        <td>+11</td></tr>
+    
+    <tr><td>208</td><td>18</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Ryan Flournoy</td><td>WR</td>
+        <td>185.0</td>
+        <td>+23</td></tr>
+    
+    <tr><td>209</td><td>18</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Kimani Vidal</td><td>RB</td>
+        <td>183.0</td>
+        <td>+26</td></tr>
+    
+    <tr><td>210</td><td>18</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Audric Estime</td><td>RB</td>
+        <td>279.0</td>
+        <td>-69</td></tr>
+    
+    <tr><td>211</td><td>18</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Pat Bryant</td><td>WR</td>
+        <td>191.0</td>
+        <td>+20</td></tr>
+    
+    <tr><td>212</td><td>18</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Dontayvion Wicks</td><td>WR</td>
+        <td>176.0</td>
+        <td>+36</td></tr>
+    
+    <tr><td>213</td><td>18</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Adonai Mitchell</td><td>WR</td>
+        <td>164.0</td>
+        <td>+49</td></tr>
+    
+    <tr><td>214</td><td>18</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">David Njoku</td><td>TE</td>
+        <td>215.0</td>
+        <td>-1</td></tr>
+    
+    <tr><td>215</td><td>18</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Jaylen Wright</td><td>RB</td>
+        <td>209.0</td>
+        <td>+6</td></tr>
+    
+    <tr><td>216</td><td>18</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Najee Harris</td><td>RB</td>
+        <td>222.0</td>
+        <td>-6</td></tr>
+    
+    <tr><td>217</td><td>19</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Cooper Kupp</td><td>WR</td>
+        <td>211.0</td>
+        <td>+6</td></tr>
+    
+    <tr><td>218</td><td>19</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Isaac TeSlaa</td><td>WR</td>
+        <td>200.0</td>
+        <td>+18</td></tr>
+    
+    <tr><td>219</td><td>19</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">Tre&#39; Harris</td><td>WR</td>
+        <td>177.0</td>
+        <td>+42</td></tr>
+    
+    <tr><td>220</td><td>19</td><td class="wrap">Love Sutton Brocks (EMCO)</td>
+        <td class="wrap">Jarquez Hunter</td><td>RB</td>
+        <td>280.0</td>
+        <td>-60</td></tr>
+    
+    <tr><td>221</td><td>19</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">DeMario Douglas</td><td>WR</td>
+        <td>283.0</td>
+        <td>-62</td></tr>
+    
+    <tr><td>222</td><td>19</td><td class="wrap">George &amp; Friends (DIP)</td>
+        <td class="wrap">Gunnar Helm</td><td>TE</td>
+        <td>208.0</td>
+        <td>+14</td></tr>
+    
+    <tr><td>223</td><td>19</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Cade Otton</td><td>TE</td>
+        <td>214.0</td>
+        <td>+9</td></tr>
+    
+    <tr><td>224</td><td>19</td><td class="wrap">Corn-Fed Fatties (Babe)</td>
+        <td class="wrap">Carson Beck</td><td>QB</td>
+        <td>305.0</td>
+        <td>-81</td></tr>
+    
+    <tr><td>225</td><td>19</td><td class="wrap">The Dude Abides (The Dude)</td>
+        <td class="wrap">Devaughn Vele</td><td>WR</td>
+        <td>233.0</td>
+        <td>-8</td></tr>
+    
+    <tr><td>226</td><td>19</td><td class="wrap">Double TDs (Double)</td>
+        <td class="wrap">Ty Simpson</td><td>QB</td>
+        <td>356.0</td>
+        <td>-130</td></tr>
+    
+    <tr><td>227</td><td>19</td><td class="wrap">Hand me a White Claw (PITCH)</td>
+        <td class="wrap">Will Howard</td><td>QB</td>
+        <td>—</td>
+        <td>—</td></tr>
+    
+    <tr><td>228</td><td>19</td><td class="wrap">Secret Asian Man (POP)</td>
+        <td class="wrap">Tyreek Hill</td><td>WR</td>
+        <td>276.0</td>
+        <td>-48</td></tr>
+    
+  </table>
+  </div>
+</section>
+<p class="meta">Reference ranks ("Ref"): FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29).
+A negative Δ means a pick ahead of that reference; the number is a fact, the verdict is editorial.</p>
+
+
+</main>
+<footer class="colophon">
+  <img class="logo-footer" src="../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  DISCO CHAT · 2026 · <a href="../../index.html">League select</a>
+</footer>
+</body>
+</html>
