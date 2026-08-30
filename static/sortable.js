@@ -33,9 +33,14 @@
     return { missing: false, num: null, text: raw.toLowerCase() };
   }
 
+  var tableSeq = 0;
+
   function initTable(table) {
     var rows = Array.prototype.slice.call(table.rows);
     if (rows.length < 2) return;
+    // per-page sort memory so browser Back doesn't lose a comparison;
+    // sessionStorage only, and every access is fail-safe
+    var stateKey = "sortable:" + location.pathname + "#" + (tableSeq++);
     var headRow = rows[0];
     var dataRows = rows.slice(1);
     var originalOrder = dataRows.slice();
@@ -61,11 +66,16 @@
       var th = headers[idx];
       var firstDir = th.getAttribute("data-sort-dir") === "desc" ? "desc" : "asc";
       var next;
-      if (state.col !== idx) next = firstDir;
+      if (arguments.length > 1 && arguments[1]) next = arguments[1];
+      else if (state.col !== idx) next = firstDir;
       else if (state.dir === firstDir) next = firstDir === "asc" ? "desc" : "asc";
       else next = null; // third click: restore canonical order
       state.col = next === null ? null : idx;
       state.dir = next;
+      try {
+        if (next === null) sessionStorage.removeItem(stateKey);
+        else sessionStorage.setItem(stateKey, idx + ":" + next);
+      } catch (e) { /* storage unavailable: sorting still works */ }
       if (next === null) { apply(originalOrder); setAria(-1); return; }
 
       var type = th.getAttribute("data-sort-type");
@@ -107,6 +117,17 @@
         }
       });
     });
+
+    try {
+      var saved = sessionStorage.getItem(stateKey);
+      if (saved) {
+        var parts = saved.split(":");
+        var col = parseInt(parts[0], 10);
+        if (headers[col] && headers[col].classList.contains("sortable") &&
+            (parts[1] === "asc" || parts[1] === "desc"))
+          sortBy(col, parts[1]);
+      }
+    } catch (e) { /* storage unavailable */ }
   }
 
   function init() {

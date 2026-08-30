@@ -422,16 +422,13 @@ def build_league(
                 tx_by_rid.setdefault(_rid, []).append(_row)
 
     def _move_ctx(row: dict) -> dict:
-        adds_s = ", ".join(a["name"] for a in row["adds"])
-        drops_s = ", ".join(d["name"] for d in row["drops"])
-        if adds_s and drops_s:
-            line = f"Added {adds_s} · dropped {drops_s}"
-        elif adds_s:
-            line = f"Added {adds_s}"
-        else:
-            line = f"Dropped {drops_s}"
-        return {"week": row["week"], "type": row["type"], "line": line,
-                "adds": adds_s, "drops": drops_s, "faab": row["faab"],
+        from leaguepage.transaction_analysis import describe_move
+
+        return {"week": row["week"], "type": row["type"],
+                "line": describe_move(row),
+                "adds": ", ".join(a["name"] for a in row["adds"]),
+                "drops": ", ".join(d["name"] for d in row["drops"]),
+                "faab": row["faab"], "priority": row.get("priority", 0),
                 "text": row["rationale"]["text"],
                 "questionable": row["rationale"]["kind"] == "questionable",
                 "rank_shift": row.get("rank_shift"),
@@ -548,6 +545,7 @@ def build_league(
         log.append(ctx)
         if row.get("significant"):
             meaningful.append(ctx)
+    meaningful.sort(key=lambda m: -m["priority"])
     render("transactions/index.html", "public/transactions.html", 2,
            log=log, meaningful=meaningful,
            editorial_sections=_published_module_sections(snaps, "forceflow"),
@@ -556,7 +554,7 @@ def build_league(
     # draft page
     analysis = draft_analysis
     board, team_sections, status_line, prov = [], [], "", None
-    reaches_ctx, steals_ctx = [], []
+    reaches_ctx, steals_ctx, st_ctx = [], [], []
     if analysis and analysis["picks"]:
         prov = analysis.get("adp_provenance")
         status_line = (f"{analysis['pick_count']} of {analysis.get('expected_pick_count') or '?'} picks "
@@ -579,19 +577,29 @@ def build_league(
                 "picks": recap_by_rid.get(t["roster_id"], {}).get("picks", []),
             })
 
-        def _headline_ctx(p: dict) -> dict:
+        def _headline_ctx(p: dict, *, st_context: bool = False) -> dict:
+            from leaguepage.draft_value import position_order_context
+
             return {"name": p["name"], "pick_no": p["pick_no"], "adp": p["adp"],
                     "team": public_of.get(p["team_slug"], p["team_slug"]),
                     "team_slug": p["team_slug"],
-                    "dv": classify_pick(p["delta"], league_size)}
-        reaches_ctx = [_headline_ctx(p) for p in analysis["league_biggest_reaches"]
-                       if p["delta"] <= -league_size]
-        steals_ctx = [_headline_ctx(p) for p in analysis["league_biggest_values"]
-                      if p["delta"] >= league_size]
+                    "dv": classify_pick(p["delta"], league_size),
+                    "context": (position_order_context(
+                        load_adp_for_league(league), analysis["picks"], p)
+                        if st_context else None)}
+
+        from leaguepage.draft_value import headline_deviations
+
+        hd = headline_deviations(analysis["picks"], league_size)
+        reaches_ctx = [_headline_ctx(p) for p in hd["skill_reaches"]]
+        steals_ctx = [_headline_ctx(p) for p in hd["skill_steals"]]
+        st_ctx = [_headline_ctx(p, st_context=True)
+                  for p in hd["special_teams"]]
     recap = next((s for s in snaps if s["issue_key"] == "draft"), None)
     render("draft/index.html", "public/draft.html", 2,
            board=board, team_sections=team_sections, status_line=status_line,
-           reaches=reaches_ctx, steals=steals_ctx, league_size=league_size,
+           reaches=reaches_ctx, steals=steals_ctx, special_teams=st_ctx,
+           league_size=league_size,
            adp_provenance=prov, recap_href=recap["href"] if recap else None,
            current_nav="Draft")
 

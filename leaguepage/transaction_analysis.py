@@ -34,6 +34,7 @@ STREAM_POSITIONS = {"K", "DEF"}
 FAAB_NOTABLE_SHARE = 0.15       # bid worth a sentence
 FAAB_MEANINGFUL_SHARE = 0.20    # bid that alone makes a move significant
 VALUE_MEANINGFUL = 100.0        # add of a genuinely valuable player
+USABLE_VALUE = 60.0             # startable-quality threshold (ref rank ~190)
 
 OUT_STATUSES = {"IR", "Out", "Doubtful", "PUP", "Sus", "NA"}
 
@@ -141,9 +142,25 @@ def _top(rank: int | None, n: int, share: float) -> bool:
     return rank is not None and rank <= max(1, round(share * n))
 
 
+def _usable_counts(rosters: list[dict], values: dict) -> dict:
+    """(rid, pos) -> count of players at startable-quality value. Raw roster
+    count is NOT depth: two studs plus six fringe receivers is not the
+    league's deepest WR room."""
+    out: dict = {}
+    for r in rosters:
+        rid = r["roster_id"]
+        for pid in (r.get("players") or []):
+            pv = values.get(pid)
+            if pv and pv["value"] >= USABLE_VALUE:
+                key = (rid, pv["position"])
+                out[key] = out.get(key, 0) + 1
+    return out
+
+
 def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
                profile: dict, values: dict, adds: list[dict],
-               drops: list[dict], rid: int, faab_share: float) -> dict:
+               drops: list[dict], rid: int, faab_share: float,
+               usable: dict | None = None) -> dict:
     """One transaction's inferred rationale: {'kind','confidence','text'}.
     Text is complete and public-safe; confidence stays internal."""
     n = profile["n"]
@@ -199,15 +216,19 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
                 f"{drop['injury_status']}, which makes the drop side "
                 "straightforward.")
         else:
-            drop_rank = profile["ranks"].get(drop["position"], {}).get(rid)
-            room = profile["teams"].get(rid, {}).get(drop["position"]) or {}
-            if _top(drop_rank, n, 0.3) and room.get("count", 0) >= 4:
+            # surplus means USABLE surplus: strong depth behind the starters
+            # and multiple startable-quality players, not a big raw count
+            depth_rank = profile["depth_ranks"].get(drop["position"], {}).get(rid)
+            demand = (profile["teams"].get(rid, {})
+                      .get(drop["position"], {}).get("starters_used", 0))
+            spare = (usable or {}).get((rid, drop["position"]), 0) - demand
+            if _top(depth_rank, n, 0.3) and spare >= 2:
                 if kind is None:
                     kind, confidence = "surplus", "medium"
                 sentences.append(
-                    f"The drop comes from the roster's deepest territory: "
-                    f"{drop['position']} ranked #{drop_rank} of {n} with "
-                    f"{room['count']} players rostered.")
+                    f"The drop comes from real surplus: {drop['position']} "
+                    f"depth ranks #{depth_rank} of {n} with {spare} "
+                    "startable-quality players beyond the lineup demand.")
 
     # rebalance: strong drop-room feeding a weak add-room
     if add and drop and kind in (None, "surplus"):
@@ -222,20 +243,20 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
                 f"from the #{d_rank} {drop['position']} room to the "
                 f"#{a_rank} {add['position']} room."))
 
-    # questionable: multiple wrong-direction signals AND no positive story
+    # questionable requires genuinely conflicting roster logic: the drop
+    # side must be materially bad (giving up value from an already-weak
+    # room) AND at least one more wrong-direction signal. Lower consensus
+    # value or an already-good position alone never qualifies — the model
+    # cannot see a manager's speculative thesis.
     if kind is None and add and drop:
-        wrong = 0
         a_rank = profile["ranks"].get(add["position"], {}).get(rid)
         d_rank = profile["ranks"].get(drop["position"], {}).get(rid)
-        if _top(a_rank, n, 0.3):
-            wrong += 1
-        if _bottom(d_rank, n, 0.3):
-            wrong += 1
         av = (values.get(add["pid"]) or {}).get("value", 0)
         dv = (values.get(drop["pid"]) or {}).get("value", 0)
-        if dv > av > 0 or (dv > 0 and av == 0):
-            wrong += 1
-        if wrong >= 2:
+        drop_bad = _bottom(d_rank, n, 0.3) and dv > 0
+        add_wrong = _top(a_rank, n, 0.3)
+        value_down = dv > av > 0 or (dv > 0 and av == 0)
+        if drop_bad and (add_wrong or value_down):
             return {"kind": "questionable", "confidence": "medium",
                     "text": (
                         f"Questionable fit on the current data: the team "
@@ -256,7 +277,13 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
         sentences.append(
             f"The {round(faab_share * 100)}% FAAB bid suggests this was "
             "more than a speculative bench add.")
-    prefix = "Likely rationale" if confidence == "high" else "Possible rationale"
+    if confidence == "low":
+        # a weak story is not a story: keep the strongest fact, no narrative
+        return {"kind": "unclear", "confidence": "low",
+                "text": "Rationale unclear. " + (sentences[0] if sentences
+                                                 else "")}
+    prefix = ("Likely rationale" if confidence == "high"
+              else "One plausible rationale")
     return {"kind": kind, "confidence": confidence,
             "text": f"{prefix}: " + " ".join(sentences)}
 
@@ -298,6 +325,27 @@ def analyze_transactions(storage: Storage, league: League,
                         default=0)
     profile = positional_profile(storage, league, adp=adp,
                                  weeks_played=weeks_played)
+    usable = _usable_counts(storage.get_rosters(league.league_id), values)
+
+    # player_values covers ROSTERED players only; a dropped player is off
+    # every roster, so without this its value would silently read 0 and
+    # drop-side comparisons (questionable detection) could never fire.
+    from leaguepage.adp import load_adp_for_league
+
+    ref = adp if adp is not None else load_adp_for_league(league)
+    for wk in range(0, MAX_SCAN_WEEK + 1):
+        for tx in storage.get_transactions(league.league_id, wk):
+            for pid in list(tx.get("adds") or {}) + list(tx.get("drops") or {}):
+                if pid in values or ref is None:
+                    continue
+                p = storage.get_player(pid) or {}
+                name = p.get("full_name") or " ".join(
+                    filter(None, [p.get("first_name"), p.get("last_name")]))
+                rank = ref.lookup(name, p.get("position")) if name else None
+                if rank is not None:
+                    values[pid] = {"name": name,
+                                   "position": (p.get("position") or "").upper(),
+                                   "value": max(0.0, 250.0 - float(rank))}
 
     out: list[dict] = []
     for wk in range(0, MAX_SCAN_WEEK + 1):
@@ -332,7 +380,7 @@ def analyze_transactions(storage: Storage, league: League,
                 rid = rids[0] if rids else None
                 row["rationale"] = _rationale(
                     storage, league, tx, ctx, profile, values, adds, drops,
-                    rid, faab_share) if rid is not None else \
+                    rid, faab_share, usable) if rid is not None else \
                     {"kind": "unclear", "confidence": "low",
                      "text": "Rationale unclear."}
                 pair = ((ctx or {}).get("adds") or {}).get(
@@ -362,9 +410,50 @@ def analyze_transactions(storage: Storage, league: League,
                     row["outcome"] = _outcome(storage, league,
                                               adds[0]["pid"], adds[0]["rid"],
                                               wk, latest_played)
+            row["priority"] = _priority(row)
             out.append(row)
     out.sort(key=lambda r: (-(r["week"]), -(r["created"] or 0)))
     return out
+
+
+def _priority(row: dict) -> int:
+    """Editorial ranking for the curated Force Flow section: trades, big
+    FAAB, weakness fixes, and questionable moves outrank routine churn."""
+    r = row.get("rationale") or {}
+    score = 0
+    if r.get("kind") == "trade":
+        score += 150
+    if row.get("faab_share", 0) >= FAAB_MEANINGFUL_SHARE:
+        score += 60 + round(row["faab_share"] * 40)
+    if r.get("kind") == "questionable":
+        score += 55
+    if r.get("kind") == "weakness" and r.get("confidence") == "high":
+        score += 50
+    if row.get("rank_shift"):
+        score += 25
+    if (row.get("outcome") or "").startswith("Since the move: started"):
+        score += 15
+    if r.get("kind") == "streaming":
+        score -= 40
+    return score
+
+
+def describe_move(row: dict) -> str:
+    """Type-aware one-line description: the transaction kind and cost are
+    part of the story ('Claimed X for 31 FAAB' beats 'Added X')."""
+    adds = ", ".join(a["name"] for a in row["adds"])
+    drops = ", ".join(d["name"] for d in row["drops"])
+    t = row.get("type") or ""
+    if t == "trade":
+        return f"Trade: {adds or '—'} ⇄ {drops or '—'}"
+    if adds and t == "waiver":
+        verb = (f"Claimed {adds} for {row['faab']} FAAB"
+                if row.get("faab") else f"Claimed {adds} off waivers")
+    elif adds:
+        verb = f"Added {adds} (free agent)"
+    else:
+        return f"Dropped {drops}"
+    return f"{verb} · dropped {drops}" if drops else verb
 
 
 def transaction_story_candidates(storage: Storage, league: League,

@@ -21,6 +21,15 @@ from __future__ import annotations
 ON_BOARD_TOLERANCE = 2      # |delta| <= 2 picks reads as "on board"
 CAP_ROUNDS = 3.0            # visual intensity saturates at 3 full rounds
 
+# Headline "Biggest Reaches/Steals" cover these; K/DST are excluded there
+# because expert consensus ranks special teams below the draftable range
+# (best K ~#202 overall on the 2026 half-PPR board) while lineups force
+# every team to draft them — so overall-ECR deviation for K/DST measures
+# the reference board's structure, not a roster decision. Their per-pick
+# REACH/STEAL treatment on full boards is unchanged.
+SKILL_POSITIONS = ("QB", "RB", "WR", "TE")
+SPECIAL_TEAMS = ("K", "DEF", "DST")
+
 CLASS_REACH = "REACH"
 CLASS_EARLY = "EARLY"
 CLASS_ON_BOARD = "ON BOARD"
@@ -75,6 +84,61 @@ def classify_pick(delta: float | None, league_size: int) -> dict | None:
         "intensity": intensity,
         "sort_value": delta,
     }
+
+
+def headline_deviations(picks: list[dict], league_size: int,
+                        *, top: int = 5) -> dict:
+    """Draft-page headline lists from enriched picks (draft_analysis rows).
+
+    skill_reaches / skill_steals: top deviations among QB/RB/WR/TE that
+    actually cross the one-round threshold. special_teams: K/DST picks at
+    least two rounds from reference, reported separately so mandatory
+    late-position picks cannot drown out roster-construction stories."""
+    rated = [p for p in picks if p.get("delta") is not None]
+    skill = [p for p in rated if (p.get("position") or "").upper()
+             in SKILL_POSITIONS]
+    st = [p for p in rated if (p.get("position") or "").upper()
+          in SPECIAL_TEAMS]
+    reaches = sorted((p for p in skill if p["delta"] <= -league_size),
+                     key=lambda p: p["delta"])[:top]
+    steals = sorted((p for p in skill if p["delta"] >= league_size),
+                    key=lambda p: -p["delta"])[:top]
+    outliers = sorted((p for p in st if abs(p["delta"]) >= 2 * league_size),
+                      key=lambda p: -abs(p["delta"]))[:3]
+    return {"skill_reaches": reaches, "skill_steals": steals,
+            "special_teams": outliers}
+
+
+def position_order_context(adp, picks: list[dict], pick: dict) -> str | None:
+    """Honest within-position context for a K/DST pick: where this player
+    sits on the reference board at the position, and in what order the
+    league actually drafted the position. Uses only the stored snapshot."""
+    pos = (pick.get("position") or "").upper()
+    name = pick.get("name")
+    if adp is None or not name or pos not in SPECIAL_TEAMS:
+        return None
+    # Sleeper says DEF, FantasyPros says DST: same position
+    aliases = {"DEF", "DST"} if pos in ("DEF", "DST") else {pos}
+    ranked = sorted((p for p in adp.players
+                     if (p.get("position") or "").upper() in aliases
+                     and p.get("rank") is not None),
+                    key=lambda p: p["rank"])
+    from leaguepage.names import normalize_name
+    idx = next((i + 1 for i, p in enumerate(ranked)
+                if normalize_name(p.get("name", "")) == normalize_name(name)),
+               None)
+    same_pos = sorted((p for p in picks
+                       if (p.get("position") or "").upper() in aliases),
+                      key=lambda p: p["pick_no"])
+    order = next((i + 1 for i, p in enumerate(same_pos)
+                  if p["pick_no"] == pick["pick_no"]), None)
+    if idx is None or order is None:
+        return None
+    label = "DST" if pos in ("DEF", "DST") else pos
+
+    def _ord(n: int) -> str:
+        return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+    return f"{_ord(order)} {label} drafted · consensus {label}{idx}"
 
 
 def team_draft_profile(team_summary: dict, league_size: int) -> dict:

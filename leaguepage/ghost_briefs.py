@@ -120,6 +120,12 @@ def _build(storage, league, season, issue_key, section, week) -> dict:
             lines.append(f"• Boldest pick: {_fmt_delta(p)} ({names.get(_rid_of(analysis, p['team_slug']))})")
         for p in top_value:
             lines.append(f"• Best value: {_fmt_delta(p)} ({names.get(_rid_of(analysis, p['team_slug']))})")
+        for p in top_reach[:1] + top_value[:1]:
+            used_in = _published_mentions(league, p.get("name"))
+            if used_in >= 2:
+                lines.append(f"  (repetition check: {p['name']} already "
+                             f"appears in {used_in} published issues — vary "
+                             "the angle before calling it back again)")
         stacks = sum(len(t["stacks"]) for t in analysis["teams"])
         lines.append(f"• {analysis['pick_count']} picks, {stacks} QB stacks league-wide")
         try:
@@ -334,6 +340,26 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
 
     return {"text": "\n".join(lines).strip(), "evidence": evidence[:12]}
 
+def _published_mentions(league: League, name: str | None) -> int:
+    """How many PUBLISHED issues already mention a player — repetition
+    flag only, never suppression: factual callbacks stay allowed."""
+    if not name:
+        return 0
+    from leaguepage.config import PUBLISHED_DIR
+
+    root = PUBLISHED_DIR / league.slug
+    if not root.exists():
+        return 0
+    count = 0
+    for f in root.rglob("*.json"):
+        try:
+            if name in f.read_text(encoding="utf-8"):
+                count += 1
+        except OSError:
+            pass
+    return count
+
+
 def _weeks_played(storage: Storage, league: League) -> int:
     from leaguepage.matchup_analysis import weekly_scores
 
@@ -355,13 +381,12 @@ def _move_lines(storage: Storage, league: League, *, rids=None,
             continue
         if rids is not None and not (set(row["rids"]) & set(rids)):
             continue
-        adds = ", ".join(a["name"] for a in row["adds"]) or "—"
-        drops = ", ".join(d["name"] for d in row["drops"]) or "—"
-        bits = [f"wk {row['week']}", row["type"]]
+        from leaguepage.transaction_analysis import describe_move
+
+        bits = [f"wk {row['week']}"]
         if row.get("faab"):
-            bits.append(f"{row['faab']} FAAB "
-                        f"({round(row['faab_share'] * 100)}% of budget)")
-        lines.append(f"• +{adds} / −{drops} ({', '.join(bits)})")
+            bits.append(f"{round(row['faab_share'] * 100)}% of budget")
+        lines.append(f"• {describe_move(row)} ({', '.join(bits)})")
         if row["rationale"].get("text"):
             lines.append(f"  {row['rationale']['text']}")
         if row.get("rank_shift"):

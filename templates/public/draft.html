@@ -12,13 +12,13 @@
 <p><a href="{{ lroot }}{{ recap_href }}">Read the editorial Draft Issue →</a></p>
 {% endif %}
 
-{% if reaches or steals %}
+{% if reaches or steals or special_teams %}
 <section class="module">
   <h2 class="section-label">Market Deviations</h2>
   <div class="teamgrid">
     {% if reaches %}
     <div class="card">
-      <strong>Biggest Reaches</strong>
+      <strong>Biggest Reaches</strong> <span class="meta">(QB/RB/WR/TE)</span>
       <ul>
         {% for p in reaches %}
         <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }})</span><br>{{ dv(p.dv) }}</li>
@@ -28,7 +28,7 @@
     {% endif %}
     {% if steals %}
     <div class="card">
-      <strong>Biggest Steals</strong>
+      <strong>Biggest Steals</strong> <span class="meta">(QB/RB/WR/TE)</span>
       <ul>
         {% for p in steals %}
         <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }})</span><br>{{ dv(p.dv) }}</li>
@@ -37,6 +37,21 @@
     </div>
     {% endif %}
   </div>
+  {% if special_teams %}
+  <div class="card">
+    <strong>Special Teams Outliers</strong>
+    <ul>
+      {% for p in special_teams %}
+      <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }}{% if p.context %} · {{ p.context }}{% endif %})</span><br>{{ dv(p.dv) }}</li>
+      {% endfor %}
+    </ul>
+    <p class="meta">Consensus ranks kickers and defenses below the range
+    where leagues actually have to draft them, so early K/DST picks always
+    measure as reaches against the overall board. They are listed here, on
+    their own scale of aggressiveness, instead of crowding the headline
+    lists above.</p>
+  </div>
+  {% endif %}
 </section>
 {% endif %}
 
