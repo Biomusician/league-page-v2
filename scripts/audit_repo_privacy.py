@@ -81,7 +81,12 @@ def audit(revs: list[str]) -> list[str]:
 
 def main() -> int:
     if "--history" in sys.argv:
-        revs = _git("rev-list", "--all").split()
+        # The site branch carries rendered PUBLIC output and is audited by
+        # site_build.audit_output at build time with the right exemptions
+        # (verbatim archive, public team names that happen to match a
+        # handle). This audit covers the SOURCE history only.
+        revs = _git("rev-list", "--exclude=refs/heads/site",
+                    "--exclude=refs/remotes/*/site", "--all").split()
     else:
         revs = ["HEAD"]
     violations = audit(revs)
