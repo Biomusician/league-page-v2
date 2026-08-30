@@ -73,7 +73,15 @@
 <div class="card blockers" id="blockers">
   <b>{{ blockers|length }} publication blocker(s)</b>
   <ul>
-    {% for b in blockers %}<li><a href="#{{ b.anchor }}">{{ b.text }}</a></li>{% endfor %}
+    {% for b in blockers %}<li><a href="#{{ b.anchor }}">{{ b.text }}</a>
+      {% if b.kind == "empty-section" %}
+        <a href="#{{ b.anchor }}"><button type="button">Write section</button></a>
+        <form method="post" action="{{ edit_base }}/module" class="inline">
+          <input type="hidden" name="module_key" value="{{ b.module_key }}">
+          <input type="hidden" name="position" value="">
+          <button name="action" value="exclude">Exclude from issue</button>
+        </form>
+      {% endif %}</li>{% endfor %}
   </ul>
 </div>
 {% else %}
@@ -81,24 +89,42 @@
 {% endif %}
 
 {% set neutral = name_rows | selectattr("neutral") | list %}
-<details class="sec card" id="sec-team-names" {% if neutral %}open{% endif %}>
-  <summary>Team names <span class="chip {% if neutral %}edited{% else %}approved{% endif %}">
-    {{ neutral|length }} unresolved</span></summary>
+{% set renamed = name_rows | selectattr("renamed_on_sleeper") | list %}
+<details class="sec card" id="sec-team-names" {% if neutral or renamed %}open{% endif %}>
+  <summary>Team names
+    <span class="chip {% if neutral %}edited{% else %}approved{% endif %}">{{ neutral|length }} unresolved</span>
+    {% if renamed %}<span class="chip stale">{{ renamed|length }} renamed on Sleeper</span>{% endif %}
+  </summary>
+  <p class="meta">Sleeper team names apply automatically; an override only exists where you
+    set one. Manager context below is PRIVATE Desk-only help and never publishes.</p>
   <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/team-names">
     <input type="hidden" name="back" value="{{ edit_base }}#sec-team-names">
     <table class="namegrid">
-      <tr><th>Roster</th><th>Current public name</th><th>Set name</th></tr>
+      <tr><th>#</th><th>Sleeper team</th><th>Private manager context</th>
+          <th>Public name</th><th>Override</th></tr>
       {% for r in name_rows %}
       <tr>
         <td>{{ r.roster_id }}</td>
-        <td>{{ r.name or "—" }} <span class="meta">({{ r.source or "unresolved" }})</span></td>
-        <td><input type="text" name="name_{{ r.roster_id }}" placeholder="{% if r.neutral %}real team name{% endif %}"></td>
+        <td>{{ r.sleeper_name or "—" }}</td>
+        <td class="meta">{{ r.owners | join(" + ") }}{% if r.co_managed %} (co-managed){% endif %}
+          · slot {{ r.draft_slot or "?" }}<br>{{ r.top_players | join(", ") }}</td>
+        <td><b>{{ r.public_name or "—" }}</b> <span class="meta">({{ r.source or "unresolved" }})</span>
+          {% if r.renamed_on_sleeper %}<br><span class="chip stale">Sleeper now says
+            “{{ r.sleeper_name }}”</span>{% endif %}</td>
+        <td><input type="text" name="name_{{ r.roster_id }}"
+                   placeholder="{% if r.neutral %}set a public name{% else %}override{% endif %}"></td>
       </tr>
       {% endfor %}
     </table>
-    <div class="cardctl"><button class="primary">Confirm names</button>
-      <span class="meta">Sleeper team names are already safe; handles never are.</span></div>
+    <div class="cardctl"><button class="primary">Save overrides</button>
+      <span class="meta">Blank fields change nothing. Handles never become public names.</span></div>
   </form>
+  {% for r in name_rows %}{% if r.override and r.sleeper_name %}
+    <form method="post" action="{{ edit_base }}/use-sleeper-name" class="inline">
+      <input type="hidden" name="roster_id" value="{{ r.roster_id }}">
+      <button>Roster {{ r.roster_id }}: use Sleeper name “{{ r.sleeper_name }}”</button>
+    </form>
+  {% endif %}{% endfor %}
 </details>
 
 {% for c in cards %}

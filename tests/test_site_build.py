@@ -290,3 +290,37 @@ def test_comments_enabled_on_native_issues_only(site_env, monkeypatch):
     # comments wrapper leaks nothing private and the audit still passes
     assert "commissioner" not in w1.split("giscus")[1][:600].lower()
     assert audit_output(tmp / "dist") == []
+
+
+def test_navigation_order_standings_teams_before_archive(site_env):
+    import re
+    db, tmp = site_env
+    _build(db, tmp)
+    for slug in ("disco", "surfeit"):
+        home = (tmp / "dist" / slug / "index.html").read_text(encoding="utf-8")
+        nav = re.search(r'aria-label="League navigation".*?</nav>', home, re.S).group(0)
+        labels = re.findall(r">([^<]+)</a>", nav)
+        assert labels == ["Home", "Common Tactical Picture", "Peer and Near-Peer",
+                          "Force Flow", "Draft", "Black Box", "Standings", "Teams",
+                          "Archive"]
+
+
+def test_teams_matrix_and_team_page_positional(site_env):
+    db, tmp = site_env
+    _build(db, tmp)
+    teams = (tmp / "dist" / "surfeit" / "teams" / "index.html").read_text(encoding="utf-8")
+    assert "Positional Strength — League Comparison" in teams
+    assert ">QB<" in teams and ">RB<" in teams
+    assert "actual lineup requirements" in teams          # methodology text
+    page = (tmp / "dist" / "surfeit" / "team" / "team-1" / "index.html").read_text(encoding="utf-8")
+    assert "Positional Strength" in page and "Assessment" in page
+    assert "lineup demand" in page                        # methodology text
+
+
+def test_standings_playoff_picture_preseason_honest(site_env):
+    db, tmp = site_env
+    _build(db, tmp)
+    st = (tmp / "dist" / "disco" / "standings" / "index.html").read_text(encoding="utf-8")
+    assert "Playoff Picture" in st
+    assert "opens after" in st or "playoff spots" in st   # too-early note, no fake odds
+    assert "%" not in st.split("Playoff Picture")[1][:400]

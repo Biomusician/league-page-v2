@@ -156,6 +156,38 @@ Discussions, install the giscus app on it, copy the four values from
 giscus.app into COMMENTS, rebuild + deploy. Note: commenters need GitHub
 accounts.
 
+## Team analytics layer (2026-08-30)
+
+leaguepage/team_analytics.py: deterministic positional strength (per-league
+lineup demand read from the Sleeper payload; greedy optimal-lineup fill,
+starters 0.7 / depth 0.3, fragility + surplus; preseason consensus-rank
+values transitioning to a labeled in-season blend at 3+ played weeks),
+recent form (last-3), meaningful streaks, transparent Monte Carlo playoff
+outlook (observed scoring ONLY - no consensus ranks; too_early < 3 weeks,
+bands < 8, percentages after; remaining schedule beyond sync simulated as
+random pairings, disclosed), weekly analytics snapshots persisted by
+scripts/sync.py (meta analytics_snapshot:{league}:{season}:{week}; week 0 =
+preseason) so deltas are historical fact, and key-move detection. Public
+surfaces: Teams comparison matrix, per-team Positional Strength +
+Trend/Outlook/Key Moves, Standings movers/hot/trouble/Playoff Picture, all
+with concise methodology notes. Editorial integration: matchup ghost briefs
+carry ROSTER CONTRAST + recent shifts, the lowdown brief carries league
+shift lines, and weekly_story_candidates gains analytics candidates
+(playoff swings, movers, streaks, record/all-play divergence). Nav order:
+Home, CTP, Peer and Near-Peer, Force Flow, Draft, Black Box, Standings,
+Teams, Archive.
+
+## Team identity (2026-08-30)
+
+resolve_public_names precedence: commissioner override > Sleeper team name >
+neutral Roster N; a neutral "Roster N" override yields automatically when a
+manager sets a Sleeper name (that is how Los Bandidos surfaced); login
+handles never become public names. The editor Team names panel shows the
+Sleeper name, PRIVATE manager context (owners, co-managed flag, round-1
+slot, top players), rename detection, and per-row "use Sleeper name"
+(deletes the override; deliberately no bulk button so real overrides cannot
+be mass-destroyed).
+
 ## Voice (authoritative)
 
 .claude/skills/my-writing-style/SKILL.md — supplied by Jonathan, installed

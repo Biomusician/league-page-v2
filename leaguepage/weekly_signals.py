@@ -353,4 +353,22 @@ def weekly_story_candidates(
                     why="Confirmed coalition team plays this week.",
                     sections=["ctp"],
                 ))
+
+    # analytics layer: playoff swings, movers, streaks, divergence (empty
+    # until games are played; deltas need persisted snapshots)
+    try:
+        from leaguepage.team_analytics import analytics_story_candidates
+        from leaguepage.team_names import resolve_public_names
+
+        nm = {rid: (v["name"] or f"Roster {rid}")
+              for rid, v in resolve_public_names(storage, league).items()}
+        for c in analytics_story_candidates(storage, league, season, week, nm):
+            candidates.append(_cand(
+                c["candidate_id"], c["category"], c["headline"],
+                facts=c["facts"], ev=c["evidence"],
+                why="analytics delta vs persisted weekly snapshot",
+                sections=c["recommended_sections"]))
+    except Exception:
+        pass
+
     return candidates

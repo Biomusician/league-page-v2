@@ -206,6 +206,7 @@ def test_empty_section_with_brief_still_blocks_publication(env):
                           module_key="hardware", included=1, approved=1)
     r = client.get(f"{EDIT}/publish")
     assert "Cannot publish yet" in r.text        # excellent ghost != written
+    assert "write it or exclude it" in r.text    # actionable, not mysterious
 
 
 def test_matchup_proposal_path_is_windows_safe(env):

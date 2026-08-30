@@ -312,10 +312,47 @@ def build_league(
     render("matchups/index.html", "public/matchups.html", 2,
            cards=cards, week=week, current_nav="Common Tactical Picture")
 
-    # standings
+    # standings (+ restrained analysis: movers, form, playoff picture)
     standings, weeks_played = _standings_rows(storage, league, names, week)
+    from leaguepage.team_analytics import (
+        playoff_outlook as _po, recent_form as _rf,
+        scoring_streaks as _ss, snapshot_deltas as _sd,
+    )
+
+    st_analysis = {"movers": [], "hot": [], "trouble": [], "playoff": None}
+    _deltas = _sd(storage, league, season, weeks_played)
+    for rid, notes in _deltas.items():
+        for n_ in notes:
+            if n_.startswith("standings"):
+                st_analysis["movers"].append(
+                    f"{names[rid]['name'] or f'Roster {rid}'}: {n_}")
+    _form = _rf(storage, league, week)
+    _streaks = _ss(storage, league, week)
+    if _form:
+        n_teams = len(_form)
+        for rid, f_ in _form.items():
+            nm_ = names[rid]["name"] or f"Roster {rid}"
+            if f_["rank"] <= 2 or (_streaks.get(rid, {}).get("kind") == "top-half scoring"):
+                st_analysis["hot"].append(f"{nm_}: #{f_['rank']} scoring over the last {f_['window']}")
+            if f_["rank"] >= n_teams - 1 or (_streaks.get(rid, {}).get("kind") == "bottom-half scoring"):
+                st_analysis["trouble"].append(f"{nm_}: #{f_['rank']} of {n_teams} over the last {f_['window']}")
+    _outlook = _po(storage, league, week)
+    if _outlook.get("stage") == "too_early":
+        st_analysis["playoff"] = {"note": _outlook["note"],
+                                  "spots": _outlook["playoff_teams"]}
+    elif "teams" in _outlook:
+        rows_ = sorted(_outlook["teams"].items(), key=lambda kv: -kv[1]["odds"])
+        st_analysis["playoff"] = {
+            "spots": _outlook["playoff_teams"], "stage": _outlook["stage"],
+            "rows": [{"name": names[rid]["name"] or f"Roster {rid}",
+                      "band": t_["band"],
+                      "odds": (f"{t_['odds']:.0%}" if _outlook["stage"] == "percentages"
+                               else None)}
+                     for rid, t_ in rows_],
+            "note": _outlook.get("note")}
     render("standings/index.html", "public/standings.html", 2,
-           standings=standings, weeks_played=weeks_played, current_nav="Standings")
+           standings=standings, weeks_played=weeks_played,
+           analysis=st_analysis, current_nav="Standings")
 
     # power (commissioner ranking; published-safe only)
     ranking_ctx, label = [], None
@@ -358,6 +395,22 @@ def build_league(
                                          "issue": f"{snap['season']} {snap['issue_label']}"})
     scores = weekly_scores(storage, league.league_id, MAX_SCAN_WEEK)
     ap = all_play(scores)
+
+    # deterministic team analytics: positional strength, form, outlook
+    from leaguepage.team_analytics import (
+        key_moves, label_for_rank, playoff_outlook, positional_profile,
+        recent_form, scoring_streaks, snapshot_deltas, strengths_weaknesses,
+        team_outlook,
+    )
+
+    weeks_played_league = max((len(v) for v in scores.values()), default=0)
+    profile = positional_profile(storage, league, weeks_played=weeks_played_league)
+    outlook = playoff_outlook(storage, league, week)
+    form = recent_form(storage, league, week)
+    streak_map = scoring_streaks(storage, league, week)
+    moves = key_moves(storage, league, week) if weeks_played_league else {}
+    deltas = snapshot_deltas(storage, league, season, weeks_played_league)
+
     team_cards = []
     for r in storage.get_rosters(league.league_id):
         rid = r["roster_id"]
@@ -366,7 +419,9 @@ def build_league(
         st = next((i + 1 for i, s in enumerate(standings) if s["roster_id"] == rid), None)
         team_cards.append({"slug": slugs[rid], "name": nm,
                            "record": f"{rec['wins']}-{rec['losses']}", "standing": st,
-                           "coalition": _coalition_card(coalitions, league, rid)})
+                           "coalition": _coalition_card(coalitions, league, rid),
+                           "pos_ranks": {pos: profile["ranks"][pos][rid]
+                                         for pos in profile["positions"]}})
         roster_players = []
         for pid in (r.get("players") or []):
             p = storage.get_player(pid) or {}
@@ -382,6 +437,35 @@ def build_league(
         mentions = [{"href": s["href"], "label": f"{s['season']} {s['issue_label']}"}
                     for s in snaps
                     if any(nm in sec["content_md"] for sec in s["sections"])]
+        sw = strengths_weaknesses(profile, rid)
+        positional_rows = []
+        for pos in profile["positions"]:
+            rank = profile["ranks"][pos][rid]
+            t = profile["teams"][rid][pos]
+            nuance = None
+            if t["fragility"] >= 0.6 and t["count"] > 1:
+                nuance = f"{int(t['fragility'] * 100)}% of the room is {t['top_player']}"
+            elif (profile["starter_ranks"][pos][rid] <= round(0.4 * profile["n"])
+                  and profile["depth_ranks"][pos][rid] >= round(0.8 * profile["n"])):
+                nuance = "starters carry it; depth is thin"
+            positional_rows.append({"pos": pos, "rank": rank, "n": profile["n"],
+                                    "label": label_for_rank(rank, profile["n"]),
+                                    "nuance": nuance})
+        trend_lines = []
+        if form and rid in form:
+            f = form[rid]
+            trend_lines.append(f"#{f['rank']} scoring over the last {f['window']}")
+        if rid in streak_map:
+            s_ = streak_map[rid]
+            trend_lines.append(f"{s_['length']} straight weeks of {s_['kind']}")
+        trend_lines += deltas.get(rid, [])[:2]
+        playoff_line = None
+        if outlook.get("stage") == "too_early":
+            playoff_line = outlook["note"]
+        elif "teams" in outlook and rid in outlook["teams"]:
+            t_ = outlook["teams"][rid]
+            playoff_line = (t_["band"] if outlook["stage"] == "bands"
+                            else f"{t_['odds']:.0%} ({t_['band']})")
         render(f"team/{slugs[rid]}/index.html", "public/team.html", 3,
                team={"name": nm, "record": f"{rec['wins']}-{rec['losses']}",
                      "standing": st, "pf": rec["fpts"],
@@ -390,10 +474,20 @@ def build_league(
                      "score_history": scores.get(rid, []),
                      "all_play": f"{apd['wins']}-{apd['losses']}" if apd else None,
                      "awards": awards, "roster": roster_players,
-                     "mentions": mentions},
+                     "mentions": mentions,
+                     "positional": positional_rows,
+                     "strengths": [x["note"] for x in sw["strengths"]],
+                     "weaknesses": [x["note"] for x in sw["weaknesses"]],
+                     "outlook_signals": team_outlook(storage, league, season, rid,
+                                                    week, profile=profile),
+                     "trend": trend_lines,
+                     "playoff": playoff_line,
+                     "key_moves": [m["note"] for m in moves.get(rid, [])],
+                     "stage": profile["stage"]},
                current_nav="Teams")
     render("teams/index.html", "public/teams.html", 2,
-           teams=team_cards, current_nav="Teams")
+           teams=team_cards, positions=profile["positions"],
+           stage=profile["stage"], current_nav="Teams")
 
     # transactions (Force Flow)
     log = []

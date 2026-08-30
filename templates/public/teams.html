@@ -12,4 +12,21 @@
   </a>
   {% endfor %}
 </div>
+
+<h2 class="section-label">Positional Strength — League Comparison</h2>
+<div class="tablewrap">
+<table>
+  <tr><th scope="col">Team</th>
+    {% for pos in positions %}<th scope="col">{{ pos }}</th>{% endfor %}</tr>
+  {% for t in teams %}
+  <tr><td class="wrap"><a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a></td>
+    {% for pos in positions %}<td>{{ t.pos_ranks[pos] }}</td>{% endfor %}</tr>
+  {% endfor %}
+</table>
+</div>
+<p class="meta">Rank 1 = strongest room in this league at that position.
+Rooms are scored against this league's actual lineup requirements (starters
+weighted over depth, flex and superflex demand included), currently using
+{{ stage }}. Positional strength measures the roster, and the standings
+measure results; the gap between the two is usually where the story is.</p>
 {% endblock %}

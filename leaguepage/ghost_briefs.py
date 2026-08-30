@@ -122,6 +122,17 @@ def _build(storage, league, season, issue_key, section, week) -> dict:
             lines.append(f"• Best value: {_fmt_delta(p)} ({names.get(_rid_of(analysis, p['team_slug']))})")
         stacks = sum(len(t["stacks"]) for t in analysis["teams"])
         lines.append(f"• {analysis['pick_count']} picks, {stacks} QB stacks league-wide")
+        try:
+            from leaguepage.team_analytics import league_shift_lines
+
+            shifts = league_shift_lines(storage, league, season,
+                                        _weeks_played(storage, league), names)
+            if shifts:
+                lines.append("")
+                lines.append("SHIFTS WORTH A LINE (vs last snapshot)")
+                lines += shifts
+        except Exception:
+            pass
         takes = storage.all_takes(league.slug, season)
         if takes:
             lines.append("")
@@ -257,6 +268,33 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
             lines.append(f"• [{a.get('family', '?')}] {a.get('title', a.get('angle_id', '?'))}: "
                          f"{a.get('premise', '')[:110]}{warn}")
 
+    # roster construction contrast + recent shifts (analytics layer)
+    try:
+        from leaguepage.team_analytics import (league_shift_lines,
+                                               positional_profile,
+                                               roster_contrast_lines)
+
+        weeks_played = (computed or {}).get("analysis", {}).get("weeks_played", 0)
+        profile = positional_profile(storage, league, weeks_played=weeks_played)
+        a, b = m["teams"]
+        na = resolved.get(a["roster_id"], {}).get("name") or f"Roster {a['roster_id']}"
+        nb = resolved.get(b["roster_id"], {}).get("name") or f"Roster {b['roster_id']}"
+        contrast = roster_contrast_lines(profile, a["roster_id"], b["roster_id"], na, nb)
+        if contrast:
+            lines.append("")
+            lines.append("ROSTER CONTRAST (construction, never head-to-head defense)")
+            lines += contrast
+        nm_map = {rid: (resolved.get(rid, {}).get("name") or f"Roster {rid}")
+                  for rid in profile["teams"]}
+        shifts = league_shift_lines(storage, league, season, weeks_played, nm_map)
+        relevant = [s for s in shifts if na in s or nb in s]
+        if relevant:
+            lines.append("")
+            lines.append("RECENT SHIFTS")
+            lines += relevant[:3]
+    except Exception:
+        pass
+
     sm = sm_entry.get("story_memory") or {}
     cbs = (sm.get("callbacks") or [])[:2]
     if cbs:
@@ -269,3 +307,9 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
         lines.append(f"• avoid repeating: {', '.join(sorted({u['value'] for u in used[:5]}))}")
 
     return {"text": "\n".join(lines).strip(), "evidence": evidence[:12]}
+
+def _weeks_played(storage: Storage, league: League) -> int:
+    from leaguepage.matchup_analysis import weekly_scores
+
+    scores = weekly_scores(storage, league.league_id, 18)
+    return max((len(v) for v in scores.values()), default=0)

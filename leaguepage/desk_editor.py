@@ -100,11 +100,17 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         by_title = {m["title"]: m["module_key"] for m in modules}
         out = []
         for w in assembled["warnings"]:
-            anchor = "sec-team-names"
+            anchor, kind, module_key = "sec-team-names", "generic", None
             m = re.search(r"[Mm]odule '([^']+)'", w)
             if m and m.group(1) in by_title:
-                anchor = f"sec-{by_title[m.group(1)]}"
-            out.append({"text": w, "anchor": anchor})
+                module_key = by_title[m.group(1)]
+                anchor = f"sec-{module_key}"
+                if "no publishable content" in w:
+                    kind = "empty-section"
+                    w = (f"'{m.group(1)}' is included but not written yet "
+                         f"— write it or exclude it from this issue.")
+            out.append({"text": w, "anchor": anchor, "kind": kind,
+                        "module_key": module_key})
         return out
 
     def _editor_context(league_slug: str, season: str, issue_key: str) -> dict:
@@ -189,12 +195,15 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 card["label"] = "preseason" if week is None else issue_key
             cards.append(card)
 
-        name_rows = []
-        for rid in sorted(resolved):
-            v = resolved[rid]
-            neutral = v["name"] is None or re.fullmatch(r"Roster \d+", v["name"] or "")
-            name_rows.append({"roster_id": rid, "name": v["name"], "source": v["source"],
-                              "neutral": bool(neutral)})
+        from leaguepage.team_analytics import player_values
+        from leaguepage.team_names import identity_rows
+
+        with storage() as s:
+            values, _stage = player_values(s, league)
+            name_rows = identity_rows(s, league, player_values=values)
+        for r in name_rows:
+            r["neutral"] = (r["public_name"] is None
+                            or bool(re.fullmatch(r"Roster \d+", r["public_name"] or "")))
         base = f"/commissioner/{league_slug}/{season}/issue/{issue_key}"
         return {
             "league": league, "season": season, "issue_key": issue_key, "week": week,
@@ -483,6 +492,22 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                        "done" if action == "accept" else "withdrawn")
             _write_requests_file(s, league, season, issue_key)
         return JSONResponse({"ok": True, "action": action})
+
+    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/use-sleeper-name")
+    def use_sleeper_name(league_slug: str, season: str, issue_key: str,
+                         roster_id: str = Form(...)):
+        """Drop the commissioner override so this roster follows its Sleeper
+        team name automatically (per-row and explicit: never bulk-destroys
+        deliberate overrides)."""
+        from leaguepage.team_names import sleeper_team_names
+
+        league = get_league(league_slug)
+        with storage() as s:
+            if roster_id.strip().isdigit() and sleeper_team_names(s, league).get(int(roster_id)):
+                s.delete_public_team_name(league_slug, int(roster_id))
+        return RedirectResponse(
+            f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-team-names",
+            status_code=303)
 
     # ------------------------------------------------ publish / deploy
 

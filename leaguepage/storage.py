@@ -1070,3 +1070,8 @@ class Storage:
         ).fetchall()
         return {r["section"]: {"state": r["state"], "updated_at": r["updated_at"]}
                 for r in rows}
+
+    def delete_public_team_name(self, league_slug: str, roster_id: int) -> None:
+        with self._cursor() as cur:
+            cur.execute("DELETE FROM team_names WHERE league_slug=? AND roster_id=?",
+                        (league_slug, roster_id))

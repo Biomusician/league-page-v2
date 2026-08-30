@@ -10,7 +10,51 @@
 </div>
 {% endif %}
 <p class="meta">Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
-{% if team.co_managed %} · co-managed command structure{% endif %}</p>
+{% if team.co_managed %} · co-managed command structure{% endif %}
+{% if team.playoff %} · playoff outlook: {{ team.playoff }}{% endif %}</p>
+
+{% if team.trend %}
+<section class="module">
+  <h2 class="section-label">Trend</h2>
+  <ul>{% for t in team.trend %}<li>{{ t }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if team.positional %}
+<section class="module">
+  <h2 class="section-label">Positional Strength</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th scope="col">Position</th><th scope="col">Rank</th><th scope="col">Assessment</th></tr>
+    {% for p in team.positional %}
+    <tr><td>{{ p.pos }}</td><td>{{ p.rank }} / {{ p.n }}</td>
+        <td>{{ p.label }}{% if p.nuance %} <span class="meta">({{ p.nuance }})</span>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% if team.strengths or team.weaknesses %}
+  <p><b>Strengths:</b> {{ team.strengths | join("; ") or "—" }}<br>
+     <b>Weaknesses:</b> {{ team.weaknesses | join("; ") or "—" }}</p>
+  {% endif %}
+  <p class="meta">Rooms are ranked against this league's actual lineup demand
+  ({{ team.stage }}); starters weigh more than depth, and a room can rank well
+  while being carried by one player; the assessment says so when it is.</p>
+</section>
+{% endif %}
+
+{% if team.outlook_signals %}
+<section class="module">
+  <h2 class="section-label">Team Outlook</h2>
+  <ul>{% for s in team.outlook_signals %}<li>{{ s }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if team.key_moves %}
+<section class="module">
+  <h2 class="section-label">Key Moves</h2>
+  <ul>{% for m in team.key_moves %}<li>{{ m }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
 
 {% if team.score_history %}
 <section class="module">

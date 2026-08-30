@@ -13,6 +13,36 @@
 </table>
 </div>
 
+{% if analysis and analysis.movers %}
+<h2 class="section-label">Biggest Movers</h2>
+<ul>{% for m in analysis.movers %}<li>{{ m }}</li>{% endfor %}</ul>
+{% endif %}
+{% if analysis and analysis.hot %}
+<h2 class="section-label">Hot</h2>
+<ul>{% for m in analysis.hot %}<li>{{ m }}</li>{% endfor %}</ul>
+{% endif %}
+{% if analysis and analysis.trouble %}
+<h2 class="section-label">In Trouble</h2>
+<ul>{% for m in analysis.trouble %}<li>{{ m }}</li>{% endfor %}</ul>
+{% endif %}
+{% if analysis and analysis.playoff %}
+<h2 class="section-label">Playoff Picture</h2>
+{% if analysis.playoff.rows %}
+<div class="tablewrap"><table>
+  <tr><th scope="col">Team</th><th scope="col">Outlook</th>{% if analysis.playoff.rows[0].odds %}<th scope="col">Odds</th>{% endif %}</tr>
+  {% for r in analysis.playoff.rows %}
+  <tr><td class="wrap">{{ r.name }}</td><td>{{ r.band }}</td>
+      {% if r.odds %}<td>{{ r.odds }}</td>{% endif %}</tr>
+  {% endfor %}
+</table></div>
+<p class="meta">{{ analysis.playoff.spots }} playoff spots. The outlook simulates the remaining
+season many times from each team's observed scoring only; preseason rankings play no part.
+{{ analysis.playoff.note }}</p>
+{% else %}
+<p class="meta">{{ analysis.playoff.spots }} playoff spots. {{ analysis.playoff.note }}</p>
+{% endif %}
+{% endif %}
+
 {% if weeks_played %}
 <h2 class="section-label">Under the Hood</h2>
 <p class="meta">Deterministic context through week {{ weeks_played }}: all-play treats every team as

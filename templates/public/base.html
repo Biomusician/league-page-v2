@@ -104,9 +104,9 @@
 </header>
 <nav class="leaguenav" aria-label="League navigation">
   {% set items = [("index.html", "Home"), ("matchups/index.html", "Common Tactical Picture"),
-                  ("standings/index.html", "Standings"), ("power/index.html", "Peer and Near-Peer"),
-                  ("teams/index.html", "Teams"), ("transactions/index.html", "Force Flow"),
+                  ("power/index.html", "Peer and Near-Peer"), ("transactions/index.html", "Force Flow"),
                   ("draft/index.html", "Draft"), ("black-box/index.html", "Black Box"),
+                  ("standings/index.html", "Standings"), ("teams/index.html", "Teams"),
                   ("archive/index.html", "Archive")] %}
   {% for href, label in items %}
   <a href="{{ lroot }}{{ href }}" {% if current_nav == label %}aria-current="page"{% endif %}>{{ label }}</a>

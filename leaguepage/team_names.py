@@ -24,15 +24,19 @@ def resolve_public_names(storage: Storage, league: League) -> dict[int, dict]:
     out: dict[int, dict] = {}
     for roster in storage.get_rosters(league.league_id):
         rid = roster["roster_id"]
-        if rid in overrides:
-            out[rid] = {"name": overrides[rid], "source": "commissioner"}
-            continue
         team_name = None
         for oid in [roster.get("owner_id"), *(roster.get("co_owners") or [])]:
             u = users.get(oid) or {}
             team_name = team_name or (u.get("metadata") or {}).get("team_name")
-        if team_name:
-            out[rid] = {"name": team_name, "source": "sleeper-team-name"}
+        override = overrides.get(rid)
+        # a neutral "Roster N" placeholder override yields to a real Sleeper
+        # name the moment the manager sets one; real overrides are preserved
+        if override and not (override == f"Roster {rid}" and team_name):
+            out[rid] = {"name": override, "source": "commissioner"}
+        elif team_name:
+            out[rid] = {"name": team_name.strip(), "source": "sleeper-team-name"}
+        elif override:
+            out[rid] = {"name": override, "source": "commissioner"}
         else:
             out[rid] = {"name": None, "source": None}
     return out
@@ -55,3 +59,62 @@ def require_public_names(storage: Storage, league: League, roster_ids: list[int]
             f"{details} Set names on the Commissioner's Desk (week workspace, Team names panel)."
         )
     return {rid: resolved[rid]["name"] for rid in wanted}
+
+
+def sleeper_team_names(storage: Storage, league: League) -> dict[int, str | None]:
+    """roster_id -> current Sleeper fantasy-team name (metadata.team_name via
+    owner, then co-owners). Never a login handle."""
+    users = {u["user_id"]: u for u in storage.get_league_users(league.league_id)}
+    out: dict[int, str | None] = {}
+    for roster in storage.get_rosters(league.league_id):
+        name = None
+        for oid in [roster.get("owner_id"), *(roster.get("co_owners") or [])]:
+            u = users.get(oid) or {}
+            name = name or (u.get("metadata") or {}).get("team_name")
+        out[roster["roster_id"]] = name.strip() if name else None
+    return out
+
+
+def identity_rows(storage: Storage, league: League, *,
+                  player_values: dict[str, dict] | None = None) -> list[dict]:
+    """Everything the PRIVATE Desk needs to identify a roster at a glance:
+    Sleeper team name, owner/co-owner display names (private context, never
+    for public output), first-round draft slot, top rostered players, the
+    current public name and its source, and whether a commissioner override
+    now differs from the Sleeper name (rename detection)."""
+    users = {u["user_id"]: u for u in storage.get_league_users(league.league_id)}
+    overrides = storage.get_public_team_names(league.slug)
+    sleeper = sleeper_team_names(storage, league)
+    resolved = resolve_public_names(storage, league)
+    slots: dict[int, int] = {}
+    drafts = storage.get_drafts_for_league(league.league_id)
+    if drafts:
+        for p in storage.get_draft_picks(drafts[0]["draft_id"]):
+            if p.get("round") == 1 and p.get("roster_id") is not None:
+                slots[p["roster_id"]] = p["pick_no"]
+    rows = []
+    for roster in sorted(storage.get_rosters(league.league_id),
+                         key=lambda r: r["roster_id"]):
+        rid = roster["roster_id"]
+        owners = [(users.get(oid) or {}).get("display_name") or "?"
+                  for oid in [roster.get("owner_id"), *(roster.get("co_owners") or [])]
+                  if oid]
+        top = []
+        if player_values:
+            ps = sorted((player_values[pid] for pid in (roster.get("players") or [])
+                         if pid in player_values), key=lambda p: -p["value"])[:3]
+            top = [f"{p['name']} ({p['position']})" for p in ps]
+        rows.append({
+            "roster_id": rid,
+            "sleeper_name": sleeper.get(rid),
+            "owners": owners,                       # PRIVATE context
+            "co_managed": bool(roster.get("co_owners")),
+            "draft_slot": slots.get(rid),
+            "top_players": top,
+            "public_name": resolved[rid]["name"],
+            "source": resolved[rid]["source"],
+            "override": overrides.get(rid),
+            "renamed_on_sleeper": bool(overrides.get(rid) and sleeper.get(rid)
+                                       and overrides[rid] != sleeper[rid]),
+        })
+    return rows
