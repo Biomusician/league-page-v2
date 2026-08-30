@@ -1,15 +1,10 @@
-<!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
-
 ## Draft Power Rankings
 
 *"Every ranking is objective until you read your own, then you should take it up in league chat."* -Me
 
-The scores below are math, and the order is the math's fault. Every one of the 228 picks got compared to the FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means the room let value fall to you, negative means you went and got your guys early. Two caveats before the roasting starts. Consensus is a scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge.
-
-### 1. The Dude (+179)
+All models are wrong, but some are useful; the scores below are just math, and the order is the math's fault. I compared every one of the 228 picks to FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means the room let value fall to you, negative means you went and got your guys early. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge.### 1. The Dude (+179)
 
 The board champion, and it wasn't close. Daniel Jones 68 picks after his consensus rank, Malik Willis 58 after his, in a superflex league where the rest of us treated quarterbacks like launching an E-3 sortie FMC - completely optional. Nineteen picks, plus-179. Enough said.
-
 ### 2. George & Friends (DIP) (+140)
 
 Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick discount. This is the guy at the yard sale who knows which boxes have the good records. Don't love that he drafted three Titans, and not sure he does either now that he realizes it.
@@ -53,13 +48,13 @@ Two three-player city bets (New Orleans and Tampa) and an Audric Estime
 pick that beat consensus to the podium by 69 spots. The name says Barkley;
 the board says the bite went first.
 
-### 10. Stafford and Sons (Fingers) (-204)
+### 10. Secret Asian Man (POP) (-204)
 
 Nine wideouts and an Atlanta triple, financed by paying early on almost
 every window. Terrance Ferguson at plus-34 shows the eye is there; the
 other eighteen picks show the patience went TDY.
 
-### 11. TheLovelands (-493)
+### 11. Stafford and Sons (Fingers) (-493)
 
 One pick is carrying 244 points of this all by itself: Jahdae Walker at 145
 against a consensus rank of 389. That is the single boldest call any of the

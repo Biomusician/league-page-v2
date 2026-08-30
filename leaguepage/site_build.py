@@ -490,7 +490,13 @@ def build_site(
 ) -> dict:
     out = out_dir or DIST_DIR
     if out.exists():
-        shutil.rmtree(out)
+        try:
+            shutil.rmtree(out)
+        except PermissionError:
+            # Windows: a shell/CLI parked inside dist holds the root dir open.
+            # Its contents still delete; clear them and reuse the directory.
+            for child in out.iterdir():
+                shutil.rmtree(child) if child.is_dir() else child.unlink()
     out.mkdir(parents=True, exist_ok=True)
     env = _env()
     pages: list[str] = []
