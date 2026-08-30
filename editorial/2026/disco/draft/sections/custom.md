@@ -2,15 +2,21 @@
 
 *"Every ranking is objective until you read your own, then you should take it up in league chat."* -Me
 
-All models are wrong, but some are useful; the scores below are just math, and the order is the math's fault. I compared every one of the 228 picks to FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means the room let value fall to you, negative means you went and got your guys early. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge.### 1. The Dude (+179)
+All models are wrong, but some are useful; the scores below are just math, and the order is the math's fault. I compared every one of the 228 picks to FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means the room let value fall to you, negative means you went and got your guys early. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge.
+
+### 1. The Dude (+179)
 
 The board champion, and it wasn't close. Daniel Jones 68 picks after his consensus rank, Malik Willis 58 after his, in a superflex league where the rest of us treated quarterbacks like launching an E-3 sortie FMC - completely optional. Nineteen picks, plus-179. Enough said.
+
 ### 2. George & Friends (DIP) (+140)
 
 Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick discount. This is the guy at the yard sale who knows which boxes have the good records. Don't love that he drafted three Titans, and not sure he does either now that he realizes it.
+
 ### 3. Love Sutton Brocks (EMCO) (+84)
 
-Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay triple for upside, and only one real reach (Jarquez Hunter, minus-60). Plus-84 without ever making the room gasp. Textbook.### 4. Tua Girls One Kupp (Ethen) (+67)
+Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay triple for upside, and only one real reach (Jarquez Hunter, minus-60). Plus-84 without ever making the room gasp. Textbook.
+
+### 4. Tua Girls One Kupp (Ethen) (+67)
 
 Tre' Harris at a 42-pick discount and four tight ends, which is either depth
 or a cry for help; the plus-67 says depth. Two quarterbacks in superflex is
@@ -71,5 +77,43 @@ the tourniquet arriving late. Respect for the conviction. Woof for the math.
 The scoreboard settles all of this starting Thursday, and I look forward to
 The Dude printing this out and framing it. Full board with every delta is on
 the Draft page.
+
+### Second Opinions
+
+Two outside gauges for calibration, both pulled 2026-08-30. FantasyPros grades the room on a curve: ten of twelve boards got a B+ or better, and nobody failed. The Fantasy Footballers put my board first at 100, which proves their model is rigorous and unbiased (I am totally objective). Where all three methods agree, believe it; where they argue, that's a season preview.
+
+**FantasyPros draft grades**
+
+| Rk | Team | Grade | PPG |
+|---:|------|:-----:|----:|
+| 1 | George & Friends | A- | 140.0 |
+| 2 | The Dude | A- | 140.0 |
+| 3 | Statistical Anomalies | A- | 139.6 |
+| 4 | Tua Girls One Kupp | A- | 137.7 |
+| 5 | Corn-Fed Fatties | B+ | 136.5 |
+| 6 | Love Sutton Brocks | B+ | 133.7 |
+| 7 | VHS Cowboys | B+ | 133.4 |
+| 8 | Secret Asian Man | B+ | 131.1 |
+| 9 | Hand me a White Claw | B+ | 128.1 |
+| 10 | All Barkley No Bite | B+ | 127.7 |
+| 11 | Stafford and Sons | B | 134.4 |
+| 12 | Double TDs | B | 125.7 |
+
+**Fantasy Footballers draft rankings**
+
+| Rk | Team | Score |
+|---:|------|------:|
+| 1 | Statistical Anomalies | 100 |
+| 2 | The Dude | 99 |
+| 3 | Love Sutton Brocks | 97 |
+| 4 | Tua Girls One Kupp | 96 |
+| 5 | VHS Cowboys | 95 |
+| 6 | Hand me a White Claw | 91 |
+| 7 | George & Friends | 90 |
+| 8 | Corn-Fed Fatties | 88 |
+| 9 | All Barkley No Bite | 86 |
+| 10 | Secret Asian Man | 85 |
+| 11 | Double TDs | 83 |
+| 12 | Stafford and Sons | 80 |
 
 <!-- usage: angle=draft:power-rankings frame=graded-by-consensus-gauge callback=none joke_family=tiebreaker-self-roast -->
