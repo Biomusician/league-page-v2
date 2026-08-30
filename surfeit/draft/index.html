@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #1b3a5c; box-shadow:3px 3px 0 #cfd6dc; }
   .tag { background:#e2e6e2; color:#1b3a5c; }
   .tag.prom { background:#1b3a5c; color:#f4f4f0; }
+  .tag.warn { background:#f4e3c4; color:#6e4310; border:1px solid #c9a25e; }
+  :root { --dv-red:#a02c1f; --dv-green:#1e6b34; --dv-base:#1b2733; }
   td, th { border:1px solid #cfd6dc; }
   th { background:#e2e6e2; color:#1b3a5c; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #b0332a; color:#41505e; }
@@ -113,6 +127,50 @@
 <p><a href="../2026/draft/index.html">Read the editorial Draft Issue →</a></p>
 
 
+
+<section class="module">
+  <h2 class="section-label">Market Deviations</h2>
+  <div class="teamgrid">
+    
+    <div class="card">
+      <strong>Biggest Reaches</strong>
+      <ul>
+        
+        <li>Jordan James <span class="meta">(<a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a>, pick 123 · ref 254.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 131 picks early</span></li>
+        
+        <li>Buffalo Bills <span class="meta">(<a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a>, pick 103 · ref 233.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 130 picks early</span></li>
+        
+        <li>Jason Myers <span class="meta">(<a href="#team-roster-5">Roster 5</a>, pick 124 · ref 219.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 95 picks early</span></li>
+        
+        <li>Jake Bates <span class="meta">(<a href="#team-roster-6">Roster 6</a>, pick 133 · ref 224.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 91 picks early</span></li>
+        
+        <li>Los Angeles Rams <span class="meta">(<a href="#team-swifty-mahomey">Swifty Mahomey (Pappie)</a>, pick 107 · ref 191.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></li>
+        
+      </ul>
+    </div>
+    
+    
+    <div class="card">
+      <strong>Biggest Steals</strong>
+      <ul>
+        
+        <li>Trevor Lawrence <span class="meta">(<a href="#team-los-bandidos">Los Bandidos</a>, pick 111 · ref 74.0)</span><br><span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 37 picks late</span></li>
+        
+        <li>Caleb Williams <span class="meta">(<a href="#team-roster-2">Roster 2</a>, pick 96 · ref 67.0)</span><br><span class="dv dv-strong dv-steal" style="--dvi:0.97">STEAL · 29 picks late</span></li>
+        
+        <li>Josh Jacobs <span class="meta">(<a href="#team-los-bandidos">Los Bandidos</a>, pick 71 · ref 43.0)</span><br><span class="dv dv-strong dv-steal" style="--dvi:0.93">STEAL · 28 picks late</span></li>
+        
+        <li>Jared Goff <span class="meta">(<a href="#team-roster-5">Roster 5</a>, pick 137 · ref 109.0)</span><br><span class="dv dv-strong dv-steal" style="--dvi:0.93">STEAL · 28 picks late</span></li>
+        
+        <li>Matthew Stafford <span class="meta">(<a href="#team-swifty-mahomey">Swifty Mahomey (Pappie)</a>, pick 134 · ref 108.0)</span><br><span class="dv dv-strong dv-steal" style="--dvi:0.87">STEAL · 26 picks late</span></li>
+        
+      </ul>
+    </div>
+    
+  </div>
+</section>
+
+
 <section class="module">
   <h2 class="section-label">Team-by-Team</h2>
   <p class="meta"><a href="#team-statistical-anomalies">Statistical Anomalies (McLovin)</a> · <a href="#team-roster-2">Roster 2</a> · <a href="#team-shactin-a-fool">SHACtin&#39; a Fool 🐻 (SHAC)</a> · <a href="#team-roster-4">Roster 4</a> · <a href="#team-roster-5">Roster 5</a> · <a href="#team-roster-6">Roster 6</a> · <a href="#team-wild-seekats">Wild SeeKats (Seabass/Kats)</a> · <a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a> · <a href="#team-swifty-mahomey">Swifty Mahomey (Pappie)</a> · <a href="#team-los-bandidos">Los Bandidos</a></p>
@@ -120,83 +178,87 @@
   <div class="card" id="team-statistical-anomalies">
     <strong>Statistical Anomalies (McLovin)</strong> <span class="meta">1 DEF, 1 K, 1 QB, 5 RB, 1 TE, 6 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>6</td><td class="wrap">Ja&#39;Marr Chase</td>
-          <td>WR</td><td>CIN</td>
+          <td>WR</td>
           <td>3.0</td>
-          <td>+3</td></tr>
+          <td data-sort-value="3.0"><span class="dv dv-steal" style="--dvi:0.1">+3</span></td></tr>
       
       <tr><td>2</td><td>15</td><td class="wrap">Kenneth Walker</td>
-          <td>RB</td><td>KC</td>
+          <td>RB</td>
           <td>20.0</td>
-          <td>-5</td></tr>
+          <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
       
       <tr><td>3</td><td>26</td><td class="wrap">Jeremiyah Love</td>
-          <td>RB</td><td>ARI</td>
+          <td>RB</td>
           <td>42.0</td>
-          <td>-16</td></tr>
+          <td data-sort-value="-16.0"><span class="dv dv-strong dv-reach" style="--dvi:0.53">REACH · 16 picks early</span></td></tr>
       
       <tr><td>4</td><td>35</td><td class="wrap">Chris Olave</td>
-          <td>WR</td><td>NO</td>
+          <td>WR</td>
           <td>24.0</td>
-          <td>+11</td></tr>
+          <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
       
       <tr><td>5</td><td>46</td><td class="wrap">Emeka Egbuka</td>
-          <td>WR</td><td>TB</td>
+          <td>WR</td>
           <td>41.0</td>
-          <td>+5</td></tr>
+          <td data-sort-value="5.0"><span class="dv dv-steal" style="--dvi:0.17">+5</span></td></tr>
       
       <tr><td>6</td><td>55</td><td class="wrap">TreVeyon Henderson</td>
-          <td>RB</td><td>NE</td>
+          <td>RB</td>
           <td>66.0</td>
-          <td>-11</td></tr>
+          <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
       
       <tr><td>7</td><td>66</td><td class="wrap">Joe Burrow</td>
-          <td>QB</td><td>CIN</td>
+          <td>QB</td>
           <td>50.0</td>
-          <td>+16</td></tr>
+          <td data-sort-value="16.0"><span class="dv dv-strong dv-steal" style="--dvi:0.53">STEAL · 16 picks late</span></td></tr>
       
       <tr><td>8</td><td>75</td><td class="wrap">Carnell Tate</td>
-          <td>WR</td><td>TEN</td>
+          <td>WR</td>
           <td>73.0</td>
-          <td>+2</td></tr>
+          <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>9</td><td>86</td><td class="wrap">Brian Thomas</td>
-          <td>WR</td><td>JAX</td>
+          <td>WR</td>
           <td>77.0</td>
-          <td>+9</td></tr>
+          <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
       
       <tr><td>10</td><td>95</td><td class="wrap">Jacory Croskey-Merritt</td>
-          <td>RB</td><td>WAS</td>
+          <td>RB</td>
           <td>98.0</td>
-          <td>-3</td></tr>
+          <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
       
       <tr><td>11</td><td>106</td><td class="wrap">MarShawn Lloyd</td>
-          <td>RB</td><td>GB</td>
+          <td>RB</td>
           <td>151.0</td>
-          <td>-45</td></tr>
+          <td data-sort-value="-45.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 45 picks early</span></td></tr>
       
       <tr><td>12</td><td>115</td><td class="wrap">De&#39;Zhaun Stribling</td>
-          <td>WR</td><td>SF</td>
+          <td>WR</td>
           <td>143.0</td>
-          <td>-28</td></tr>
+          <td data-sort-value="-28.0"><span class="dv dv-strong dv-reach" style="--dvi:0.93">REACH · 28 picks early</span></td></tr>
       
       <tr><td>13</td><td>126</td><td class="wrap">Cameron Dicker</td>
-          <td>K</td><td>LAC</td>
+          <td>K</td>
           <td>206.0</td>
-          <td>-80</td></tr>
+          <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
       
       <tr><td>14</td><td>135</td><td class="wrap">Juwan Johnson</td>
-          <td>TE</td><td>NO</td>
+          <td>TE</td>
           <td>137.0</td>
-          <td>-2</td></tr>
+          <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>15</td><td>146</td><td class="wrap">Jacksonville Jaguars</td>
-          <td>DEF</td><td>JAX</td>
+          <td>DEF</td>
           <td>195.0</td>
-          <td>-49</td></tr>
+          <td data-sort-value="-49.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 49 picks early</span></td></tr>
       
     </table>
     </div>
@@ -205,83 +267,87 @@
   <div class="card" id="team-roster-2">
     <strong>Roster 2</strong> <span class="meta">1 DEF, 1 QB, 6 RB, 2 TE, 5 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>5</td><td class="wrap">Puka Nacua</td>
-          <td>WR</td><td>LAR</td>
+          <td>WR</td>
           <td>4.0</td>
-          <td>+1</td></tr>
+          <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>2</td><td>16</td><td class="wrap">Chase Brown</td>
-          <td>RB</td><td>CIN</td>
+          <td>RB</td>
           <td>12.0</td>
-          <td>+4</td></tr>
+          <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
       
       <tr><td>3</td><td>25</td><td class="wrap">Rashee Rice</td>
-          <td>WR</td><td>KC</td>
+          <td>WR</td>
           <td>29.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>4</td><td>36</td><td class="wrap">Colston Loveland</td>
-          <td>TE</td><td>CHI</td>
+          <td>TE</td>
           <td>40.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>5</td><td>45</td><td class="wrap">Luther Burden</td>
-          <td>WR</td><td>CHI</td>
+          <td>WR</td>
           <td>49.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>6</td><td>56</td><td class="wrap">Jaylen Warren</td>
-          <td>RB</td><td>PIT</td>
+          <td>RB</td>
           <td>72.0</td>
-          <td>-16</td></tr>
+          <td data-sort-value="-16.0"><span class="dv dv-strong dv-reach" style="--dvi:0.53">REACH · 16 picks early</span></td></tr>
       
       <tr><td>7</td><td>65</td><td class="wrap">J.K. Dobbins</td>
-          <td>RB</td><td>DEN</td>
+          <td>RB</td>
           <td>86.0</td>
-          <td>-21</td></tr>
+          <td data-sort-value="-21.0"><span class="dv dv-strong dv-reach" style="--dvi:0.7">REACH · 21 picks early</span></td></tr>
       
       <tr><td>8</td><td>76</td><td class="wrap">Courtland Sutton</td>
-          <td>WR</td><td>DEN</td>
+          <td>WR</td>
           <td>85.0</td>
-          <td>-9</td></tr>
+          <td data-sort-value="-9.0"><span class="dv dv-reach" style="--dvi:0.3">-9</span></td></tr>
       
       <tr><td>9</td><td>85</td><td class="wrap">Chuba Hubbard</td>
-          <td>RB</td><td>CAR</td>
+          <td>RB</td>
           <td>91.0</td>
-          <td>-6</td></tr>
+          <td data-sort-value="-6.0"><span class="dv dv-reach" style="--dvi:0.2">-6</span></td></tr>
       
       <tr><td>10</td><td>96</td><td class="wrap">Caleb Williams</td>
-          <td>QB</td><td>CHI</td>
+          <td>QB</td>
           <td>67.0</td>
-          <td>+29</td></tr>
+          <td data-sort-value="29.0"><span class="dv dv-strong dv-steal" style="--dvi:0.97">STEAL · 29 picks late</span></td></tr>
       
       <tr><td>11</td><td>105</td><td class="wrap">Denver Broncos</td>
-          <td>DEF</td><td>DEN</td>
+          <td>DEF</td>
           <td>187.0</td>
-          <td>-82</td></tr>
+          <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
       
       <tr><td>12</td><td>116</td><td class="wrap">Mike Washington</td>
-          <td>RB</td><td>LV</td>
+          <td>RB</td>
           <td>166.0</td>
-          <td>-50</td></tr>
+          <td data-sort-value="-50.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 50 picks early</span></td></tr>
       
       <tr><td>13</td><td>125</td><td class="wrap">Makai Lemon</td>
-          <td>WR</td><td>PHI</td>
+          <td>WR</td>
           <td>112.0</td>
-          <td>+13</td></tr>
+          <td data-sort-value="13.0"><span class="dv dv-strong dv-steal" style="--dvi:0.43">STEAL · 13 picks late</span></td></tr>
       
       <tr><td>14</td><td>136</td><td class="wrap">Isaiah Likely</td>
-          <td>TE</td><td>NYG</td>
+          <td>TE</td>
           <td>117.0</td>
-          <td>+19</td></tr>
+          <td data-sort-value="19.0"><span class="dv dv-strong dv-steal" style="--dvi:0.63">STEAL · 19 picks late</span></td></tr>
       
       <tr><td>15</td><td>145</td><td class="wrap">Alvin Kamara</td>
-          <td>RB</td><td>NO</td>
+          <td>RB</td>
           <td>152.0</td>
-          <td>-7</td></tr>
+          <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
       
     </table>
     </div>
@@ -290,83 +356,87 @@
   <div class="card" id="team-shactin-a-fool">
     <strong>SHACtin&#39; a Fool 🐻 (SHAC)</strong> <span class="meta">2 DEF, 2 QB, 6 RB, 1 TE, 4 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>2</td><td class="wrap">Bijan Robinson</td>
-          <td>RB</td><td>ATL</td>
+          <td>RB</td>
           <td>2.0</td>
-          <td>+0</td></tr>
+          <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>2</td><td>19</td><td class="wrap">Omarion Hampton</td>
-          <td>RB</td><td>LAC</td>
+          <td>RB</td>
           <td>19.0</td>
-          <td>+0</td></tr>
+          <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>3</td><td>22</td><td class="wrap">Malik Nabers</td>
-          <td>WR</td><td>NYG</td>
+          <td>WR</td>
           <td>26.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>4</td><td>39</td><td class="wrap">Lamar Jackson</td>
-          <td>QB</td><td>BAL</td>
+          <td>QB</td>
           <td>39.0</td>
-          <td>+0</td></tr>
+          <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>5</td><td>42</td><td class="wrap">Jaylen Waddle</td>
-          <td>WR</td><td>DEN</td>
+          <td>WR</td>
           <td>38.0</td>
-          <td>+4</td></tr>
+          <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
       
       <tr><td>6</td><td>59</td><td class="wrap">Rome Odunze</td>
-          <td>WR</td><td>CHI</td>
+          <td>WR</td>
           <td>59.0</td>
-          <td>+0</td></tr>
+          <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>7</td><td>62</td><td class="wrap">Parker Washington</td>
-          <td>WR</td><td>JAX</td>
+          <td>WR</td>
           <td>65.0</td>
-          <td>-3</td></tr>
+          <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
       
       <tr><td>8</td><td>79</td><td class="wrap">Kyle Monangai</td>
-          <td>RB</td><td>CHI</td>
+          <td>RB</td>
           <td>110.0</td>
-          <td>-31</td></tr>
+          <td data-sort-value="-31.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 31 picks early</span></td></tr>
       
       <tr><td>9</td><td>82</td><td class="wrap">Jonathon Brooks</td>
-          <td>RB</td><td>CAR</td>
+          <td>RB</td>
           <td>80.0</td>
-          <td>+2</td></tr>
+          <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>10</td><td>99</td><td class="wrap">Blake Corum</td>
-          <td>RB</td><td>LAR</td>
+          <td>RB</td>
           <td>90.0</td>
-          <td>+9</td></tr>
+          <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
       
       <tr><td>11</td><td>102</td><td class="wrap">Kyle Pitts</td>
-          <td>TE</td><td>ATL</td>
+          <td>TE</td>
           <td>84.0</td>
-          <td>+18</td></tr>
+          <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
       
       <tr><td>12</td><td>119</td><td class="wrap">Jaxson Dart</td>
-          <td>QB</td><td>NYG</td>
+          <td>QB</td>
           <td>96.0</td>
-          <td>+23</td></tr>
+          <td data-sort-value="23.0"><span class="dv dv-strong dv-steal" style="--dvi:0.77">STEAL · 23 picks late</span></td></tr>
       
       <tr><td>13</td><td>122</td><td class="wrap">Seattle Seahawks</td>
-          <td>DEF</td><td>SEA</td>
+          <td>DEF</td>
           <td>190.0</td>
-          <td>-68</td></tr>
+          <td data-sort-value="-68.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 68 picks early</span></td></tr>
       
       <tr><td>14</td><td>139</td><td class="wrap">Brian Robinson</td>
-          <td>RB</td><td>ATL</td>
+          <td>RB</td>
           <td>160.0</td>
-          <td>-21</td></tr>
+          <td data-sort-value="-21.0"><span class="dv dv-strong dv-reach" style="--dvi:0.7">REACH · 21 picks early</span></td></tr>
       
       <tr><td>15</td><td>142</td><td class="wrap">Houston Texans</td>
-          <td>DEF</td><td>HOU</td>
+          <td>DEF</td>
           <td>186.0</td>
-          <td>-44</td></tr>
+          <td data-sort-value="-44.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 44 picks early</span></td></tr>
       
     </table>
     </div>
@@ -375,83 +445,87 @@
   <div class="card" id="team-roster-4">
     <strong>Roster 4</strong> <span class="meta">1 K, 1 QB, 5 RB, 1 TE, 7 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>9</td><td class="wrap">James Cook</td>
-          <td>RB</td><td>BUF</td>
+          <td>RB</td>
           <td>10.0</td>
-          <td>-1</td></tr>
+          <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>2</td><td>12</td><td class="wrap">CeeDee Lamb</td>
-          <td>WR</td><td>DAL</td>
+          <td>WR</td>
           <td>9.0</td>
-          <td>+3</td></tr>
+          <td data-sort-value="3.0"><span class="dv dv-steal" style="--dvi:0.1">+3</span></td></tr>
       
       <tr><td>3</td><td>29</td><td class="wrap">Brock Bowers</td>
-          <td>TE</td><td>LV</td>
+          <td>TE</td>
           <td>18.0</td>
-          <td>+11</td></tr>
+          <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
       
       <tr><td>4</td><td>32</td><td class="wrap">Zay Flowers</td>
-          <td>WR</td><td>BAL</td>
+          <td>WR</td>
           <td>30.0</td>
-          <td>+2</td></tr>
+          <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>5</td><td>49</td><td class="wrap">Bhayshul Tuten</td>
-          <td>RB</td><td>JAX</td>
+          <td>RB</td>
           <td>63.0</td>
-          <td>-14</td></tr>
+          <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
       
       <tr><td>6</td><td>52</td><td class="wrap">Quinshon Judkins</td>
-          <td>RB</td><td>CLE</td>
+          <td>RB</td>
           <td>55.0</td>
-          <td>-3</td></tr>
+          <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
       
       <tr><td>7</td><td>69</td><td class="wrap">Jameson Williams</td>
-          <td>WR</td><td>DET</td>
+          <td>WR</td>
           <td>51.0</td>
-          <td>+18</td></tr>
+          <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
       
       <tr><td>8</td><td>72</td><td class="wrap">Rico Dowdle</td>
-          <td>RB</td><td>PIT</td>
+          <td>RB</td>
           <td>81.0</td>
-          <td>-9</td></tr>
+          <td data-sort-value="-9.0"><span class="dv dv-reach" style="--dvi:0.3">-9</span></td></tr>
       
       <tr><td>9</td><td>89</td><td class="wrap">Marvin Harrison</td>
-          <td>WR</td><td>ARI</td>
+          <td>WR</td>
           <td>69.0</td>
-          <td>+20</td></tr>
+          <td data-sort-value="20.0"><span class="dv dv-strong dv-steal" style="--dvi:0.67">STEAL · 20 picks late</span></td></tr>
       
       <tr><td>10</td><td>92</td><td class="wrap">Dak Prescott</td>
-          <td>QB</td><td>DAL</td>
+          <td>QB</td>
           <td>75.0</td>
-          <td>+17</td></tr>
+          <td data-sort-value="17.0"><span class="dv dv-strong dv-steal" style="--dvi:0.57">STEAL · 17 picks late</span></td></tr>
       
       <tr><td>11</td><td>109</td><td class="wrap">Wan&#39;Dale Robinson</td>
-          <td>WR</td><td>TEN</td>
+          <td>WR</td>
           <td>97.0</td>
-          <td>+12</td></tr>
+          <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
       
       <tr><td>12</td><td>112</td><td class="wrap">Stefon Diggs</td>
-          <td>WR</td><td>WAS</td>
+          <td>WR</td>
           <td>101.0</td>
-          <td>+11</td></tr>
+          <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
       
       <tr><td>13</td><td>129</td><td class="wrap">Woody Marks</td>
-          <td>RB</td><td>HOU</td>
+          <td>RB</td>
           <td>128.0</td>
-          <td>+1</td></tr>
+          <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>14</td><td>132</td><td class="wrap">Xavier Worthy</td>
-          <td>WR</td><td>KC</td>
+          <td>WR</td>
           <td>123.0</td>
-          <td>+9</td></tr>
+          <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
       
       <tr><td>15</td><td>149</td><td class="wrap">Eddy Pineiro</td>
-          <td>K</td><td>SF</td>
+          <td>K</td>
           <td>225.0</td>
-          <td>-76</td></tr>
+          <td data-sort-value="-76.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 76 picks early</span></td></tr>
       
     </table>
     </div>
@@ -460,83 +534,87 @@
   <div class="card" id="team-roster-5">
     <strong>Roster 5</strong> <span class="meta">1 DEF, 1 K, 2 QB, 5 RB, 1 TE, 5 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>4</td><td class="wrap">Jonathan Taylor</td>
-          <td>RB</td><td>IND</td>
+          <td>RB</td>
           <td>8.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>2</td><td>17</td><td class="wrap">Kyren Williams</td>
-          <td>RB</td><td>LAR</td>
+          <td>RB</td>
           <td>31.0</td>
-          <td>-14</td></tr>
+          <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
       
       <tr><td>3</td><td>24</td><td class="wrap">DeVonta Smith</td>
-          <td>WR</td><td>PHI</td>
+          <td>WR</td>
           <td>28.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>4</td><td>37</td><td class="wrap">Cam Skattebo</td>
-          <td>RB</td><td>NYG</td>
+          <td>RB</td>
           <td>53.0</td>
-          <td>-16</td></tr>
+          <td data-sort-value="-16.0"><span class="dv dv-strong dv-reach" style="--dvi:0.53">REACH · 16 picks early</span></td></tr>
       
       <tr><td>5</td><td>44</td><td class="wrap">Ladd McConkey</td>
-          <td>WR</td><td>LAC</td>
+          <td>WR</td>
           <td>36.0</td>
-          <td>+8</td></tr>
+          <td data-sort-value="8.0"><span class="dv dv-steal" style="--dvi:0.27">+8</span></td></tr>
       
       <tr><td>6</td><td>57</td><td class="wrap">Tony Pollard</td>
-          <td>RB</td><td>TEN</td>
+          <td>RB</td>
           <td>76.0</td>
-          <td>-19</td></tr>
+          <td data-sort-value="-19.0"><span class="dv dv-strong dv-reach" style="--dvi:0.63">REACH · 19 picks early</span></td></tr>
       
       <tr><td>7</td><td>64</td><td class="wrap">Christian Watson</td>
-          <td>WR</td><td>GB</td>
+          <td>WR</td>
           <td>58.0</td>
-          <td>+6</td></tr>
+          <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
       
       <tr><td>8</td><td>77</td><td class="wrap">Tucker Kraft</td>
-          <td>TE</td><td>GB</td>
+          <td>TE</td>
           <td>70.0</td>
-          <td>+7</td></tr>
+          <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
       
       <tr><td>9</td><td>84</td><td class="wrap">Justin Herbert</td>
-          <td>QB</td><td>LAC</td>
+          <td>QB</td>
           <td>71.0</td>
-          <td>+13</td></tr>
+          <td data-sort-value="13.0"><span class="dv dv-strong dv-steal" style="--dvi:0.43">STEAL · 13 picks late</span></td></tr>
       
       <tr><td>10</td><td>97</td><td class="wrap">Jordan Addison</td>
-          <td>WR</td><td>MIN</td>
+          <td>WR</td>
           <td>105.0</td>
-          <td>-8</td></tr>
+          <td data-sort-value="-8.0"><span class="dv dv-reach" style="--dvi:0.27">-8</span></td></tr>
       
       <tr><td>11</td><td>104</td><td class="wrap">Kenny Gainwell</td>
-          <td>RB</td><td>TB</td>
+          <td>RB</td>
           <td>106.0</td>
-          <td>-2</td></tr>
+          <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>12</td><td>117</td><td class="wrap">KC Concepcion</td>
-          <td>WR</td><td>CLE</td>
+          <td>WR</td>
           <td>132.0</td>
-          <td>-15</td></tr>
+          <td data-sort-value="-15.0"><span class="dv dv-strong dv-reach" style="--dvi:0.5">REACH · 15 picks early</span></td></tr>
       
       <tr><td>13</td><td>124</td><td class="wrap">Jason Myers</td>
-          <td>K</td><td>SEA</td>
+          <td>K</td>
           <td>219.0</td>
-          <td>-95</td></tr>
+          <td data-sort-value="-95.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 95 picks early</span></td></tr>
       
       <tr><td>14</td><td>137</td><td class="wrap">Jared Goff</td>
-          <td>QB</td><td>DET</td>
+          <td>QB</td>
           <td>109.0</td>
-          <td>+28</td></tr>
+          <td data-sort-value="28.0"><span class="dv dv-strong dv-steal" style="--dvi:0.93">STEAL · 28 picks late</span></td></tr>
       
       <tr><td>15</td><td>144</td><td class="wrap">Baltimore Ravens</td>
-          <td>DEF</td><td>BAL</td>
+          <td>DEF</td>
           <td>218.0</td>
-          <td>-74</td></tr>
+          <td data-sort-value="-74.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 74 picks early</span></td></tr>
       
     </table>
     </div>
@@ -545,83 +623,87 @@
   <div class="card" id="team-roster-6">
     <strong>Roster 6</strong> <span class="meta">1 DEF, 1 K, 1 QB, 5 RB, 2 TE, 5 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>8</td><td class="wrap">Amon-Ra St. Brown</td>
-          <td>WR</td><td>DET</td>
+          <td>WR</td>
           <td>6.0</td>
-          <td>+2</td></tr>
+          <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>2</td><td>13</td><td class="wrap">Derrick Henry</td>
-          <td>RB</td><td>BAL</td>
+          <td>RB</td>
           <td>21.0</td>
-          <td>-8</td></tr>
+          <td data-sort-value="-8.0"><span class="dv dv-reach" style="--dvi:0.27">-8</span></td></tr>
       
       <tr><td>3</td><td>28</td><td class="wrap">Bucky Irving</td>
-          <td>RB</td><td>TB</td>
+          <td>RB</td>
           <td>54.0</td>
-          <td>-26</td></tr>
+          <td data-sort-value="-26.0"><span class="dv dv-strong dv-reach" style="--dvi:0.87">REACH · 26 picks early</span></td></tr>
       
       <tr><td>4</td><td>33</td><td class="wrap">Tetairoa McMillan</td>
-          <td>WR</td><td>CAR</td>
+          <td>WR</td>
           <td>35.0</td>
-          <td>-2</td></tr>
+          <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>5</td><td>48</td><td class="wrap">Sam LaPorta</td>
-          <td>TE</td><td>DET</td>
+          <td>TE</td>
           <td>82.0</td>
-          <td>-34</td></tr>
+          <td data-sort-value="-34.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 34 picks early</span></td></tr>
       
       <tr><td>6</td><td>53</td><td class="wrap">DJ Moore</td>
-          <td>WR</td><td>BUF</td>
+          <td>WR</td>
           <td>57.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>7</td><td>68</td><td class="wrap">Jalen Hurts</td>
-          <td>QB</td><td>PHI</td>
+          <td>QB</td>
           <td>62.0</td>
-          <td>+6</td></tr>
+          <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
       
       <tr><td>8</td><td>73</td><td class="wrap">Jordan Mason</td>
-          <td>RB</td><td>MIN</td>
+          <td>RB</td>
           <td>103.0</td>
-          <td>-30</td></tr>
+          <td data-sort-value="-30.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 30 picks early</span></td></tr>
       
       <tr><td>9</td><td>88</td><td class="wrap">Jayden Reed</td>
-          <td>WR</td><td>GB</td>
+          <td>WR</td>
           <td>107.0</td>
-          <td>-19</td></tr>
+          <td data-sort-value="-19.0"><span class="dv dv-strong dv-reach" style="--dvi:0.63">REACH · 19 picks early</span></td></tr>
       
       <tr><td>10</td><td>93</td><td class="wrap">Mark Andrews</td>
-          <td>TE</td><td>BAL</td>
+          <td>TE</td>
           <td>124.0</td>
-          <td>-31</td></tr>
+          <td data-sort-value="-31.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 31 picks early</span></td></tr>
       
       <tr><td>11</td><td>108</td><td class="wrap">Aaron Jones</td>
-          <td>RB</td><td>MIN</td>
+          <td>RB</td>
           <td>115.0</td>
-          <td>-7</td></tr>
+          <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
       
       <tr><td>12</td><td>113</td><td class="wrap">Zach Charbonnet</td>
-          <td>RB</td><td>SEA</td>
+          <td>RB</td>
           <td>145.0</td>
-          <td>-32</td></tr>
+          <td data-sort-value="-32.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 32 picks early</span></td></tr>
       
       <tr><td>13</td><td>128</td><td class="wrap">Khalil Shakir</td>
-          <td>WR</td><td>BUF</td>
+          <td>WR</td>
           <td>131.0</td>
-          <td>-3</td></tr>
+          <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
       
       <tr><td>14</td><td>133</td><td class="wrap">Jake Bates</td>
-          <td>K</td><td>DET</td>
+          <td>K</td>
           <td>224.0</td>
-          <td>-91</td></tr>
+          <td data-sort-value="-91.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 91 picks early</span></td></tr>
       
       <tr><td>15</td><td>148</td><td class="wrap">Pittsburgh Steelers</td>
-          <td>DEF</td><td>PIT</td>
+          <td>DEF</td>
           <td>199.0</td>
-          <td>-51</td></tr>
+          <td data-sort-value="-51.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 51 picks early</span></td></tr>
       
     </table>
     </div>
@@ -630,83 +712,87 @@
   <div class="card" id="team-wild-seekats">
     <strong>Wild SeeKats (Seabass/Kats)</strong> <span class="meta">1 DEF, 1 K, 1 QB, 5 RB, 2 TE, 5 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>1</td><td class="wrap">Jahmyr Gibbs</td>
-          <td>RB</td><td>DET</td>
+          <td>RB</td>
           <td>1.0</td>
-          <td>+0</td></tr>
+          <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>2</td><td>20</td><td class="wrap">A.J. Brown</td>
-          <td>WR</td><td>NE</td>
+          <td>WR</td>
           <td>13.0</td>
-          <td>+7</td></tr>
+          <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
       
       <tr><td>3</td><td>21</td><td class="wrap">George Pickens</td>
-          <td>WR</td><td>DAL</td>
+          <td>WR</td>
           <td>23.0</td>
-          <td>-2</td></tr>
+          <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>4</td><td>40</td><td class="wrap">D&#39;Andre Swift</td>
-          <td>RB</td><td>CHI</td>
+          <td>RB</td>
           <td>47.0</td>
-          <td>-7</td></tr>
+          <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
       
       <tr><td>5</td><td>41</td><td class="wrap">Breece Hall</td>
-          <td>RB</td><td>NYJ</td>
+          <td>RB</td>
           <td>34.0</td>
-          <td>+7</td></tr>
+          <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
       
       <tr><td>6</td><td>60</td><td class="wrap">Jayden Daniels</td>
-          <td>QB</td><td>WAS</td>
+          <td>QB</td>
           <td>61.0</td>
-          <td>-1</td></tr>
+          <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>7</td><td>61</td><td class="wrap">Tyler Warren</td>
-          <td>TE</td><td>IND</td>
+          <td>TE</td>
           <td>52.0</td>
-          <td>+9</td></tr>
+          <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
       
       <tr><td>8</td><td>80</td><td class="wrap">Harold Fannin</td>
-          <td>TE</td><td>CLE</td>
+          <td>TE</td>
           <td>79.0</td>
-          <td>+1</td></tr>
+          <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>9</td><td>81</td><td class="wrap">Alec Pierce</td>
-          <td>WR</td><td>IND</td>
+          <td>WR</td>
           <td>92.0</td>
-          <td>-11</td></tr>
+          <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
       
       <tr><td>10</td><td>100</td><td class="wrap">Michael Pittman</td>
-          <td>WR</td><td>PIT</td>
+          <td>WR</td>
           <td>88.0</td>
-          <td>+12</td></tr>
+          <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
       
       <tr><td>11</td><td>101</td><td class="wrap">Rachaad White</td>
-          <td>RB</td><td>WAS</td>
+          <td>RB</td>
           <td>114.0</td>
-          <td>-13</td></tr>
+          <td data-sort-value="-13.0"><span class="dv dv-strong dv-reach" style="--dvi:0.43">REACH · 13 picks early</span></td></tr>
       
       <tr><td>12</td><td>120</td><td class="wrap">Tyjae Spears</td>
-          <td>RB</td><td>TEN</td>
+          <td>RB</td>
           <td>134.0</td>
-          <td>-14</td></tr>
+          <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
       
       <tr><td>13</td><td>121</td><td class="wrap">Romeo Doubs</td>
-          <td>WR</td><td>NE</td>
+          <td>WR</td>
           <td>122.0</td>
-          <td>-1</td></tr>
+          <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>14</td><td>140</td><td class="wrap">Philadelphia Eagles</td>
-          <td>DEF</td><td>PHI</td>
+          <td>DEF</td>
           <td>197.0</td>
-          <td>-57</td></tr>
+          <td data-sort-value="-57.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 57 picks early</span></td></tr>
       
       <tr><td>15</td><td>141</td><td class="wrap">Cam Little</td>
-          <td>K</td><td>JAX</td>
+          <td>K</td>
           <td>214.0</td>
-          <td>-73</td></tr>
+          <td data-sort-value="-73.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 73 picks early</span></td></tr>
       
     </table>
     </div>
@@ -715,83 +801,87 @@
   <div class="card" id="team-l-entente-discordiale">
     <strong>L’entente Discordiale (Borat/Jack)</strong> <span class="meta">2 DEF, 1 K, 1 QB, 6 RB, 1 TE, 4 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>3</td><td class="wrap">Christian McCaffrey</td>
-          <td>RB</td><td>SF</td>
+          <td>RB</td>
           <td>7.0</td>
-          <td>-4</td></tr>
+          <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
       
       <tr><td>2</td><td>18</td><td class="wrap">Nico Collins</td>
-          <td>WR</td><td>HOU</td>
+          <td>WR</td>
           <td>17.0</td>
-          <td>+1</td></tr>
+          <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>3</td><td>23</td><td class="wrap">Ashton Jeanty</td>
-          <td>RB</td><td>LV</td>
+          <td>RB</td>
           <td>22.0</td>
-          <td>+1</td></tr>
+          <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>4</td><td>38</td><td class="wrap">Josh Allen</td>
-          <td>QB</td><td>BUF</td>
+          <td>QB</td>
           <td>27.0</td>
-          <td>+11</td></tr>
+          <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
       
       <tr><td>5</td><td>43</td><td class="wrap">Garrett Wilson</td>
-          <td>WR</td><td>NYJ</td>
+          <td>WR</td>
           <td>37.0</td>
-          <td>+6</td></tr>
+          <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
       
       <tr><td>6</td><td>58</td><td class="wrap">Rhamondre Stevenson</td>
-          <td>RB</td><td>NE</td>
+          <td>RB</td>
           <td>68.0</td>
-          <td>-10</td></tr>
+          <td data-sort-value="-10.0"><span class="dv dv-strong dv-reach" style="--dvi:0.33">REACH · 10 picks early</span></td></tr>
       
       <tr><td>7</td><td>63</td><td class="wrap">Dalton Kincaid</td>
-          <td>TE</td><td>BUF</td>
+          <td>TE</td>
           <td>111.0</td>
-          <td>-48</td></tr>
+          <td data-sort-value="-48.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 48 picks early</span></td></tr>
       
       <tr><td>8</td><td>78</td><td class="wrap">Mike Evans</td>
-          <td>WR</td><td>SF</td>
+          <td>WR</td>
           <td>60.0</td>
-          <td>+18</td></tr>
+          <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
       
       <tr><td>9</td><td>83</td><td class="wrap">DK Metcalf</td>
-          <td>WR</td><td>PIT</td>
+          <td>WR</td>
           <td>78.0</td>
-          <td>+5</td></tr>
+          <td data-sort-value="5.0"><span class="dv dv-steal" style="--dvi:0.17">+5</span></td></tr>
       
       <tr><td>10</td><td>98</td><td class="wrap">RJ Harvey</td>
-          <td>RB</td><td>DEN</td>
+          <td>RB</td>
           <td>100.0</td>
-          <td>-2</td></tr>
+          <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>11</td><td>103</td><td class="wrap">Buffalo Bills</td>
-          <td>DEF</td><td>BUF</td>
+          <td>DEF</td>
           <td>233.0</td>
-          <td>-130</td></tr>
+          <td data-sort-value="-130.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 130 picks early</span></td></tr>
       
       <tr><td>12</td><td>118</td><td class="wrap">Brandon Aubrey</td>
-          <td>K</td><td>DAL</td>
+          <td>K</td>
           <td>202.0</td>
-          <td>-84</td></tr>
+          <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
       
       <tr><td>13</td><td>123</td><td class="wrap">Jordan James</td>
-          <td>RB</td><td>SF</td>
+          <td>RB</td>
           <td>254.0</td>
-          <td>-131</td></tr>
+          <td data-sort-value="-131.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 131 picks early</span></td></tr>
       
       <tr><td>14</td><td>138</td><td class="wrap">Tyler Allgeier</td>
-          <td>RB</td><td>ARI</td>
+          <td>RB</td>
           <td>129.0</td>
-          <td>+9</td></tr>
+          <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
       
       <tr><td>15</td><td>143</td><td class="wrap">New England Patriots</td>
-          <td>DEF</td><td>NE</td>
+          <td>DEF</td>
           <td>198.0</td>
-          <td>-55</td></tr>
+          <td data-sort-value="-55.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 55 picks early</span></td></tr>
       
     </table>
     </div>
@@ -800,83 +890,87 @@
   <div class="card" id="team-swifty-mahomey">
     <strong>Swifty Mahomey (Pappie)</strong> <span class="meta">1 DEF, 1 K, 2 QB, 4 RB, 1 TE, 6 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>7</td><td class="wrap">Jaxon Smith-Njigba</td>
-          <td>WR</td><td>SEA</td>
+          <td>WR</td>
           <td>5.0</td>
-          <td>+2</td></tr>
+          <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>2</td><td>14</td><td class="wrap">Justin Jefferson</td>
-          <td>WR</td><td>MIN</td>
+          <td>WR</td>
           <td>11.0</td>
-          <td>+3</td></tr>
+          <td data-sort-value="3.0"><span class="dv dv-steal" style="--dvi:0.1">+3</span></td></tr>
       
       <tr><td>3</td><td>27</td><td class="wrap">Javonte Williams</td>
-          <td>RB</td><td>DAL</td>
+          <td>RB</td>
           <td>33.0</td>
-          <td>-6</td></tr>
+          <td data-sort-value="-6.0"><span class="dv dv-reach" style="--dvi:0.2">-6</span></td></tr>
       
       <tr><td>4</td><td>34</td><td class="wrap">Travis Etienne</td>
-          <td>RB</td><td>NO</td>
+          <td>RB</td>
           <td>45.0</td>
-          <td>-11</td></tr>
+          <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
       
       <tr><td>5</td><td>47</td><td class="wrap">David Montgomery</td>
-          <td>RB</td><td>HOU</td>
+          <td>RB</td>
           <td>56.0</td>
-          <td>-9</td></tr>
+          <td data-sort-value="-9.0"><span class="dv dv-reach" style="--dvi:0.3">-9</span></td></tr>
       
       <tr><td>6</td><td>54</td><td class="wrap">Jadarian Price</td>
-          <td>RB</td><td>SEA</td>
+          <td>RB</td>
           <td>64.0</td>
-          <td>-10</td></tr>
+          <td data-sort-value="-10.0"><span class="dv dv-strong dv-reach" style="--dvi:0.33">REACH · 10 picks early</span></td></tr>
       
       <tr><td>7</td><td>67</td><td class="wrap">Davante Adams</td>
-          <td>WR</td><td>LAR</td>
+          <td>WR</td>
           <td>48.0</td>
-          <td>+19</td></tr>
+          <td data-sort-value="19.0"><span class="dv dv-strong dv-steal" style="--dvi:0.63">STEAL · 19 picks late</span></td></tr>
       
       <tr><td>8</td><td>74</td><td class="wrap">Travis Kelce</td>
-          <td>TE</td><td>KC</td>
+          <td>TE</td>
           <td>104.0</td>
-          <td>-30</td></tr>
+          <td data-sort-value="-30.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 30 picks early</span></td></tr>
       
       <tr><td>9</td><td>87</td><td class="wrap">Chris Godwin</td>
-          <td>WR</td><td>TB</td>
+          <td>WR</td>
           <td>83.0</td>
-          <td>+4</td></tr>
+          <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
       
       <tr><td>10</td><td>94</td><td class="wrap">Quentin Johnston</td>
-          <td>WR</td><td>LAC</td>
+          <td>WR</td>
           <td>87.0</td>
-          <td>+7</td></tr>
+          <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
       
       <tr><td>11</td><td>107</td><td class="wrap">Los Angeles Rams</td>
-          <td>DEF</td><td>LAR</td>
+          <td>DEF</td>
           <td>191.0</td>
-          <td>-84</td></tr>
+          <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
       
       <tr><td>12</td><td>114</td><td class="wrap">Patrick Mahomes</td>
-          <td>QB</td><td>KC</td>
+          <td>QB</td>
           <td>102.0</td>
-          <td>+12</td></tr>
+          <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
       
       <tr><td>13</td><td>127</td><td class="wrap">Deebo Samuel</td>
-          <td>WR</td><td>SF</td>
+          <td>WR</td>
           <td>135.0</td>
-          <td>-8</td></tr>
+          <td data-sort-value="-8.0"><span class="dv dv-reach" style="--dvi:0.27">-8</span></td></tr>
       
       <tr><td>14</td><td>134</td><td class="wrap">Matthew Stafford</td>
-          <td>QB</td><td>LAR</td>
+          <td>QB</td>
           <td>108.0</td>
-          <td>+26</td></tr>
+          <td data-sort-value="26.0"><span class="dv dv-strong dv-steal" style="--dvi:0.87">STEAL · 26 picks late</span></td></tr>
       
       <tr><td>15</td><td>147</td><td class="wrap">Harrison Mevis</td>
-          <td>K</td><td>LAR</td>
+          <td>K</td>
           <td>229.0</td>
-          <td>-82</td></tr>
+          <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
       
     </table>
     </div>
@@ -885,83 +979,87 @@
   <div class="card" id="team-los-bandidos">
     <strong>Los Bandidos</strong> <span class="meta">1 DEF, 1 K, 2 QB, 4 RB, 2 TE, 5 WR</span>
     <div class="tablewrap">
-    <table>
-      <tr><th scope="col">Rd</th><th scope="col">Pick</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">NFL</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+    <table data-sortable>
+      <tr><th scope="col" data-sort-type="number">Rd</th>
+          <th scope="col" data-sort-type="number">Pick</th>
+          <th scope="col">Player</th><th scope="col">Pos</th>
+          <th scope="col" data-sort-type="number">Ref</th>
+          <th scope="col" data-sort-type="number">Draft Value</th></tr>
       
       <tr><td>1</td><td>10</td><td class="wrap">Saquon Barkley</td>
-          <td>RB</td><td>PHI</td>
+          <td>RB</td>
           <td>15.0</td>
-          <td>-5</td></tr>
+          <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
       
       <tr><td>2</td><td>11</td><td class="wrap">De&#39;Von Achane</td>
-          <td>RB</td><td>MIA</td>
+          <td>RB</td>
           <td>16.0</td>
-          <td>-5</td></tr>
+          <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
       
       <tr><td>3</td><td>30</td><td class="wrap">Drake London</td>
-          <td>WR</td><td>ATL</td>
+          <td>WR</td>
           <td>14.0</td>
-          <td>+16</td></tr>
+          <td data-sort-value="16.0"><span class="dv dv-strong dv-steal" style="--dvi:0.53">STEAL · 16 picks late</span></td></tr>
       
       <tr><td>4</td><td>31</td><td class="wrap">Trey McBride</td>
-          <td>TE</td><td>ARI</td>
+          <td>TE</td>
           <td>25.0</td>
-          <td>+6</td></tr>
+          <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
       
       <tr><td>5</td><td>50</td><td class="wrap">Tee Higgins</td>
-          <td>WR</td><td>CIN</td>
+          <td>WR</td>
           <td>32.0</td>
-          <td>+18</td></tr>
+          <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
       
       <tr><td>6</td><td>51</td><td class="wrap">Drake Maye</td>
-          <td>QB</td><td>NE</td>
+          <td>QB</td>
           <td>44.0</td>
-          <td>+7</td></tr>
+          <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
       
       <tr><td>7</td><td>70</td><td class="wrap">Terry McLaurin</td>
-          <td>WR</td><td>WAS</td>
+          <td>WR</td>
           <td>46.0</td>
-          <td>+24</td></tr>
+          <td data-sort-value="24.0"><span class="dv dv-strong dv-steal" style="--dvi:0.8">STEAL · 24 picks late</span></td></tr>
       
       <tr><td>8</td><td>71</td><td class="wrap">Josh Jacobs</td>
-          <td>RB</td><td>GB</td>
+          <td>RB</td>
           <td>43.0</td>
-          <td>+28</td></tr>
+          <td data-sort-value="28.0"><span class="dv dv-strong dv-steal" style="--dvi:0.93">STEAL · 28 picks late</span></td></tr>
       
       <tr><td>9</td><td>90</td><td class="wrap">Michael Wilson</td>
-          <td>WR</td><td>ARI</td>
+          <td>WR</td>
           <td>89.0</td>
-          <td>+1</td></tr>
+          <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>10</td><td>91</td><td class="wrap">George Kittle</td>
-          <td>TE</td><td>SF</td>
+          <td>TE</td>
           <td>93.0</td>
-          <td>-2</td></tr>
+          <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
       
       <tr><td>11</td><td>110</td><td class="wrap">Chris Rodriguez</td>
-          <td>RB</td><td>JAX</td>
+          <td>RB</td>
           <td>121.0</td>
-          <td>-11</td></tr>
+          <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
       
       <tr><td>12</td><td>111</td><td class="wrap">Trevor Lawrence</td>
-          <td>QB</td><td>JAX</td>
+          <td>QB</td>
           <td>74.0</td>
-          <td>+37</td></tr>
+          <td data-sort-value="37.0"><span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 37 picks late</span></td></tr>
       
       <tr><td>13</td><td>130</td><td class="wrap">Matthew Golden</td>
-          <td>WR</td><td>GB</td>
+          <td>WR</td>
           <td>126.0</td>
-          <td>+4</td></tr>
+          <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
       
       <tr><td>14</td><td>131</td><td class="wrap">Ka&#39;imi Fairbairn</td>
-          <td>K</td><td>HOU</td>
+          <td>K</td>
           <td>211.0</td>
-          <td>-80</td></tr>
+          <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
       
       <tr><td>15</td><td>150</td><td class="wrap">Detroit Lions</td>
-          <td>DEF</td><td>DET</td>
+          <td>DEF</td>
           <td>230.0</td>
-          <td>-80</td></tr>
+          <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
       
     </table>
     </div>
@@ -971,765 +1069,774 @@
 
 <section class="module">
   <h2 class="section-label">Full Board</h2>
+  <p class="meta">Sort Draft Value ascending for the biggest reaches, descending for the biggest steals.</p>
   <div class="tablewrap">
-  <table>
-    <tr><th scope="col">Pick</th><th scope="col">Rd</th><th scope="col">Team</th><th scope="col">Player</th><th scope="col">Pos</th><th scope="col">Ref</th><th scope="col">Δ</th></tr>
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number">Pick</th>
+        <th scope="col" data-sort-type="number">Rd</th>
+        <th scope="col">Team</th><th scope="col">Player</th><th scope="col">Pos</th>
+        <th scope="col" data-sort-type="number">Ref</th>
+        <th scope="col" data-sort-type="number">Draft Value</th></tr>
     
     <tr><td>1</td><td>1</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Jahmyr Gibbs</td><td>RB</td>
         <td>1.0</td>
-        <td>+0</td></tr>
+        <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>2</td><td>1</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Bijan Robinson</td><td>RB</td>
         <td>2.0</td>
-        <td>+0</td></tr>
+        <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>3</td><td>1</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Christian McCaffrey</td><td>RB</td>
         <td>7.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>4</td><td>1</td><td class="wrap">Roster 5</td>
         <td class="wrap">Jonathan Taylor</td><td>RB</td>
         <td>8.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>5</td><td>1</td><td class="wrap">Roster 2</td>
         <td class="wrap">Puka Nacua</td><td>WR</td>
         <td>4.0</td>
-        <td>+1</td></tr>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>6</td><td>1</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Ja&#39;Marr Chase</td><td>WR</td>
         <td>3.0</td>
-        <td>+3</td></tr>
+        <td data-sort-value="3.0"><span class="dv dv-steal" style="--dvi:0.1">+3</span></td></tr>
     
     <tr><td>7</td><td>1</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Jaxon Smith-Njigba</td><td>WR</td>
         <td>5.0</td>
-        <td>+2</td></tr>
+        <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>8</td><td>1</td><td class="wrap">Roster 6</td>
         <td class="wrap">Amon-Ra St. Brown</td><td>WR</td>
         <td>6.0</td>
-        <td>+2</td></tr>
+        <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>9</td><td>1</td><td class="wrap">Roster 4</td>
         <td class="wrap">James Cook</td><td>RB</td>
         <td>10.0</td>
-        <td>-1</td></tr>
+        <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>10</td><td>1</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Saquon Barkley</td><td>RB</td>
         <td>15.0</td>
-        <td>-5</td></tr>
+        <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
     
     <tr><td>11</td><td>2</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">De&#39;Von Achane</td><td>RB</td>
         <td>16.0</td>
-        <td>-5</td></tr>
+        <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
     
     <tr><td>12</td><td>2</td><td class="wrap">Roster 4</td>
         <td class="wrap">CeeDee Lamb</td><td>WR</td>
         <td>9.0</td>
-        <td>+3</td></tr>
+        <td data-sort-value="3.0"><span class="dv dv-steal" style="--dvi:0.1">+3</span></td></tr>
     
     <tr><td>13</td><td>2</td><td class="wrap">Roster 6</td>
         <td class="wrap">Derrick Henry</td><td>RB</td>
         <td>21.0</td>
-        <td>-8</td></tr>
+        <td data-sort-value="-8.0"><span class="dv dv-reach" style="--dvi:0.27">-8</span></td></tr>
     
     <tr><td>14</td><td>2</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Justin Jefferson</td><td>WR</td>
         <td>11.0</td>
-        <td>+3</td></tr>
+        <td data-sort-value="3.0"><span class="dv dv-steal" style="--dvi:0.1">+3</span></td></tr>
     
     <tr><td>15</td><td>2</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Kenneth Walker</td><td>RB</td>
         <td>20.0</td>
-        <td>-5</td></tr>
+        <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
     
     <tr><td>16</td><td>2</td><td class="wrap">Roster 2</td>
         <td class="wrap">Chase Brown</td><td>RB</td>
         <td>12.0</td>
-        <td>+4</td></tr>
+        <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
     
     <tr><td>17</td><td>2</td><td class="wrap">Roster 5</td>
         <td class="wrap">Kyren Williams</td><td>RB</td>
         <td>31.0</td>
-        <td>-14</td></tr>
+        <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
     
     <tr><td>18</td><td>2</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Nico Collins</td><td>WR</td>
         <td>17.0</td>
-        <td>+1</td></tr>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>19</td><td>2</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Omarion Hampton</td><td>RB</td>
         <td>19.0</td>
-        <td>+0</td></tr>
+        <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>20</td><td>2</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">A.J. Brown</td><td>WR</td>
         <td>13.0</td>
-        <td>+7</td></tr>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
     
     <tr><td>21</td><td>3</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">George Pickens</td><td>WR</td>
         <td>23.0</td>
-        <td>-2</td></tr>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>22</td><td>3</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Malik Nabers</td><td>WR</td>
         <td>26.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>23</td><td>3</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Ashton Jeanty</td><td>RB</td>
         <td>22.0</td>
-        <td>+1</td></tr>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>24</td><td>3</td><td class="wrap">Roster 5</td>
         <td class="wrap">DeVonta Smith</td><td>WR</td>
         <td>28.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>25</td><td>3</td><td class="wrap">Roster 2</td>
         <td class="wrap">Rashee Rice</td><td>WR</td>
         <td>29.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>26</td><td>3</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Jeremiyah Love</td><td>RB</td>
         <td>42.0</td>
-        <td>-16</td></tr>
+        <td data-sort-value="-16.0"><span class="dv dv-strong dv-reach" style="--dvi:0.53">REACH · 16 picks early</span></td></tr>
     
     <tr><td>27</td><td>3</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Javonte Williams</td><td>RB</td>
         <td>33.0</td>
-        <td>-6</td></tr>
+        <td data-sort-value="-6.0"><span class="dv dv-reach" style="--dvi:0.2">-6</span></td></tr>
     
     <tr><td>28</td><td>3</td><td class="wrap">Roster 6</td>
         <td class="wrap">Bucky Irving</td><td>RB</td>
         <td>54.0</td>
-        <td>-26</td></tr>
+        <td data-sort-value="-26.0"><span class="dv dv-strong dv-reach" style="--dvi:0.87">REACH · 26 picks early</span></td></tr>
     
     <tr><td>29</td><td>3</td><td class="wrap">Roster 4</td>
         <td class="wrap">Brock Bowers</td><td>TE</td>
         <td>18.0</td>
-        <td>+11</td></tr>
+        <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
     
     <tr><td>30</td><td>3</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Drake London</td><td>WR</td>
         <td>14.0</td>
-        <td>+16</td></tr>
+        <td data-sort-value="16.0"><span class="dv dv-strong dv-steal" style="--dvi:0.53">STEAL · 16 picks late</span></td></tr>
     
     <tr><td>31</td><td>4</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Trey McBride</td><td>TE</td>
         <td>25.0</td>
-        <td>+6</td></tr>
+        <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
     
     <tr><td>32</td><td>4</td><td class="wrap">Roster 4</td>
         <td class="wrap">Zay Flowers</td><td>WR</td>
         <td>30.0</td>
-        <td>+2</td></tr>
+        <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>33</td><td>4</td><td class="wrap">Roster 6</td>
         <td class="wrap">Tetairoa McMillan</td><td>WR</td>
         <td>35.0</td>
-        <td>-2</td></tr>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>34</td><td>4</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Travis Etienne</td><td>RB</td>
         <td>45.0</td>
-        <td>-11</td></tr>
+        <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
     
     <tr><td>35</td><td>4</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Chris Olave</td><td>WR</td>
         <td>24.0</td>
-        <td>+11</td></tr>
+        <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
     
     <tr><td>36</td><td>4</td><td class="wrap">Roster 2</td>
         <td class="wrap">Colston Loveland</td><td>TE</td>
         <td>40.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>37</td><td>4</td><td class="wrap">Roster 5</td>
         <td class="wrap">Cam Skattebo</td><td>RB</td>
         <td>53.0</td>
-        <td>-16</td></tr>
+        <td data-sort-value="-16.0"><span class="dv dv-strong dv-reach" style="--dvi:0.53">REACH · 16 picks early</span></td></tr>
     
     <tr><td>38</td><td>4</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Josh Allen</td><td>QB</td>
         <td>27.0</td>
-        <td>+11</td></tr>
+        <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
     
     <tr><td>39</td><td>4</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Lamar Jackson</td><td>QB</td>
         <td>39.0</td>
-        <td>+0</td></tr>
+        <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>40</td><td>4</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">D&#39;Andre Swift</td><td>RB</td>
         <td>47.0</td>
-        <td>-7</td></tr>
+        <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
     
     <tr><td>41</td><td>5</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Breece Hall</td><td>RB</td>
         <td>34.0</td>
-        <td>+7</td></tr>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
     
     <tr><td>42</td><td>5</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Jaylen Waddle</td><td>WR</td>
         <td>38.0</td>
-        <td>+4</td></tr>
+        <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
     
     <tr><td>43</td><td>5</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Garrett Wilson</td><td>WR</td>
         <td>37.0</td>
-        <td>+6</td></tr>
+        <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
     
     <tr><td>44</td><td>5</td><td class="wrap">Roster 5</td>
         <td class="wrap">Ladd McConkey</td><td>WR</td>
         <td>36.0</td>
-        <td>+8</td></tr>
+        <td data-sort-value="8.0"><span class="dv dv-steal" style="--dvi:0.27">+8</span></td></tr>
     
     <tr><td>45</td><td>5</td><td class="wrap">Roster 2</td>
         <td class="wrap">Luther Burden</td><td>WR</td>
         <td>49.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>46</td><td>5</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Emeka Egbuka</td><td>WR</td>
         <td>41.0</td>
-        <td>+5</td></tr>
+        <td data-sort-value="5.0"><span class="dv dv-steal" style="--dvi:0.17">+5</span></td></tr>
     
     <tr><td>47</td><td>5</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">David Montgomery</td><td>RB</td>
         <td>56.0</td>
-        <td>-9</td></tr>
+        <td data-sort-value="-9.0"><span class="dv dv-reach" style="--dvi:0.3">-9</span></td></tr>
     
     <tr><td>48</td><td>5</td><td class="wrap">Roster 6</td>
         <td class="wrap">Sam LaPorta</td><td>TE</td>
         <td>82.0</td>
-        <td>-34</td></tr>
+        <td data-sort-value="-34.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 34 picks early</span></td></tr>
     
     <tr><td>49</td><td>5</td><td class="wrap">Roster 4</td>
         <td class="wrap">Bhayshul Tuten</td><td>RB</td>
         <td>63.0</td>
-        <td>-14</td></tr>
+        <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
     
     <tr><td>50</td><td>5</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Tee Higgins</td><td>WR</td>
         <td>32.0</td>
-        <td>+18</td></tr>
+        <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
     
     <tr><td>51</td><td>6</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Drake Maye</td><td>QB</td>
         <td>44.0</td>
-        <td>+7</td></tr>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
     
     <tr><td>52</td><td>6</td><td class="wrap">Roster 4</td>
         <td class="wrap">Quinshon Judkins</td><td>RB</td>
         <td>55.0</td>
-        <td>-3</td></tr>
+        <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
     
     <tr><td>53</td><td>6</td><td class="wrap">Roster 6</td>
         <td class="wrap">DJ Moore</td><td>WR</td>
         <td>57.0</td>
-        <td>-4</td></tr>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.13">-4</span></td></tr>
     
     <tr><td>54</td><td>6</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Jadarian Price</td><td>RB</td>
         <td>64.0</td>
-        <td>-10</td></tr>
+        <td data-sort-value="-10.0"><span class="dv dv-strong dv-reach" style="--dvi:0.33">REACH · 10 picks early</span></td></tr>
     
     <tr><td>55</td><td>6</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">TreVeyon Henderson</td><td>RB</td>
         <td>66.0</td>
-        <td>-11</td></tr>
+        <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
     
     <tr><td>56</td><td>6</td><td class="wrap">Roster 2</td>
         <td class="wrap">Jaylen Warren</td><td>RB</td>
         <td>72.0</td>
-        <td>-16</td></tr>
+        <td data-sort-value="-16.0"><span class="dv dv-strong dv-reach" style="--dvi:0.53">REACH · 16 picks early</span></td></tr>
     
     <tr><td>57</td><td>6</td><td class="wrap">Roster 5</td>
         <td class="wrap">Tony Pollard</td><td>RB</td>
         <td>76.0</td>
-        <td>-19</td></tr>
+        <td data-sort-value="-19.0"><span class="dv dv-strong dv-reach" style="--dvi:0.63">REACH · 19 picks early</span></td></tr>
     
     <tr><td>58</td><td>6</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Rhamondre Stevenson</td><td>RB</td>
         <td>68.0</td>
-        <td>-10</td></tr>
+        <td data-sort-value="-10.0"><span class="dv dv-strong dv-reach" style="--dvi:0.33">REACH · 10 picks early</span></td></tr>
     
     <tr><td>59</td><td>6</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Rome Odunze</td><td>WR</td>
         <td>59.0</td>
-        <td>+0</td></tr>
+        <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>60</td><td>6</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Jayden Daniels</td><td>QB</td>
         <td>61.0</td>
-        <td>-1</td></tr>
+        <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>61</td><td>7</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Tyler Warren</td><td>TE</td>
         <td>52.0</td>
-        <td>+9</td></tr>
+        <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
     
     <tr><td>62</td><td>7</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Parker Washington</td><td>WR</td>
         <td>65.0</td>
-        <td>-3</td></tr>
+        <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
     
     <tr><td>63</td><td>7</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Dalton Kincaid</td><td>TE</td>
         <td>111.0</td>
-        <td>-48</td></tr>
+        <td data-sort-value="-48.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 48 picks early</span></td></tr>
     
     <tr><td>64</td><td>7</td><td class="wrap">Roster 5</td>
         <td class="wrap">Christian Watson</td><td>WR</td>
         <td>58.0</td>
-        <td>+6</td></tr>
+        <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
     
     <tr><td>65</td><td>7</td><td class="wrap">Roster 2</td>
         <td class="wrap">J.K. Dobbins</td><td>RB</td>
         <td>86.0</td>
-        <td>-21</td></tr>
+        <td data-sort-value="-21.0"><span class="dv dv-strong dv-reach" style="--dvi:0.7">REACH · 21 picks early</span></td></tr>
     
     <tr><td>66</td><td>7</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Joe Burrow</td><td>QB</td>
         <td>50.0</td>
-        <td>+16</td></tr>
+        <td data-sort-value="16.0"><span class="dv dv-strong dv-steal" style="--dvi:0.53">STEAL · 16 picks late</span></td></tr>
     
     <tr><td>67</td><td>7</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Davante Adams</td><td>WR</td>
         <td>48.0</td>
-        <td>+19</td></tr>
+        <td data-sort-value="19.0"><span class="dv dv-strong dv-steal" style="--dvi:0.63">STEAL · 19 picks late</span></td></tr>
     
     <tr><td>68</td><td>7</td><td class="wrap">Roster 6</td>
         <td class="wrap">Jalen Hurts</td><td>QB</td>
         <td>62.0</td>
-        <td>+6</td></tr>
+        <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
     
     <tr><td>69</td><td>7</td><td class="wrap">Roster 4</td>
         <td class="wrap">Jameson Williams</td><td>WR</td>
         <td>51.0</td>
-        <td>+18</td></tr>
+        <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
     
     <tr><td>70</td><td>7</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Terry McLaurin</td><td>WR</td>
         <td>46.0</td>
-        <td>+24</td></tr>
+        <td data-sort-value="24.0"><span class="dv dv-strong dv-steal" style="--dvi:0.8">STEAL · 24 picks late</span></td></tr>
     
     <tr><td>71</td><td>8</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Josh Jacobs</td><td>RB</td>
         <td>43.0</td>
-        <td>+28</td></tr>
+        <td data-sort-value="28.0"><span class="dv dv-strong dv-steal" style="--dvi:0.93">STEAL · 28 picks late</span></td></tr>
     
     <tr><td>72</td><td>8</td><td class="wrap">Roster 4</td>
         <td class="wrap">Rico Dowdle</td><td>RB</td>
         <td>81.0</td>
-        <td>-9</td></tr>
+        <td data-sort-value="-9.0"><span class="dv dv-reach" style="--dvi:0.3">-9</span></td></tr>
     
     <tr><td>73</td><td>8</td><td class="wrap">Roster 6</td>
         <td class="wrap">Jordan Mason</td><td>RB</td>
         <td>103.0</td>
-        <td>-30</td></tr>
+        <td data-sort-value="-30.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 30 picks early</span></td></tr>
     
     <tr><td>74</td><td>8</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Travis Kelce</td><td>TE</td>
         <td>104.0</td>
-        <td>-30</td></tr>
+        <td data-sort-value="-30.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 30 picks early</span></td></tr>
     
     <tr><td>75</td><td>8</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Carnell Tate</td><td>WR</td>
         <td>73.0</td>
-        <td>+2</td></tr>
+        <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>76</td><td>8</td><td class="wrap">Roster 2</td>
         <td class="wrap">Courtland Sutton</td><td>WR</td>
         <td>85.0</td>
-        <td>-9</td></tr>
+        <td data-sort-value="-9.0"><span class="dv dv-reach" style="--dvi:0.3">-9</span></td></tr>
     
     <tr><td>77</td><td>8</td><td class="wrap">Roster 5</td>
         <td class="wrap">Tucker Kraft</td><td>TE</td>
         <td>70.0</td>
-        <td>+7</td></tr>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
     
     <tr><td>78</td><td>8</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Mike Evans</td><td>WR</td>
         <td>60.0</td>
-        <td>+18</td></tr>
+        <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
     
     <tr><td>79</td><td>8</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Kyle Monangai</td><td>RB</td>
         <td>110.0</td>
-        <td>-31</td></tr>
+        <td data-sort-value="-31.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 31 picks early</span></td></tr>
     
     <tr><td>80</td><td>8</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Harold Fannin</td><td>TE</td>
         <td>79.0</td>
-        <td>+1</td></tr>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>81</td><td>9</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Alec Pierce</td><td>WR</td>
         <td>92.0</td>
-        <td>-11</td></tr>
+        <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
     
     <tr><td>82</td><td>9</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Jonathon Brooks</td><td>RB</td>
         <td>80.0</td>
-        <td>+2</td></tr>
+        <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>83</td><td>9</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">DK Metcalf</td><td>WR</td>
         <td>78.0</td>
-        <td>+5</td></tr>
+        <td data-sort-value="5.0"><span class="dv dv-steal" style="--dvi:0.17">+5</span></td></tr>
     
     <tr><td>84</td><td>9</td><td class="wrap">Roster 5</td>
         <td class="wrap">Justin Herbert</td><td>QB</td>
         <td>71.0</td>
-        <td>+13</td></tr>
+        <td data-sort-value="13.0"><span class="dv dv-strong dv-steal" style="--dvi:0.43">STEAL · 13 picks late</span></td></tr>
     
     <tr><td>85</td><td>9</td><td class="wrap">Roster 2</td>
         <td class="wrap">Chuba Hubbard</td><td>RB</td>
         <td>91.0</td>
-        <td>-6</td></tr>
+        <td data-sort-value="-6.0"><span class="dv dv-reach" style="--dvi:0.2">-6</span></td></tr>
     
     <tr><td>86</td><td>9</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Brian Thomas</td><td>WR</td>
         <td>77.0</td>
-        <td>+9</td></tr>
+        <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
     
     <tr><td>87</td><td>9</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Chris Godwin</td><td>WR</td>
         <td>83.0</td>
-        <td>+4</td></tr>
+        <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
     
     <tr><td>88</td><td>9</td><td class="wrap">Roster 6</td>
         <td class="wrap">Jayden Reed</td><td>WR</td>
         <td>107.0</td>
-        <td>-19</td></tr>
+        <td data-sort-value="-19.0"><span class="dv dv-strong dv-reach" style="--dvi:0.63">REACH · 19 picks early</span></td></tr>
     
     <tr><td>89</td><td>9</td><td class="wrap">Roster 4</td>
         <td class="wrap">Marvin Harrison</td><td>WR</td>
         <td>69.0</td>
-        <td>+20</td></tr>
+        <td data-sort-value="20.0"><span class="dv dv-strong dv-steal" style="--dvi:0.67">STEAL · 20 picks late</span></td></tr>
     
     <tr><td>90</td><td>9</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Michael Wilson</td><td>WR</td>
         <td>89.0</td>
-        <td>+1</td></tr>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>91</td><td>10</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">George Kittle</td><td>TE</td>
         <td>93.0</td>
-        <td>-2</td></tr>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>92</td><td>10</td><td class="wrap">Roster 4</td>
         <td class="wrap">Dak Prescott</td><td>QB</td>
         <td>75.0</td>
-        <td>+17</td></tr>
+        <td data-sort-value="17.0"><span class="dv dv-strong dv-steal" style="--dvi:0.57">STEAL · 17 picks late</span></td></tr>
     
     <tr><td>93</td><td>10</td><td class="wrap">Roster 6</td>
         <td class="wrap">Mark Andrews</td><td>TE</td>
         <td>124.0</td>
-        <td>-31</td></tr>
+        <td data-sort-value="-31.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 31 picks early</span></td></tr>
     
     <tr><td>94</td><td>10</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Quentin Johnston</td><td>WR</td>
         <td>87.0</td>
-        <td>+7</td></tr>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
     
     <tr><td>95</td><td>10</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Jacory Croskey-Merritt</td><td>RB</td>
         <td>98.0</td>
-        <td>-3</td></tr>
+        <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
     
     <tr><td>96</td><td>10</td><td class="wrap">Roster 2</td>
         <td class="wrap">Caleb Williams</td><td>QB</td>
         <td>67.0</td>
-        <td>+29</td></tr>
+        <td data-sort-value="29.0"><span class="dv dv-strong dv-steal" style="--dvi:0.97">STEAL · 29 picks late</span></td></tr>
     
     <tr><td>97</td><td>10</td><td class="wrap">Roster 5</td>
         <td class="wrap">Jordan Addison</td><td>WR</td>
         <td>105.0</td>
-        <td>-8</td></tr>
+        <td data-sort-value="-8.0"><span class="dv dv-reach" style="--dvi:0.27">-8</span></td></tr>
     
     <tr><td>98</td><td>10</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">RJ Harvey</td><td>RB</td>
         <td>100.0</td>
-        <td>-2</td></tr>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>99</td><td>10</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Blake Corum</td><td>RB</td>
         <td>90.0</td>
-        <td>+9</td></tr>
+        <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
     
     <tr><td>100</td><td>10</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Michael Pittman</td><td>WR</td>
         <td>88.0</td>
-        <td>+12</td></tr>
+        <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
     
     <tr><td>101</td><td>11</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Rachaad White</td><td>RB</td>
         <td>114.0</td>
-        <td>-13</td></tr>
+        <td data-sort-value="-13.0"><span class="dv dv-strong dv-reach" style="--dvi:0.43">REACH · 13 picks early</span></td></tr>
     
     <tr><td>102</td><td>11</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Kyle Pitts</td><td>TE</td>
         <td>84.0</td>
-        <td>+18</td></tr>
+        <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
     
     <tr><td>103</td><td>11</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Buffalo Bills</td><td>DEF</td>
         <td>233.0</td>
-        <td>-130</td></tr>
+        <td data-sort-value="-130.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 130 picks early</span></td></tr>
     
     <tr><td>104</td><td>11</td><td class="wrap">Roster 5</td>
         <td class="wrap">Kenny Gainwell</td><td>RB</td>
         <td>106.0</td>
-        <td>-2</td></tr>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>105</td><td>11</td><td class="wrap">Roster 2</td>
         <td class="wrap">Denver Broncos</td><td>DEF</td>
         <td>187.0</td>
-        <td>-82</td></tr>
+        <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
     
     <tr><td>106</td><td>11</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">MarShawn Lloyd</td><td>RB</td>
         <td>151.0</td>
-        <td>-45</td></tr>
+        <td data-sort-value="-45.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 45 picks early</span></td></tr>
     
     <tr><td>107</td><td>11</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Los Angeles Rams</td><td>DEF</td>
         <td>191.0</td>
-        <td>-84</td></tr>
+        <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
     
     <tr><td>108</td><td>11</td><td class="wrap">Roster 6</td>
         <td class="wrap">Aaron Jones</td><td>RB</td>
         <td>115.0</td>
-        <td>-7</td></tr>
+        <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
     
     <tr><td>109</td><td>11</td><td class="wrap">Roster 4</td>
         <td class="wrap">Wan&#39;Dale Robinson</td><td>WR</td>
         <td>97.0</td>
-        <td>+12</td></tr>
+        <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
     
     <tr><td>110</td><td>11</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Chris Rodriguez</td><td>RB</td>
         <td>121.0</td>
-        <td>-11</td></tr>
+        <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
     
     <tr><td>111</td><td>12</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Trevor Lawrence</td><td>QB</td>
         <td>74.0</td>
-        <td>+37</td></tr>
+        <td data-sort-value="37.0"><span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 37 picks late</span></td></tr>
     
     <tr><td>112</td><td>12</td><td class="wrap">Roster 4</td>
         <td class="wrap">Stefon Diggs</td><td>WR</td>
         <td>101.0</td>
-        <td>+11</td></tr>
+        <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
     
     <tr><td>113</td><td>12</td><td class="wrap">Roster 6</td>
         <td class="wrap">Zach Charbonnet</td><td>RB</td>
         <td>145.0</td>
-        <td>-32</td></tr>
+        <td data-sort-value="-32.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 32 picks early</span></td></tr>
     
     <tr><td>114</td><td>12</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Patrick Mahomes</td><td>QB</td>
         <td>102.0</td>
-        <td>+12</td></tr>
+        <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
     
     <tr><td>115</td><td>12</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">De&#39;Zhaun Stribling</td><td>WR</td>
         <td>143.0</td>
-        <td>-28</td></tr>
+        <td data-sort-value="-28.0"><span class="dv dv-strong dv-reach" style="--dvi:0.93">REACH · 28 picks early</span></td></tr>
     
     <tr><td>116</td><td>12</td><td class="wrap">Roster 2</td>
         <td class="wrap">Mike Washington</td><td>RB</td>
         <td>166.0</td>
-        <td>-50</td></tr>
+        <td data-sort-value="-50.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 50 picks early</span></td></tr>
     
     <tr><td>117</td><td>12</td><td class="wrap">Roster 5</td>
         <td class="wrap">KC Concepcion</td><td>WR</td>
         <td>132.0</td>
-        <td>-15</td></tr>
+        <td data-sort-value="-15.0"><span class="dv dv-strong dv-reach" style="--dvi:0.5">REACH · 15 picks early</span></td></tr>
     
     <tr><td>118</td><td>12</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Brandon Aubrey</td><td>K</td>
         <td>202.0</td>
-        <td>-84</td></tr>
+        <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
     
     <tr><td>119</td><td>12</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Jaxson Dart</td><td>QB</td>
         <td>96.0</td>
-        <td>+23</td></tr>
+        <td data-sort-value="23.0"><span class="dv dv-strong dv-steal" style="--dvi:0.77">STEAL · 23 picks late</span></td></tr>
     
     <tr><td>120</td><td>12</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Tyjae Spears</td><td>RB</td>
         <td>134.0</td>
-        <td>-14</td></tr>
+        <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
     
     <tr><td>121</td><td>13</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Romeo Doubs</td><td>WR</td>
         <td>122.0</td>
-        <td>-1</td></tr>
+        <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>122</td><td>13</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Seattle Seahawks</td><td>DEF</td>
         <td>190.0</td>
-        <td>-68</td></tr>
+        <td data-sort-value="-68.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 68 picks early</span></td></tr>
     
     <tr><td>123</td><td>13</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Jordan James</td><td>RB</td>
         <td>254.0</td>
-        <td>-131</td></tr>
+        <td data-sort-value="-131.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 131 picks early</span></td></tr>
     
     <tr><td>124</td><td>13</td><td class="wrap">Roster 5</td>
         <td class="wrap">Jason Myers</td><td>K</td>
         <td>219.0</td>
-        <td>-95</td></tr>
+        <td data-sort-value="-95.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 95 picks early</span></td></tr>
     
     <tr><td>125</td><td>13</td><td class="wrap">Roster 2</td>
         <td class="wrap">Makai Lemon</td><td>WR</td>
         <td>112.0</td>
-        <td>+13</td></tr>
+        <td data-sort-value="13.0"><span class="dv dv-strong dv-steal" style="--dvi:0.43">STEAL · 13 picks late</span></td></tr>
     
     <tr><td>126</td><td>13</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Cameron Dicker</td><td>K</td>
         <td>206.0</td>
-        <td>-80</td></tr>
+        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
     
     <tr><td>127</td><td>13</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Deebo Samuel</td><td>WR</td>
         <td>135.0</td>
-        <td>-8</td></tr>
+        <td data-sort-value="-8.0"><span class="dv dv-reach" style="--dvi:0.27">-8</span></td></tr>
     
     <tr><td>128</td><td>13</td><td class="wrap">Roster 6</td>
         <td class="wrap">Khalil Shakir</td><td>WR</td>
         <td>131.0</td>
-        <td>-3</td></tr>
+        <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
     
     <tr><td>129</td><td>13</td><td class="wrap">Roster 4</td>
         <td class="wrap">Woody Marks</td><td>RB</td>
         <td>128.0</td>
-        <td>+1</td></tr>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>130</td><td>13</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Matthew Golden</td><td>WR</td>
         <td>126.0</td>
-        <td>+4</td></tr>
+        <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
     
     <tr><td>131</td><td>14</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Ka&#39;imi Fairbairn</td><td>K</td>
         <td>211.0</td>
-        <td>-80</td></tr>
+        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
     
     <tr><td>132</td><td>14</td><td class="wrap">Roster 4</td>
         <td class="wrap">Xavier Worthy</td><td>WR</td>
         <td>123.0</td>
-        <td>+9</td></tr>
+        <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
     
     <tr><td>133</td><td>14</td><td class="wrap">Roster 6</td>
         <td class="wrap">Jake Bates</td><td>K</td>
         <td>224.0</td>
-        <td>-91</td></tr>
+        <td data-sort-value="-91.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 91 picks early</span></td></tr>
     
     <tr><td>134</td><td>14</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Matthew Stafford</td><td>QB</td>
         <td>108.0</td>
-        <td>+26</td></tr>
+        <td data-sort-value="26.0"><span class="dv dv-strong dv-steal" style="--dvi:0.87">STEAL · 26 picks late</span></td></tr>
     
     <tr><td>135</td><td>14</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Juwan Johnson</td><td>TE</td>
         <td>137.0</td>
-        <td>-2</td></tr>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
     
     <tr><td>136</td><td>14</td><td class="wrap">Roster 2</td>
         <td class="wrap">Isaiah Likely</td><td>TE</td>
         <td>117.0</td>
-        <td>+19</td></tr>
+        <td data-sort-value="19.0"><span class="dv dv-strong dv-steal" style="--dvi:0.63">STEAL · 19 picks late</span></td></tr>
     
     <tr><td>137</td><td>14</td><td class="wrap">Roster 5</td>
         <td class="wrap">Jared Goff</td><td>QB</td>
         <td>109.0</td>
-        <td>+28</td></tr>
+        <td data-sort-value="28.0"><span class="dv dv-strong dv-steal" style="--dvi:0.93">STEAL · 28 picks late</span></td></tr>
     
     <tr><td>138</td><td>14</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Tyler Allgeier</td><td>RB</td>
         <td>129.0</td>
-        <td>+9</td></tr>
+        <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
     
     <tr><td>139</td><td>14</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Brian Robinson</td><td>RB</td>
         <td>160.0</td>
-        <td>-21</td></tr>
+        <td data-sort-value="-21.0"><span class="dv dv-strong dv-reach" style="--dvi:0.7">REACH · 21 picks early</span></td></tr>
     
     <tr><td>140</td><td>14</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Philadelphia Eagles</td><td>DEF</td>
         <td>197.0</td>
-        <td>-57</td></tr>
+        <td data-sort-value="-57.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 57 picks early</span></td></tr>
     
     <tr><td>141</td><td>15</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Cam Little</td><td>K</td>
         <td>214.0</td>
-        <td>-73</td></tr>
+        <td data-sort-value="-73.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 73 picks early</span></td></tr>
     
     <tr><td>142</td><td>15</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Houston Texans</td><td>DEF</td>
         <td>186.0</td>
-        <td>-44</td></tr>
+        <td data-sort-value="-44.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 44 picks early</span></td></tr>
     
     <tr><td>143</td><td>15</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">New England Patriots</td><td>DEF</td>
         <td>198.0</td>
-        <td>-55</td></tr>
+        <td data-sort-value="-55.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 55 picks early</span></td></tr>
     
     <tr><td>144</td><td>15</td><td class="wrap">Roster 5</td>
         <td class="wrap">Baltimore Ravens</td><td>DEF</td>
         <td>218.0</td>
-        <td>-74</td></tr>
+        <td data-sort-value="-74.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 74 picks early</span></td></tr>
     
     <tr><td>145</td><td>15</td><td class="wrap">Roster 2</td>
         <td class="wrap">Alvin Kamara</td><td>RB</td>
         <td>152.0</td>
-        <td>-7</td></tr>
+        <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
     
     <tr><td>146</td><td>15</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Jacksonville Jaguars</td><td>DEF</td>
         <td>195.0</td>
-        <td>-49</td></tr>
+        <td data-sort-value="-49.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 49 picks early</span></td></tr>
     
     <tr><td>147</td><td>15</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Harrison Mevis</td><td>K</td>
         <td>229.0</td>
-        <td>-82</td></tr>
+        <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
     
     <tr><td>148</td><td>15</td><td class="wrap">Roster 6</td>
         <td class="wrap">Pittsburgh Steelers</td><td>DEF</td>
         <td>199.0</td>
-        <td>-51</td></tr>
+        <td data-sort-value="-51.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 51 picks early</span></td></tr>
     
     <tr><td>149</td><td>15</td><td class="wrap">Roster 4</td>
         <td class="wrap">Eddy Pineiro</td><td>K</td>
         <td>225.0</td>
-        <td>-76</td></tr>
+        <td data-sort-value="-76.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 76 picks early</span></td></tr>
     
     <tr><td>150</td><td>15</td><td class="wrap">Los Bandidos</td>
         <td class="wrap">Detroit Lions</td><td>DEF</td>
         <td>230.0</td>
-        <td>-80</td></tr>
+        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
     
   </table>
   </div>
 </section>
-<p class="meta">Reference ranks ("Ref"): FantasyPros Expert Consensus Rank (redraft, half PPR) (retrieved 2026-08-29).
-A negative Δ means a pick ahead of that reference; the number is a fact, the verdict is editorial.</p>
+<p class="meta">Reach/Steal compares each pick with the league's stored reference
+board (FantasyPros Expert Consensus Rank (redraft, half PPR) (retrieved 2026-08-29)). REACH means the player
+went at least one full league round (10 picks here) earlier than
+reference; STEAL means at least one full round later. Color deepens with the
+size of the deviation and saturates at three rounds. This measures draft-market
+value against a reference board — not whether the pick ultimately succeeds.</p>
 
 
 </main>
@@ -1737,5 +1844,6 @@ A negative Δ means a pick ahead of that reference; the number is a fact, the ve
   
   THE SURFEIT · 2026 · <a href="../../index.html">League select</a>
 </footer>
+<script src="../../assets/sortable.js" defer></script>
 </body>
 </html>

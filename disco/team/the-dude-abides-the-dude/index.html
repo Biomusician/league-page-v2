@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #e8a33d; }
   .tag { background:#2c343d; color:#e8a33d; }
   .tag.prom { background:#e8a33d; color:#14181d; }
+  .tag.warn { background:#3a2c14; color:#f0b866; border:1px solid #7a5a22; }
+  :root { --dv-red:#ff9d85; --dv-green:#8fd9a0; --dv-base:#e8e4d8; }
   td, th { border:1px solid #2c343d; }
   th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
@@ -155,6 +169,130 @@
 
 
 
+<section class="module">
+  <h2 class="section-label">Draft Recap</h2>
+  
+  <p>
+    
+    <b>Biggest Reach:</b> Dalton Kincaid <span class="meta">(pick 88 · ref 115.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:0.75">REACH · 27 picks early</span><br>
+    
+    
+    <b>Best Steal:</b> Daniel Jones <span class="meta">(pick 136 · ref 68.0)</span> — <span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 68 picks late</span>
+    
+  </p>
+  
+  <div class="tablewrap">
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number">Rd</th>
+        <th scope="col" data-sort-type="number">Pick</th>
+        <th scope="col">Player</th><th scope="col">Pos</th>
+        <th scope="col" data-sort-type="number">Ref</th>
+        <th scope="col" data-sort-type="number">Draft Value</th></tr>
+    
+    <tr><td>1</td><td>9</td><td class="wrap">Amon-Ra St. Brown</td>
+        <td>WR</td>
+        <td>15.0</td>
+        <td data-sort-value="-6.0"><span class="dv dv-reach" style="--dvi:0.17">-6</span></td></tr>
+    
+    <tr><td>2</td><td>16</td><td class="wrap">Christian McCaffrey</td>
+        <td>RB</td>
+        <td>20.0</td>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.11">-4</span></td></tr>
+    
+    <tr><td>3</td><td>33</td><td class="wrap">Trey McBride</td>
+        <td>TE</td>
+        <td>40.0</td>
+        <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.19">-7</span></td></tr>
+    
+    <tr><td>4</td><td>40</td><td class="wrap">Trevor Lawrence</td>
+        <td>QB</td>
+        <td>16.0</td>
+        <td data-sort-value="24.0"><span class="dv dv-strong dv-steal" style="--dvi:0.67">STEAL · 24 picks late</span></td></tr>
+    
+    <tr><td>5</td><td>57</td><td class="wrap">Zay Flowers</td>
+        <td>WR</td>
+        <td>47.0</td>
+        <td data-sort-value="10.0"><span class="dv dv-steal" style="--dvi:0.28">+10</span></td></tr>
+    
+    <tr><td>6</td><td>64</td><td class="wrap">Cam Skattebo</td>
+        <td>RB</td>
+        <td>77.0</td>
+        <td data-sort-value="-13.0"><span class="dv dv-strong dv-reach" style="--dvi:0.36">REACH · 13 picks early</span></td></tr>
+    
+    <tr><td>7</td><td>81</td><td class="wrap">Davante Adams</td>
+        <td>WR</td>
+        <td>64.0</td>
+        <td data-sort-value="17.0"><span class="dv dv-strong dv-steal" style="--dvi:0.47">STEAL · 17 picks late</span></td></tr>
+    
+    <tr><td>8</td><td>88</td><td class="wrap">Dalton Kincaid</td>
+        <td>TE</td>
+        <td>115.0</td>
+        <td data-sort-value="-27.0"><span class="dv dv-strong dv-reach" style="--dvi:0.75">REACH · 27 picks early</span></td></tr>
+    
+    <tr><td>9</td><td>105</td><td class="wrap">Blake Corum</td>
+        <td>RB</td>
+        <td>105.0</td>
+        <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>10</td><td>112</td><td class="wrap">Malik Willis</td>
+        <td>QB</td>
+        <td>54.0</td>
+        <td data-sort-value="58.0"><span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 58 picks late</span></td></tr>
+    
+    <tr><td>11</td><td>129</td><td class="wrap">Jonathon Brooks</td>
+        <td>RB</td>
+        <td>99.0</td>
+        <td data-sort-value="30.0"><span class="dv dv-strong dv-steal" style="--dvi:0.83">STEAL · 30 picks late</span></td></tr>
+    
+    <tr><td>12</td><td>136</td><td class="wrap">Daniel Jones</td>
+        <td>QB</td>
+        <td>68.0</td>
+        <td data-sort-value="68.0"><span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 68 picks late</span></td></tr>
+    
+    <tr><td>13</td><td>153</td><td class="wrap">Rashid Shaheed</td>
+        <td>WR</td>
+        <td>145.0</td>
+        <td data-sort-value="8.0"><span class="dv dv-steal" style="--dvi:0.22">+8</span></td></tr>
+    
+    <tr><td>14</td><td>160</td><td class="wrap">Brian Robinson</td>
+        <td>RB</td>
+        <td>156.0</td>
+        <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.11">+4</span></td></tr>
+    
+    <tr><td>15</td><td>177</td><td class="wrap">Malik Washington</td>
+        <td>WR</td>
+        <td>192.0</td>
+        <td data-sort-value="-15.0"><span class="dv dv-strong dv-reach" style="--dvi:0.42">REACH · 15 picks early</span></td></tr>
+    
+    <tr><td>16</td><td>184</td><td class="wrap">Dylan Sampson</td>
+        <td>RB</td>
+        <td>163.0</td>
+        <td data-sort-value="21.0"><span class="dv dv-strong dv-steal" style="--dvi:0.58">STEAL · 21 picks late</span></td></tr>
+    
+    <tr><td>17</td><td>201</td><td class="wrap">Pat Freiermuth</td>
+        <td>TE</td>
+        <td>205.0</td>
+        <td data-sort-value="-4.0"><span class="dv dv-reach" style="--dvi:0.11">-4</span></td></tr>
+    
+    <tr><td>18</td><td>208</td><td class="wrap">Ryan Flournoy</td>
+        <td>WR</td>
+        <td>185.0</td>
+        <td data-sort-value="23.0"><span class="dv dv-strong dv-steal" style="--dvi:0.64">STEAL · 23 picks late</span></td></tr>
+    
+    <tr><td>19</td><td>225</td><td class="wrap">Devaughn Vele</td>
+        <td>WR</td>
+        <td>233.0</td>
+        <td data-sort-value="-8.0"><span class="dv dv-reach" style="--dvi:0.22">-8</span></td></tr>
+    
+  </table>
+  </div>
+  <p class="meta">Reach/Steal compares selection slot with the league's stored
+  reference board; one full round here is 12 picks. It
+  measures draft-market value, not whether the pick works out.</p>
+</section>
+
+
+
 
 
 
@@ -213,5 +351,6 @@
   <img class="logo-footer" src="../../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
   DISCO CHAT · 2026 · <a href="../../../index.html">League select</a>
 </footer>
+<script src="../../../assets/sortable.js" defer></script>
 </body>
 </html>

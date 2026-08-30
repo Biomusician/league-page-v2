@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #1b3a5c; box-shadow:3px 3px 0 #cfd6dc; }
   .tag { background:#e2e6e2; color:#1b3a5c; }
   .tag.prom { background:#1b3a5c; color:#f4f4f0; }
+  .tag.warn { background:#f4e3c4; color:#6e4310; border:1px solid #c9a25e; }
+  :root { --dv-red:#a02c1f; --dv-green:#1e6b34; --dv-base:#1b2733; }
   td, th { border:1px solid #cfd6dc; }
   th { background:#e2e6e2; color:#1b3a5c; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #b0332a; color:#41505e; }
@@ -181,40 +195,41 @@
 </div>
 
 <h2 class="section-label">Positional Strength — League Comparison</h2>
+<p class="meta">Click a position to rank the league's rooms; click again to reverse.</p>
 <div class="tablewrap">
-<table>
-  <tr><th scope="col">Team</th>
-    <th scope="col">QB</th><th scope="col">RB</th><th scope="col">WR</th><th scope="col">TE</th><th scope="col">K</th><th scope="col">DEF</th></tr>
+<table data-sortable>
+  <tr><th scope="col" data-sort-type="text">Team</th>
+    <th scope="col" data-sort-type="number">QB</th><th scope="col" data-sort-type="number">RB</th><th scope="col" data-sort-type="number">WR</th><th scope="col" data-sort-type="number">TE</th><th scope="col" data-sort-type="number">K</th><th scope="col" data-sort-type="number">DEF</th></tr>
   
-  <tr><td class="wrap"><a href="../team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a></td>
-    <td>6</td><td>6</td><td>2</td><td>10</td><td>2</td><td>5</td></tr>
+  <tr><td class="wrap" data-sort-value="Statistical Anomalies (McLovin)"><a href="../team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a></td>
+    <td data-sort-value="6">6</td><td data-sort-value="6">6</td><td data-sort-value="2">2</td><td data-sort-value="10">10</td><td data-sort-value="2">2</td><td data-sort-value="5">5</td></tr>
   
-  <tr><td class="wrap"><a href="../team/roster-2/index.html">Roster 2</a></td>
-    <td>9</td><td>10</td><td>1</td><td>3</td><td>9</td><td>2</td></tr>
+  <tr><td class="wrap" data-sort-value="Roster 2"><a href="../team/roster-2/index.html">Roster 2</a></td>
+    <td data-sort-value="9">9</td><td data-sort-value="10">10</td><td data-sort-value="1">1</td><td data-sort-value="3">3</td><td data-sort-value="9">9</td><td data-sort-value="2">2</td></tr>
   
-  <tr><td class="wrap"><a href="../team/shactin-a-fool-shac/index.html">SHACtin&#39; a Fool 🐻 (SHAC)</a></td>
-    <td>2</td><td>9</td><td>4</td><td>7</td><td>10</td><td>1</td></tr>
+  <tr><td class="wrap" data-sort-value="SHACtin&#39; a Fool 🐻 (SHAC)"><a href="../team/shactin-a-fool-shac/index.html">SHACtin&#39; a Fool 🐻 (SHAC)</a></td>
+    <td data-sort-value="2">2</td><td data-sort-value="9">9</td><td data-sort-value="4">4</td><td data-sort-value="7">7</td><td data-sort-value="10">10</td><td data-sort-value="1">1</td></tr>
   
-  <tr><td class="wrap"><a href="../team/roster-4/index.html">Roster 4</a></td>
-    <td>10</td><td>4</td><td>5</td><td>4</td><td>7</td><td>8</td></tr>
+  <tr><td class="wrap" data-sort-value="Roster 4"><a href="../team/roster-4/index.html">Roster 4</a></td>
+    <td data-sort-value="10">10</td><td data-sort-value="4">4</td><td data-sort-value="5">5</td><td data-sort-value="4">4</td><td data-sort-value="7">7</td><td data-sort-value="8">8</td></tr>
   
-  <tr><td class="wrap"><a href="../team/roster-5/index.html">Roster 5</a></td>
-    <td>3</td><td>1</td><td>8</td><td>6</td><td>5</td><td>9</td></tr>
+  <tr><td class="wrap" data-sort-value="Roster 5"><a href="../team/roster-5/index.html">Roster 5</a></td>
+    <td data-sort-value="3">3</td><td data-sort-value="1">1</td><td data-sort-value="8">8</td><td data-sort-value="6">6</td><td data-sort-value="5">5</td><td data-sort-value="9">9</td></tr>
   
-  <tr><td class="wrap"><a href="../team/roster-6/index.html">Roster 6</a></td>
-    <td>8</td><td>8</td><td>7</td><td>5</td><td>6</td><td>7</td></tr>
+  <tr><td class="wrap" data-sort-value="Roster 6"><a href="../team/roster-6/index.html">Roster 6</a></td>
+    <td data-sort-value="8">8</td><td data-sort-value="8">8</td><td data-sort-value="7">7</td><td data-sort-value="5">5</td><td data-sort-value="6">6</td><td data-sort-value="7">7</td></tr>
   
-  <tr><td class="wrap"><a href="../team/wild-seekats-seabass-kats/index.html">Wild SeeKats (Seabass/Kats)</a></td>
-    <td>7</td><td>2</td><td>10</td><td>1</td><td>4</td><td>6</td></tr>
+  <tr><td class="wrap" data-sort-value="Wild SeeKats (Seabass/Kats)"><a href="../team/wild-seekats-seabass-kats/index.html">Wild SeeKats (Seabass/Kats)</a></td>
+    <td data-sort-value="7">7</td><td data-sort-value="2">2</td><td data-sort-value="10">10</td><td data-sort-value="1">1</td><td data-sort-value="4">4</td><td data-sort-value="6">6</td></tr>
   
-  <tr><td class="wrap"><a href="../team/l-entente-discordiale-borat-jack/index.html">L’entente Discordiale (Borat/Jack)</a></td>
-    <td>4</td><td>3</td><td>9</td><td>9</td><td>1</td><td>3</td></tr>
+  <tr><td class="wrap" data-sort-value="L’entente Discordiale (Borat/Jack)"><a href="../team/l-entente-discordiale-borat-jack/index.html">L’entente Discordiale (Borat/Jack)</a></td>
+    <td data-sort-value="4">4</td><td data-sort-value="3">3</td><td data-sort-value="9">9</td><td data-sort-value="9">9</td><td data-sort-value="1">1</td><td data-sort-value="3">3</td></tr>
   
-  <tr><td class="wrap"><a href="../team/swifty-mahomey-pappie/index.html">Swifty Mahomey (Pappie)</a></td>
-    <td>5</td><td>7</td><td>3</td><td>8</td><td>8</td><td>4</td></tr>
+  <tr><td class="wrap" data-sort-value="Swifty Mahomey (Pappie)"><a href="../team/swifty-mahomey-pappie/index.html">Swifty Mahomey (Pappie)</a></td>
+    <td data-sort-value="5">5</td><td data-sort-value="7">7</td><td data-sort-value="3">3</td><td data-sort-value="8">8</td><td data-sort-value="8">8</td><td data-sort-value="4">4</td></tr>
   
-  <tr><td class="wrap"><a href="../team/los-bandidos/index.html">Los Bandidos</a></td>
-    <td>1</td><td>5</td><td>6</td><td>2</td><td>3</td><td>10</td></tr>
+  <tr><td class="wrap" data-sort-value="Los Bandidos"><a href="../team/los-bandidos/index.html">Los Bandidos</a></td>
+    <td data-sort-value="1">1</td><td data-sort-value="5">5</td><td data-sort-value="6">6</td><td data-sort-value="2">2</td><td data-sort-value="3">3</td><td data-sort-value="10">10</td></tr>
   
 </table>
 </div>
@@ -229,5 +244,6 @@ measure results; the gap between the two is usually where the story is.</p>
   
   THE SURFEIT · 2026 · <a href="../../index.html">League select</a>
 </footer>
+<script src="../../assets/sortable.js" defer></script>
 </body>
 </html>

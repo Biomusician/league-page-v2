@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #1b3a5c; box-shadow:3px 3px 0 #cfd6dc; }
   .tag { background:#e2e6e2; color:#1b3a5c; }
   .tag.prom { background:#1b3a5c; color:#f4f4f0; }
+  .tag.warn { background:#f4e3c4; color:#6e4310; border:1px solid #c9a25e; }
+  :root { --dv-red:#a02c1f; --dv-green:#1e6b34; --dv-base:#1b2733; }
   td, th { border:1px solid #cfd6dc; }
   th { background:#e2e6e2; color:#1b3a5c; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #b0332a; color:#41505e; }
@@ -109,16 +123,40 @@
 
 
 
+
+<section class="module">
+  <h2 class="section-label">Reading the Moves</h2>
+  
+  <div class="card">
+    <strong>Added Minnesota Vikings · dropped Wan&#39;Dale Robinson</strong> — Roster 4
+    <span class="meta">(wk 1 · waiver)</span>
+    
+    <p>Likely rationale: This appears aimed at DEF: the room ranked #10 of 10 before the move, and the addition moved it to #8. <span class="meta">(DEF #10 → #8)</span></p>
+    
+  </div>
+  
+  <p class="meta">Move rationales are inferred from roster construction,
+  positional strength, transaction cost, and available context. They describe
+  plausible roster logic, not the manager's stated intent unless explicitly
+  noted.</p>
+</section>
+
+
 <section class="module">
   <h2 class="section-label">Transaction Log</h2>
-  <p class="meta">The full reference log. Not everything here mattered; that is what the section above is for.</p>
+  <p class="meta">The full reference log. Not everything here mattered; that is what the sections above are for.</p>
   
   <div class="tablewrap">
-  <table>
-    <tr><th scope="col">Week</th><th scope="col">Type</th><th scope="col">Team</th><th scope="col">Added</th><th scope="col">Dropped</th><th scope="col">FAAB</th></tr>
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number" data-sort-dir="desc">Week</th>
+        <th scope="col" data-sort-type="text">Type</th>
+        <th scope="col" data-sort-type="text">Team</th>
+        <th scope="col" data-sort-type="text">Added</th>
+        <th scope="col" data-sort-type="text">Dropped</th>
+        <th scope="col" data-sort-type="number" data-sort-dir="desc">FAAB</th></tr>
     
     <tr><td>1</td><td>waiver</td><td class="wrap">Roster 4</td>
-        <td class="wrap">MIN</td><td class="wrap">Wan&#39;Dale Robinson</td><td>—</td></tr>
+        <td class="wrap">Minnesota Vikings</td><td class="wrap">Wan&#39;Dale Robinson</td><td>—</td></tr>
     
   </table>
   </div>
@@ -130,5 +168,6 @@
   
   THE SURFEIT · 2026 · <a href="../../index.html">League select</a>
 </footer>
+<script src="../../assets/sortable.js" defer></script>
 </body>
 </html>

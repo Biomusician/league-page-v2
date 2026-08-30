@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #e8a33d; }
   .tag { background:#2c343d; color:#e8a33d; }
   .tag.prom { background:#e8a33d; color:#14181d; }
+  .tag.warn { background:#3a2c14; color:#f0b866; border:1px solid #7a5a22; }
+  :root { --dv-red:#ff9d85; --dv-green:#8fd9a0; --dv-base:#e8e4d8; }
   td, th { border:1px solid #2c343d; }
   th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
@@ -196,46 +210,47 @@
 </div>
 
 <h2 class="section-label">Positional Strength — League Comparison</h2>
+<p class="meta">Click a position to rank the league's rooms; click again to reverse.</p>
 <div class="tablewrap">
-<table>
-  <tr><th scope="col">Team</th>
-    <th scope="col">QB</th><th scope="col">RB</th><th scope="col">WR</th><th scope="col">TE</th></tr>
+<table data-sortable>
+  <tr><th scope="col" data-sort-type="text">Team</th>
+    <th scope="col" data-sort-type="number">QB</th><th scope="col" data-sort-type="number">RB</th><th scope="col" data-sort-type="number">WR</th><th scope="col" data-sort-type="number">TE</th></tr>
   
-  <tr><td class="wrap"><a href="../team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a></td>
-    <td>4</td><td>1</td><td>9</td><td>12</td></tr>
+  <tr><td class="wrap" data-sort-value="Statistical Anomalies (McLovin)"><a href="../team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a></td>
+    <td data-sort-value="4">4</td><td data-sort-value="1">1</td><td data-sort-value="9">9</td><td data-sort-value="12">12</td></tr>
   
-  <tr><td class="wrap"><a href="../team/tua-girls-one-kupp-hop/index.html">Tua Girls One Kupp (HOP)</a></td>
-    <td>9</td><td>8</td><td>2</td><td>11</td></tr>
+  <tr><td class="wrap" data-sort-value="Tua Girls One Kupp (HOP)"><a href="../team/tua-girls-one-kupp-hop/index.html">Tua Girls One Kupp (HOP)</a></td>
+    <td data-sort-value="9">9</td><td data-sort-value="8">8</td><td data-sort-value="2">2</td><td data-sort-value="11">11</td></tr>
   
-  <tr><td class="wrap"><a href="../team/vhs-cowboys-juan/index.html">VHS Cowboys (Juan)</a></td>
-    <td>1</td><td>11</td><td>3</td><td>7</td></tr>
+  <tr><td class="wrap" data-sort-value="VHS Cowboys (Juan)"><a href="../team/vhs-cowboys-juan/index.html">VHS Cowboys (Juan)</a></td>
+    <td data-sort-value="1">1</td><td data-sort-value="11">11</td><td data-sort-value="3">3</td><td data-sort-value="7">7</td></tr>
   
-  <tr><td class="wrap"><a href="../team/stafford-and-sons-fingers/index.html">Stafford and Sons (Fingers)</a></td>
-    <td>12</td><td>4</td><td>12</td><td>3</td></tr>
+  <tr><td class="wrap" data-sort-value="Stafford and Sons (Fingers)"><a href="../team/stafford-and-sons-fingers/index.html">Stafford and Sons (Fingers)</a></td>
+    <td data-sort-value="12">12</td><td data-sort-value="4">4</td><td data-sort-value="12">12</td><td data-sort-value="3">3</td></tr>
   
-  <tr><td class="wrap"><a href="../team/love-sutton-brocks-emco/index.html">Love Sutton Brocks (EMCO)</a></td>
-    <td>10</td><td>2</td><td>6</td><td>2</td></tr>
+  <tr><td class="wrap" data-sort-value="Love Sutton Brocks (EMCO)"><a href="../team/love-sutton-brocks-emco/index.html">Love Sutton Brocks (EMCO)</a></td>
+    <td data-sort-value="10">10</td><td data-sort-value="2">2</td><td data-sort-value="6">6</td><td data-sort-value="2">2</td></tr>
   
-  <tr><td class="wrap"><a href="../team/the-dude-abides-the-dude/index.html">The Dude Abides (The Dude)</a></td>
-    <td>5</td><td>3</td><td>11</td><td>1</td></tr>
+  <tr><td class="wrap" data-sort-value="The Dude Abides (The Dude)"><a href="../team/the-dude-abides-the-dude/index.html">The Dude Abides (The Dude)</a></td>
+    <td data-sort-value="5">5</td><td data-sort-value="3">3</td><td data-sort-value="11">11</td><td data-sort-value="1">1</td></tr>
   
-  <tr><td class="wrap"><a href="../team/all-barkley-no-bite-sealed/index.html">All Barkley No Bite (Sealed)</a></td>
-    <td>2</td><td>9</td><td>8</td><td>9</td></tr>
+  <tr><td class="wrap" data-sort-value="All Barkley No Bite (Sealed)"><a href="../team/all-barkley-no-bite-sealed/index.html">All Barkley No Bite (Sealed)</a></td>
+    <td data-sort-value="2">2</td><td data-sort-value="9">9</td><td data-sort-value="8">8</td><td data-sort-value="9">9</td></tr>
   
-  <tr><td class="wrap"><a href="../team/george-friends-dip/index.html">George &amp; Friends (DIP)</a></td>
-    <td>7</td><td>10</td><td>1</td><td>6</td></tr>
+  <tr><td class="wrap" data-sort-value="George &amp; Friends (DIP)"><a href="../team/george-friends-dip/index.html">George &amp; Friends (DIP)</a></td>
+    <td data-sort-value="7">7</td><td data-sort-value="10">10</td><td data-sort-value="1">1</td><td data-sort-value="6">6</td></tr>
   
-  <tr><td class="wrap"><a href="../team/hand-me-a-white-claw-pitch/index.html">Hand me a White Claw (PITCH)</a></td>
-    <td>6</td><td>7</td><td>5</td><td>5</td></tr>
+  <tr><td class="wrap" data-sort-value="Hand me a White Claw (PITCH)"><a href="../team/hand-me-a-white-claw-pitch/index.html">Hand me a White Claw (PITCH)</a></td>
+    <td data-sort-value="6">6</td><td data-sort-value="7">7</td><td data-sort-value="5">5</td><td data-sort-value="5">5</td></tr>
   
-  <tr><td class="wrap"><a href="../team/corn-fed-fatties-babe/index.html">Corn-Fed Fatties (Babe)</a></td>
-    <td>8</td><td>6</td><td>4</td><td>8</td></tr>
+  <tr><td class="wrap" data-sort-value="Corn-Fed Fatties (Babe)"><a href="../team/corn-fed-fatties-babe/index.html">Corn-Fed Fatties (Babe)</a></td>
+    <td data-sort-value="8">8</td><td data-sort-value="6">6</td><td data-sort-value="4">4</td><td data-sort-value="8">8</td></tr>
   
-  <tr><td class="wrap"><a href="../team/double-tds-double/index.html">Double TDs (Double)</a></td>
-    <td>3</td><td>12</td><td>10</td><td>4</td></tr>
+  <tr><td class="wrap" data-sort-value="Double TDs (Double)"><a href="../team/double-tds-double/index.html">Double TDs (Double)</a></td>
+    <td data-sort-value="3">3</td><td data-sort-value="12">12</td><td data-sort-value="10">10</td><td data-sort-value="4">4</td></tr>
   
-  <tr><td class="wrap"><a href="../team/secret-asian-man-pop/index.html">Secret Asian Man (POP)</a></td>
-    <td>11</td><td>5</td><td>7</td><td>10</td></tr>
+  <tr><td class="wrap" data-sort-value="Secret Asian Man (POP)"><a href="../team/secret-asian-man-pop/index.html">Secret Asian Man (POP)</a></td>
+    <td data-sort-value="11">11</td><td data-sort-value="5">5</td><td data-sort-value="7">7</td><td data-sort-value="10">10</td></tr>
   
 </table>
 </div>
@@ -250,5 +265,6 @@ measure results; the gap between the two is usually where the story is.</p>
   <img class="logo-footer" src="../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
   DISCO CHAT · 2026 · <a href="../../index.html">League select</a>
 </footer>
+<script src="../../assets/sortable.js" defer></script>
 </body>
 </html>

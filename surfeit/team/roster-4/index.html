@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #1b3a5c; box-shadow:3px 3px 0 #cfd6dc; }
   .tag { background:#e2e6e2; color:#1b3a5c; }
   .tag.prom { background:#1b3a5c; color:#f4f4f0; }
+  .tag.warn { background:#f4e3c4; color:#6e4310; border:1px solid #c9a25e; }
+  :root { --dv-red:#a02c1f; --dv-green:#1e6b34; --dv-base:#1b2733; }
   td, th { border:1px solid #cfd6dc; }
   th { background:#e2e6e2; color:#1b3a5c; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #b0332a; color:#41505e; }
@@ -158,6 +172,125 @@
 
 
 
+<section class="module">
+  <h2 class="section-label">Key Moves</h2>
+  <ul>
+    
+    <li>Added Minnesota Vikings · dropped Wan&#39;Dale Robinson <span class="meta">(wk 1 · waiver)</span>
+      
+      <div class="meta">Likely rationale: This appears aimed at DEF: the room ranked #10 of 10 before the move, and the addition moved it to #8. (DEF #10 → #8)</div>
+    </li>
+    
+  </ul>
+  <p class="meta">Move rationales are inferred from roster construction,
+  positional strength, and transaction cost. They describe plausible roster
+  logic, not the manager's stated intent.</p>
+</section>
+
+
+
+<section class="module">
+  <h2 class="section-label">Draft Recap</h2>
+  
+  <p>
+    
+    <b>Biggest Reach:</b> Eddy Pineiro <span class="meta">(pick 149 · ref 225.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 76 picks early</span><br>
+    
+    
+    <b>Best Steal:</b> Marvin Harrison <span class="meta">(pick 89 · ref 69.0)</span> — <span class="dv dv-strong dv-steal" style="--dvi:0.67">STEAL · 20 picks late</span>
+    
+  </p>
+  
+  <div class="tablewrap">
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number">Rd</th>
+        <th scope="col" data-sort-type="number">Pick</th>
+        <th scope="col">Player</th><th scope="col">Pos</th>
+        <th scope="col" data-sort-type="number">Ref</th>
+        <th scope="col" data-sort-type="number">Draft Value</th></tr>
+    
+    <tr><td>1</td><td>9</td><td class="wrap">James Cook</td>
+        <td>RB</td>
+        <td>10.0</td>
+        <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>2</td><td>12</td><td class="wrap">CeeDee Lamb</td>
+        <td>WR</td>
+        <td>9.0</td>
+        <td data-sort-value="3.0"><span class="dv dv-steal" style="--dvi:0.1">+3</span></td></tr>
+    
+    <tr><td>3</td><td>29</td><td class="wrap">Brock Bowers</td>
+        <td>TE</td>
+        <td>18.0</td>
+        <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
+    
+    <tr><td>4</td><td>32</td><td class="wrap">Zay Flowers</td>
+        <td>WR</td>
+        <td>30.0</td>
+        <td data-sort-value="2.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>5</td><td>49</td><td class="wrap">Bhayshul Tuten</td>
+        <td>RB</td>
+        <td>63.0</td>
+        <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
+    
+    <tr><td>6</td><td>52</td><td class="wrap">Quinshon Judkins</td>
+        <td>RB</td>
+        <td>55.0</td>
+        <td data-sort-value="-3.0"><span class="dv dv-reach" style="--dvi:0.1">-3</span></td></tr>
+    
+    <tr><td>7</td><td>69</td><td class="wrap">Jameson Williams</td>
+        <td>WR</td>
+        <td>51.0</td>
+        <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
+    
+    <tr><td>8</td><td>72</td><td class="wrap">Rico Dowdle</td>
+        <td>RB</td>
+        <td>81.0</td>
+        <td data-sort-value="-9.0"><span class="dv dv-reach" style="--dvi:0.3">-9</span></td></tr>
+    
+    <tr><td>9</td><td>89</td><td class="wrap">Marvin Harrison</td>
+        <td>WR</td>
+        <td>69.0</td>
+        <td data-sort-value="20.0"><span class="dv dv-strong dv-steal" style="--dvi:0.67">STEAL · 20 picks late</span></td></tr>
+    
+    <tr><td>10</td><td>92</td><td class="wrap">Dak Prescott</td>
+        <td>QB</td>
+        <td>75.0</td>
+        <td data-sort-value="17.0"><span class="dv dv-strong dv-steal" style="--dvi:0.57">STEAL · 17 picks late</span></td></tr>
+    
+    <tr><td>11</td><td>109</td><td class="wrap">Wan&#39;Dale Robinson</td>
+        <td>WR</td>
+        <td>97.0</td>
+        <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
+    
+    <tr><td>12</td><td>112</td><td class="wrap">Stefon Diggs</td>
+        <td>WR</td>
+        <td>101.0</td>
+        <td data-sort-value="11.0"><span class="dv dv-strong dv-steal" style="--dvi:0.37">STEAL · 11 picks late</span></td></tr>
+    
+    <tr><td>13</td><td>129</td><td class="wrap">Woody Marks</td>
+        <td>RB</td>
+        <td>128.0</td>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>14</td><td>132</td><td class="wrap">Xavier Worthy</td>
+        <td>WR</td>
+        <td>123.0</td>
+        <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
+    
+    <tr><td>15</td><td>149</td><td class="wrap">Eddy Pineiro</td>
+        <td>K</td>
+        <td>225.0</td>
+        <td data-sort-value="-76.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 76 picks early</span></td></tr>
+    
+  </table>
+  </div>
+  <p class="meta">Reach/Steal compares selection slot with the league's stored
+  reference board; one full round here is 10 picks. It
+  measures draft-market value, not whether the pick works out.</p>
+</section>
+
 
 
 
@@ -215,5 +348,6 @@
   
   THE SURFEIT · 2026 · <a href="../../../index.html">League select</a>
 </footer>
+<script src="../../../assets/sortable.js" defer></script>
 </body>
 </html>

@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #1b3a5c; box-shadow:3px 3px 0 #cfd6dc; }
   .tag { background:#e2e6e2; color:#1b3a5c; }
   .tag.prom { background:#1b3a5c; color:#f4f4f0; }
+  .tag.warn { background:#f4e3c4; color:#6e4310; border:1px solid #c9a25e; }
+  :root { --dv-red:#a02c1f; --dv-green:#1e6b34; --dv-base:#1b2733; }
   td, th { border:1px solid #cfd6dc; }
   th { background:#e2e6e2; color:#1b3a5c; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #b0332a; color:#41505e; }
@@ -160,6 +174,110 @@
 
 
 
+<section class="module">
+  <h2 class="section-label">Draft Recap</h2>
+  
+  <p>
+    
+    <b>Biggest Reach:</b> Ka&#39;imi Fairbairn <span class="meta">(pick 131 · ref 211.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span><br>
+    
+    
+    <b>Best Steal:</b> Trevor Lawrence <span class="meta">(pick 111 · ref 74.0)</span> — <span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 37 picks late</span>
+    
+  </p>
+  
+  <div class="tablewrap">
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number">Rd</th>
+        <th scope="col" data-sort-type="number">Pick</th>
+        <th scope="col">Player</th><th scope="col">Pos</th>
+        <th scope="col" data-sort-type="number">Ref</th>
+        <th scope="col" data-sort-type="number">Draft Value</th></tr>
+    
+    <tr><td>1</td><td>10</td><td class="wrap">Saquon Barkley</td>
+        <td>RB</td>
+        <td>15.0</td>
+        <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
+    
+    <tr><td>2</td><td>11</td><td class="wrap">De&#39;Von Achane</td>
+        <td>RB</td>
+        <td>16.0</td>
+        <td data-sort-value="-5.0"><span class="dv dv-reach" style="--dvi:0.17">-5</span></td></tr>
+    
+    <tr><td>3</td><td>30</td><td class="wrap">Drake London</td>
+        <td>WR</td>
+        <td>14.0</td>
+        <td data-sort-value="16.0"><span class="dv dv-strong dv-steal" style="--dvi:0.53">STEAL · 16 picks late</span></td></tr>
+    
+    <tr><td>4</td><td>31</td><td class="wrap">Trey McBride</td>
+        <td>TE</td>
+        <td>25.0</td>
+        <td data-sort-value="6.0"><span class="dv dv-steal" style="--dvi:0.2">+6</span></td></tr>
+    
+    <tr><td>5</td><td>50</td><td class="wrap">Tee Higgins</td>
+        <td>WR</td>
+        <td>32.0</td>
+        <td data-sort-value="18.0"><span class="dv dv-strong dv-steal" style="--dvi:0.6">STEAL · 18 picks late</span></td></tr>
+    
+    <tr><td>6</td><td>51</td><td class="wrap">Drake Maye</td>
+        <td>QB</td>
+        <td>44.0</td>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
+    
+    <tr><td>7</td><td>70</td><td class="wrap">Terry McLaurin</td>
+        <td>WR</td>
+        <td>46.0</td>
+        <td data-sort-value="24.0"><span class="dv dv-strong dv-steal" style="--dvi:0.8">STEAL · 24 picks late</span></td></tr>
+    
+    <tr><td>8</td><td>71</td><td class="wrap">Josh Jacobs</td>
+        <td>RB</td>
+        <td>43.0</td>
+        <td data-sort-value="28.0"><span class="dv dv-strong dv-steal" style="--dvi:0.93">STEAL · 28 picks late</span></td></tr>
+    
+    <tr><td>9</td><td>90</td><td class="wrap">Michael Wilson</td>
+        <td>WR</td>
+        <td>89.0</td>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>10</td><td>91</td><td class="wrap">George Kittle</td>
+        <td>TE</td>
+        <td>93.0</td>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>11</td><td>110</td><td class="wrap">Chris Rodriguez</td>
+        <td>RB</td>
+        <td>121.0</td>
+        <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
+    
+    <tr><td>12</td><td>111</td><td class="wrap">Trevor Lawrence</td>
+        <td>QB</td>
+        <td>74.0</td>
+        <td data-sort-value="37.0"><span class="dv dv-strong dv-steal" style="--dvi:1.0">STEAL · 37 picks late</span></td></tr>
+    
+    <tr><td>13</td><td>130</td><td class="wrap">Matthew Golden</td>
+        <td>WR</td>
+        <td>126.0</td>
+        <td data-sort-value="4.0"><span class="dv dv-steal" style="--dvi:0.13">+4</span></td></tr>
+    
+    <tr><td>14</td><td>131</td><td class="wrap">Ka&#39;imi Fairbairn</td>
+        <td>K</td>
+        <td>211.0</td>
+        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+    
+    <tr><td>15</td><td>150</td><td class="wrap">Detroit Lions</td>
+        <td>DEF</td>
+        <td>230.0</td>
+        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+    
+  </table>
+  </div>
+  <p class="meta">Reach/Steal compares selection slot with the league's stored
+  reference board; one full round here is 10 picks. It
+  measures draft-market value, not whether the pick works out.</p>
+</section>
+
+
+
 
 
 
@@ -210,5 +328,6 @@
   
   THE SURFEIT · 2026 · <a href="../../../index.html">League select</a>
 </footer>
+<script src="../../../assets/sortable.js" defer></script>
 </body>
 </html>

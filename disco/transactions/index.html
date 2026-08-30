@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #e8a33d; }
   .tag { background:#2c343d; color:#e8a33d; }
   .tag.prom { background:#e8a33d; color:#14181d; }
+  .tag.warn { background:#3a2c14; color:#f0b866; border:1px solid #7a5a22; }
+  :root { --dv-red:#ff9d85; --dv-green:#8fd9a0; --dv-base:#e8e4d8; }
   td, th { border:1px solid #2c343d; }
   th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
@@ -110,37 +124,77 @@
 
 
 
+
+<section class="module">
+  <h2 class="section-label">Reading the Moves</h2>
+  
+  <div class="card">
+    <strong>Added Zavion Thomas · dropped Calvin Ridley</strong> — Stafford and Sons (Fingers)
+    <span class="meta">(wk 1 · waiver)</span>
+    
+    <p>Likely rationale: This appears aimed at WR: the room ranked #12 of 12 before the move.</p>
+    
+  </div>
+  
+  <div class="card">
+    <strong>Added Mike Gesicki</strong> — Statistical Anomalies (McLovin)
+    <span class="meta">(wk 1 · waiver)</span>
+    
+    <p>Likely rationale: This appears aimed at TE: the room ranked #12 of 12 before the move.</p>
+    
+  </div>
+  
+  <div class="card">
+    <strong>Added Malik Davis · dropped Jerry Jeudy</strong> — VHS Cowboys (Juan)
+    <span class="meta">(wk 1 · waiver · 5 FAAB)</span>
+    
+    <p>Likely rationale: This appears aimed at RB: the room ranked #11 of 12 before the move. The drop comes from the roster&#39;s deepest territory: WR ranked #3 of 12 with 8 players rostered.</p>
+    
+  </div>
+  
+  <p class="meta">Move rationales are inferred from roster construction,
+  positional strength, transaction cost, and available context. They describe
+  plausible roster logic, not the manager's stated intent unless explicitly
+  noted.</p>
+</section>
+
+
 <section class="module">
   <h2 class="section-label">Transaction Log</h2>
-  <p class="meta">The full reference log. Not everything here mattered; that is what the section above is for.</p>
+  <p class="meta">The full reference log. Not everything here mattered; that is what the sections above are for.</p>
   
   <div class="tablewrap">
-  <table>
-    <tr><th scope="col">Week</th><th scope="col">Type</th><th scope="col">Team</th><th scope="col">Added</th><th scope="col">Dropped</th><th scope="col">FAAB</th></tr>
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number" data-sort-dir="desc">Week</th>
+        <th scope="col" data-sort-type="text">Type</th>
+        <th scope="col" data-sort-type="text">Team</th>
+        <th scope="col" data-sort-type="text">Added</th>
+        <th scope="col" data-sort-type="text">Dropped</th>
+        <th scope="col" data-sort-type="number" data-sort-dir="desc">FAAB</th></tr>
     
-    <tr><td>1</td><td>waiver</td><td class="wrap">VHS Cowboys (Juan)</td>
-        <td class="wrap">Malik Davis</td><td class="wrap">Jerry Jeudy</td><td>—</td></tr>
-    
-    <tr><td>1</td><td>waiver</td><td class="wrap">VHS Cowboys (Juan)</td>
-        <td class="wrap">Odell Beckham</td><td class="wrap">Isaac TeSlaa</td><td>—</td></tr>
-    
-    <tr><td>1</td><td>free agent</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
-        <td class="wrap">—</td><td class="wrap">David Njoku</td><td>—</td></tr>
-    
-    <tr><td>1</td><td>free agent</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
-        <td class="wrap">—</td><td class="wrap">AJ Barner</td><td>—</td></tr>
-    
-    <tr><td>1</td><td>waiver</td><td class="wrap">Statistical Anomalies (McLovin)</td>
-        <td class="wrap">Mike Gesicki</td><td class="wrap">—</td><td>—</td></tr>
-    
-    <tr><td>1</td><td>waiver</td><td class="wrap">Stafford and Sons (Fingers)</td>
-        <td class="wrap">Zavion Thomas</td><td class="wrap">Calvin Ridley</td><td>—</td></tr>
+    <tr><td>1</td><td>waiver</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+        <td class="wrap">Germie Bernard</td><td class="wrap">—</td><td>1</td></tr>
     
     <tr><td>1</td><td>free agent</td><td class="wrap">All Barkley No Bite (Sealed)</td>
         <td class="wrap">—</td><td class="wrap">Audric Estime</td><td>—</td></tr>
     
-    <tr><td>1</td><td>waiver</td><td class="wrap">All Barkley No Bite (Sealed)</td>
-        <td class="wrap">Germie Bernard</td><td class="wrap">—</td><td>—</td></tr>
+    <tr><td>1</td><td>waiver</td><td class="wrap">Stafford and Sons (Fingers)</td>
+        <td class="wrap">Zavion Thomas</td><td class="wrap">Calvin Ridley</td><td>—</td></tr>
+    
+    <tr><td>1</td><td>waiver</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+        <td class="wrap">Mike Gesicki</td><td class="wrap">—</td><td>—</td></tr>
+    
+    <tr><td>1</td><td>free agent</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">—</td><td class="wrap">AJ Barner</td><td>—</td></tr>
+    
+    <tr><td>1</td><td>free agent</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+        <td class="wrap">—</td><td class="wrap">David Njoku</td><td>—</td></tr>
+    
+    <tr><td>1</td><td>waiver</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Odell Beckham</td><td class="wrap">Isaac TeSlaa</td><td>5</td></tr>
+    
+    <tr><td>1</td><td>waiver</td><td class="wrap">VHS Cowboys (Juan)</td>
+        <td class="wrap">Malik Davis</td><td class="wrap">Jerry Jeudy</td><td>5</td></tr>
     
   </table>
   </div>
@@ -152,5 +206,6 @@
   <img class="logo-footer" src="../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
   DISCO CHAT · 2026 · <a href="../../index.html">League select</a>
 </footer>
+<script src="../../assets/sortable.js" defer></script>
 </body>
 </html>

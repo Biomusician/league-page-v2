@@ -41,6 +41,18 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
     nav.leaguenav { font-size:.82rem; }
     nav.leaguenav a { margin:0 .3rem; }
@@ -63,6 +75,8 @@
   .card.feature { border:2px solid #1b3a5c; box-shadow:3px 3px 0 #cfd6dc; }
   .tag { background:#e2e6e2; color:#1b3a5c; }
   .tag.prom { background:#1b3a5c; color:#f4f4f0; }
+  .tag.warn { background:#f4e3c4; color:#6e4310; border:1px solid #c9a25e; }
+  :root { --dv-red:#a02c1f; --dv-green:#1e6b34; --dv-base:#1b2733; }
   td, th { border:1px solid #cfd6dc; }
   th { background:#e2e6e2; color:#1b3a5c; font-variant:small-caps; letter-spacing:.06em; }
   blockquote { border-left:3px solid #b0332a; color:#41505e; }
@@ -166,6 +180,110 @@
 
 
 
+<section class="module">
+  <h2 class="section-label">Draft Recap</h2>
+  
+  <p>
+    
+    <b>Biggest Reach:</b> Cam Little <span class="meta">(pick 141 · ref 214.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 73 picks early</span><br>
+    
+    
+    <b>Best Steal:</b> Michael Pittman <span class="meta">(pick 100 · ref 88.0)</span> — <span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span>
+    
+  </p>
+  
+  <div class="tablewrap">
+  <table data-sortable>
+    <tr><th scope="col" data-sort-type="number">Rd</th>
+        <th scope="col" data-sort-type="number">Pick</th>
+        <th scope="col">Player</th><th scope="col">Pos</th>
+        <th scope="col" data-sort-type="number">Ref</th>
+        <th scope="col" data-sort-type="number">Draft Value</th></tr>
+    
+    <tr><td>1</td><td>1</td><td class="wrap">Jahmyr Gibbs</td>
+        <td>RB</td>
+        <td>1.0</td>
+        <td data-sort-value="0.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>2</td><td>20</td><td class="wrap">A.J. Brown</td>
+        <td>WR</td>
+        <td>13.0</td>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
+    
+    <tr><td>3</td><td>21</td><td class="wrap">George Pickens</td>
+        <td>WR</td>
+        <td>23.0</td>
+        <td data-sort-value="-2.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>4</td><td>40</td><td class="wrap">D&#39;Andre Swift</td>
+        <td>RB</td>
+        <td>47.0</td>
+        <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
+    
+    <tr><td>5</td><td>41</td><td class="wrap">Breece Hall</td>
+        <td>RB</td>
+        <td>34.0</td>
+        <td data-sort-value="7.0"><span class="dv dv-steal" style="--dvi:0.23">+7</span></td></tr>
+    
+    <tr><td>6</td><td>60</td><td class="wrap">Jayden Daniels</td>
+        <td>QB</td>
+        <td>61.0</td>
+        <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>7</td><td>61</td><td class="wrap">Tyler Warren</td>
+        <td>TE</td>
+        <td>52.0</td>
+        <td data-sort-value="9.0"><span class="dv dv-steal" style="--dvi:0.3">+9</span></td></tr>
+    
+    <tr><td>8</td><td>80</td><td class="wrap">Harold Fannin</td>
+        <td>TE</td>
+        <td>79.0</td>
+        <td data-sort-value="1.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>9</td><td>81</td><td class="wrap">Alec Pierce</td>
+        <td>WR</td>
+        <td>92.0</td>
+        <td data-sort-value="-11.0"><span class="dv dv-strong dv-reach" style="--dvi:0.37">REACH · 11 picks early</span></td></tr>
+    
+    <tr><td>10</td><td>100</td><td class="wrap">Michael Pittman</td>
+        <td>WR</td>
+        <td>88.0</td>
+        <td data-sort-value="12.0"><span class="dv dv-strong dv-steal" style="--dvi:0.4">STEAL · 12 picks late</span></td></tr>
+    
+    <tr><td>11</td><td>101</td><td class="wrap">Rachaad White</td>
+        <td>RB</td>
+        <td>114.0</td>
+        <td data-sort-value="-13.0"><span class="dv dv-strong dv-reach" style="--dvi:0.43">REACH · 13 picks early</span></td></tr>
+    
+    <tr><td>12</td><td>120</td><td class="wrap">Tyjae Spears</td>
+        <td>RB</td>
+        <td>134.0</td>
+        <td data-sort-value="-14.0"><span class="dv dv-strong dv-reach" style="--dvi:0.47">REACH · 14 picks early</span></td></tr>
+    
+    <tr><td>13</td><td>121</td><td class="wrap">Romeo Doubs</td>
+        <td>WR</td>
+        <td>122.0</td>
+        <td data-sort-value="-1.0"><span class="meta">on board</span></td></tr>
+    
+    <tr><td>14</td><td>140</td><td class="wrap">Philadelphia Eagles</td>
+        <td>DEF</td>
+        <td>197.0</td>
+        <td data-sort-value="-57.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 57 picks early</span></td></tr>
+    
+    <tr><td>15</td><td>141</td><td class="wrap">Cam Little</td>
+        <td>K</td>
+        <td>214.0</td>
+        <td data-sort-value="-73.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 73 picks early</span></td></tr>
+    
+  </table>
+  </div>
+  <p class="meta">Reach/Steal compares selection slot with the league's stored
+  reference board; one full round here is 10 picks. It
+  measures draft-market value, not whether the pick works out.</p>
+</section>
+
+
+
 
 
 
@@ -216,5 +334,6 @@
   
   THE SURFEIT · 2026 · <a href="../../../index.html">League select</a>
 </footer>
+<script src="../../../assets/sortable.js" defer></script>
 </body>
 </html>
