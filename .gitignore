@@ -4,6 +4,7 @@ __pycache__/
 .env
 data/
 site/
+.site-worktree/
 dist/
 dist-preview/
 .pytest_cache/

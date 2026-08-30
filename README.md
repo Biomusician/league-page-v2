@@ -9,6 +9,16 @@ and a static public site for reading them.
 - Current state / next steps: [docs/HANDOFF.md](docs/HANDOFF.md)
 - Working conventions: [CLAUDE.md](CLAUDE.md)
 
+## Architecture at a glance
+
+| Layer | Where it lives |
+|---|---|
+| Private source | GitHub private repo `Biomusician/league-page-v2` |
+| Private authoring | Commissioner's Desk, runs only on this machine; its runtime state (`data/`, `logs/`, `editorial/managers.json`) never enters git |
+| Published data | Sanitized immutable issue snapshots under `published/`, git-tracked |
+| Public build | `scripts/build_public_site.py` renders `dist/` and fails on any privacy-audit finding |
+| Deployment | Vercel production (`league-page` project) serves the `site` branch, which carries only the audited `dist/` output — see [docs/DEPLOY.md](docs/DEPLOY.md) |
+
 ## Open the Commissioner's Desk
 
 **Double-click `Launch Commissioner Desk.cmd` in this folder** (or the

@@ -4,6 +4,34 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## GitHub + Vercel Git integration (2026-08-30)
+
+- Source is hosted at **https://github.com/Biomusician/league-page-v2**
+  (PRIVATE). Legacy public fork `Biomusician/league-page` (2022 Svelte
+  project) is unrelated; never touch it. Local remote `origin` points at
+  league-page-v2.
+- Vercel project `league-page` is connected to that repo, **production
+  branch `site`**. `site` carries only the audited `dist/` output;
+  `scripts/push_site_branch.py` builds, audits, commits, pushes it, and a
+  push auto-deploys production (proven: dpl_AzUYd7Hybjg71o4uuWV3cRSdPxYv).
+  `vercel.json` on both branches disables `main` deployments so the source
+  tree can never be built or served by Vercel.
+- Vercel cannot rebuild the site (the build reads the private local DB);
+  the audited artifact IS the deployment unit. Do not "fix" this by
+  committing private inputs.
+- The Desk's Publish & Deploy still uses the direct CLI path (Option A);
+  the Git path is a proven alternative, not yet wired into the Desk.
+- **`main` is NOT pushed yet.** `scripts/audit_repo_privacy.py` (run it
+  before any main push; `--history` for all commits) fails on 4
+  `editorial/**/commissioner_notes.md` files containing private Sleeper
+  handles, and history also carries those plus a few since-fixed spots
+  (old COMPACT.md, old test fixture, PREP.md packs). Waiting on Jonathan's
+  decision: rewrite/purge history vs push as-is to the private repo.
+  Handles in `archive/` are exempt (verbatim, deliberately public).
+- Vercel credentials: real login done by Jonathan 2026-08-30 (`npx.cmd
+  vercel login`). Claude sessions see a phantom overlay copy of
+  auth.json; only Jonathan's own terminal counts (see DEPLOY.md).
+
 ## THE SITE IS LIVE
 
 **Production: https://league-page-ten-sandy.vercel.app**

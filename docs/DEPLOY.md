@@ -17,7 +17,51 @@ with the fix when it isn't.
 The public artifact is fully static: no server code, no database, no API
 keys, no Sleeper calls at page-view time.
 
-## Deploy / redeploy to Vercel
+## Git hosting and Git-triggered deploys (added 2026-08-30)
+
+Source repo: **https://github.com/Biomusician/league-page-v2** (PRIVATE).
+The legacy public fork `Biomusician/league-page` (the open-source Svelte
+project, 2022) is untouched and unrelated. The Vercel project `league-page`
+is connected to `league-page-v2` with **production branch `site`**.
+
+What gets committed where:
+
+- **`main`** — application source, templates, tests, docs, `published/`
+  snapshots, archive, safe `.claude/` config. NOT: `data/`, `logs/`,
+  `editorial/managers.json`, `editorial/**/PREP.md`, `dist/`, credentials.
+- **`site`** — nothing but the audited output of `build_public_site.py`
+  plus a `vercel.json`. **Pushing `site` triggers a Vercel production
+  deployment.** Nothing else does: `vercel.json` on both branches sets
+  `git.deploymentEnabled.main = false`, so a `main` push can never build
+  or serve the source tree. This rule exists because Vercel's Git builds
+  would otherwise serve the repository root as static files.
+
+To publish the current build via Git:
+
+```
+.venv\Scripts\python.exe scripts\push_site_branch.py
+```
+
+Build fails or audit fails → nothing is committed or pushed. Site identical
+to branch tip → nothing pushed. Vercel keeps the previous production
+deployment whenever a new one fails, so a bad push cannot take the site
+down; check the deployment list at vercel.com if a push doesn't go live.
+"Push succeeded but site unchanged" = look there for an ERROR deployment.
+
+Cloud reproducibility, honestly: `build_public_site.py` reads the local
+SQLite DB (private: handles, ghost briefs, editorial state), so Vercel
+cannot and must not rebuild the site itself. The build+audit always run
+locally; Git carries only the finished audited artifact. That is the
+deliberate boundary, not a shortcut.
+
+Before ever pushing `main`, run the source-repo audit (tracked files for
+handles/credentials; `--history` for every commit):
+
+```
+.venv\Scripts\python.exe scripts\audit_repo_privacy.py --history
+```
+
+## Deploy / redeploy to Vercel (direct CLI — still the Desk's method)
 
 ```
 cd dist
