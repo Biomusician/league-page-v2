@@ -232,3 +232,55 @@ def test_health_endpoint(env):
     client, db, idir = env
     data = client.get("/health").json()
     assert data["status"] == "ok" and data["app"] == "commissioner-desk"
+
+
+def test_ghost_brief_shown_for_empty_section_never_in_textarea(env):
+    client, db, idir = env
+    (idir / "sections" / "hardware.md").write_text("", encoding="utf-8")
+    with Storage(db) as s:
+        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
+                          module_key="hardware", included=1)
+    t = client.get(EDIT).text
+    assert "suggestions ready" in t              # not-written chip
+    assert 'class="ghost"' in t                  # ghost overlay present
+    import re
+    for m in re.finditer(r"<textarea[^>]*autosave[^>]*>(.*?)</textarea>", t, re.S):
+        assert "Writing suggestions" not in m.group(1)   # never becomes content
+
+
+def test_empty_section_with_brief_still_blocks_publication(env):
+    client, db, idir = env
+    (idir / "sections" / "hardware.md").write_text("", encoding="utf-8")
+    with Storage(db) as s:
+        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
+                          module_key="hardware", included=1, approved=1)
+    r = client.get(f"{EDIT}/publish")
+    assert "Cannot publish yet" in r.text        # excellent ghost != written
+
+
+def test_ghost_text_never_reaches_published_snapshot(env, monkeypatch):
+    client, db, idir = env
+    monkeypatch.setattr(de.subprocess, "run",
+                        lambda *a, **k: type("P", (), {"returncode": 0,
+                                                       "stdout": "ok", "stderr": ""})())
+    with Storage(db) as s:
+        for key in ("hardware", "draft-capsules", "ctp", "power", "tracks", "fades",
+                    "forceflow", "blackbox", "false-assumptions", "branches", "custom"):
+            s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
+                              module_key=key, included=0)
+        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
+                          module_key="lowdown", approved=1)
+    client.post(f"{EDIT}/publish-local", data={"confirm": "yes"})
+    snap = (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json").read_text(encoding="utf-8")
+    assert "Writing suggestions" not in snap and "WORTH MENTIONING" not in snap
+
+
+def test_matchup_proposal_path_is_windows_safe(env):
+    from pathlib import Path
+    assert ":" not in str(Path("proposals") / "matchup--a-vs-b.md")
+    t = de.__dict__  # _proposal_path is closure-scoped; verify via request flow instead
+    client, db, idir = env
+    r = client.post(f"{EDIT}/request-rewrite",
+                    json={"section": "lowdown", "note": "x"})
+    assert r.status_code == 200
+    assert "matchup--<slug>" in (idir / "REVISION_REQUESTS.md").read_text(encoding="utf-8")

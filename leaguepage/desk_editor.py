@@ -69,6 +69,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         idir = issue_dir(league, season, issue_key)
         return idir, idir / "proposals"
 
+    def _proposal_path(idir: Path, section: str) -> Path:
+        # ':' is illegal in Windows filenames; matchup sections map to '--'
+        return idir / "proposals" / f"{section.replace(':', '--')}.md"
+
     def _section_path(league, season: str, issue_key: str, section: str) -> Path | None:
         idir = issue_dir(league, season, issue_key)
         m = _MATCHUP_RE.match(section)
@@ -104,12 +108,15 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         return out
 
     def _editor_context(league_slug: str, season: str, issue_key: str) -> dict:
+        from leaguepage.ghost_briefs import brief_for_section
+
         league = get_league(league_slug)
         week = _week_of(issue_key)
         idir, pdir = _paths(league, season, issue_key)
         with storage() as s:
             modules = module_states(s, league, season, issue_key, week=week)
-            prose_states = s.get_prose_states(league_slug, season, issue_key)
+            prose_rows = s.get_prose_state_rows(league_slug, season, issue_key)
+            prose_states = {k: v["state"] for k, v in prose_rows.items()}
             issue_row = s.get_issue(league_slug, season, issue_key)
             resolved = resolve_public_names(s, league)
             blockers = _blockers(s, league, season, issue_key, modules)
@@ -118,6 +125,14 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                           for sec in set(prose_states) | {m["module_key"] for m in modules}}
             label = "preseason" if week is None else issue_key
             rankings = s.get_power_rankings(league_slug, season, label)
+
+            def _brief(section: str) -> dict:
+                b = brief_for_section(s, league, season, issue_key, section, week)
+                written_at = (prose_rows.get(section) or {}).get("updated_at")
+                b["stale_prose"] = bool(written_at and b.get("data_as_of")
+                                        and b["data_as_of"] > written_at)
+                return b
+
             matchup_cards = []
             if week is not None:
                 computed = compute_week(s, league, week)
@@ -127,16 +142,21 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     dpath = week_dir(league, season, week) / "matchups" / slug / "draft.md"
                     text = _read(dpath) or ""
                     st = states.get(slug) or {}
+                    section = f"matchup:{slug}"
                     matchup_cards.append({
-                        "slug": slug, "section": f"matchup:{slug}",
+                        "slug": slug, "section": section,
                         "title": " vs ".join(
                             resolved.get(t["roster_id"], {}).get("name") or f"Roster {t['roster_id']}"
                             for t in sm["matchup"]["teams"]),
                         "text": text, "sha": _sha(text),
-                        "status": matchup_status(st, dpath.exists()),
+                        "status": matchup_status(st, bool(text.strip())),
                         "prominence": st.get("prominence_override") or sm.get("prominence"),
                         "angle": st.get("custom_angle") or st.get("selected_angle_id") or "(no angle)",
+                        "brief": _brief(section),
+                        "proposal": _read(_proposal_path(idir, section)),
                     })
+            briefs = {m["module_key"]: _brief(m["module_key"])
+                      for m in modules if m["kind"] in ("lowdown", "section", "power")}
         requests_by_section: dict[str, list[dict]] = {}
         for r in open_requests:
             requests_by_section.setdefault(r["section"], []).append(r)
@@ -147,12 +167,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             card = {**m, "anchor": f"sec-{key}", "editable": False,
                     "prose_state": prose_states.get(key, "generated"),
                     "requests": requests_by_section.get(key, []),
-                    "revisions": rev_counts.get(key, 0), "proposal": None}
+                    "revisions": rev_counts.get(key, 0), "proposal": None,
+                    "brief": briefs.get(key)}
             if kind in ("lowdown", "section"):
                 path = _section_path(league, season, issue_key, key)
                 text = _read(path)
                 card["editable"] = True
-                card["missing"] = text is None
+                card["not_written"] = not (text or "").strip()
                 text = text or ""
                 card["file_sha"] = _sha(text)
                 chunks = _split_chunks(text) if kind == "section" else [text]
@@ -160,7 +181,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                    "heading": _chunk_heading(c) if len(chunks) > 1 else None}
                                   for i, c in enumerate(chunks)]
                 card["chunk_count"] = len(chunks)
-                card["proposal"] = _read(pdir / f"{key}.md")
+                card["proposal"] = _read(_proposal_path(idir, key))
                 if kind == "lowdown":
                     card["generated_source"] = _read(idir / "lowdown" / "rough-lowdown.md")
             elif kind == "power":
@@ -197,7 +218,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             "",
             "Claude Code: read `.claude/skills/my-writing-style/SKILL.md` first and",
             "follow it. For each request below, write a FULL replacement for the",
-            "section to `proposals/<section>.md` inside this issue directory.",
+            "section to `proposals/<section>.md` inside this issue directory",
+            "(matchup sections use `proposals/matchup--<slug>.md`).",
             "Do NOT edit the section files directly: the commissioner's current text",
             "is authoritative until a proposal is explicitly accepted on the Desk.",
             "Facts still come only from the issue's generated briefs and evidence.",
@@ -438,7 +460,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         action = str(body.get("action") or "")
         league = get_league(league_slug)
         idir = issue_dir(league, season, issue_key)
-        ppath = idir / "proposals" / f"{section}.md"
+        ppath = _proposal_path(idir, section)
         target = _section_path(league, season, issue_key, section)
         if target is None or not ppath.exists():
             return JSONResponse({"ok": False, "error": "no proposal"}, status_code=404)

@@ -38,11 +38,19 @@ Troubleshooting fallback (what the launcher runs for you):
 ## Editing an issue
 
 From the Desk home, click **EDIT DRAFT ISSUE** (or **EDIT WEEK N**). The
-Issue Editor is one screen for the whole issue: every included section is an
-editable card (capsules split per team) with autosave, per-section
+Issue Editor is one screen for the whole issue, and every empty section
+starts as a **ghost writing brief**: subdued private suggestions (strongest
+facts, story angles, callbacks, a structure) rendered inside the editor.
+Your first keystroke replaces the ghost; deleting everything brings it
+back; the same material stays available under **Writing brief** and **Show
+evidence** below each editor. Ghost text is never content: it cannot save,
+publish, or count as written. Cards autosave with per-section
 approve/preview, revision History with restore, and a team-name panel.
-**Request rewrite** on a card queues a note for Claude Code; then tell
-Claude Code:
+Briefs recompute from the latest synced data at page load; a "data updated
+since written" chip appears when a sync postdates your prose.
+
+Want Claude to write instead? **Request Claude draft** (empty section) or
+**Request rewrite** (existing text) queues a note; then tell Claude Code:
 
 > Work all pending rewrite requests in
 > editorial/<season>/<league>/<issue>/REVISION_REQUESTS.md.

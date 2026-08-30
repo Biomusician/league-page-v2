@@ -26,6 +26,21 @@
   .chip.edited { background:#fff3cd; border-color:#e0c96a; }
   .chip.excluded { background:#eee; color:var(--muted); text-decoration:line-through; }
   textarea.prose { width:100%; font-family:Consolas, monospace; font-size:.92rem; line-height:1.45; }
+  .editwrap { position:relative; }
+  .editwrap .ghost { position:absolute; inset:2px; padding:.35rem .55rem; overflow:hidden;
+                     pointer-events:none; white-space:pre-wrap; color:#98948a; font-size:.84rem;
+                     line-height:1.5; font-family:Consolas, monospace; display:none; }
+  .editwrap .ghost .ghostlabel { display:block; font-style:italic; color:#b0490f;
+                                 font-family:Georgia, serif; margin-bottom:.25rem; }
+  .editwrap:not(.has-content) .ghost { display:block; }
+  .editwrap:not(.has-content) textarea.prose { background:#fbfaf6; }
+  .chip.notwritten { background:#f3e9d8; border-color:#d8bd8a; color:#7a5b18; }
+  .chip.stale { background:#e8eef7; border-color:#9db4d4; color:#2d4a73; }
+  .briefpanel { border:1px dashed #b8b2a4; background:#faf8f1; padding:.5rem .9rem;
+                margin:.5rem 0; font-size:.86rem; white-space:pre-wrap;
+                font-family:Consolas, monospace; }
+  .briefpanel .meta, details.evd summary { font-family:Georgia, serif; }
+  details.evd { margin:.4rem 0; font-size:.84rem; }
   .cardctl { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 .2rem; align-items:center; }
   .subcard { border-top:1px dashed var(--line); padding-top:.5rem; margin-top:.7rem; }
   .subcard h4 { margin:.1rem 0 .3rem; }
@@ -96,8 +111,12 @@
     {% else %}
       <span class="chip {% if c.approved %}approved{% endif %}" data-role="approve-chip"
             data-section="{{ c.module_key }}">{{ "approved" if c.approved else "not approved" }}</span>
-      {% if c.editable %}<span class="chip {% if c.prose_state == 'commissioner-edited' %}edited{% endif %}"
+      {% if c.editable and c.not_written %}
+        <span class="chip notwritten">not written · suggestions ready</span>
+      {% elif c.editable %}<span class="chip {% if c.prose_state == 'commissioner-edited' %}edited{% endif %}"
             data-role="state-chip" data-section="{{ c.module_key }}">{{ c.prose_state }}</span>{% endif %}
+      {% if c.brief and c.brief.stale_prose %}<span class="chip stale"
+            title="Sleeper data was synced after this section was written; check the writing brief.">data updated since written</span>{% endif %}
     {% endif %}
     {% if c.detail %}<span class="meta">{{ c.detail }}</span>{% endif %}
   </summary>
@@ -116,8 +135,12 @@
     {% if c.editable %}
       <button type="button" onclick="previewSection('{{ c.module_key }}')">Preview section</button>
       <button type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
-      <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
-      {% if c.module_key == "lowdown" and c.generated_source %}
+      {% if c.not_written %}
+        <button type="button" onclick="askDraft('{{ c.module_key }}')">Request Claude draft</button>
+      {% else %}
+        <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
+      {% endif %}
+      {% if c.module_key == "lowdown" and c.generated_source and not c.not_written %}
         <button type="button" onclick="resetGenerated()">Reset to generated draft</button>
       {% endif %}
     {% endif %}
@@ -146,21 +169,46 @@
   {% endif %}
 
   {% if c.editable %}
-    {% if c.missing %}<p class="meta">No content yet. Type below to create it, or build the
-      authoring packet and have Claude Code draft it.</p>{% endif %}
+    {% if c.module_key == "lowdown" and c.generated_source and c.not_written %}
+      <details class="evd"><summary>Show existing Claude draft (not loaded into your editor)</summary>
+        <textarea class="prose" rows="12" readonly>{{ c.generated_source }}</textarea>
+        <div class="cardctl"><button type="button" onclick="resetGenerated()">Use this Claude draft as my starting text</button></div>
+      </details>
+    {% endif %}
     {% for ch in c.chunks %}
       <div class="{% if c.chunk_count > 1 %}subcard{% endif %}">
         {% if ch.heading %}<h4>{{ ch.heading }}</h4>{% endif %}
-        <textarea class="prose autosave" data-section="{{ c.module_key }}"
-                  data-sha="{{ ch.sha }}"
-                  {% if c.chunk_count > 1 %}data-chunk-index="{{ ch.index }}"
-                  data-chunk-count="{{ c.chunk_count }}"{% endif %}
-                  rows="{{ [4, [ch.text.count('\n') + 2, 26] | min] | max }}">{{ ch.text }}</textarea>
+        <div class="editwrap {% if ch.text.strip() %}has-content{% endif %}">
+          {% if c.brief and c.brief.text and c.chunk_count == 1 %}
+          <div class="ghost"><span class="ghostlabel">Writing suggestions (private; your typed
+words replace this)</span>{{ c.brief.text }}</div>
+          {% endif %}
+          <textarea class="prose autosave" data-section="{{ c.module_key }}"
+                    data-sha="{{ ch.sha }}"
+                    {% if c.chunk_count > 1 %}data-chunk-index="{{ ch.index }}"
+                    data-chunk-count="{{ c.chunk_count }}"{% endif %}
+                    rows="{{ [(c.brief.text.count('\n') + 4) if (c.brief and not ch.text.strip() and c.chunk_count == 1) else 4, [ch.text.count('\n') + 2, 26] | min] | max }}">{{ ch.text }}</textarea>
+        </div>
       </div>
     {% endfor %}
+    {% if c.brief and c.brief.text %}
+    <details class="evd"><summary>Writing brief{% if c.brief.data_as_of %} (data as of {{ c.brief.data_as_of[:16] }}){% endif %}</summary>
+      <div class="briefpanel">{{ c.brief.text }}</div>
+      {% if c.brief.evidence %}
+      <details class="evd"><summary>Show evidence ({{ c.brief.evidence | length }})</summary>
+        <ul>{% for e in c.brief.evidence %}<li class="meta">{{ e }}</li>{% endfor %}</ul>
+      </details>
+      {% endif %}
+    </details>
+    {% endif %}
     <div class="previewbox" id="preview-{{ c.module_key }}" hidden></div>
     <div class="revlist" id="revs-{{ c.module_key }}" hidden></div>
   {% elif c.kind == "power" %}
+    {% if c.brief and c.brief.text %}
+    <details class="evd" open><summary>System recommendation (yours to overrule)</summary>
+      <div class="briefpanel">{{ c.brief.text }}</div>
+    </details>
+    {% endif %}
     {% if c.rankings %}
     <form method="post" action="{{ edit_base }}/rankings">
       <input type="hidden" name="label" value="{{ c.label }}">
@@ -203,11 +251,46 @@
   <div class="cardctl">
     <button type="button" onclick="approve('{{ mc.section }}', true)">Approve</button>
     <button type="button" onclick="approve('{{ mc.section }}', false)">Unapprove</button>
-    <button type="button" onclick="askRewrite('{{ mc.section }}')">Request rewrite</button>
+    {% if mc.text.strip() %}
+      <button type="button" onclick="askRewrite('{{ mc.section }}')">Request rewrite</button>
+    {% else %}
+      <button type="button" onclick="askDraft('{{ mc.section }}')">Request Claude draft</button>
+    {% endif %}
     <a href="{{ base | replace('/issue/' + issue_key, '') }}/week/{{ week }}/matchups/{{ mc.slug }}">Matchup Lab →</a>
   </div>
-  <textarea class="prose autosave" data-section="{{ mc.section }}" data-sha="{{ mc.sha }}"
-            rows="{{ [4, [mc.text.count('\n') + 2, 26] | min] | max }}">{{ mc.text }}</textarea>
+  {% if mc.proposal %}
+  <div class="proposal">
+    <b>Claude proposal awaiting review</b>
+    <div class="compare">
+      <div><div class="meta">Current (yours)</div>
+        <textarea class="prose" rows="12" readonly>{{ mc.text }}</textarea></div>
+      <div><div class="meta">Proposed (Claude)</div>
+        <textarea class="prose" rows="12" readonly>{{ mc.proposal }}</textarea></div>
+    </div>
+    <div class="cardctl">
+      <button class="primary" type="button" onclick="proposal('{{ mc.section }}', 'accept')">Accept proposal</button>
+      <button type="button" onclick="proposal('{{ mc.section }}', 'discard')">Keep current (discard)</button>
+    </div>
+  </div>
+  {% endif %}
+  <div class="editwrap {% if mc.text.strip() %}has-content{% endif %}">
+    {% if mc.brief and mc.brief.text %}
+    <div class="ghost"><span class="ghostlabel">Writing suggestions (private; your typed words
+replace this)</span>{{ mc.brief.text }}</div>
+    {% endif %}
+    <textarea class="prose autosave" data-section="{{ mc.section }}" data-sha="{{ mc.sha }}"
+              rows="{{ [(mc.brief.text.count('\n') + 4) if (mc.brief and not mc.text.strip()) else 4, [mc.text.count('\n') + 2, 26] | min] | max }}">{{ mc.text }}</textarea>
+  </div>
+  {% if mc.brief and mc.brief.text %}
+  <details class="evd"><summary>Writing brief{% if mc.brief.data_as_of %} (data as of {{ mc.brief.data_as_of[:16] }}){% endif %}</summary>
+    <div class="briefpanel">{{ mc.brief.text }}</div>
+    {% if mc.brief.evidence %}
+    <details class="evd"><summary>Show evidence ({{ mc.brief.evidence | length }})</summary>
+      <ul>{% for e in mc.brief.evidence %}<li class="meta">{{ e }}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </details>
+  {% endif %}
 </details>
 {% endfor %}
 {% endif %}
@@ -222,8 +305,15 @@ function setState(cls, text) {
   el.className = cls; el.textContent = text;
 }
 
+function syncGhost(ta) {
+  const wrap = ta.closest(".editwrap");
+  if (wrap) wrap.classList.toggle("has-content", ta.value.trim().length > 0);
+}
+
 document.querySelectorAll("textarea.autosave").forEach(ta => {
+  syncGhost(ta);
   ta.addEventListener("input", () => {
+    syncGhost(ta);   // first keystroke hides the ghost; emptying restores it
     dirty.set(ta, true);
     setState("dirty", "Unsaved changes…");
     clearTimeout(saveTimer);
@@ -307,6 +397,15 @@ async function restoreRev(section, id) {
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({section, revision_id: id})});
   if (r.ok) location.reload(); else alert("Restore failed.");
+}
+
+async function askDraft(section) {
+  const extra = prompt("Ask Claude for a full draft of this section. Add guidance (optional):", "");
+  if (extra === null) return;
+  const note = "Draft this section in full from the writing brief." + (extra ? " " + extra : "");
+  const r = await fetch(EDIT + "/request-rewrite", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify({section, note})});
+  if (r.ok) location.reload(); else alert("Could not record the request.");
 }
 
 async function askRewrite(section) {

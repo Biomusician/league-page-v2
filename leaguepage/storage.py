@@ -1061,3 +1061,12 @@ class Storage:
                 "WHERE league_slug=? AND season=? AND issue_key=? AND section=? AND status='open'",
                 (status, utcnow_iso(), league_slug, season, issue_key, section),
             )
+
+    def get_prose_state_rows(self, league_slug: str, season: str, issue_key: str) -> dict[str, dict]:
+        rows = self._conn.execute(
+            "SELECT section, state, updated_at FROM section_prose_state "
+            "WHERE league_slug=? AND season=? AND issue_key=?",
+            (league_slug, season, issue_key),
+        ).fetchall()
+        return {r["section"]: {"state": r["state"], "updated_at": r["updated_at"]}
+                for r in rows}

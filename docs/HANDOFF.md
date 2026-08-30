@@ -75,6 +75,20 @@ link integrity.
   verification; stops at the first failed step).
 - Commissioner edits mark a section `commissioner-edited`; authoring
   rebuilds only ever write briefs/AUTHORING files, never prose files.
+- **Ghost-brief authoring model (Jonathan, 2026-08-30, canonical)**: empty
+  sections start as a private ghost writing brief (leaguepage/
+  ghost_briefs.py — strongest facts, angles, 0-2 callbacks, structure;
+  ~relevance-filtered, computed live from synced data at page load, richest
+  for weekly matchups via compute_week). First keystroke replaces the
+  ghost; emptying restores it; the brief stays available under Writing
+  brief / Show evidence. Ghost text is never content: it cannot save,
+  snapshot, publish, or count as written (tested). Claude prose is
+  OPT-IN via Request Claude draft / Request rewrite -> proposals reviewed
+  side by side. Provenance migration 2026-08-30: unaccepted Claude-ROUGH
+  files (surfeit draft custom/hardware/draft-capsules, surfeit week-01
+  TEST matchup drafts) moved to proposals/ (matchup files as
+  proposals/matchup--<slug>.md), snapshots kept in revision history;
+  commissioner-authored and published prose untouched.
 
 ## Weekly issue cycle (the whole thing)
 
