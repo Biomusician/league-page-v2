@@ -14,4 +14,6 @@ editorial/managers.json
 # Regenerable packet/dossier output carries manager display names from the DB.
 editorial/**/generated/
 editorial/**/dossiers/
+# App-generated prep packs also carry manager display names; regenerable.
+editorial/**/PREP.md
 logs/

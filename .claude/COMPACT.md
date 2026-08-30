@@ -56,7 +56,9 @@ must remain strictly local.
   Opus.
 - CONFIRMED (Jonathan, 2026-08-29): FRA/UK = Surfeit roster 8 (L'entente
   Discordiale); JPN/SWE = Surfeit roster 7 (Wild SeeKats).
-- UNVERIFIED (never usable as fact): chrys*** = "EMCO".
+- UNVERIFIED (never usable as fact): the "EMCO" identity guess. The handle
+  it concerns lives in `editorial/managers.json` (local-only), key starting
+  "chrys"; raw handles stay out of git-tracked files.
 - Voice bans include: em-dashes, the negated-parallel family, "load-bearing",
   cross-league gag leakage. Full list in the skill; `style_check.py` is
   warnings-only, the skill-level sweep is authoritative.
