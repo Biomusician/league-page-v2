@@ -91,6 +91,13 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             analysis = analyze_league_draft(
                 s, league, managers=managers, adp=load_adp_for_league(league)
             )
+            # analysis carries raw Sleeper team names; display must honor
+            # commissioner overrides from the team_names table
+            resolved = resolve_public_names(s, league)
+            if analysis:
+                for t in analysis["teams"]:
+                    t["team_name"] = (resolved.get(t["roster_id"], {}).get("name")
+                                      or t["team_name"] or f"Roster {t['roster_id']}")
             candidates = (
                 draft_story_candidates(analysis, storage=s, managers=managers, coalitions=coalitions)
                 if analysis else []

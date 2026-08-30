@@ -1,38 +1,21 @@
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
 
-## Draft Power Rankings: Twelve Boards, Graded
+## Draft Power Rankings
 
-*"Every ranking is objective until you read your own."* -the Commissioner
+*"Every ranking is objective until you read your own, then you should take it up in league chat."* -Me
 
-The scores below are math, and the order is the math's fault. Every one of
-the 228 picks got compared to the FantasyPros superflex consensus board
-(snapshot 2026-08-29), and each team's number is the sum of its deltas:
-positive means the room let value fall to you, negative means you went and
-got your guys early. Two caveats before the roasting starts. Consensus is a
-scouting report, and scouting reports have losing records against actual
-Saturdays. Still, twelve drafts went through the same gate, so twelve drafts
-get graded by the same gauge.
+The scores below are math, and the order is the math's fault. Every one of the 228 picks got compared to the FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means the room let value fall to you, negative means you went and got your guys early. Two caveats before the roasting starts. Consensus is a scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge.
 
-### 1. Roster 6 (+179)
+### 1. The Dude (+179)
 
-The board champion, and it wasn't close. Daniel Jones 68 picks after his
-consensus rank, Malik Willis 58 after his, in a superflex league where the
-rest of us treated quarterbacks like the last waters at the deployed DFAC.
-Nineteen picks, plus-179. Enough said.
+The board champion, and it wasn't close. Daniel Jones 68 picks after his consensus rank, Malik Willis 58 after his, in a superflex league where the rest of us treated quarterbacks like launching an E-3 sortie FMC - completely optional. Nineteen picks, plus-179. Enough said.
 
 ### 2. George & Friends (DIP) (+140)
 
-Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick
-discount. This is the guy at the yard sale who knows which boxes have the
-good records. The three Titans are the one flier on the correlation.
-
+Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick discount. This is the guy at the yard sale who knows which boxes have the good records. Don't love that he drafted three Titans, and not sure he does either now that he realizes it.
 ### 3. Love Sutton Brocks (EMCO) (+84)
 
-Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay
-triple for upside, and only one real reach (Jarquez Hunter, minus-60).
-Plus-84 without ever making the room gasp. Textbook.
-
-### 4. Tua Girls One Kupp (Ethen) (+67)
+Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay triple for upside, and only one real reach (Jarquez Hunter, minus-60). Plus-84 without ever making the room gasp. Textbook.### 4. Tua Girls One Kupp (Ethen) (+67)
 
 Tre' Harris at a 42-pick discount and four tight ends, which is either depth
 or a cry for help; the plus-67 says depth. Two quarterbacks in superflex is
@@ -58,7 +41,7 @@ Four quarterbacks and a Tampa triple, held to plus-16 by the Quinshon
 Judkins reach (minus-35). Right side of zero, wrong side of memorable. A
 perfectly cromulent draft.
 
-### 8. Roster 10 (-49)
+### 8. Babe (confedfatties) (-49)
 
 Aaron Rodgers 35 picks late was the good idea. Carson Beck 81 picks early
 was the other idea. Four quarterbacks and two stacks means the plan had
@@ -84,14 +67,14 @@ twelve of us made, and if it hits, this whole column gets read back to me
 in January. The Baltimore triple says there is a real plan here. The wagon
 is simply very heavy at the crossing.
 
-### 12. Roster 11 (-511)
+### 12. Double TDs (Double) (-511)
 
 Jayden Daniels at pick 10 is fine. James Conner 141 early and Ty Simpson
 130 early is how a board bleeds out in the middle rounds, and minus-511 is
 the tourniquet arriving late. Respect for the conviction. Woof for the math.
 
 The scoreboard settles all of this starting Thursday, and I look forward to
-Roster 6 printing this out and framing it. Full board with every delta is on
+The Dude printing this out and framing it. Full board with every delta is on
 the Draft page.
 
 <!-- usage: angle=draft:power-rankings frame=graded-by-consensus-gauge callback=none joke_family=tiebreaker-self-roast -->
