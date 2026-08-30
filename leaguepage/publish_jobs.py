@@ -233,7 +233,12 @@ def _vercel_env(job: dict) -> dict:
     """Vercel CLI resolves its credential dir from the environment; a Desk
     process whose env differs from the shell that ran `vercel login` can see
     an empty config dir and report "No existing credentials found". Pin
-    XDG_DATA_HOME to whichever candidate dir actually holds auth.json."""
+    XDG_DATA_HOME to whichever candidate dir actually holds auth.json.
+
+    Caveat learned 2026-08-30: processes inside a Claude Code session see a
+    private overlay copy of auth.json that does not exist on the real disk.
+    A HIT here from such a process proves nothing about the machine; the
+    authoritative check is `vercel whoami` from a normal user terminal."""
     import os
 
     env = dict(os.environ)
@@ -268,11 +273,14 @@ def _stage_deploy(job: dict, db_path) -> str:
                timeout=TIMEOUTS["link"], env=env)
     if who.returncode != 0:
         raise StageError(
-            "Vercel CLI cannot see its credentials from this Desk process. "
-            "Most likely this Desk was started by an automation sandbox that "
-            "masks the credential file: close this Desk window, double-click "
-            "'Launch Commissioner Desk' yourself, and retry. If it still "
-            "fails, run `npx vercel login` in a terminal, then retry.")
+            "Vercel is logged out on this computer. One-time fix: open a "
+            "regular PowerShell window (not through Claude), run "
+            "`npx vercel login`, finish the login in the browser, then come "
+            "back here and retry. Note for future debugging: a terminal run "
+            "by a Claude Code session is NOT a valid test of this — those "
+            "sessions see a private copy of the credential file that the "
+            "rest of the machine cannot (verified 2026-08-30), so `vercel "
+            "login` must be run in Jonathan's own terminal to count.")
     link = _run(job, [npx, "--yes", "vercel@latest", "link", "--yes",
                       "--project", VERCEL_PROJECT], cwd=DIST_DIR,
                 timeout=TIMEOUTS["link"], env=env)

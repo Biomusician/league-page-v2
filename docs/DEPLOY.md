@@ -2,8 +2,17 @@
 
 **LIVE: https://league-page-ten-sandy.vercel.app** — Vercel project
 `league-page` (account biomusician, scope "biomusician's projects"),
-deployed 2026-08-29. Deploy unit is `dist/` only; the CLI is authenticated
-on this machine (`npx vercel whoami`).
+deployed 2026-08-29. Deploy unit is `dist/` only.
+
+**Authentication (learned the hard way, 2026-08-30):** the Vercel CLI must
+be logged in from Jonathan's own terminal — `npx vercel login`, once. A
+Claude Code session cannot do this for him and cannot even verify it: those
+sessions see a private overlay copy of the credential file
+(`%APPDATA%\xdg.data\com.vercel.cli\auth.json`) that does not exist on the
+real disk, so `vercel whoami` succeeding inside a session proves nothing
+about whether the Desk can deploy. The Desk's publish preflight runs
+`vercel whoami` itself and reports "Vercel is logged out on this computer"
+with the fix when it isn't.
 
 The public artifact is fully static: no server code, no database, no API
 keys, no Sleeper calls at page-view time.
