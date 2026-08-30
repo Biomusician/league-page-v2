@@ -1,5 +1,4 @@
 {
-  "$comment": "This branch is the audited public artifact; Vercel serves it as-is.",
   "git": {
     "deploymentEnabled": {
       "main": false
