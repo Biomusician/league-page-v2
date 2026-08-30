@@ -234,7 +234,7 @@ def jobs_env(env, monkeypatch):
     monkeypatch.setattr(pj, "_ACTIVE", {})
     calls = []
 
-    def fake_run(job, cmd, *, cwd, timeout):
+    def fake_run(job, cmd, *, cwd, timeout, env=None):
         calls.append(cmd)
         import subprocess
         return subprocess.CompletedProcess(cmd, 0, "Built ok\naudit clean", "")
@@ -314,7 +314,7 @@ def test_build_failure_prevents_deploy(jobs_env, monkeypatch):
     client, db, idir, calls = jobs_env
     _approve_only_lowdown(db)
 
-    def failing_run(job, cmd, *, cwd, timeout):
+    def failing_run(job, cmd, *, cwd, timeout, env=None):
         calls.append(cmd)
         import subprocess
         if "build_public_site" in " ".join(cmd):
@@ -338,7 +338,7 @@ def test_timeout_fails_stage_instead_of_hanging(jobs_env, monkeypatch):
     client, db, idir, calls = jobs_env
     _approve_only_lowdown(db)
 
-    def timing_out(job, cmd, *, cwd, timeout):
+    def timing_out(job, cmd, *, cwd, timeout, env=None):
         raise pj.StageError("timed out after 1s (process terminated)")
 
     monkeypatch.setattr(pj, "_run", timing_out)
@@ -353,7 +353,7 @@ def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
     _approve_only_lowdown(db)
     gate = time.time() + 0.6
 
-    def slow_run(job, cmd, *, cwd, timeout):
+    def slow_run(job, cmd, *, cwd, timeout, env=None):
         while time.time() < gate:
             time.sleep(0.02)
         import subprocess

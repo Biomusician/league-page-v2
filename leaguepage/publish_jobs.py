@@ -75,12 +75,14 @@ def _log(job: dict, line: str) -> None:
         f.write(f"{_now()} {line}\n")
 
 
-def _run(job: dict, cmd: list[str], *, cwd: Path, timeout: int) -> subprocess.CompletedProcess:
+def _run(job: dict, cmd: list[str], *, cwd: Path, timeout: int,
+         env: dict | None = None) -> subprocess.CompletedProcess:
     """Run a child process: stdin closed, explicit timeout, tree-kill on
     timeout so an interactive prompt can never hang a publish forever."""
     _log(job, f"RUN {' '.join(cmd)} (cwd={cwd}, timeout={timeout}s)")
     proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            env=env,
                             text=True, encoding="utf-8", errors="replace")
     try:
         out, err = proc.communicate(timeout=timeout)
@@ -227,18 +229,58 @@ def _stage_build(job: dict, db_path) -> str:
     return (proc.stdout or "").strip().splitlines()[-1][:200]
 
 
+def _vercel_env(job: dict) -> dict:
+    """Vercel CLI resolves its credential dir from the environment; a Desk
+    process whose env differs from the shell that ran `vercel login` can see
+    an empty config dir and report "No existing credentials found". Pin
+    XDG_DATA_HOME to whichever candidate dir actually holds auth.json."""
+    import os
+
+    env = dict(os.environ)
+    home = Path(os.environ.get("USERPROFILE") or Path.home())
+    candidates = []
+    if env.get("XDG_DATA_HOME"):
+        candidates.append(Path(env["XDG_DATA_HOME"]))
+    if env.get("APPDATA"):
+        candidates.append(Path(env["APPDATA"]) / "xdg.data")
+    candidates += [home / "AppData" / "Roaming" / "xdg.data",
+                   home / ".local" / "share"]
+    for c in candidates:
+        if (c / "com.vercel.cli" / "auth.json").exists():
+            env["XDG_DATA_HOME"] = str(c)
+            break
+    _log(job, f"deploy env: APPDATA={env.get('APPDATA')!r} "
+              f"USERPROFILE={env.get('USERPROFILE')!r} "
+              f"HOME={env.get('HOME')!r}")
+    _log(job, "auth candidates: " + "; ".join(
+        f"{c} -> {'HIT' if (c / 'com.vercel.cli' / 'auth.json').exists() else 'miss'}"
+        for c in candidates))
+    _log(job, f"pinned XDG_DATA_HOME: {env.get('XDG_DATA_HOME', '(none)')}")
+    return env
+
+
 def _stage_deploy(job: dict, db_path) -> str:
     npx = shutil.which("npx") or shutil.which("npx.cmd")
     if not npx:
         raise StageError("npx not found on PATH; deploy from a terminal instead")
+    env = _vercel_env(job)
+    who = _run(job, [npx, "--yes", "vercel@latest", "whoami"], cwd=DIST_DIR,
+               timeout=TIMEOUTS["link"], env=env)
+    if who.returncode != 0:
+        raise StageError(
+            "Vercel CLI cannot see its credentials from this Desk process. "
+            "Most likely this Desk was started by an automation sandbox that "
+            "masks the credential file: close this Desk window, double-click "
+            "'Launch Commissioner Desk' yourself, and retry. If it still "
+            "fails, run `npx vercel login` in a terminal, then retry.")
     link = _run(job, [npx, "--yes", "vercel@latest", "link", "--yes",
                       "--project", VERCEL_PROJECT], cwd=DIST_DIR,
-                timeout=TIMEOUTS["link"])
+                timeout=TIMEOUTS["link"], env=env)
     if link.returncode != 0:
         raise StageError("vercel link failed: "
                          + (link.stderr or link.stdout).strip()[-250:])
     dep = _run(job, [npx, "--yes", "vercel@latest", "deploy", "--prod", "--yes"],
-               cwd=DIST_DIR, timeout=TIMEOUTS["deploy"])
+               cwd=DIST_DIR, timeout=TIMEOUTS["deploy"], env=env)
     out = (dep.stdout or "") + (dep.stderr or "")
     if dep.returncode != 0:
         raise StageError("vercel deploy failed: " + out.strip()[-250:])
