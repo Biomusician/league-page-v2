@@ -292,7 +292,7 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
         for a in angles[:5]:
             warn = "  [recently used nearby]" if a.get("collision_warnings") else ""
             lines.append(f"• [{a.get('family', '?')}] {a.get('title', a.get('angle_id', '?'))}: "
-                         f"{a.get('premise', '')[:110]}{warn}")
+                         f"{_clip(a.get('premise', ''), 110)}{warn}")
 
     # roster construction contrast + recent shifts (analytics layer)
     try:
@@ -333,12 +333,23 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
         lines.append("")
         lines.append("CALLBACKS (same league only)")
         for cb in cbs:
-            lines.append(f"• {cb.get('title', '?')}: {cb.get('excerpt', cb.get('why', ''))[:100]}")
+            excerpt = _clip(cb.get("excerpt") or cb.get("why") or "", 100)
+            lines.append(f"• {cb.get('title', '?')}"
+                         + (f": {excerpt}" if excerpt else ""))
     used = storage.recent_editorial_usage(league.slug, season, kind="joke_family")
     if used:
         lines.append(f"• avoid repeating: {', '.join(sorted({u['value'] for u in used[:5]}))}")
 
     return {"text": "\n".join(lines).strip(), "evidence": evidence[:12]}
+
+def _clip(text: str, limit: int) -> str:
+    """Word-boundary truncation — a brief line cut mid-word reads broken."""
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0].rstrip(",;:")
+    return cut + " …"
+
 
 def _published_mentions(league: League, name: str | None) -> int:
     """How many PUBLISHED issues already mention a player — repetition

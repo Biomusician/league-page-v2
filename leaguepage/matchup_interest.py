@@ -37,6 +37,14 @@ PROMINENCE_LEVELS = ("FEATURE", "MAJOR", "STANDARD", "CAPSULE")
 WORD_TARGETS = {"FEATURE": "250-400", "MAJOR": "125-200", "STANDARD": "75-125", "CAPSULE": "40-75"}
 
 
+def format_position_mix(mix: dict | None) -> str:
+    """{'RB': 2, 'WR': 1} -> '2 RB, 1 WR' — dict reprs never reach prose."""
+    if not mix:
+        return "—"
+    return ", ".join(f"{n} {pos}" for pos, n
+                     in sorted(mix.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
 def _components_to_score(components: list[dict]) -> int:
     return min(100, sum(c["points"] for c in components))
 
@@ -132,7 +140,9 @@ def story_value(
             rb_gap = abs(mixes[0].get("RB", 0) - mixes[1].get("RB", 0))
             wr_gap = abs(mixes[0].get("WR", 0) - mixes[1].get("WR", 0))
             if max(rb_gap, wr_gap) >= 2:
-                comps.append({"label": f"opposed early-draft construction (rounds 1-3 mix {mixes[0]} vs {mixes[1]})",
+                comps.append({"label": "opposed early-draft construction (rounds 1-3: "
+                                       f"{format_position_mix(mixes[0])} vs "
+                                       f"{format_position_mix(mixes[1])})",
                               "points": weights["roster_contrast"],
                               "evidence": matchup["evidence"]})
 

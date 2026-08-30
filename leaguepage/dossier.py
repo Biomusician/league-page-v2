@@ -55,8 +55,10 @@ def team_dossier_md(
     a("## Draft summary")
     counts = ", ".join(f"{n} {pos}" for pos, n in team["position_counts"].items())
     a(f"- {team['pick_count']} picks: {counts}")
-    a(f"- Rounds 1-3 mix: {team['early_rounds_positions']}")
-    a(f"- Bench-range mix ({team['bench_range_definition']}): {team['bench_range_positions']}")
+    from leaguepage.matchup_interest import format_position_mix
+    a(f"- Rounds 1-3 mix: {format_position_mix(team['early_rounds_positions'])}")
+    a(f"- Bench-range mix ({team['bench_range_definition']}): "
+      f"{format_position_mix(team['bench_range_positions'])}")
     for pos, first in sorted(team["first_pick_by_position"].items()):
         a(f"- First {pos}: {first['name']} (round {first['round']}, pick #{first['pick_no']})")
     a("")

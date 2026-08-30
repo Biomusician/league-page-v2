@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from leaguepage import evidence
 from leaguepage.draft_stories import NOISY_POSITIONS
+from leaguepage.matchup_interest import format_position_mix
 
 
 def _skill(picks: list[dict]) -> list[dict]:
@@ -103,7 +104,8 @@ def draft_award_nominations(analysis: dict) -> list[dict]:
         "nominees": [
             {"team_slug": t["team_slug"], "metric_value": n,
              "facts": [f"{n} of first-3-round picks on {pos}.",
-                       f"Rounds 1-3 mix: {t.get('early_rounds_positions')}"],
+                       f"Rounds 1-3 mix: "
+                       f"{format_position_mix(t.get('early_rounds_positions'))}"],
              "evidence": t["evidence"] + [evidence.computed_ref(
                  "early-position-concentration", analysis["league"], analysis["season"], t["team_slug"])]}
             for n, pos, t in aggressive[:4] if n >= 2
