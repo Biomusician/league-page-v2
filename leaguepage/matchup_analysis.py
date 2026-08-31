@@ -311,6 +311,11 @@ def analyze_week(
         "season": season,
         "week": week,
         "total_teams": league_data.get("total_rosters") or len(rosters),
+        # playoff shape comes from the league payload, never hardcoded
+        "playoff_teams": int((league_data.get("settings") or {})
+                             .get("playoff_teams") or 6),
+        "playoff_week_start": int((league_data.get("settings") or {})
+                                  .get("playoff_week_start") or 15),
         "weeks_played": len({wk for rows_ in scores.values() for wk, _ in rows_}),
         "matchups": matchups,
         "teams": {t["team_slug"]: t for t in teams.values()},

@@ -4,6 +4,26 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## Author-feature rule + dark Surfeit theme (2026-08-30)
+
+- **The author does not headline his own newsletter.** `League` gains
+  `author_roster_id` (1 in both leagues — a publication fact; Sleeper's
+  `is_owner` also flags co-commissioners, so it cannot be derived).
+  `matchup_interest.author_matchup_stakes` allows FEATURE only with real
+  playoff consequences: 4+ weeks played, within 3 weeks of
+  `playoff_week_start`, and a team on the cutline (seed spots±1) or both
+  holding berths. Otherwise `feature_blocked` is set and
+  `recommend_prominence` hands FEATURE to the next matchup; his stays
+  MAJOR. Matchup Lab shows the reason; commissioner override still wins.
+  Playoff shape is read from league settings, never hardcoded.
+- **Surfeit is now dark.** Palette taken from the HAF A5 Skunk Works
+  Futures coin/badge Jonathan supplied: night navy `#071a2f`, coin gold
+  `#facd00`, sky `#58b6f0`, steel `#1d3d63`, silver-blue `#9fb6cc`.
+  Contrast measured on production-equivalent build: body 8.4:1, gold
+  headings 11.5:1, links 14.7:1, REACH 8.7:1, STEAL 10.2:1. Masthead now
+  uses the transparent roundel; `_theme.html` (legacy renderer) kept in
+  step. Disco unchanged and still distinct (slate + amber vs navy + gold).
+
 ## Browser-only weekly workflow (2026-08-30, final tranche of the day)
 
 - **SYNC SLEEPER button** on Desk home: `leaguepage/sync_jobs.py`, same
@@ -151,10 +171,12 @@ playbook), POST_MVP.md (backlog).
 - **8 rosters use neutral "Roster N" commissioner overrides** (surfeit
   2/4/5/6/10, disco 6/10/11) because their managers set no Sleeper team
   name. Set real names on the Desk team-names panel, then rebuild+deploy.
-- Logos (from Jonathan, 2026-08-29): static/disco-logo-banner.jpg (dark
-  masthead + root card), static/disco-logo-light.png (unused, kept for
-  light contexts), static/surfeit-logo.jpg (Skunk Works badge; masthead +
-  root card). build_site copies static/ -> dist/assets/.
+- Logos (from Jonathan): static/disco-logo-banner.jpg (dark masthead +
+  root card), static/disco-logo-light.png (unused, kept for light
+  contexts), static/surfeit-badge.png (Skunk Works roundel, transparent
+  background for the dark theme; masthead + root card),
+  static/surfeit-logo.jpg (superseded white-background version, kept).
+  build_site copies static/ -> dist/assets/.
 
 ## Private/public boundary (non-negotiable)
 

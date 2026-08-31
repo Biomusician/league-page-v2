@@ -27,7 +27,8 @@ from leaguepage.editorial import load_coalitions, load_managers
 from leaguepage.matchup_analysis import analyze_week
 from leaguepage.matchup_angles import generate_angles
 from leaguepage.matchup_interest import (
-    WORD_TARGETS, classify, competitive_importance, recommend_prominence, story_value,
+    WORD_TARGETS, author_matchup_stakes, classify, competitive_importance,
+    recommend_prominence, story_value,
 )
 from leaguepage.storage import Storage, utcnow_iso
 from leaguepage.story_memory import story_memory_for_matchup
@@ -237,10 +238,20 @@ def compute_week(storage: Storage, league: League, week: int) -> dict | None:
         tags = classify(matchup, ci, sv, analysis)
         angles = generate_angles(storage, matchup, sm, coalitions=coalitions,
                                  draft_context=draft_context)
-        scored_matchups.append({
+        entry = {
             "matchup": matchup, "story_memory": sm, "competitive_importance": ci,
             "story_value": sv, "tags": tags, "angles": angles, "state": state,
-        })
+        }
+        # The author does not headline his own newsletter without stakes.
+        if league.author_roster_id and any(
+                t["roster_id"] == league.author_roster_id for t in matchup["teams"]):
+            has_stakes, why = author_matchup_stakes(matchup, analysis)
+            if not has_stakes:
+                entry["feature_blocked"] = (
+                    "the author's own matchup, held out of FEATURE: " + why)
+            else:
+                entry["author_stakes"] = why
+        scored_matchups.append(entry)
     recommend_prominence(scored_matchups)
     return {"analysis": analysis, "scored": scored_matchups}
 

@@ -21,6 +21,10 @@ Interest scores are editorial heuristics with visible components (open a matchup
     Competitive Importance {{ r.competitive_importance.score }} · Story Value {{ r.story_value.score }}
     {% if r.tags %} · tags: {{ r.tags|join(", ") }}{% endif %}
   </div>
+  {% if r.feature_blocked %}<div class="meta">⚑ {{ r.feature_blocked }}
+    <span class="meta">(you can still override the prominence below)</span></div>
+  {% elif r.author_stakes %}<div class="meta">⚑ your own matchup, FEATURE-eligible: {{ r.author_stakes }}</div>
+  {% endif %}
   <div class="meta">
     status: <b>{{ r.status }}</b>
     {% if r.state and r.state.selected_angle_id %} · angle: <code>{{ r.state.selected_angle_id }}</code>{% endif %}

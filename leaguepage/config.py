@@ -34,6 +34,13 @@ class League:
     theme: str           # theme pack key, matches static/themes/<theme>.css later
     subtitle: str        # standing masthead subtitle
     adp_source: str = ""  # refdata/adp/<key>.json reference-rank snapshot
+    # The author's own team. Editorial rule: the person writing the
+    # newsletter does not headline it — his matchup is barred from FEATURE
+    # unless it carries real playoff consequences (see matchup_interest.
+    # author_matchup_stakes). This is a publication fact, not a league
+    # setting: Sleeper's is_owner flag marks every commissioner, including
+    # co-commissioners who are not the author. Roster IDs are public.
+    author_roster_id: int | None = None
 
 
 # Public comments (giscus / GitHub Discussions) on published issue pages.
@@ -59,6 +66,7 @@ LEAGUES: list[League] = [
         theme="disco",
         subtitle="Operational / League Control and Reporting Center",
         adp_source="fantasypros_ecr_redraft_superflex",
+        author_roster_id=1,
     ),
     League(
         slug="surfeit",
@@ -67,6 +75,7 @@ LEAGUES: list[League] = [
         theme="surfeit",
         subtitle="Force Design 2035",
         adp_source="fantasypros_ecr_redraft_half_ppr",
+        author_roster_id=1,
     ),
 ]
 

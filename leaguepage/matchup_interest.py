@@ -173,12 +173,57 @@ def classify(matchup: dict, ci: dict, sv: dict, week_ctx: dict) -> list[str]:
     return tags
 
 
+# The author's own matchup can only headline in the closing weeks, once the
+# table means something and the result plausibly moves a playoff berth.
+AUTHOR_STAKES_MIN_WEEKS = 4      # standings need a real sample first
+AUTHOR_STAKES_WINDOW = 3         # weeks before the playoffs start
+
+
+def author_matchup_stakes(matchup: dict, analysis: dict) -> tuple[bool, str]:
+    """(has_stakes, reason) for a matchup involving the author's own team.
+
+    Legitimate playoff consequences, deterministically: enough games played
+    for the standings to mean something, late enough that this result can
+    still decide seeding, and at least one side either sitting on the
+    playoff cutline or both sides already holding a berth (a seeding game).
+    Everything else is 'the author wrote himself into the headline'."""
+    spots = int(analysis.get("playoff_teams") or 6)
+    start = int(analysis.get("playoff_week_start") or 15)
+    week = int(analysis.get("week") or 0)
+    played = int(analysis.get("weeks_played") or 0)
+
+    if played < AUTHOR_STAKES_MIN_WEEKS:
+        return False, f"only {played} week(s) played; the table means little yet"
+    if week < start - AUTHOR_STAKES_WINDOW:
+        return False, (f"week {week} is outside the last {AUTHOR_STAKES_WINDOW} "
+                       f"weeks before the playoffs (week {start})")
+
+    standings = [t.get("standing") for t in matchup["teams"]]
+    if any(s is None for s in standings):
+        return False, "standings unavailable"
+    # on the cutline: last team in, first team out, or one either side
+    bubble = [s for s in standings if spots - 1 <= s <= spots + 1]
+    if bubble:
+        return True, (f"playoff cutline is seed {spots}; this matchup has a team "
+                      f"at seed {min(bubble)}")
+    if all(s <= spots for s in standings):
+        return True, (f"both teams hold playoff berths (seeds "
+                      f"{standings[0]} and {standings[1]}); seeding is live")
+    return False, "neither team is near the playoff cutline"
+
+
 def recommend_prominence(scored: list[dict]) -> None:
     """Mutates: adds recommended_prominence. Transparent rule — best combined
     score is the FEATURE, next two MAJOR, remainder STANDARD, and anything
-    past six matchups CAPSULE. Commissioner override always wins downstream."""
+    past six matchups CAPSULE. Commissioner override always wins downstream.
+
+    One exception: a matchup carrying `feature_blocked` (the author's own
+    team without playoff stakes) is skipped for FEATURE and takes the next
+    band down, so the headline goes to someone else."""
     ranked = sorted(scored, key=lambda m: -(m["competitive_importance"]["score"] + m["story_value"]["score"]))
-    for i, m in enumerate(ranked):
+    feature = next((m for m in ranked if not m.get("feature_blocked")), None)
+    order = ([feature] + [m for m in ranked if m is not feature]) if feature else ranked
+    for i, m in enumerate(order):
         if i == 0:
             m["recommended_prominence"] = "FEATURE"
         elif i <= 2:

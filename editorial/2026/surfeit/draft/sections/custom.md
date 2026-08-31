@@ -2,18 +2,14 @@
 
 ## Draft Power Rankings: Assessing Ten Unique Force Designs
 
-Every draft is a force design, and this is your design debrief. All models are wrong, but some are useful. For this debrief, I'll describe the method first:
+Every draft is a force design, and this is your design debrief. All models are wrong, but some are useful. I'll describe the method first:
 all 150 picks measured against the FantasyPros half-PPR consensus board; a team's score is the sum of its deltas, positive
 when value fell to you, negative when you bought early. The counterargument
 is real and conceded up front: consensus measures the market, and wars are
 won by the force you field, so a minus number attached to the right roster
-is just the cost of conviction. Ten designs, assessed in order.### 1. Roster 4 (+1)
+is just the cost of conviction. Ten designs, assessed in order.
 
-The only balanced budget in the league, at plus-1. Marvin Harrison 20 picks
-late, zero defenses in fifteen picks, and the lone kicker mistake (Eddy
-Pineiro, minus-76) nearly erased an otherwise spotless sheet.
-Divest-and-hope, executed with discipline.
-
+### 1. Davee (+1)
 ### 2. Roster 10 (-42)
 
 Trevor Lawrence at a 37-pick discount and Josh Jacobs late. The design
