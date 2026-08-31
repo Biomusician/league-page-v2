@@ -127,6 +127,95 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     app = FastAPI(title="Commissioner's Desk", docs_url=None, redoc_url=None)
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+    # ---- central authorization -------------------------------------
+    # Every route is private by default. Exemptions are listed here and
+    # nowhere else, so a new route cannot be born public by accident (the
+    # audit in tests/test_auth.py enumerates the app and enforces this).
+    from starlette.responses import JSONResponse
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    from leaguepage import auth as authmod
+
+    PUBLIC_PATHS = {"/health", "/login", "/auth/request", "/auth/callback",
+                    "/static/sortable.js"}
+
+    class RequireCommissioner(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            if not authmod.auth_required() or request.url.path in PUBLIC_PATHS:
+                request.state.session = authmod.read_session(
+                    request.cookies.get(authmod.SESSION_COOKIE))
+                return await call_next(request)
+
+            session = authmod.read_session(
+                request.cookies.get(authmod.SESSION_COOKIE))
+            if session is None:
+                # HTML navigation gets a login page; anything else gets a
+                # flat 401 so an unauthenticated fetch never sees content.
+                if request.method == "GET" and "text/html" in (
+                        request.headers.get("accept") or ""):
+                    nxt = request.url.path
+                    return RedirectResponse(f"/login?next={nxt}", status_code=303)
+                return JSONResponse({"detail": "authentication required"},
+                                    status_code=401)
+            if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+                submitted = request.headers.get("x-csrf-token")
+                if submitted is None:
+                    try:
+                        form = await request.form()
+                        submitted = form.get("csrf_token")
+                    except Exception:
+                        submitted = None
+                if not authmod.check_csrf(session, submitted):
+                    return JSONResponse({"detail": "csrf check failed"},
+                                        status_code=403)
+            request.state.session = session
+            return await call_next(request)
+
+    app.add_middleware(RequireCommissioner)
+
+    @app.get("/login")
+    def login_page(request: Request, next: str = "/commissioner",
+                   sent: int = 0, error: int = 0):
+        return templates.TemplateResponse(request, "desk/login.html", {
+            "next": next, "sent": bool(sent), "error": bool(error),
+            "mode": authmod.auth_mode()})
+
+    @app.post("/auth/request")
+    def auth_request(request: Request, email: str = Form(...),
+                     next: str = Form("/commissioner")):
+        """Mint and deliver a magic link. The response is identical whether
+        or not the address is allowed — a stranger learns nothing."""
+        from leaguepage.mailer import deliver_login_link
+
+        client = (request.client.host if request.client else "?")
+        if not authmod.rate_limited(f"login:{client}"):
+            if authmod.is_allowed(email):
+                token = authmod.issue_login_token(email)
+                base = str(request.base_url).rstrip("/")
+                deliver_login_link(email, f"{base}/auth/callback"
+                                          f"?token={token}&next={next}")
+        return RedirectResponse(f"/login?sent=1&next={next}", status_code=303)
+
+    @app.get("/auth/callback")
+    def auth_callback(token: str = "", next: str = "/commissioner"):
+        try:
+            email = authmod.consume_login_token(token)
+        except authmod.AuthError:
+            return RedirectResponse("/login?error=1", status_code=303)
+        # only ever redirect to our own paths: no open redirect
+        target = next if next.startswith("/") and not next.startswith("//") \
+            else "/commissioner"
+        resp = RedirectResponse(target, status_code=303)
+        resp.set_cookie(authmod.SESSION_COOKIE, authmod.create_session(email),
+                        **authmod.cookie_kwargs())
+        return resp
+
+    @app.post("/auth/logout")
+    def auth_logout():
+        resp = RedirectResponse("/login", status_code=303)
+        resp.delete_cookie(authmod.SESSION_COOKIE, path="/")
+        return resp
+
     def storage() -> Storage:
         return Storage(db_path)
 

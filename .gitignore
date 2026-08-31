@@ -23,3 +23,6 @@ editorial/**/commissioner_notes.md
 # Git-history backup bundles stay local.
 *.bundle
 logs/
+
+# Commissioner state backups: prose + private manager context. Never commit.
+backups/
