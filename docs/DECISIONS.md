@@ -185,3 +185,39 @@ signed short-lived HttpOnly cookie. URLs end up in browser history and
 server access logs, which is the wrong home for a personal address, and
 the move incidentally made the allowed and rejected sign-in responses
 byte-identical.
+
+## 2026-08-31 — Hosted persistence talks to Supabase over PostgREST with the Commissioner's own token
+
+The hosted Desk needs Postgres, and there were three ways to reach it: a
+service-role key, a direct Postgres connection with `DATABASE_URL`, or
+PostgREST carrying the signed-in Commissioner's JWT. Chose the JWT.
+
+Why: it is the only option where the deployment holds no secret capable of
+reading Commissioner data on its own. A service-role key bypasses RLS
+entirely, so a single leaked environment variable would expose everything and
+the forced-RLS work in migration 0001 would be decoration. A direct Postgres
+connection has the same problem plus serverless connection-pool pain. With the
+user's token, the policy in the database is the enforcement point, the same
+allowlist decides access in the app and in Postgres, and revoking a
+Commissioner in one place revokes them everywhere.
+
+Consequence to plan around: a background job has no user token. Anything that
+must run without a signed-in person (scheduled sync, queued publish) needs its
+own answer, and the honest options are a narrowly-scoped server credential
+used only by that path, or requiring the job to be started by a signed-in
+session that supplies the token. Not resolved here; do not reach for the
+service-role key by reflex when it comes up.
+
+`DATABASE_URL` remains SECRET-class and local-only. It is used by migration
+and seed tooling run from this machine and is deliberately NOT a runtime
+dependency, so it never needs to exist in any hosting environment.
+
+## 2026-08-31 — The allowlist bootstrap is a human step on purpose
+
+`app_commissioners` cannot be seeded by the application, because RLS is forced
+on that table and its only policy requires membership. This is not an
+oversight to engineer around: an application able to write its own allowlist
+does not have an allowlist. The first row is inserted with database owner
+rights, either from the Supabase SQL editor or by `DATABASE_URL` tooling.
+`scripts/make_commissioner_seed.py` generates it from `.env` so the address is
+never committed and never retyped.

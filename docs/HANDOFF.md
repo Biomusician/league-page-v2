@@ -52,20 +52,31 @@ empty, and because RLS is forced on that table and its own policy requires
 membership, nobody can insert the first row. The anon key is granted
 nothing, so the application cannot do it either — deliberately, since an
 app that could write its own allowlist would not have an allowlist. Run
-`.venv\Scripts\python.exe scripts\make_commissioner_seed.py`, which builds
-the idempotent `insert` from `.env` and copies it to the clipboard, then
-paste it into the Supabase SQL Editor. This is only needed once, and again
-whenever a Commissioner is added.
+`.venv\Scripts\python.exe scripts\make_commissioner_seed.py`. With
+`DATABASE_URL` set in `.env` it applies and verifies the seed directly;
+without it, it writes the idempotent `insert` to
+`backups/seed_commissioner.sql` (gitignored) and the clipboard when
+available, for the Supabase SQL Editor. Needed once, and again whenever a
+Commissioner is added.
+
+Verified 2026-08-31 that this is a hard boundary, not an inconvenience:
+`select` on `app_commissioners` with the publishable key returns **401**, so
+the seed genuinely cannot be automated with the credentials on this machine.
 
 Remaining before remote authoring is live:
 1. Seed `app_commissioners` (above). Until then, Postgres-backed reads and
-   writes will return nothing even for a correctly signed-in Commissioner.
+   writes return nothing even for a correctly signed-in Commissioner, which
+   blocks every step below that needs to be *proven* rather than written.
 2. Prose repository cutover (sections table replaces `editorial/**/*.md`) —
    the last structural blocker; do a fresh export first.
-3. Durable jobs cutover (`jobs` table replaces `_JOB`/`_JOBS` globals).
+3. Durable jobs cutover (`jobs` table replaces `_JOB`/`_JOBS` globals —
+   `publish_jobs.py:41` and `sync_jobs.py:30`).
 4. The hosted Desk also needs the Sleeper cache (12,225 players, rosters,
-   matchups) in Postgres, plus resolution of ~41 filesystem write sites that
-   a read-only serverless runtime will reject.
+   matchups) in Postgres, plus resolution of **47** filesystem write sites
+   (recounted 2026-08-31) across `desk.py`, `desk_editor.py`, `dossier.py`,
+   `issue_builder.py`, `mailer.py`, `matchup_packet.py`, `packet.py`,
+   `publish.py`, `publish_jobs.py`, `review_packet.py`, `site_build.py`,
+   `storage.py`, which a read-only serverless runtime will reject.
 5. Private Vercel project + env vars; add its URL to Supabase Auth only if
    magic links are added later (OTP does not need it).
 

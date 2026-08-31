@@ -7,3 +7,8 @@ python-multipart
 httpx
 pytest
 watchfiles
+# Only used by privileged migration/seed tooling run from this machine.
+# The application itself never opens a Postgres connection: it talks to
+# Supabase over PostgREST with the signed-in Commissioner's token, so no
+# database password is needed at runtime or in any hosting environment.
+psycopg[binary]
