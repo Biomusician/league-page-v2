@@ -4,6 +4,57 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## Remote authoring — Phase 1 foundation (2026-08-31)
+
+**Status: remote access is NOT live yet.** Local Desk is unchanged and
+remains the only working authoring path. What landed is the security and
+recoverability foundation plus the architecture decision (docs/DECISIONS.md).
+
+Recon numbers that drive everything: authoritative Commissioner state is
+**247 rows + 14 meta + 38 prose files (57 KB)** = 1.9% of the DB; the
+other 12,749 rows are rebuildable Sleeper/archive cache. Heaviest read
+0.05s. **Prose is filesystem-authoritative** and **job state is process
+memory** — those two are the only structural blockers to cloud hosting.
+
+Landed and proven:
+- `scripts/export_commissioner_state.py` / `import_commissioner_state.py`
+  — full backup of authoritative state; round-trip verified byte-identical
+  by checksum into a scratch restore. `backups/` is gitignored (it holds
+  prose and manager context). **Run the export before any migration.**
+- `leaguepage/auth.py` — magic-link sign-in, server-side allowlist, single-
+  use login tokens, signed expiring session cookies, CSRF, rate limiting,
+  no open redirect, kind-separated tokens (a login token cannot act as a
+  session), allowlist re-checked on every request so removing an address
+  kills live sessions.
+- Central `RequireCommissioner` middleware in `desk.py`: every route is
+  private by default; the ONLY public paths are `/health`, `/login`,
+  `/auth/request`, `/auth/callback`, `/static/sortable.js`.
+  `tests/test_auth.py` enumerates the live app and proves 30+ routes
+  reject anonymous callers — a new route cannot be born public.
+- `leaguepage/mailer.py` — one seam, `log` backend locally (writes
+  `logs/login-links.log`) and `resend` backend for hosting.
+- Env gates: `LEAGUEPAGE_AUTH_MODE` (off|required),
+  `LEAGUEPAGE_COMMISSIONER_EMAILS`, `LEAGUEPAGE_SECRET_KEY`,
+  `LEAGUEPAGE_MAIL_PROVIDER`, `LEAGUEPAGE_MAIL_FROM`, `RESEND_API_KEY`.
+  Default `off` keeps the localhost Desk working exactly as before.
+
+Remaining, in order (each is contained; see DECISIONS.md for rationale):
+1. **Prose repository** — put `editorial/**/*.md` behind a repository so a
+   Postgres backend is a drop-in. Content model is only 4 path shapes:
+   `lowdown/lowdown.md`, `sections/<module>.md`,
+   `matchups/<slug>/draft.md`, `proposals/<section>.md`.
+2. **Durable jobs table** — replace the daemon-thread `_JOB/_JOBS` globals
+   in `sync_jobs.py` / `publish_jobs.py` with DB rows the browser polls.
+3. **Email proposals** — signed opaque section tokens, inbound webhook with
+   signature verification + sender allowlist + replay protection, proposals
+   stored separately and never auto-applied to Commissioner Content.
+4. **Deploy** — second private Vercel project, Supabase Postgres, env vars.
+5. Remote publishing stays optional and last; local Publish & Deploy works.
+
+**Blocked on Jonathan (Claude cannot create accounts):** a Supabase project
+(Postgres + connection string) and a Resend account + inbound domain. Until
+one of those exists, no remote path can be finished.
+
 ## Tuesday prep routine (cloud, 2026-08-30)
 
 - Routine **"League-Page Tuesday prep"**, id `trig_01BfY734Z6uagVJQbXkSJL2J`,

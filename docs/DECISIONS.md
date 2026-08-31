@@ -108,3 +108,51 @@ League-Page-pre-github-history-2026-08-30.bundle (gitignored) plus the
 2026-08-29 private bundle. scripts/audit_repo_privacy.py gates future main
 pushes; the site branch is audited by site_build.audit_output at build time
 instead (it knows the verbatim-archive and public-team-name exemptions).
+
+## 2026-08-31 - Remote authoring: cloud-native (Option A), not a Cloudflare bridge
+
+Recon settled this rather than taste. Three measurements decided it.
+
+1. The migration payload is tiny. Authoritative Commissioner state is 247
+   database rows + 14 meta keys + 38 prose files (57 KB) - 1.9% of the
+   database. The other 12,749 rows (players, rosters, matchups, drafts,
+   transactions, archive FTS) are Sleeper/archive cache that any sync
+   rebuilds from scratch. Migrating "the database" is not the job;
+   migrating a few hundred rows and 57 KB of prose is.
+2. Compute already fits a serverless request budget. The heaviest read
+   path (positional_profile) is 0.05s, a ghost brief 0.04s, a full sync
+   2.6s, a full public build ~1.5s. Vercel Hobby allows 10s per request.
+   Nothing here needs a long-running process except by current habit.
+3. The real obstacle is not compute or data volume - it is that CURRENT
+   PROSE IS FILESYSTEM-AUTHORITATIVE (editorial/**/*.md), and job state
+   lives in process memory (daemon threads in sync_jobs/publish_jobs).
+   Both die on a serverless runtime. Those are the only two structural
+   blockers, and both are contained.
+
+Option B (Cloudflare Tunnel + Access over the localhost Desk) was
+rejected as the target architecture because it fails the stated primary
+goal: it requires the Windows desktop to be powered on and the Desk
+running. That is the dependency the tranche exists to remove. It remains
+a legitimate emergency stopgap and is documented as such, not built.
+
+Chosen target: private FastAPI app on its own Vercel project + Supabase
+Postgres + magic-link auth + Resend inbound email, with the localhost
+Desk retained as fallback against the SAME cloud store (never a second
+independent store that can diverge).
+
+Sequencing, deliberately: security and recoverability first (done -
+verified export/restore, allowlisted magic-link auth, a middleware that
+closes every route by default with one explicit public list and a test
+that enumerates the live app to prove it). Then the two structural
+blockers (prose repository, durable jobs table). Then email proposals.
+Remote publishing stays last and stays optional; local Publish & Deploy
+is proven and must not be weakened to gain convenience.
+
+Cost expectation: Supabase free tier, Resend free tier, a second Vercel
+project on the existing account. A few hundred rows and 57 KB of prose
+will not approach any free-tier limit for years.
+
+Hard constraint discovered: every remaining path requires an external
+account (Supabase, Resend, or Cloudflare). Claude cannot create accounts,
+so those steps are Jonathan's, and the work was scoped to leave exactly
+that and nothing else.

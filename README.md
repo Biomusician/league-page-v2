@@ -56,6 +56,25 @@ half, and the Desk's ghost briefs stay authoritative.
 
 No terminal needed. The CLI below is troubleshooting fallback only.
 
+## Back up your writing
+
+```
+.venv\Scripts\python.exe scripts\export_commissioner_state.py
+```
+
+Writes a complete, checksummed bundle of everything you have written and
+decided (prose, approvals, revisions, team-name overrides, rankings,
+story/award decisions, manager context) to `backups/` — gitignored,
+because it contains private material. To prove a backup is good, restore
+it somewhere harmless and diff the checksum:
+
+```
+.venv\Scripts\python.exe scripts\import_commissioner_state.py backups\<file>.json --dry-run
+```
+
+Restoring over the live store needs `--force`; restoring into a scratch
+`--db` / `--editorial` needs nothing and is the safe way to verify.
+
 ## Troubleshooting / data CLI
 
 ```
