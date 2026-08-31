@@ -1,5 +1,3 @@
-<!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
-
 ## Draft Power Rankings: Assessing Ten Unique Force Designs
 
 Every draft is a force design, and this is your design debrief. All models are wrong, but some are useful. I'll describe the method first:
@@ -9,8 +7,9 @@ is real and conceded up front: consensus measures the market, and wars are
 won by the force you field, so a minus number attached to the right roster
 is just the cost of conviction. Ten designs, assessed in order.
 
-### 1. Davee (+1)
-### 2. Roster 10 (-42)
+### 1. Dave (+1)
+
+Somehow, the sole roster to get a positive value vs. ADP. Is my methodology flawed? Who knows. Regardless, please lord this over the rest of the Skunks and wolves next week.### 2. Roster 10 (-42)
 
 Trevor Lawrence at a 37-pick discount and Josh Jacobs late. The design
 holds one assumption per capability area instead of five, which is why the

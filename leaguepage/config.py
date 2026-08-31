@@ -73,7 +73,7 @@ LEAGUES: list[League] = [
         display_name="THE SURFEIT",
         league_id="1367544788303253504",
         theme="surfeit",
-        subtitle="Force Design 2035",
+        subtitle="Future Fantasy Force Design",
         adp_source="fantasypros_ecr_redraft_half_ppr",
         author_roster_id=1,
     ),
