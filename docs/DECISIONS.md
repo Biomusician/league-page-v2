@@ -156,3 +156,32 @@ Hard constraint discovered: every remaining path requires an external
 account (Supabase, Resend, or Cloudflare). Claude cannot create accounts,
 so those steps are Jonathan's, and the work was scoped to leave exactly
 that and nothing else.
+
+## 2026-08-31 - Supabase email OTP over magic link; server-side exchange
+
+Magic links need Redirect URLs registered in the Supabase dashboard, which
+means authentication could not be tested until a hosted URL existed, and
+they add redirect-handling surface. A six-digit email OTP needs no
+dashboard configuration, so sign-in became testable locally the same day
+and the eventual private Vercel URL can be added without touching code.
+
+The OTP exchange runs server-side rather than through Supabase browser
+SDK. Consequence: no Supabase credential of any class is ever handed to
+the browser, not even the publishable key that Supabase designs to be
+browser-safe. The browser posts an email and a six-digit code and receives
+our own signed session cookie; a regression test asserts no key appears in
+rendered HTML.
+
+Authorization is deliberately kept out of Supabase. Supabase answers who
+someone is; the Commissioner allowlist answers whether they may use this
+application, and it is consulted independently before an OTP is sent and
+again after it is verified, against the address Supabase returned rather
+than the one the form posted. Row Level Security repeats the same rule at
+the database with a forced policy over an app_commissioners table, so the
+answer does not depend on the application being correct.
+
+Also changed: the pending email address moved out of redirect URLs into a
+signed short-lived HttpOnly cookie. URLs end up in browser history and
+server access logs, which is the wrong home for a personal address, and
+the move incidentally made the allowed and rejected sign-in responses
+byte-identical.

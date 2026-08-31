@@ -4,6 +4,55 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## Remote authoring — Phase 2: Supabase auth (2026-08-31)
+
+**Status: sign-in is built and proven locally; remote hosting still needs
+two config values.** The Supabase project URL and publishable key were
+described as supplied but were NOT present on this machine (no env var, no
+`.env`, nothing in Downloads/Desktop), so nothing could be probed against
+the real project.
+
+**To unblock, create `.env` at the repo root (copy `.env.example`) with:**
+```
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_PUBLISHABLE_KEY=<publishable key>
+```
+Neither is secret-class. `.env` is gitignored (verified). Then run
+`.venv\Scripts\python.exe scripts\check_supabase.py`, which reports exactly
+what those credentials unlock.
+
+Design decisions worth not re-litigating:
+- **Email OTP, not magic link, for Supabase.** OTP needs no Redirect URL
+  registered in the dashboard, so sign-in works locally today and the
+  hosted URL can be added later without code changes. Magic links can be
+  layered on afterwards.
+- **The OTP exchange is server-side.** The browser never receives any
+  Supabase key, not even the browser-safe publishable one. Tested.
+- **Two independent gates.** Supabase answers "who is this"; the
+  `LEAGUEPAGE_COMMISSIONER_EMAILS` allowlist answers "may they use this".
+  A valid Supabase user who is not listed is refused, and the address
+  authorized is the one Supabase returned, never the posted form field.
+- **One auth system.** Supabase plugs into the Phase 1 central route guard;
+  there is no second session mechanism.
+- **No email in URLs.** A signed short-lived HttpOnly cookie carries the
+  pending sign-in, so addresses stay out of history and access logs and the
+  allowed/rejected responses are byte-identical.
+
+Schema: `migrations/0001_commissioner_state.sql` — apply from the Supabase
+**SQL Editor** (needs no local credential), then insert your address into
+`app_commissioners`. RLS is enabled *and forced* on every table with a
+policy that consults that allowlist (not "any authenticated user"); `anon`
+is granted nothing on any table or sequence.
+
+Remaining before remote authoring is live:
+1. `.env` values above, then `check_supabase.py` green.
+2. Apply migration 0001 + insert the allowlist row.
+3. Prose repository cutover (sections table replaces `editorial/**/*.md`) —
+   the last structural blocker; do a fresh export first.
+4. Durable jobs cutover (`jobs` table replaces `_JOB`/`_JOBS` globals).
+5. Private Vercel project + env vars; add its URL to Supabase Auth only if
+   magic links are added later (OTP does not need it).
+
 ## Remote authoring — Phase 1 foundation (2026-08-31)
 
 **Status: remote access is NOT live yet.** Local Desk is unchanged and
