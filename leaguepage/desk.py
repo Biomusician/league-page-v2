@@ -136,8 +136,8 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     from leaguepage import auth as authmod
 
-    PUBLIC_PATHS = {"/health", "/login", "/auth/request", "/auth/callback",
-                    "/static/sortable.js"}
+    PUBLIC_PATHS = {"/health", "/login", "/auth/request", "/auth/verify",
+                    "/auth/callback", "/static/sortable.js"}
 
     class RequireCommissioner(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
@@ -173,28 +173,97 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     app.add_middleware(RequireCommissioner)
 
+    PENDING_COOKIE = "lp_pending"
+
+    def _pending_email(request: Request) -> str:
+        """The address a sign-in was started for, carried in a short-lived
+        signed cookie rather than the URL: an email address does not belong
+        in browser history or server access logs."""
+        try:
+            body = authmod.unsign(request.cookies.get(PENDING_COOKIE) or "",
+                                  kind="pending")
+            return body.get("email", "")
+        except authmod.AuthError:
+            return ""
+
     @app.get("/login")
     def login_page(request: Request, next: str = "/commissioner",
                    sent: int = 0, error: int = 0):
+        from leaguepage import supabase_client
+
         return templates.TemplateResponse(request, "desk/login.html", {
             "next": next, "sent": bool(sent), "error": bool(error),
+            "email": _pending_email(request),
+            "otp": supabase_client.configured(),
             "mode": authmod.auth_mode()})
 
     @app.post("/auth/request")
     def auth_request(request: Request, email: str = Form(...),
                      next: str = Form("/commissioner")):
-        """Mint and deliver a magic link. The response is identical whether
-        or not the address is allowed — a stranger learns nothing."""
+        """Start sign-in. With Supabase configured this emails a six-digit
+        code; otherwise it falls back to a locally-signed magic link so the
+        localhost Desk works with no provider at all.
+
+        The response is identical whether or not the address is allowed — a
+        stranger learns nothing about who may use this application."""
+        from leaguepage import supabase_client
         from leaguepage.mailer import deliver_login_link
 
         client = (request.client.host if request.client else "?")
-        if not authmod.rate_limited(f"login:{client}"):
-            if authmod.is_allowed(email):
+        if not authmod.rate_limited(f"login:{client}") and authmod.is_allowed(email):
+            if supabase_client.configured():
+                try:
+                    supabase_client.send_email_otp(email)
+                except supabase_client.SupabaseError as exc:
+                    # logged, never surfaced: a provider error would reveal
+                    # whether the address exists
+                    print(f"  [auth] supabase otp failed: {exc}", flush=True)
+            else:
                 token = authmod.issue_login_token(email)
                 base = str(request.base_url).rstrip("/")
                 deliver_login_link(email, f"{base}/auth/callback"
                                           f"?token={token}&next={next}")
-        return RedirectResponse(f"/login?sent=1&next={next}", status_code=303)
+        resp = RedirectResponse(f"/login?sent=1&next={next}", status_code=303)
+        # remember which address the code was sent to, without putting it in
+        # the URL; 15 minutes matches the OTP's own lifetime
+        resp.set_cookie(PENDING_COOKIE,
+                        authmod.sign({"kind": "pending",
+                                      "email": email.strip().lower()}, 15 * 60),
+                        httponly=True, samesite="lax", path="/",
+                        secure=authmod.auth_required(), max_age=15 * 60)
+        return resp
+
+    @app.post("/auth/verify")
+    def auth_verify(request: Request, code: str = Form(...),
+                    email: str = Form(""), next: str = Form("/commissioner")):
+        """Exchange a Supabase OTP for a Commissioner session.
+
+        Two independent gates: Supabase proves the person controls the
+        mailbox, and the allowlist decides whether that person may use this
+        application. A perfectly valid Supabase user who is not on the
+        allowlist is refused here."""
+        from leaguepage import supabase_client
+
+        client = (request.client.host if request.client else "?")
+        if authmod.rate_limited(f"verify:{client}"):
+            return RedirectResponse(f"/login?error=1&next={next}", status_code=303)
+        # prefer the signed pending cookie over anything the form carries
+        target_email = _pending_email(request) or email
+        try:
+            verified = supabase_client.verify_email_otp(target_email, code)
+        except supabase_client.SupabaseError:
+            return RedirectResponse(f"/login?error=1&next={next}", status_code=303)
+        # authorize the address SUPABASE returned, never the posted field
+        if not authmod.is_allowed(verified):
+            return RedirectResponse(f"/login?error=1&next={next}", status_code=303)
+        target = next if next.startswith("/") and not next.startswith("//") \
+            else "/commissioner"
+        resp = RedirectResponse(target, status_code=303)
+        resp.set_cookie(authmod.SESSION_COOKIE,
+                        authmod.create_session(verified),
+                        **authmod.cookie_kwargs())
+        resp.delete_cookie(PENDING_COOKIE, path="/")
+        return resp
 
     @app.get("/auth/callback")
     def auth_callback(token: str = "", next: str = "/commissioner"):

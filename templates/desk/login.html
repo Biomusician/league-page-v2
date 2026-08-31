@@ -12,6 +12,30 @@
 </style>
 <div class="loginwrap">
   <h2>Commissioner's Desk</h2>
+  {% if error %}
+  <div class="warn">That sign-in attempt did not work. Codes expire and can
+    only be used once — request a new one.</div>
+  {% endif %}
+
+  {% if sent and otp %}
+  <div class="notice">
+    <b>Check your email for a six-digit code.</b>
+    <div class="meta">If that address is authorized, a code is on its way.</div>
+  </div>
+  <form method="post" action="/auth/verify">
+    <input type="hidden" name="next" value="{{ next }}">
+    <input type="hidden" name="email" value="{{ email }}">
+    <label for="code" class="meta">Sign-in code</label>
+    <input id="code" name="code" type="text" required autofocus
+           inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*"
+           style="width:100%; padding:.6rem .7rem; font-size:1.3rem;
+                  letter-spacing:.3em; border:1px solid var(--line);
+                  border-radius:4px;">
+    <button type="submit">SIGN IN</button>
+  </form>
+  <p class="meta" style="margin-top:.8rem">
+    <a href="/login?next={{ next }}">Use a different address</a></p>
+  {% else %}
   {% if sent %}
   <div class="notice">
     <b>Check your email.</b>
@@ -19,18 +43,15 @@
     way. It works once and expires in 15 minutes.</div>
   </div>
   {% endif %}
-  {% if error %}
-  <div class="warn">That sign-in link is invalid, expired, or already used.
-    Request a new one.</div>
-  {% endif %}
   <p class="meta">This is a private authoring application for one person.
   There is no sign-up.</p>
   <form method="post" action="/auth/request">
     <input type="hidden" name="next" value="{{ next }}">
     <label for="email" class="meta">Commissioner email</label>
     <input id="email" name="email" type="email" required autocomplete="email"
-           autofocus inputmode="email">
-    <button type="submit">EMAIL ME A SIGN-IN LINK</button>
+           autofocus inputmode="email" value="{{ email }}">
+    <button type="submit">{% if otp %}EMAIL ME A SIGN-IN CODE{% else %}EMAIL ME A SIGN-IN LINK{% endif %}</button>
   </form>
+  {% endif %}
 </div>
 {% endblock %}

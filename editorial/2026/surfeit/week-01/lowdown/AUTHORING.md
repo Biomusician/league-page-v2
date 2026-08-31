@@ -2,7 +2,7 @@
 
 **Read `.claude/skills/my-writing-style/SKILL.md` first and follow it.** Jonathan remains the primary
 author of The Lowdown; your job is to make starting it easy. Newsletter
-register; league theme: Force Design 2035.
+register; league theme: Future Fantasy Force Design.
 
 Three deliverables, in order, each on explicit request from the workflow:
 

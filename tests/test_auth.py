@@ -25,7 +25,8 @@ STRANGER = "someone-else@example.com"
 PUBLIC_PATHS = {
     "/health",              # launcher readiness probe
     "/login",               # the login form itself
-    "/auth/request",        # magic-link request
+    "/auth/request",        # sign-in request (OTP or magic link)
+    "/auth/verify",         # OTP code exchange
     "/auth/callback",       # magic-link redemption
     "/static/sortable.js",  # static asset, no data
 }
@@ -116,9 +117,12 @@ def test_stranger_learns_nothing_and_gets_no_link(secure, monkeypatch):
 
     good = secure.post("/auth/request", data={"email": COMMISH})
     bad = secure.post("/auth/request", data={"email": STRANGER})
-    # identical response: no disclosure of who is on the allowlist
+    # identical response: no disclosure of who is on the allowlist. The
+    # redirect carries no email at all (it lives in a signed cookie), so the
+    # two responses are byte-identical.
     assert good.status_code == bad.status_code == 303
     assert good.headers["location"] == bad.headers["location"]
+    assert "@" not in good.headers["location"]
     assert len(sent) == 1 and sent[0][0] == COMMISH
 
 
