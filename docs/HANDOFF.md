@@ -6,20 +6,24 @@ playbook), POST_MVP.md (backlog).
 
 ## Remote authoring — Phase 2: Supabase auth (2026-08-31)
 
-**Status: sign-in is built and proven locally; remote hosting still needs
-two config values.** The Supabase project URL and publishable key were
-described as supplied but were NOT present on this machine (no env var, no
-`.env`, nothing in Downloads/Desktop), so nothing could be probed against
-the real project.
+**Status: sign-in works end to end against the real Supabase project.**
+Migration 0001 is applied; `scripts/verify_supabase_schema.py` reports
+16/16 tables present and locked against the anon key. A real OTP was
+requested and delivered, and the identity record now exists (confirmed by a
+`should_create_user=False` probe returning 200).
 
-**To unblock, create `.env` at the repo root (copy `.env.example`) with:**
-```
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_PUBLISHABLE_KEY=<publishable key>
-```
-Neither is secret-class. `.env` is gitignored (verified). Then run
-`.venv\Scripts\python.exe scripts\check_supabase.py`, which reports exactly
-what those credentials unlock.
+`.env` exists at the repo root, gitignored (`git check-ignore` verified),
+holding `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+`LEAGUEPAGE_COMMISSIONER_EMAILS`, `LEAGUEPAGE_AUTH_MODE=off` and a
+generated `LEAGUEPAGE_SECRET_KEY`. Auth mode stays `off` locally so the
+localhost Desk keeps working without ceremony; the hosted deployment sets
+`required`.
+
+Trap that cost a debugging cycle and is now covered by a test: `auth.py`
+originally read `os.environ` directly, and nothing called
+`settings.load_env()`. A `.env`-configured allowlist was silently ignored,
+so the Desk looked configured while sitting in open fallback mode with an
+empty allowlist. **All auth config must go through `settings.get()`.**
 
 Design decisions worth not re-litigating:
 - **Email OTP, not magic link, for Supabase.** OTP needs no Redirect URL
@@ -38,18 +42,30 @@ Design decisions worth not re-litigating:
   pending sign-in, so addresses stay out of history and access logs and the
   allowed/rejected responses are byte-identical.
 
-Schema: `migrations/0001_commissioner_state.sql` — apply from the Supabase
-**SQL Editor** (needs no local credential), then insert your address into
-`app_commissioners`. RLS is enabled *and forced* on every table with a
-policy that consults that allowlist (not "any authenticated user"); `anon`
-is granted nothing on any table or sequence.
+Schema: `migrations/0001_commissioner_state.sql`, applied. RLS is enabled
+*and forced* on every table with a policy that consults `app_commissioners`
+(not "any authenticated user"); `anon` is granted nothing on any table or
+sequence.
+
+**The one bootstrap step that cannot be automated:** `app_commissioners` is
+empty, and because RLS is forced on that table and its own policy requires
+membership, nobody can insert the first row. The anon key is granted
+nothing, so the application cannot do it either — deliberately, since an
+app that could write its own allowlist would not have an allowlist. Run
+`.venv\Scripts\python.exe scripts\make_commissioner_seed.py`, which builds
+the idempotent `insert` from `.env` and copies it to the clipboard, then
+paste it into the Supabase SQL Editor. This is only needed once, and again
+whenever a Commissioner is added.
 
 Remaining before remote authoring is live:
-1. `.env` values above, then `check_supabase.py` green.
-2. Apply migration 0001 + insert the allowlist row.
-3. Prose repository cutover (sections table replaces `editorial/**/*.md`) —
+1. Seed `app_commissioners` (above). Until then, Postgres-backed reads and
+   writes will return nothing even for a correctly signed-in Commissioner.
+2. Prose repository cutover (sections table replaces `editorial/**/*.md`) —
    the last structural blocker; do a fresh export first.
-4. Durable jobs cutover (`jobs` table replaces `_JOB`/`_JOBS` globals).
+3. Durable jobs cutover (`jobs` table replaces `_JOB`/`_JOBS` globals).
+4. The hosted Desk also needs the Sleeper cache (12,225 players, rosters,
+   matchups) in Postgres, plus resolution of ~41 filesystem write sites that
+   a read-only serverless runtime will reject.
 5. Private Vercel project + env vars; add its URL to Supabase Auth only if
    magic links are added later (OTP does not need it).
 

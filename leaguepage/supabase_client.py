@@ -89,16 +89,27 @@ def probe() -> dict:
 def send_email_otp(email: str) -> None:
     """Ask Supabase to email a sign-in code.
 
-    `should_create_user` is False on purpose: this is a single-Commissioner
-    application with no sign-up. An address that is not already a Supabase
-    user gets no account created, and callers check the allowlist before
-    ever reaching this function.
+    `should_create_user` is True, and that deserves an explanation because
+    it looks like sign-up. It is not:
+
+      - This function is only ever reached after leaguepage.auth.is_allowed()
+        has passed, so a code is only ever sent to an address the
+        Commissioner allowlist already authorizes.
+      - A Supabase user record grants nothing on its own. Authorization is
+        decided twice more: the allowlist is re-checked against the address
+        Supabase returns at verification, and Row Level Security refuses
+        every table to anyone absent from app_commissioners.
+      - Without it a brand-new project cannot bootstrap at all: Supabase
+        answers `otp_disabled / Signups not allowed for otp` because no user
+        record exists yet, which is a chicken-and-egg for the first sign-in.
+
+    So the identity record is created on first sign-in; permission to use
+    the application remains entirely ours.
     """
     c = config()
     if not configured():
         raise SupabaseError("supabase not configured")
-    payload = {"email": email, "create_user": False,
-               "options": {"should_create_user": False}}
+    payload = {"email": email, "options": {"should_create_user": True}}
     try:
         with httpx.Client(timeout=TIMEOUT) as client:
             r = client.post(f"{c['url']}/auth/v1/otp",
