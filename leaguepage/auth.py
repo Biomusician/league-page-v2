@@ -29,10 +29,11 @@ import base64
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import time
 from dataclasses import dataclass
+
+from leaguepage import settings
 
 SESSION_COOKIE = "lp_session"
 LOGIN_TTL = 15 * 60           # magic link validity
@@ -53,7 +54,10 @@ class AuthError(Exception):
 
 
 def auth_mode() -> str:
-    return (os.environ.get("LEAGUEPAGE_AUTH_MODE") or "off").strip().lower()
+    # via settings, not os.environ: settings.get() is what loads .env, so
+    # reading the environment directly here would silently ignore a
+    # configured allowlist and leave the Desk in fallback mode.
+    return (settings.get("LEAGUEPAGE_AUTH_MODE") or "off").strip().lower()
 
 
 def auth_required() -> bool:
@@ -61,7 +65,7 @@ def auth_required() -> bool:
 
 
 def allowlist() -> set[str]:
-    raw = os.environ.get("LEAGUEPAGE_COMMISSIONER_EMAILS") or ""
+    raw = settings.get("LEAGUEPAGE_COMMISSIONER_EMAILS") or ""
     return {e.strip().lower() for e in raw.split(",") if e.strip()}
 
 
@@ -70,7 +74,7 @@ def is_allowed(email: str) -> bool:
 
 
 def _secret() -> bytes:
-    key = os.environ.get("LEAGUEPAGE_SECRET_KEY")
+    key = settings.get("LEAGUEPAGE_SECRET_KEY")
     if key:
         return key.encode("utf-8")
     if auth_required():

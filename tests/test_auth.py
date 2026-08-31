@@ -208,3 +208,25 @@ def test_secret_key_is_demanded_when_auth_is_on(monkeypatch):
     monkeypatch.delenv("LEAGUEPAGE_SECRET_KEY", raising=False)
     with pytest.raises(auth.AuthError):
         auth.sign({"kind": auth.KIND_SESSION}, 60)
+
+
+def test_auth_config_comes_from_the_env_file(tmp_path, monkeypatch):
+    """Regression: auth once read os.environ directly, so a .env-configured
+    allowlist was silently ignored and the Desk stayed wide open in fallback
+    mode while looking configured. Every auth setting must go through
+    settings.get(), which is what loads .env."""
+    from leaguepage import settings
+
+    env = tmp_path / ".env"
+    env.write_text("LEAGUEPAGE_AUTH_MODE=required\n"
+                   "LEAGUEPAGE_COMMISSIONER_EMAILS=from-file@example.com\n"
+                   "LEAGUEPAGE_SECRET_KEY=from-file-secret\n",
+                   encoding="utf-8")
+    monkeypatch.setattr(settings, "ENV_FILE", env)
+    monkeypatch.setattr(settings, "_loaded", False)
+
+    assert auth.auth_required() is True
+    assert auth.is_allowed("from-file@example.com")
+    assert not auth.is_allowed(STRANGER)
+    # a real signing key was found, so no ephemeral fallback was used
+    assert auth.sign({"kind": auth.KIND_SESSION}, 60)
