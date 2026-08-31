@@ -25,10 +25,17 @@ playbook), POST_MVP.md (backlog).
 - The local half of the workflow is unchanged and is what the reminder
   points at: launcher → SYNC SLEEPER → EDIT WEEK N. The Desk's ghost
   briefs remain authoritative; the cloud pack is extra ammunition.
-- Gmail/Calendar/Drive connectors are attached to the routine by account
-  default but its `allowed_tools` list excludes them, so it cannot send
-  mail or write calendar events. Emailing the reminder or creating a
-  Wednesday deadline event would be a deliberate future change.
+- **Delivery: a mobile push.** The first test run sent one unprompted, so
+  `allowed_tools` is evidently not a hard block; the prompt now requires
+  exactly one push (the reminder plus a one-line summary) as its last
+  step, and a hard rule forbids every other outbound channel: no email,
+  no calendar writes, no Drive, no messaging anyone else, even though
+  Gmail/Calendar/Drive connectors are attached by account default.
+- Verified test run 2026-08-30 (`cse_017eMhgWf2XTJ2k3qCo9dswQ`): success
+  in 240s / 36 turns. It correctly refused to invent a post-mortem or
+  awards because the season opens 2026-09-09, produced both leagues'
+  Week 1 pairings using team names with "Roster N" fallbacks, swept ~25
+  players for dated, sourced injury news, and pushed the reminder.
 
 ## Author-feature rule + dark Surfeit theme (2026-08-30)
 
