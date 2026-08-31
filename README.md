@@ -38,6 +38,13 @@ Troubleshooting fallback (what the launcher runs for you):
 
 ## The weekly workflow (all in the browser)
 
+Every Tuesday at noon a cloud routine ("League-Page Tuesday prep",
+https://claude.ai/code/routines) posts a research pack: last week's
+post-mortem, next week's matchups, a per-team news sweep, award
+candidates, and the reminder that writing is due Wednesday evening. It
+runs in the cloud on public data only — the steps below are the local
+half, and the Desk's ghost briefs stay authoritative.
+
 1. Double-click **`Launch Commissioner Desk`**
 2. Click **SYNC SLEEPER** (pulls both leagues, records snapshots and move
    context, and refreshes the writing briefs for the current week's

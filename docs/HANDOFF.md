@@ -4,6 +4,32 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## Tuesday prep routine (cloud, 2026-08-30)
+
+- Routine **"League-Page Tuesday prep"**, id `trig_01BfY734Z6uagVJQbXkSJL2J`,
+  cron `0 16 * * 2` (12:00 America/New_York while EDT; **after DST ends
+  2026-11-01 it fires at 11:00 local** — update to `0 17 * * 2` then).
+  Manage at https://claude.ai/code/routines (deletion is only possible
+  there; this session's tooling cannot delete routines).
+- **It runs in Anthropic's cloud, not on this machine.** It therefore
+  cannot sync the local DB, touch the Desk, or refresh the local editorial
+  workspace. Attaching the private repo was REFUSED by the platform
+  ("You don't have access to a repository this routine uses"), so the
+  routine has no repo and works purely from the public Sleeper API plus
+  web news — no private material leaves the machine, by construction.
+- What it delivers each Tuesday: the Wednesday-evening deadline reminder,
+  a post-mortem of the completed week, previews of the upcoming week,
+  a per-team news sweep with sources, and factual award candidates. It is
+  explicitly barred from writing prose in Jonathan's voice, publishing,
+  and printing handles/real names.
+- The local half of the workflow is unchanged and is what the reminder
+  points at: launcher → SYNC SLEEPER → EDIT WEEK N. The Desk's ghost
+  briefs remain authoritative; the cloud pack is extra ammunition.
+- Gmail/Calendar/Drive connectors are attached to the routine by account
+  default but its `allowed_tools` list excludes them, so it cannot send
+  mail or write calendar events. Emailing the reminder or creating a
+  Wednesday deadline event would be a deliberate future change.
+
 ## Author-feature rule + dark Surfeit theme (2026-08-30)
 
 - **The author does not headline his own newsletter.** `League` gains

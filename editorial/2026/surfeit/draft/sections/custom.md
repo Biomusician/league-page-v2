@@ -9,11 +9,13 @@ is just the cost of conviction. Ten designs, assessed in order.
 
 ### 1. Dave (+1)
 
-Somehow, the sole roster to get a positive value vs. ADP. Is my methodology flawed? Who knows. Regardless, please lord this over the rest of the Skunks and wolves next week.### 2. Roster 10 (-42)
+Somehow, the sole roster to get a positive value vs. ADP. Is my methodology flawed? Who knows. Regardless, please lord this over the rest of the Skunks and wolves next week.
 
-Trevor Lawrence at a 37-pick discount and Josh Jacobs late. The design
+### 2. Los Bandidos (-42)
+
+Trevor Lawrence at a 37-pick discount and Josh Jacobs late (who is now no longer on the roster). The design
 holds one assumption per capability area instead of five, which is why the
-bill stayed small. The Fairbairn kicker premium (minus-80) is the smudge.
+bill stayed small. The Fairbairn kicker premium (minus-80) is the stain on the team's positivity.
 
 ### 3. SHACtin a fool (-115)
 
@@ -22,7 +24,7 @@ and Jaxson Dart 23 picks late hedges the quarterback risk for cheap. Two
 defenses is one more than doctrine requires, and Seattle at minus-68 was
 the expensive one.
 
-### 4. Roster 2 (-137)
+### 4. Jesse (-137)
 
 Two different city triples (Chicago and Denver), which is a wargame where
 two scenarios decide everything. Caleb Williams 29 picks late funds part of
@@ -42,7 +44,7 @@ August, then built a four-piece Rams block around Stafford anyway, which is
 hedging your identity crisis at market rates. Two stacks show real theory
 of victory. The Rams defense at minus-84 paid for it.
 
-### 7. Roster 5 (-189)
+### 7. Gary (-189)
 
 Jared Goff 28 picks late was clean value. Jason Myers 95 picks early is the
 single largest kicker premium in the league, and at this table that is a
@@ -57,7 +59,7 @@ could have anchored something; the Dicker kicker buy at minus-80 and the
 tight end timing gave it all back. Eighth is generous and I will not be
 appealing.
 
-### 9. Roster 6 (-330)
+### 9. MJ (-330)
 
 Amon-Ra St. Brown, Sam LaPorta, and Jake Bates is all-in on Detroit as the
 future operating environment. If Detroit is the future, this is the best
