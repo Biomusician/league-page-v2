@@ -47,12 +47,13 @@ def test_gitignore_excludes_private_runtime_state():
 def test_repo_audit_patterns_catch_known_shapes():
     from scripts.audit_repo_privacy import FORBIDDEN_PATHS, TOKEN_PATTERNS
 
-    for bad in ("data/league.sqlite3", ".env", "logs/desk-startup.log",
-                "editorial/managers.json", "backup.bundle",
-                "data/yahoo_token.json"):
+    for bad in ("data/league.sqlite3", ".env", ".env.local", "sub/.env",
+                "logs/desk-startup.log", "editorial/managers.json",
+                "backup.bundle", "data/yahoo_token.json"):
         assert FORBIDDEN_PATHS.search(bad), f"should flag path {bad}"
     for ok in ("leaguepage/site_build.py", "docs/DEPLOY.md",
-               "editorial/managers.example.json"):
+               "editorial/managers.example.json",
+               ".env.example"):  # names only, committed on purpose
         assert not FORBIDDEN_PATHS.search(ok), f"should not flag {ok}"
     samples = {
         "GitHub token": "ghp_" + "a" * 30,

@@ -34,9 +34,11 @@ TOKEN_PATTERNS = [
     (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "private key"),
     (re.compile(r"sk-ant-[A-Za-z0-9-]{10,}"), "Anthropic key"),
 ]
+# `.env` and friends are forbidden; `.env.example` carries NAMES ONLY and is
+# meant to be committed, so it is explicitly exempt.
 FORBIDDEN_PATHS = re.compile(
-    r"(\.sqlite3$|^\.env|/\.env|\.log$|^logs/|\.bundle$"
-    r"|editorial/managers\.json$|auth\.json$|yahoo_token)")
+    r"(\.sqlite3$|^\.env(?!\.example$)|/\.env(?!\.example$)|\.log$|^logs/"
+    r"|\.bundle$|editorial/managers\.json$|auth\.json$|yahoo_token)")
 HANDLE_EXEMPT = ("archive/",)
 
 
