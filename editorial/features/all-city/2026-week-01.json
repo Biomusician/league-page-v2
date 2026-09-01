@@ -1,0 +1,360 @@
+{
+  "feature_key": "all-city",
+  "edition": "2026-week-01",
+  "title": "The All-City Team",
+  "season": "2026",
+  "issue_key": "week-01",
+  "leagues": ["disco", "surfeit"],
+  "compiled_at": "2026-08-31",
+  "basis": "2026 preseason consensus, compiled before Week 1 kickoff.",
+
+  "roster_format": [["QB", 1], ["RB", 2], ["WR", 2], ["TE", 1], ["K", 1]],
+
+  "rules": {
+    "public_summary": "Rule: the player's own first or last name must be exactly the name of a place its state classifies as a city. Towns, villages, boroughs and unincorporated communities do not count, and neither do partial matches. Tier is the 2020 census count and nothing else: 100,000 and up is a Marquee City, 5,000 to 99,999 is a City, under 5,000 is a Technical Qualifier.",
+    "verification_note": "City class and population checked against each municipality's census entry on 2026-08-31.",
+    "full_rules": [
+      "Exact match only. The player's first name or last name, standing alone, must equal the city's commonly used proper name. No nicknames, no spelling variants, no partial matches, no words merely contained inside a longer city name: a player named York qualifies for York, Pennsylvania and gets nothing from New York.",
+      "The name must be one whole token of the player's name. Hyphenated and compound surnames count as one name; Smith-Njigba is not Smith, and St. Brown is not Brown.",
+      "Generational suffixes are not names. Jr., Sr., II, III, IV and V are stripped before matching.",
+      "The place must be an incorporated municipality that its own state classifies as a CITY. This is the bright line that keeps the feature from becoming an argument about size: the test is the charter rather than the headcount, so a 396-person city is in and a 278-person town stays a town.",
+      "The four countries in play are the United States, France, the United Kingdom and Sweden, matching the league's own nationalities. The default rule is the U.S. one; an allied city is used only where no U.S. city carries the name.",
+      "Washington, D.C. needs no special exception. Washington, Pennsylvania is an incorporated city of 13,176, so the name clears the default rule without anyone having to rule on the District's municipal status.",
+      "Team names, stadium names and nicknames are worth nothing."
+    ],
+    "considered_and_rejected": [
+      "A population floor. It would have been arbitrary at every value we tried, and it would have thrown out Aubrey, Texas, which the premise specifically wanted in.",
+      "A named Washington, D.C. exception. Unnecessary; see above.",
+      "Counting incorporated places of any class. That admits Gibbs, Missouri (village, 70 people) and hands the roster the consensus RB1, which is a better lineup and a worse rule."
+    ]
+  },
+
+  "sources": [
+    {
+      "key": "fantasypros_ecr_redraft_half_ppr",
+      "label": "FantasyPros Expert Consensus Rank (redraft, half PPR)",
+      "retrieved": "2026-08-29",
+      "note": "refdata/adp snapshot already in the repo; primary valuation board."
+    },
+    {
+      "key": "fantasypros_ecr_redraft_superflex",
+      "label": "FantasyPros Expert Consensus Rank (redraft, superflex)",
+      "retrieved": "2026-08-29",
+      "note": "refdata/adp snapshot; used for the quarterback comparison."
+    },
+    {
+      "key": "sleeper_player_index",
+      "label": "Sleeper player index",
+      "retrieved": "2026-08-30",
+      "note": "Position, NFL team, active status, depth-chart order and injury designation. Second, independent consensus signal via search_rank."
+    }
+  ],
+
+  "cross_checks": [
+    {
+      "label": "Independent late-August 2026 consensus top 15 (web, checked 2026-08-31)",
+      "finding": "Orders the board Gibbs, Robinson, Chase, Taylor, then Smith-Njigba, with Cook 9th, Jefferson 13th and London 15th. Agrees with the FantasyPros snapshot on every player this feature uses, which is why no single-analyst ranking is doing any work here."
+    }
+  ],
+
+  "starters": [
+    {
+      "position": "QB",
+      "slot": 1,
+      "player": "Josh Allen",
+      "nfl_team": "BUF",
+      "matching_name": "Allen",
+      "name_part": "last",
+      "city": "Allen",
+      "state": "Texas",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 104627,
+      "population_year": 2020,
+      "qualification": "marquee",
+      "verdict": "Elite",
+      "assessment": "QB1 on both consensus boards and the highest-ranked quarterback in the superflex file at overall rank 1. Active, first on the depth chart, no injury designation.",
+      "consensus": {"ecr_half_ppr": 27, "ecr_superflex": 1, "sleeper_rank": 4, "position_rank": "QB1"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:josh allen",
+        "adp:fantasypros_ecr_redraft_superflex:josh allen"
+      ],
+      "sources": [
+        {"label": "Allen, Texas", "url": "https://en.wikipedia.org/wiki/Allen,_Texas", "retrieved": "2026-08-31",
+         "quote": "Allen is a city in Collin County in the U.S. state of Texas, and a northern suburb in the Dallas-Fort Worth metroplex. Incorporated 1953; population 104,627 at the 2020 census."}
+      ],
+      "research_notes": "Replaces Lamar Jackson from the candidate lineup. Jackson also qualifies (Jackson, Mississippi) and is QB2 on both boards; Allen is ahead on both, so the slot goes to Allen. Allen is the only starter that clears the 100,000 marquee line, which is its own joke given that Dallas is on the bench."
+    },
+    {
+      "position": "RB",
+      "slot": 1,
+      "player": "Bijan Robinson",
+      "nfl_team": "ATL",
+      "matching_name": "Robinson",
+      "name_part": "last",
+      "city": "Robinson",
+      "state": "Illinois",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 7150,
+      "population_year": 2020,
+      "qualification": "city",
+      "verdict": "Elite",
+      "assessment": "Second overall on the FantasyPros board and first on Sleeper's. Active, first on the depth chart, no injury designation.",
+      "consensus": {"ecr_half_ppr": 2, "ecr_superflex": 9, "sleeper_rank": 1, "position_rank": "RB2"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:bijan robinson",
+        "adp:fantasypros_ecr_redraft_superflex:bijan robinson"
+      ],
+      "sources": [
+        {"label": "Robinson, Illinois", "url": "https://en.wikipedia.org/wiki/Robinson,_Illinois", "retrieved": "2026-08-31",
+         "quote": "Robinson is a city in and the county seat of Crawford County, Illinois, United States. Population 7,150 at the 2020 census."}
+      ],
+      "research_notes": "Robinson, Texas (city, Waco suburb) is a second qualifying city under the same name; Illinois is cited because it is a county seat and the class is unambiguous. Replaces Omarion Hampton from the candidate lineup."
+    },
+    {
+      "position": "RB",
+      "slot": 2,
+      "player": "Jonathan Taylor",
+      "nfl_team": "IND",
+      "matching_name": "Taylor",
+      "name_part": "last",
+      "city": "Taylor",
+      "state": "Michigan",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 63409,
+      "population_year": 2020,
+      "qualification": "city",
+      "verdict": "Elite",
+      "assessment": "Eighth overall, RB4, first on the Indianapolis depth chart with no injury designation in the 2026-08-30 sync.",
+      "consensus": {"ecr_half_ppr": 8, "ecr_superflex": 17, "sleeper_rank": 4, "position_rank": "RB4"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:jonathan taylor",
+        "adp:fantasypros_ecr_redraft_superflex:jonathan taylor"
+      ],
+      "sources": [
+        {"label": "Taylor, Michigan", "url": "https://en.wikipedia.org/wiki/Taylor,_Michigan", "retrieved": "2026-08-31",
+         "quote": "Taylor is a city in Wayne County in the U.S. state of Michigan. Incorporated as a city March 6, 1968; population 63,409 at the 2020 census."}
+      ],
+      "research_notes": "Taylor, Texas is a second qualifying city. Suggested as an upgrade in the original brief and it holds up: replaces David Montgomery, who is RB23 at overall 56."
+    },
+    {
+      "position": "WR",
+      "slot": 1,
+      "player": "Ja'Marr Chase",
+      "nfl_team": "CIN",
+      "matching_name": "Chase",
+      "name_part": "last",
+      "city": "Chase",
+      "state": "Kansas",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 396,
+      "population_year": 2020,
+      "qualification": "technical",
+      "verdict": "Elite",
+      "assessment": "WR1 and third overall on the consensus board. He hyperextended his left knee in a practice on 2026-08-25 and still carried a Questionable tag in the 2026-08-30 sync; he told reporters that if there were a game the next day he would play, and reporting through 2026-08-31 has him on track for the opener.",
+      "consensus": {"ecr_half_ppr": 3, "ecr_superflex": 10, "sleeper_rank": 4, "position_rank": "WR1"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:jamarr chase",
+        "adp:fantasypros_ecr_redraft_superflex:jamarr chase"
+      ],
+      "sources": [
+        {"label": "Chase, Kansas", "url": "https://en.wikipedia.org/wiki/Chase,_Kansas", "retrieved": "2026-08-31",
+         "quote": "Chase is a city in Rice County, Kansas, United States. Population 396 at the 2020 census."},
+        {"label": "Chase knee injury reporting, late August 2026", "url": "https://www.cincyjungle.com/cincinnati-bengals-injuries/197063/jamarr-chase-injury-update-knee-hyperextension", "retrieved": "2026-08-31",
+         "quote": "Hyperextension suffered at practice; Chase said he is feeling good and would play if there were a game the next day. He missed a Wednesday practice while swelling was monitored."}
+      ],
+      "research_notes": "The whole ruleset turns on this entry. Chase, Kansas is 396 people and is legally a city, which is the difference between the consensus WR1 starting here and sitting in the near-miss list next to Gibbs and Bowers. Verify the knee again before the issue publishes."
+    },
+    {
+      "position": "WR",
+      "slot": 2,
+      "player": "Justin Jefferson",
+      "nfl_team": "MIN",
+      "matching_name": "Jefferson",
+      "name_part": "last",
+      "city": "Jefferson",
+      "state": "Georgia",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 13233,
+      "population_year": 2020,
+      "qualification": "city",
+      "verdict": "Elite",
+      "assessment": "Eleventh overall, WR6, first on the depth chart with no injury designation.",
+      "consensus": {"ecr_half_ppr": 11, "ecr_superflex": 22, "sleeper_rank": 11, "position_rank": "WR6"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:justin jefferson",
+        "adp:fantasypros_ecr_redraft_superflex:justin jefferson"
+      ],
+      "sources": [
+        {"label": "Jefferson, Georgia", "url": "https://en.wikipedia.org/wiki/Jefferson,_Georgia", "retrieved": "2026-08-31",
+         "quote": "Jefferson is a city and the county seat of Jackson County, Georgia, United States. Incorporated as a town in 1806 and as a city in 1896; population 13,233 at the 2020 census."}
+      ],
+      "research_notes": "Jefferson City, Missouri is a compound name and does not count. Jefferson, Georgia is the cleanest qualifier: county seat, chartered as a city in 1896. Replaces Parker Washington, who is WR30 at overall 65."
+    },
+    {
+      "position": "TE",
+      "slot": 1,
+      "player": "Colston Loveland",
+      "nfl_team": "CHI",
+      "matching_name": "Loveland",
+      "name_part": "last",
+      "city": "Loveland",
+      "state": "Colorado",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 76378,
+      "population_year": 2020,
+      "qualification": "city",
+      "verdict": "Strong starter",
+      "assessment": "TE3 on both boards behind Bowers and McBride, at overall 40. Age-22 season, first on the Chicago depth chart, no injury designation. The role is locked and the sample is one year, so the ceiling is doing some of the work here.",
+      "consensus": {"ecr_half_ppr": 40, "ecr_superflex": 53, "sleeper_rank": 36, "position_rank": "TE3"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:colston loveland",
+        "adp:fantasypros_ecr_redraft_superflex:colston loveland"
+      ],
+      "sources": [
+        {"label": "Loveland, Colorado", "url": "https://en.wikipedia.org/wiki/Loveland,_Colorado", "retrieved": "2026-08-31",
+         "quote": "Loveland is a home rule municipality and the second most populous municipality in Larimer County, Colorado. Listed as a home rule city; incorporated April 30, 1881; population 76,378 at the 2020 census."}
+      ],
+      "research_notes": "The weakest starter, and he is still TE3 in football. Replaces Dallas Goedert, who is TE12 at overall 116. Tyler Warren (Warren, Michigan) is TE4 at overall 52 and is the fallback if Loveland's role changes."
+    },
+    {
+      "position": "K",
+      "slot": 1,
+      "player": "Brandon Aubrey",
+      "nfl_team": "DAL",
+      "matching_name": "Aubrey",
+      "name_part": "last",
+      "city": "Aubrey",
+      "state": "Texas",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 5006,
+      "population_year": 2020,
+      "qualification": "city",
+      "verdict": "Elite",
+      "assessment": "K1 on both boards by a real margin: 202nd overall against 206 for the next kicker on FantasyPros, and 92nd against 118 on Sleeper's. Active, first on the depth chart, no injury designation.",
+      "consensus": {"ecr_half_ppr": 202, "ecr_superflex": null, "sleeper_rank": 92, "position_rank": "K1"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:brandon aubrey"
+      ],
+      "sources": [
+        {"label": "Aubrey, Texas", "url": "https://en.wikipedia.org/wiki/Aubrey,_Texas", "retrieved": "2026-08-31",
+         "quote": "Aubrey is a city in Denton County, Texas, United States. Its population was 5,006 at the 2020 census; a 2025 estimate puts it at 9,066."}
+      ],
+      "research_notes": "Confirmed as an incorporated city, which the brief flagged as the open question. At 5,006 it clears the Technical Qualifier ceiling by six residents. The candidate lineup flagged Aubrey's incorporation as the open question; it is settled."
+    }
+  ],
+
+  "near_miss_title": "Outside the City Limits",
+  "near_misses": [
+    {
+      "player": "Jahmyr Gibbs",
+      "position": "RB",
+      "nfl_team": "DET",
+      "matching_name": "Gibbs",
+      "reason": "The consensus number one overall player in fantasy football, and the only Gibbs on the map is a village of 70 in Adair County, Missouri. Villages are not cities.",
+      "would_have_been": "RB1, overall 1 on FantasyPros and 2 on Sleeper.",
+      "sources": [
+        {"label": "Gibbs, Missouri", "url": "https://en.wikipedia.org/wiki/Gibbs,_Missouri", "retrieved": "2026-08-31",
+         "quote": "Gibbs is a village in Wilson Township, Adair County, Missouri, United States. The population was 70 at the 2020 census."}
+      ]
+    },
+    {
+      "player": "Brock Bowers",
+      "position": "TE",
+      "nfl_team": "LV",
+      "matching_name": "Bowers",
+      "reason": "Bowers, Delaware is a town of 278, and the charter is the whole test. TE1 in football, sat down by a nineteenth-century filing decision in Kent County.",
+      "would_have_been": "TE1, overall 18.",
+      "sources": [
+        {"label": "Bowers, Delaware", "url": "https://en.wikipedia.org/wiki/Bowers,_Delaware", "retrieved": "2026-08-31",
+         "quote": "Bowers (commonly known as Bowers Beach) is a town in Kent County, Delaware, United States. Population 278 at the 2020 census."}
+      ]
+    },
+    {
+      "player": "Trey McBride",
+      "position": "TE",
+      "nfl_team": "ARI",
+      "matching_name": "McBride",
+      "reason": "McBride, Michigan is a village of 189, so the top two tight ends in football both exist as municipalities and both filed the wrong paperwork.",
+      "would_have_been": "TE2, overall 25.",
+      "sources": [
+        {"label": "McBride, Michigan", "url": "https://en.wikipedia.org/wiki/McBride,_Michigan", "retrieved": "2026-08-31",
+         "quote": "McBride is a village in Montcalm County in the U.S. state of Michigan. The population was 189 at the 2020 census."}
+      ]
+    },
+    {
+      "player": "Amon-Ra St. Brown",
+      "position": "WR",
+      "nfl_team": "DET",
+      "matching_name": null,
+      "reason": "His surname is St. Brown, and no city is named St. Brown. Brown is a piece of the name rather than the name, and pieces have never counted.",
+      "would_have_been": "WR4, overall 6.",
+      "sources": []
+    }
+  ],
+
+  "bench": [
+    {"player": "Lamar Jackson", "position": "QB", "nfl_team": "BAL", "city": "Jackson", "state": "Mississippi",
+     "matching_name": "Jackson", "name_part": "last", "qualification": "marquee",
+     "note": "QB2 on both boards behind Josh Allen. The original candidate; loses the slot on the numbers alone.",
+     "evidence": ["adp:fantasypros_ecr_redraft_superflex:lamar jackson"]},
+    {"player": "Trevor Lawrence", "position": "QB", "nfl_team": "JAX", "city": "Lawrence", "state": "Kansas",
+     "matching_name": "Lawrence", "name_part": "last", "qualification": "city",
+     "note": "QB9 at overall 74. Third quarterback in the pool.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:trevor lawrence"]},
+    {"player": "James Cook", "position": "RB", "nfl_team": "BUF", "city": "Cook", "state": "Minnesota",
+     "matching_name": "Cook", "name_part": "last", "qualification": "technical",
+     "note": "RB5 at overall 10, one spot outside the lineup. Cook, Minnesota is a city of 534, so he qualifies the same way Chase does.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:james cook"],
+     "sources": [{"label": "Cook, Minnesota", "url": "https://en.wikipedia.org/wiki/Cook,_Minnesota", "retrieved": "2026-08-31",
+                  "quote": "Cook is a city in Saint Louis County, Minnesota, United States. Population 534 at the 2020 census."}]},
+    {"player": "Omarion Hampton", "position": "RB", "nfl_team": "LAC", "city": "Hampton", "state": "Virginia",
+     "matching_name": "Hampton", "name_part": "last", "qualification": "marquee",
+     "note": "RB9 at overall 19. The original candidate; Hampton is an independent city of 137,148, the biggest marquee name in the pool and still a bench slot.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:omarion hampton"],
+     "sources": [{"label": "Hampton, Virginia", "url": "https://en.wikipedia.org/wiki/Hampton,_Virginia", "retrieved": "2026-08-31",
+                  "quote": "Hampton is an independent city in Virginia, United States. The population was 137,148 at the 2020 census."}]},
+    {"player": "David Montgomery", "position": "RB", "nfl_team": "HOU", "city": "Montgomery", "state": "Alabama",
+     "matching_name": "Montgomery", "name_part": "last", "qualification": "marquee",
+     "note": "RB23 at overall 56. The original candidate; a state capital sitting behind two 396-and-7,150-person towns.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:david montgomery"]},
+    {"player": "Drake London", "position": "WR", "nfl_team": "ATL", "city": "London", "state": "Ohio",
+     "matching_name": "London", "name_part": "first", "qualification": "city",
+     "note": "WR8 at overall 14, the first man out at receiver. London, Ohio is a city of 10,279, so the allied-cities clause never had to be used.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:drake london"],
+     "sources": [{"label": "London, Ohio", "url": "https://en.wikipedia.org/wiki/London,_Ohio", "retrieved": "2026-08-31",
+                  "quote": "London is a city in and the county seat of Madison County, Ohio, United States. Population 10,279 at the 2020 census."}]},
+    {"player": "Parker Washington", "position": "WR", "nfl_team": "JAX", "city": "Washington", "state": "Pennsylvania",
+     "matching_name": "Washington", "name_part": "last", "qualification": "city",
+     "note": "WR30 at overall 65. The original candidate. Washington, Pennsylvania is a city of 13,176, which is why the District never needed an exception written for it.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:parker washington"],
+     "sources": [{"label": "Washington, Pennsylvania", "url": "https://en.wikipedia.org/wiki/Washington,_Pennsylvania", "retrieved": "2026-08-31",
+                  "quote": "Washington is a city in Washington County, Pennsylvania, United States, and its county seat. Population 13,176 at the 2020 census."}]},
+    {"player": "Denzel Boston", "position": "WR", "nfl_team": "CLE", "city": "Boston", "state": "Massachusetts",
+     "matching_name": "Boston", "name_part": "last", "qualification": "marquee",
+     "note": "WR59 at overall 158, third on the Cleveland depth chart. The original candidate, and the most famous city in the pool attached to the least fantasy value.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:denzel boston"]},
+    {"player": "Tyler Warren", "position": "TE", "nfl_team": "IND", "city": "Warren", "state": "Michigan",
+     "matching_name": "Warren", "name_part": "last", "qualification": "marquee",
+     "note": "TE4 at overall 52, carrying a Questionable tag in the 2026-08-30 sync. First fallback if Loveland's role moves.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:tyler warren"]},
+    {"player": "Dallas Goedert", "position": "TE", "nfl_team": "PHI", "city": "Dallas", "state": "Texas",
+     "matching_name": "Dallas", "name_part": "first", "qualification": "marquee",
+     "note": "TE12 at overall 116. The original candidate, and the best name in the whole exercise sitting on the bench behind Loveland.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:dallas goedert"]},
+    {"player": "Cameron Dicker", "position": "K", "nfl_team": "LAC", "city": "Cameron", "state": "Texas",
+     "matching_name": "Cameron", "name_part": "first", "qualification": "city",
+     "note": "K2 on both boards. Qualifies on the first name; the only reason he is not the pick is Aubrey.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:cameron dicker"]},
+    {"player": "Cairo Santos", "position": "K", "nfl_team": "CHI", "city": "Cairo", "state": "Illinois",
+     "matching_name": "Cairo", "name_part": "first", "qualification": "technical",
+     "note": "K10 at overall 232. K10 on the board, so he is depth rather than a contender for the slot. Kept in the pool because Cairo, Illinois is the best name in it.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:cairo santos"]}
+  ]
+}

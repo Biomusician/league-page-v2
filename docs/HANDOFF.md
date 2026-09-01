@@ -4,6 +4,32 @@ Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), POST_MVP.md (backlog).
 
+## The All-City Team sidebar feature (2026-08-31)
+
+**Status: built, validated, previewed. Nothing published.** The 2026 edition
+is drafted into disco week-01 and still carries the ROUGH DRAFT marker, so it
+is double-blocked from publishing (unapproved plus blocked marker) until
+Jonathan edits it. The module is opt-in and is NOT included on any issue in
+the real DB; include it on the Desk when you want it.
+
+- `leaguepage/all_city.py` validates an edition and renders the table, the
+  rule footnote and the near-miss list. `editorial/features/all-city/` holds
+  the editions plus a README with the rule and the rerun procedure.
+- New issue module `all-city` ("The All-City Team"), kind `all-city`, in
+  `OPT_IN_MODULES`. Prose lives at `sections/all-city.md` like any other
+  section, so the Desk editor needed zero changes.
+- Editions bind to one `(season, issue_key)`; a rerun is a new file. There is
+  deliberately no "latest wins" fallback.
+- 2026 lineup: Josh Allen, Bijan Robinson, Jonathan Taylor, Ja'Marr Chase,
+  Justin Jefferson, Colston Loveland, Brandon Aubrey. Five of the seven
+  replaced the candidates in the original brief on consensus rank. Ja'Marr
+  Chase's left knee (hyperextended 2026-08-25) is the one thing to re-check
+  before this publishes.
+- The rule is municipal class, never population (docs/DECISIONS.md). It costs
+  the roster the consensus RB1, TE1 and TE2, which is the joke.
+- `tests/test_all_city.py` (36 tests) guards the shipped data, the exact-match
+  rule, roster completeness, and the public/private field split.
+
 ## Remote authoring — Phase 2: Supabase auth (2026-08-31)
 
 **Status: sign-in works end to end against the real Supabase project.**

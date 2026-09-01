@@ -110,6 +110,13 @@ current text with Accept / Keep — your text is never replaced silently.
 Locally or Publish & Deploy (build + privacy audit + Vercel production,
 never past a failed audit).
 
+Recurring sidebar features (currently **The All-City Team**) are opt-in
+modules backed by a git-tracked data edition. Include the module on the
+issue, and the table, rule footnote and near-miss list render from
+`editorial/features/<feature>/<edition>.json` while you write the copy in
+the ordinary section card. See `editorial/features/all-city/README.md` for
+the rule and the procedure for running one again later in the season.
+
 ## Weekly issue workflow (per league)
 
 1. Double-click `Launch Commissioner Desk.cmd`.

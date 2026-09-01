@@ -221,3 +221,56 @@ does not have an allowlist. The first row is inserted with database owner
 rights, either from the Supabase SQL editor or by `DATABASE_URL` tooling.
 `scripts/make_commissioner_seed.py` generates it from `.env` so the address is
 never committed and never retyped.
+
+## 2026-08-31 — Sidebar features are data editions plus commissioner prose
+
+The All-City Team is the first recurring sidebar feature, and it set the shape
+for the ones after it. A feature edition is one git-tracked JSON file under
+`editorial/features/<feature>/<edition>.json`, bound explicitly to a single
+`(season, issue_key)` and optionally to a league list. `leaguepage/all_city.py`
+validates it and renders the structured half (the roster table, the rule
+footnote, the near-miss list); the surrounding copy is an ordinary
+commissioner-owned `sections/<feature>.md`, so the Desk editor, the revision
+history, the approval gate and the ROUGH DRAFT block all work with no new
+plumbing. The module registers in `MODULE_DEFS` like any other and sits in
+`OPT_IN_MODULES`, so an issue only carries it when the commissioner asks.
+
+Why editions bind to one issue instead of "latest wins": rerunning the lineup
+in week 8 must not retroactively change what week 1 published. A new run is a
+new file with a new `issue_key`, the old file stays where it is, and the frozen
+snapshot in `published/` was already immune anyway. Belt and braces, cheaply.
+
+Why the data carries the rule and the code enforces it: `validate_edition()`
+re-derives the exact-match test from the player's own name rather than trusting
+the JSON, checks the roster against the declared format (no duplicate slots, no
+missing K, no third running back), and refuses any qualification tier that
+disagrees with the recorded census population. A malformed edition reports
+`needs_review` on the Desk and renders nothing.
+
+Why the public/private split is a field allowlist rather than a denylist:
+`PUBLIC_ENTRY_FIELDS` is the only thing the renderer reads, so a private field
+added to an edition later cannot leak by being forgotten about. Evidence IDs,
+source URLs and research notes stay in the local file for pre-publication
+review and never reach `dist/`.
+
+## 2026-08-31 — The All-City rule is municipal class, not population
+
+Every population floor we tried was arbitrary, and each one either threw out
+Aubrey, Texas (5,006) or let in Gibbs, Missouri (village, 70). The rule that
+survived red-teaming is the legal one: the place must be an incorporated
+municipality its own state classifies as a **city**. Towns, villages, boroughs
+and unincorporated communities do not qualify at any size.
+
+The consequences are the feature. Chase, Kansas is a city of 396, so the
+consensus WR1 starts. Bowers, Delaware is a town of 278, so TE1 sits. McBride,
+Michigan is a village of 189, so TE2 sits. Gibbs, Missouri is a village of 70,
+so the consensus number one overall player in fantasy football sits. A rule
+that costs you the best player in the pool is a rule that is actually doing
+something.
+
+Population still appears, purely as the tier label (100,000+ Marquee City,
+5,000–99,999 City, under 5,000 Technical Qualifier), and the validator enforces
+that the tier matches the recorded number so nobody can promote a small town by
+feel. A named Washington, D.C. exception was considered and dropped as
+unnecessary: Washington, Pennsylvania is an incorporated city of 13,176, so the
+name clears the default rule on its own.
