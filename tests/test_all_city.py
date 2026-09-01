@@ -285,7 +285,7 @@ def test_module_is_not_ready_without_an_edition(env):
     db, league, tmp = env
     m = _module(db, league, tmp)
     assert m["status"] == "not_ready"
-    assert "no All-City edition bound to" in m["detail"]
+    assert "no all-city edition bound to" in m["detail"]
 
 
 def test_module_reports_a_broken_edition_rather_than_rendering_it(env):
@@ -422,3 +422,192 @@ def test_excluding_the_module_leaves_the_rest_of_the_issue_intact(env):
     snap = json.loads(snap_path.read_text(encoding="utf-8"))
     keys = [s["module_key"] for s in snap["sections"]]
     assert keys == ["lowdown"]
+
+
+# ------------------------------------------------- the marquee (100k) variant
+
+MARQUEE = EDITORIAL_DIR / "features" / "all-city-marquee" / "2026-week-01.json"
+FLOOR = 100_000
+
+
+def _marquee(**overrides) -> dict:
+    ed = copy.deepcopy(ac.load_edition(MARQUEE))
+    ed.update(overrides)
+    return ed
+
+
+def test_shipped_marquee_edition_validates():
+    assert ac.validate_edition(ac.load_edition(MARQUEE)) == []
+
+
+def test_shipped_marquee_is_a_complete_lineup():
+    ed = ac.load_edition(MARQUEE)
+    counts: dict[str, int] = {}
+    for e in ed["starters"]:
+        counts[e["position"]] = counts.get(e["position"], 0) + 1
+    assert counts == {"QB": 1, "RB": 2, "WR": 2, "TE": 1, "K": 1}
+    assert len({e["player"] for e in ed["starters"]}) == 7
+
+
+def test_every_marquee_starter_clears_one_hundred_thousand():
+    ed = ac.load_edition(MARQUEE)
+    assert ac.minimum_population(ed) == FLOOR
+    for e in ed["starters"]:
+        assert isinstance(e["population"], int), e["player"]
+        assert e["population"] >= FLOOR, (e["player"], e["city"], e["population"])
+        assert e["municipal_class"] == "city"
+        assert e["evidence"] and e["sources"], e["player"]
+
+
+def test_population_floor_is_enforced():
+    ed = _marquee()
+    ed["starters"][0]["population"] = 99_999
+    assert any("below this edition's 100,000 floor" in e
+               for e in ac.validate_edition(ed))
+
+
+def test_population_floor_requires_a_recorded_population():
+    ed = _marquee()
+    ed["starters"][0].pop("population")
+    errors = ac.validate_edition(ed)
+    assert any("population floor" in e and "must be recorded" in e for e in errors)
+
+
+def test_population_column_requires_a_recorded_population():
+    ed = _edition(columns=["pos", "player", "city", "population", "verdict"])
+    ed["starters"][0].pop("population")
+    assert any("the table prints population" in e for e in ac.validate_edition(ed))
+
+
+def test_unknown_or_incomplete_table_columns_are_caught():
+    assert any("unknown table column 'nickname'" in e
+               for e in ac.validate_edition(
+                   _edition(columns=["pos", "player", "city", "nickname"])))
+    assert any("must include 'city'" in e
+               for e in ac.validate_edition(
+                   _edition(columns=["pos", "player", "verdict"])))
+
+
+def test_marquee_table_prints_population_instead_of_class():
+    md = ac.render_markdown(ac.load_edition(MARQUEE))
+    header = md.splitlines()[0]
+    assert "POPULATION" in header and "CLASS" not in header
+    assert "| 104,627 |" in md          # thousands separators, not raw ints
+    assert "9,089,736" in md            # Greater London
+
+
+def test_an_allied_city_may_omit_state_but_a_us_city_may_not():
+    ed = _marquee()
+    london = next(e for e in ed["starters"] if e["city"] == "London")
+    assert "state" not in london and london["country"] == "United Kingdom"
+    assert ac.validate_edition(ed) == []
+    ed["starters"][0].pop("state")  # Allen, Texas
+    assert any("missing 'state'" in e for e in ac.validate_edition(ed))
+
+
+def test_allied_city_renders_with_its_country():
+    assert "London (United Kingdom)" in ac.render_markdown(ac.load_edition(MARQUEE))
+
+
+def test_named_exceptions_are_marked_in_the_table_and_footnoted():
+    ed = ac.load_edition(MARQUEE)
+    notes = ac.exception_notes(ed)
+    assert len(notes) == 1 and "District" in notes[0]
+    md = ac.render_markdown(ed)
+    assert "Washington, District of Columbia [1]" in md
+    assert md.count("*[1] ") == 1
+    assert notes[0] in md
+
+
+def test_an_edition_with_no_exceptions_prints_no_footnote():
+    ed = ac.load_edition(SHIPPED)
+    assert ac.exception_notes(ed) == []
+    assert "[1]" not in ac.render_markdown(ed)
+
+
+def test_marquee_private_fields_never_reach_rendered_output():
+    ed = _marquee()
+    ed["starters"][0]["research_notes"] = PRIVATE_MARKER
+    ed["starters"][0]["sources"][0]["url"] = PRIVATE_MARKER
+    ed["bench"][0]["note"] = PRIVATE_MARKER
+    rendered = ac.render_section(ed, "Prose.")
+    assert PRIVATE_MARKER not in rendered
+    assert "adp:" not in rendered and "http" not in rendered
+
+
+def test_the_two_editions_are_separate_features_on_the_same_issue():
+    """Both bind to 2026/week-01; the feature key is what keeps them apart."""
+    base = ac.find_edition("2026", "week-01", "disco", feature_key="all-city")
+    marq = ac.find_edition("2026", "week-01", "disco", feature_key="all-city-marquee")
+    assert base["title"] == "The All-City Team"
+    assert marq["title"] == "The All-Marquee Team"
+    assert ac.minimum_population(base) is None
+    assert ac.minimum_population(marq) == FLOOR
+
+
+def test_the_floor_actually_changes_the_roster():
+    """Guards the premise: if the two lineups ever converge, the second feature
+    has stopped earning its place in the issue."""
+    base = {e["player"] for e in ac.load_edition(SHIPPED)["starters"]}
+    marq = {e["player"] for e in ac.load_edition(MARQUEE)["starters"]}
+    assert base != marq
+    assert len(base & marq) <= 2
+
+
+def test_both_modules_are_registered_opt_in_and_independent(env):
+    db, league, tmp = env
+    with Storage(db) as s:
+        mods = {m["module_key"]: m for m in
+                module_states(s, league, SEASON, "week-01", week=1)}
+    for key, title in (("all-city", "The All-City Team"),
+                       ("all-city-marquee", "The All-Marquee Team")):
+        assert mods[key]["title"] == title
+        assert mods[key]["included"] is False
+        assert mods[key]["status"] == "not_ready"
+    assert "editorial/features/all-city-marquee/" in mods["all-city-marquee"]["detail"]
+
+
+def test_each_module_reads_only_its_own_feature_directory(env):
+    db, league, tmp = env
+    _install_edition(tmp)  # writes editorial/features/all-city/ only
+    with Storage(db) as s:
+        mods = {m["module_key"]: m for m in
+                module_states(s, league, SEASON, "week-01", week=1)}
+    assert mods["all-city"]["status"] == "ready"
+    assert mods["all-city-marquee"]["status"] == "not_ready"
+
+
+def test_both_features_publish_side_by_side_without_colliding(env):
+    db, league, tmp = env
+    _install_edition(tmp)
+    d = tmp / "editorial" / "features" / "all-city-marquee"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "m.json").write_text(json.dumps(_marquee()), encoding="utf-8")
+    sdir = tmp / "editorial" / SEASON / league.slug / "week-01" / "sections"
+    sdir.mkdir(parents=True, exist_ok=True)
+    (sdir / "all-city.md").write_text("Any city at all.\n", encoding="utf-8")
+    (sdir / "all-city-marquee.md").write_text("One hundred thousand or bust.\n",
+                                              encoding="utf-8")
+    snap_path = _publish(db, league, tmp,
+                         extra_modules=("all-city", "all-city-marquee"))
+
+    snap = json.loads(snap_path.read_text(encoding="utf-8"))
+    assert [s["module_key"] for s in snap["sections"]] == [
+        "lowdown", "all-city", "all-city-marquee"]
+    base_sec = next(s for s in snap["sections"] if s["module_key"] == "all-city")
+    marq_sec = next(s for s in snap["sections"] if s["module_key"] == "all-city-marquee")
+    assert "Any city at all." in base_sec["content_md"]
+    assert "One hundred thousand or bust." in marq_sec["content_md"]
+    # the parent starts Chase; the 100k floor leaves him in the near-miss list
+    marq_table = marq_sec["content_md"].split("Outside the City")[0]
+    assert "Chase" in base_sec["content_md"] and "Chase" not in marq_table
+
+    with Storage(db) as s:
+        build_site(s, out_dir=tmp / "dist", published_dir=tmp / "published",
+                   editorial_dir=tmp / "editorial")
+    page = (tmp / "dist" / league.slug / SEASON / "week-01"
+            / "index.html").read_text(encoding="utf-8")
+    assert "The All-City Team" in page and "The All-Marquee Team" in page
+    assert 'id="all-city"' in page and 'id="all-city-marquee"' in page
+    assert page.count("<table>") == 2
+    assert audit_output(tmp / "dist") == []

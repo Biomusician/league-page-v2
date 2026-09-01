@@ -1,0 +1,373 @@
+{
+  "feature_key": "all-city-marquee",
+  "edition": "2026-week-01",
+  "title": "The All-Marquee Team",
+  "season": "2026",
+  "issue_key": "week-01",
+  "leagues": ["disco", "surfeit"],
+  "compiled_at": "2026-08-31",
+  "basis": "2026 preseason consensus, compiled before Week 1 kickoff. Companion to the all-city edition of the same week; same players, one extra rule.",
+
+  "roster_format": [["QB", 1], ["RB", 2], ["WR", 2], ["TE", 1], ["K", 1]],
+  "columns": ["pos", "player", "city", "population", "verdict"],
+
+  "rules": {
+    "minimum_population": 100000,
+    "public_summary": "Same rule as the All-City Team, one floor added: the city has to have had at least 100,000 residents at the 2020 census. Exact first or last name only, no nicknames, no partial matches, and the place still has to be a city rather than a town or a village.",
+    "verification_note": "Every population in the table is the 2020 census figure, checked 2026-08-31; Greater London is the 2024 estimate.",
+    "full_rules": [
+      "The All-City rules apply in full: exact match on the player's own first or last name, whole tokens only, suffixes stripped, and the place must be classified a city.",
+      "Added floor: 100,000 residents at the 2020 census. This is the Marquee City tier from the parent edition, promoted from a label to the entry requirement.",
+      "The allied-cities clause now bites. Where no QUALIFYING U.S. city carries the name, a city of France, the United Kingdom or Sweden may be used. London, Ohio is 10,279 and fails the floor, so London means the other one.",
+      "For an allied city the class test is whether it is a city under its own country's usage and administration, because 'classified a city by its state' is a U.S. construct.",
+      "Washington runs on a named exception, written out under the table. The parent edition did not need one; at 100,000 it does."
+    ],
+    "considered_and_rejected": [
+      "Dropping Washington entirely. Defensible on a strict reading, and it costs the roster 93 places of receiver (Parker Washington at overall 65 for Denzel Boston at 158) on a technicality about a jurisdiction everyone in the league has driven through. The exception is named and marked instead of hidden.",
+      "Refusing London. The four countries were in the premise from the start, and refusing the one time the clause has anything to say would make it decoration.",
+      "Metro-area population instead of city population. It would admit almost every name and delete the exercise."
+    ]
+  },
+
+  "sources": [
+    {
+      "key": "fantasypros_ecr_redraft_half_ppr",
+      "label": "FantasyPros Expert Consensus Rank (redraft, half PPR)",
+      "retrieved": "2026-08-29",
+      "note": "refdata/adp snapshot already in the repo; primary valuation board."
+    },
+    {
+      "key": "fantasypros_ecr_redraft_superflex",
+      "label": "FantasyPros Expert Consensus Rank (redraft, superflex)",
+      "retrieved": "2026-08-29",
+      "note": "refdata/adp snapshot; used for the quarterback comparison."
+    },
+    {
+      "key": "sleeper_player_index",
+      "label": "Sleeper player index",
+      "retrieved": "2026-08-30",
+      "note": "Position, NFL team, active status, depth-chart order, injury designation, and search_rank as a second independent consensus signal."
+    }
+  ],
+
+  "cross_checks": [
+    {
+      "label": "Systematic pool sweep (2026-08-31)",
+      "finding": "Rather than working from memory, every first and last name in the FantasyPros pool was intersected against the list of U.S. cities of 100,000 or more. 62 name matches surfaced across 371 candidate city names. The sweep changed nothing at QB, RB or TE and confirmed that the kicker pool is exactly two men, both named Tyler."
+    },
+    {
+      "label": "Independent late-August 2026 consensus top 15 (web, checked 2026-08-31)",
+      "finding": "Agrees with the FantasyPros snapshot on every player used here, most importantly on Drake London at 15th."
+    }
+  ],
+
+  "starters": [
+    {
+      "position": "QB",
+      "slot": 1,
+      "player": "Josh Allen",
+      "nfl_team": "BUF",
+      "matching_name": "Allen",
+      "name_part": "last",
+      "city": "Allen",
+      "state": "Texas",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 104627,
+      "population_year": 2020,
+      "qualification": "marquee",
+      "verdict": "Elite",
+      "assessment": "QB1 on both consensus boards and first overall in the superflex file. Active, first on the depth chart, no injury designation. The only starter who survives both editions unchanged.",
+      "consensus": {"ecr_half_ppr": 27, "ecr_superflex": 1, "sleeper_rank": 4, "position_rank": "QB1"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:josh allen",
+        "adp:fantasypros_ecr_redraft_superflex:josh allen"
+      ],
+      "sources": [
+        {"label": "Allen, Texas", "url": "https://en.wikipedia.org/wiki/Allen,_Texas", "retrieved": "2026-08-31",
+         "quote": "Allen is a city in Collin County in the U.S. state of Texas, and a northern suburb in the Dallas-Fort Worth metroplex. Incorporated 1953; population 104,627 at the 2020 census."}
+      ],
+      "research_notes": "Clears the floor by 4,627. Lamar Jackson (Jackson, Mississippi, 153,701) is the deeper city and the worse quarterback, which is the whole edition in one line."
+    },
+    {
+      "position": "RB",
+      "slot": 1,
+      "player": "Omarion Hampton",
+      "nfl_team": "LAC",
+      "matching_name": "Hampton",
+      "name_part": "last",
+      "city": "Hampton",
+      "state": "Virginia",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 137148,
+      "population_year": 2020,
+      "qualification": "marquee",
+      "verdict": "Strong starter",
+      "assessment": "RB9 at overall 19, second on Sleeper's board among qualifying backs at rank 12. Active, first on the Los Angeles depth chart, no injury designation. A second-year back with the job to himself.",
+      "consensus": {"ecr_half_ppr": 19, "ecr_superflex": 38, "sleeper_rank": 12, "position_rank": "RB9"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:omarion hampton",
+        "adp:fantasypros_ecr_redraft_superflex:omarion hampton"
+      ],
+      "sources": [
+        {"label": "Hampton, Virginia", "url": "https://en.wikipedia.org/wiki/Hampton,_Virginia", "retrieved": "2026-08-31",
+         "quote": "Hampton is an independent city in Virginia, United States. The population was 137,148 at the 2020 census, making it the seventh-most populous city in Virginia."}
+      ],
+      "research_notes": "Was a bench name in the parent edition and is the best back available here. Hampton is an independent city, a Virginia form with no county above it, which is unusual and still unambiguously a city."
+    },
+    {
+      "position": "RB",
+      "slot": 2,
+      "player": "Bucky Irving",
+      "nfl_team": "TB",
+      "matching_name": "Irving",
+      "name_part": "last",
+      "city": "Irving",
+      "state": "Texas",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 256684,
+      "population_year": 2020,
+      "qualification": "marquee",
+      "verdict": "Viable starter",
+      "assessment": "RB21 at overall 54, and Sleeper likes him better at 32. Active, first on the Tampa Bay depth chart, no injury designation. An RB2 who will be starting here every week.",
+      "consensus": {"ecr_half_ppr": 54, "ecr_superflex": 75, "sleeper_rank": 32, "position_rank": "RB21"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:bucky irving",
+        "adp:fantasypros_ecr_redraft_superflex:bucky irving"
+      ],
+      "sources": [
+        {"label": "Irving, Texas", "url": "https://en.wikipedia.org/wiki/Irving,_Texas", "retrieved": "2026-08-31",
+         "quote": "Irving is a city in Dallas County, Texas, United States. Incorporated April 14, 1914; population 256,684 at the 2020 census."}
+      ],
+      "research_notes": "Ahead of David Montgomery (Montgomery, Alabama, 200,603) at overall 56 and TreVeyon Henderson (Henderson, Nevada, 317,610) at overall 66 on both boards. Henderson also carries a Questionable tag in the 2026-08-30 sync."
+    },
+    {
+      "position": "WR",
+      "slot": 1,
+      "player": "Drake London",
+      "nfl_team": "ATL",
+      "matching_name": "London",
+      "name_part": "last",
+      "city": "London",
+      "country": "United Kingdom",
+      "municipal_class": "city",
+      "population": 9089736,
+      "population_year": 2024,
+      "qualification": "marquee",
+      "verdict": "Elite",
+      "assessment": "WR8 at overall 14, Sleeper 18, first on the Atlanta depth chart, no injury designation. The best receiver either edition of this feature can field.",
+      "consensus": {"ecr_half_ppr": 14, "ecr_superflex": 30, "sleeper_rank": 18, "position_rank": "WR8"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:drake london",
+        "adp:fantasypros_ecr_redraft_superflex:drake london"
+      ],
+      "sources": [
+        {"label": "London", "url": "https://en.wikipedia.org/wiki/London", "retrieved": "2026-08-31",
+         "quote": "London is the capital and largest city of England and the United Kingdom. Greater London had a population of 9,089,736 in 2024."}
+      ],
+      "research_notes": "The one and only time the allied-cities clause has decided anything. In the parent edition he qualified through London, Ohio (10,279) and still lost the slot to Chase and Jefferson; here the Ohio route fails the floor and the escalation clause hands him the far bigger city. Greater London is the administrative unit cited; the City of London is a separate square-mile corporation and is not what anybody means."
+    },
+    {
+      "position": "WR",
+      "slot": 2,
+      "player": "Parker Washington",
+      "nfl_team": "JAX",
+      "matching_name": "Washington",
+      "name_part": "last",
+      "city": "Washington",
+      "state": "District of Columbia",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 689545,
+      "population_year": 2020,
+      "qualification": "marquee",
+      "verdict": "Viable starter",
+      "assessment": "WR30 at overall 65, Sleeper 72, first on the Jacksonville depth chart, no injury designation. A flex piece asked to be a starter, which is what the floor costs you.",
+      "exception": "Washington, D.C. runs on a named exception. The Census Bureau's District of Columbia guide records that the District has one city, Washington, coextensive with it, and standard rankings of U.S. municipal corporations list Washington 22nd; the Bureau's population-estimates glossary treats the District as a county equivalent instead. The sources genuinely disagree, so this is a ruling rather than a reading.",
+      "consensus": {"ecr_half_ppr": 65, "ecr_superflex": 88, "sleeper_rank": 72, "position_rank": "WR30"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:parker washington",
+        "adp:fantasypros_ecr_redraft_superflex:parker washington"
+      ],
+      "sources": [
+        {"label": "Washington, D.C.", "url": "https://en.wikipedia.org/wiki/Washington,_D.C.", "retrieved": "2026-08-31",
+         "quote": "Washington, D.C., officially the District of Columbia, is the federal capital city of the United States, and its only federal district. Population 689,545 at the 2020 census. The 1871 Organic Act made the city of Washington legally indistinguishable from the District of Columbia."},
+        {"label": "Census Bureau geographic terms (population estimates glossary)", "url": "https://www.census.gov/programs-surveys/popest/about/glossary/geo-terms.html", "retrieved": "2026-08-31",
+         "quote": "Incorporated places include cities, towns, boroughs, villages and other lesser known identifiers. The District of Columbia has no primary divisions and the jurisdiction is treated as the equivalent of a county."},
+        {"label": "List of United States cities by population", "url": "https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population", "retrieved": "2026-08-31",
+         "quote": "This is a list of the most populous municipal corporations of the United States. Washington, DC appears at rank 22 with a 2020 population of 689,545."}
+      ],
+      "research_notes": "The one discretionary call in the edition, and it is worth 93 places of receiver: without it the slot goes to Denzel Boston (Boston, 675,647) at overall 158, third on Cleveland's depth chart. Flagged in the table with a numbered footnote so a reader can disagree with it on the facts."
+    },
+    {
+      "position": "TE",
+      "slot": 1,
+      "player": "Tyler Warren",
+      "nfl_team": "IND",
+      "matching_name": "Warren",
+      "name_part": "last",
+      "city": "Warren",
+      "state": "Michigan",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 139387,
+      "population_year": 2020,
+      "qualification": "marquee",
+      "verdict": "Strong starter",
+      "assessment": "TE4 at overall 52, Sleeper 47, first on the Indianapolis depth chart. He strained a groin in an 2026-08-19 joint practice, missed about a week, and carried a Questionable tag into the 2026-08-30 sync; reporting through 2026-08-31 has him on track for the opener.",
+      "consensus": {"ecr_half_ppr": 52, "ecr_superflex": 81, "sleeper_rank": 47, "position_rank": "TE4"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:tyler warren",
+        "adp:fantasypros_ecr_redraft_superflex:tyler warren"
+      ],
+      "sources": [
+        {"label": "Warren, Michigan", "url": "https://en.wikipedia.org/wiki/Warren,_Michigan", "retrieved": "2026-08-31",
+         "quote": "Warren is a city in Macomb County, Michigan, United States. Incorporated as a city January 1, 1957; population 139,387 at the 2020 census, the third-largest city in Michigan and Detroit's largest suburb."},
+        {"label": "Tyler Warren groin reporting, late August 2026", "url": "https://www.draftsharks.com/fantasy-football-news/82341/tyler-warrens-groin-injury-lingers-but-colts-opener-still-looks-safe", "retrieved": "2026-08-31",
+         "quote": "Warren strained an adductor in a joint practice, is being brought along cautiously and may continue to miss practice, with the intent of having him ready for Week 1."}
+      ],
+      "research_notes": "Qualifies twice over: Warren, Michigan (139,387) and Tyler, Texas (105,995). The only double qualifier in the lineup, and it costs the roster nothing because one is enough. Re-check the groin before this publishes."
+    },
+    {
+      "position": "K",
+      "slot": 1,
+      "player": "Tyler Loop",
+      "nfl_team": "BAL",
+      "matching_name": "Tyler",
+      "name_part": "first",
+      "city": "Tyler",
+      "state": "Texas",
+      "country": "United States",
+      "municipal_class": "city",
+      "population": 105995,
+      "population_year": 2020,
+      "qualification": "marquee",
+      "verdict": "Viable starter",
+      "assessment": "K6 at overall 221, Sleeper 150, first on the Baltimore depth chart, no injury designation. A starting kicker on a good offense, which is most of what the job asks.",
+      "consensus": {"ecr_half_ppr": 221, "ecr_superflex": null, "sleeper_rank": 150, "position_rank": "K6"},
+      "evidence": [
+        "adp:fantasypros_ecr_redraft_half_ppr:tyler loop"
+      ],
+      "sources": [
+        {"label": "Tyler, Texas", "url": "https://en.wikipedia.org/wiki/Tyler,_Texas", "retrieved": "2026-08-31",
+         "quote": "Tyler is a city in and the county seat of Smith County, Texas, United States. The City of Tyler was incorporated on January 29, 1850; population 105,995 at the 2020 census."}
+      ],
+      "research_notes": "The pool sweep found exactly two qualifying kickers in the entire league and both of them are named Tyler: Loop at K6 and Tyler Bass at K20. Brandon Aubrey, the consensus K1, fails on both of his names (Aubrey, Texas 5,006; Brandon, Mississippi well under the floor)."
+    }
+  ],
+
+  "near_miss_title": "Outside the City Limits",
+  "near_misses": [
+    {
+      "player": "Bijan Robinson",
+      "position": "RB",
+      "nfl_team": "ATL",
+      "matching_name": "Robinson",
+      "reason": "Second overall on the board and a starter in the parent edition. Robinson, Illinois is a city of 7,150, and 7,150 is 7 percent of the floor.",
+      "would_have_been": "RB1 on this roster by two full rounds.",
+      "sources": [
+        {"label": "Robinson, Illinois", "url": "https://en.wikipedia.org/wiki/Robinson,_Illinois", "retrieved": "2026-08-31",
+         "quote": "Robinson is a city in and the county seat of Crawford County, Illinois. Population 7,150 at the 2020 census."}
+      ]
+    },
+    {
+      "player": "Ja'Marr Chase",
+      "position": "WR",
+      "nfl_team": "CIN",
+      "matching_name": "Chase",
+      "reason": "The consensus WR1, kept by the parent edition on the strength of Chase, Kansas being a city. It is a city of 396. Under this rule it would need roughly 253 times as many people.",
+      "would_have_been": "WR1, overall 3.",
+      "sources": [
+        {"label": "Chase, Kansas", "url": "https://en.wikipedia.org/wiki/Chase,_Kansas", "retrieved": "2026-08-31",
+         "quote": "Chase is a city in Rice County, Kansas, United States. Population 396 at the 2020 census."}
+      ]
+    },
+    {
+      "player": "Colston Loveland",
+      "position": "TE",
+      "nfl_team": "CHI",
+      "matching_name": "Loveland",
+      "reason": "TE3 at overall 40, an upgrade on Tyler Warren, and Loveland, Colorado is 76,378. The closest any real upgrade came to clearing the bar.",
+      "would_have_been": "TE1 on this roster, twelve places of consensus better than the man who got the job.",
+      "sources": [
+        {"label": "Loveland, Colorado", "url": "https://en.wikipedia.org/wiki/Loveland,_Colorado", "retrieved": "2026-08-31",
+         "quote": "Loveland is a home rule city in Larimer County, Colorado. Incorporated April 30, 1881; population 76,378 at the 2020 census."}
+      ]
+    },
+    {
+      "player": "Brandon Aubrey",
+      "position": "K",
+      "nfl_team": "DAL",
+      "matching_name": "Aubrey",
+      "reason": "The best kicker in football, out on both of his names. Aubrey, Texas is 5,006, which cleared the parent edition's smallest tier by six people and clears nothing at all here.",
+      "would_have_been": "K1 instead of K6.",
+      "sources": [
+        {"label": "Aubrey, Texas", "url": "https://en.wikipedia.org/wiki/Aubrey,_Texas", "retrieved": "2026-08-31",
+         "quote": "Aubrey is a city in Denton County, Texas, United States. Its population was 5,006 at the 2020 census."}
+      ]
+    }
+  ],
+
+  "bench": [
+    {"player": "Lamar Jackson", "position": "QB", "nfl_team": "BAL", "city": "Jackson", "state": "Mississippi",
+     "matching_name": "Jackson", "name_part": "last", "qualification": "marquee", "population": 153701,
+     "note": "QB2 on both boards, and a state capital of 153,701. Loses to Josh Allen on the football, exactly as in the parent edition.",
+     "evidence": ["adp:fantasypros_ecr_redraft_superflex:lamar jackson"],
+     "sources": [{"label": "Jackson, Mississippi", "url": "https://en.wikipedia.org/wiki/Jackson,_Mississippi", "retrieved": "2026-08-31",
+                  "quote": "Jackson is the capital and most populous city of the U.S. state of Mississippi. Population 153,701 at the 2020 census."}]},
+    {"player": "David Montgomery", "position": "RB", "nfl_team": "HOU", "city": "Montgomery", "state": "Alabama",
+     "matching_name": "Montgomery", "name_part": "last", "qualification": "marquee", "population": 200603,
+     "note": "RB23 at overall 56, two places behind Irving on FantasyPros and fourteen behind on Sleeper. First man out at running back.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:david montgomery"],
+     "sources": [{"label": "Montgomery, Alabama", "url": "https://en.wikipedia.org/wiki/Montgomery,_Alabama", "retrieved": "2026-08-31",
+                  "quote": "Montgomery is the capital city of the U.S. state of Alabama and the county seat of Montgomery County. Population 200,603 at the 2020 census."}]},
+    {"player": "TreVeyon Henderson", "position": "RB", "nfl_team": "NE", "city": "Henderson", "state": "Nevada",
+     "matching_name": "Henderson", "name_part": "last", "qualification": "marquee", "population": 317610,
+     "note": "RB26 at overall 66 with a Questionable tag in the 2026-08-30 sync. The biggest city in the running back pool and the third-best back in it.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:treveyon henderson"],
+     "sources": [{"label": "Henderson, Nevada", "url": "https://en.wikipedia.org/wiki/Henderson,_Nevada", "retrieved": "2026-08-31",
+                  "quote": "Henderson is a city in Clark County, Nevada, incorporated as a city April 16, 1953. It is the 2nd most populous city in Nevada, after Las Vegas, with 317,610 residents as of the 2020 census."}]},
+    {"player": "Jaylen Warren", "position": "RB", "nfl_team": "PIT", "city": "Warren", "state": "Michigan",
+     "matching_name": "Warren", "name_part": "last", "qualification": "marquee", "population": 139387,
+     "note": "RB28 at overall 72. Same city as the tight end, which is a nice piece of symmetry and no help at all.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:jaylen warren"]},
+    {"player": "Denzel Boston", "position": "WR", "nfl_team": "CLE", "city": "Boston", "state": "Massachusetts",
+     "matching_name": "Boston", "name_part": "last", "qualification": "marquee", "population": 675647,
+     "note": "WR59 at overall 158, third on the Cleveland depth chart. Becomes the starter if the Washington exception is ever withdrawn.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:denzel boston"],
+     "sources": [{"label": "Boston", "url": "https://en.wikipedia.org/wiki/Boston", "retrieved": "2026-08-31",
+                  "quote": "Boston is the capital and most populous city of the U.S. state of Massachusetts. Incorporated as a city March 19, 1822; population 675,647 at the 2020 census."}]},
+    {"player": "Malik Washington", "position": "WR", "nfl_team": "MIA", "city": "Washington", "state": "District of Columbia",
+     "matching_name": "Washington", "name_part": "last", "qualification": "marquee", "population": 689545,
+     "note": "WR70 at overall 178, first on the Miami depth chart. Rides on the same exception as Parker Washington.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:malik washington"]},
+    {"player": "Keenan Allen", "position": "WR", "nfl_team": "IND", "city": "Allen", "state": "Texas",
+     "matching_name": "Allen", "name_part": "last", "qualification": "marquee", "population": 104627,
+     "note": "WR73 at overall 181, third on the Indianapolis depth chart.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:keenan allen"]},
+    {"player": "Dallas Goedert", "position": "TE", "nfl_team": "PHI", "city": "Dallas", "state": "Texas",
+     "matching_name": "Dallas", "name_part": "first", "qualification": "marquee",
+     "note": "TE12 at overall 116, attached to the ninth-largest city in the country. The best name in either edition and a bench slot in both. Population deliberately not stated: nothing here needs the figure and it was not verified.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:dallas goedert"]},
+    {"player": "Tyler Bass", "position": "K", "nfl_team": "BUF", "city": "Tyler", "state": "Texas",
+     "matching_name": "Tyler", "name_part": "first", "qualification": "marquee", "population": 105995,
+     "note": "K20 at overall 364. The entire qualifying kicker pool is this man and Tyler Loop.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:tyler bass"]},
+    {"player": "Anthony Richardson Sr.", "position": "QB", "nfl_team": "IND", "city": "Richardson", "state": "Texas",
+     "matching_name": "Richardson", "name_part": "last", "qualification": "marquee",
+     "note": "QB41 at overall 373, so the city was never worth verifying. Richardson, Texas is a Dallas suburb believed to clear 100,000; CHECK THE FIGURE before ever promoting him out of this list.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:anthony richardson"]},
+    {"player": "Tyquan Thornton", "position": "WR", "nfl_team": "KC", "city": "Thornton", "state": "Colorado",
+     "matching_name": "Thornton", "name_part": "last", "qualification": "marquee",
+     "note": "WR at overall 269, third on the Kansas City depth chart. Surfaced by the pool sweep rather than by memory. Thornton, Colorado is believed to clear 100,000; CHECK THE FIGURE before use.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:tyquan thornton"]},
+    {"player": "Marquise Brown", "position": "WR", "nfl_team": "PHI", "city": "Hollywood", "state": "Florida",
+     "matching_name": null, "name_part": null, "qualification": "marquee", "population": 153067,
+     "note": "DISQUALIFIED, kept here as the rule's best illustration. FantasyPros lists him as Hollywood Brown and Hollywood, Florida is a city of 153,067, but Sleeper's record of his name is Marquise. Nicknames have never counted. He is WR at overall 297 and fourth on the Philadelphia depth chart, so the rule cost nobody anything.",
+     "evidence": ["adp:fantasypros_ecr_redraft_half_ppr:hollywood brown"],
+     "sources": [{"label": "Hollywood, Florida", "url": "https://en.wikipedia.org/wiki/Hollywood,_Florida", "retrieved": "2026-08-31",
+                  "quote": "Hollywood is a city in Broward County, Florida, United States. Incorporated November 28, 1925; population 153,067 at the 2020 census."}]}
+  ]
+}

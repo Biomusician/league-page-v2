@@ -27,8 +27,20 @@ the real DB; include it on the Desk when you want it.
   before this publishes.
 - The rule is municipal class, never population (docs/DECISIONS.md). It costs
   the roster the consensus RB1, TE1 and TE2, which is the joke.
-- `tests/test_all_city.py` (36 tests) guards the shipped data, the exact-match
-  rule, roster completeness, and the public/private field split.
+- **Second variant, same machinery:** module `all-city-marquee` ("The
+  All-Marquee Team"), editions in `editorial/features/all-city-marquee/`, is
+  the same exercise with `rules.minimum_population: 100000`. Both are drafted
+  into disco week-01 and both are unpublished. 2026 marquee lineup: Josh Allen,
+  Omarion Hampton, Bucky Irving, Drake London, Parker Washington, Tyler Warren,
+  Tyler Loop. Two printed rulings there: the Washington, D.C. exception (the
+  sources genuinely conflict) and reading the allied-cities clause as "no
+  QUALIFYING U.S. city", which is what puts Drake London on Greater London.
+- The 100k floor is expensive and that is the point: it costs the consensus
+  RB1, RB2, WR1, TE3 and K1, and leaves two qualifying kickers in the whole
+  league, both named Tyler.
+- `tests/test_all_city.py` (55 tests) guards both shipped datasets, the
+  exact-match rule, roster completeness, the population floor, the column
+  allowlist, and the public/private field split.
 
 ## Remote authoring — Phase 2: Supabase auth (2026-08-31)
 

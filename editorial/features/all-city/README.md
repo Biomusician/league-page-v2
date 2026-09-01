@@ -3,6 +3,16 @@
 One JSON file per run. `leaguepage/all_city.py` validates and renders it;
 `docs/DECISIONS.md` (2026-08-31) has the rationale.
 
+There are two variants, and this directory holds the parent. The feature key
+is the module key, so each variant is its own directory:
+
+| Directory | Module | Rule |
+| --- | --- | --- |
+| `all-city/` | The All-City Team | Any incorporated city, any size |
+| `all-city-marquee/` | The All-Marquee Team | The same, with a 100,000 floor |
+
+Everything below applies to both unless the marquee README says otherwise.
+
 ## The rule
 
 A player qualifies when his own first name or last name, standing alone, is
@@ -56,8 +66,17 @@ Only the fields in `all_city.PUBLIC_ENTRY_FIELDS` render. `evidence`,
 reach `dist/`; `bench` never renders at all. Put working notes in
 `research_notes` freely.
 
+## Table columns
+
+`columns` picks what the table prints, from `pos`, `player`, `city`, `class`,
+`population`, `verdict`; `pos`, `player` and `city` are mandatory. The default
+shows the qualification tier. An edition where every row is the same tier
+should show something that actually varies, which is why the marquee edition
+prints population instead.
+
 ## Expansion
 
 `roster_format` in the edition drives the lineup check, so FLEX, DST or a full
 bench is a data change plus adding the position to `all_city.KNOWN_POSITIONS`.
+A new RULES variant is a new directory plus one line in `MODULE_DEFS`.
 Nothing else in the pipeline needs to move.

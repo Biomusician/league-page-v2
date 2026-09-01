@@ -274,3 +274,53 @@ that the tier matches the recorded number so nobody can promote a small town by
 feel. A named Washington, D.C. exception was considered and dropped as
 unnecessary: Washington, Pennsylvania is an incorporated city of 13,176, so the
 name clears the default rule on its own.
+
+## 2026-08-31 — Rules variants are sibling features, not a flag
+
+The All-Marquee Team is the All-City Team with a 100,000 population floor. It
+is implemented as a second module (`all-city-marquee`) of the same kind, whose
+editions live in `editorial/features/all-city-marquee/`, rather than as a mode
+switch on the first one. The feature key IS the module key, so the whole cost
+of a variant is a directory and one line in `MODULE_DEFS`.
+
+The alternative was one edition with a `variant` field and one module that
+renders whichever the commissioner picked. Rejected because the two are
+genuinely different articles that can run in the same issue, side by side, with
+their own prose, their own approval state, and their own place in the running
+order. A flag would have forced them to be alternatives to each other.
+
+Two things generalized to make it work, and both are data-driven rather than
+special cases: `rules.minimum_population` (validated, and it also forces every
+starter to record a population), and `columns`, which picks the table's columns
+from a known set. The marquee edition prints population where the parent prints
+qualification tier, because in an edition where every row is a Marquee City the
+tier column says the same thing seven times.
+
+## 2026-08-31 — Two named rulings in the marquee edition, both printed
+
+The 100,000 floor forced two calls that the parent edition never had to make,
+and both are written into the data and rendered rather than buried.
+
+**Washington, D.C. runs on a named exception.** The sources conflict on their
+own terms: the Census Bureau's District of Columbia geographic guide records
+that the District has one city, Washington, coextensive with it, and the
+standard list of U.S. municipal corporations ranks Washington 22nd, while the
+Bureau's population-estimates glossary treats the District as a county
+equivalent and defines incorporated places without reference to it. Picking the
+first reading is worth 93 places of receiver (Parker Washington at overall 65
+instead of Denzel Boston at 158), which is exactly why it should not be silent.
+It renders as a numbered footnote under the table so a reader can disagree with
+it on the facts. The new `exception` field exists for this and nothing else.
+
+**The allied-cities clause reads "no QUALIFYING U.S. city."** The premise
+allowed U.S., French, UK and Swedish cities from the start, and in the parent
+edition the clause never once decided anything, because London, Ohio (10,279)
+covered Drake London on its own. Under the floor, London, Ohio fails and the
+escalation hands over Greater London. Reading the clause as "no U.S. city of
+any size carries the name" would have kept a WR8 out of the lineup on a
+technicality about a village in Madison County, and would have left a rule in
+the book that can never fire.
+
+The floor is worth recording in one line: it costs the roster the consensus
+RB1, RB2, WR1, TE3 and K1, and leaves exactly two qualifying kickers in the
+league, both named Tyler.

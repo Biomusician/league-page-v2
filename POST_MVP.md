@@ -22,7 +22,8 @@ Prioritized. Nothing here blocks the live site.
    rhythm starts.
 
 6. **All-City Team: FLEX and bench.** The 1QB/2RB/2WR/1TE/1K version ships
-   in `editorial/features/all-city/2026-week-01.json`. Expanding to a full
+   in two editions, `editorial/features/all-city/2026-week-01.json` and the
+   100,000-floor `all-city-marquee/2026-week-01.json`. Expanding to a full
    15-man roster is a data change plus adding the new slots to
    `all_city.KNOWN_POSITIONS`, because `roster_format` in the edition already
    drives the completeness check. Two things to settle first, and neither is
@@ -33,7 +34,9 @@ Prioritized. Nothing here blocks the live site.
    the top 60, so slots 8 through 15 are where "Technicality doing a lot of
    work here" stops being funny and starts being every row. Recommendation:
    add FLEX only, keep it to one slot, and leave DST and the bench alone
-   until a reader asks for them.
+   until a reader asks for them. The marquee edition argues against expansion
+   harder than the parent does: its qualifying pool is thin enough that the
+   entire league contains two eligible kickers, so a bench would be padding.
 
 Deferred further: archive full-text search on the public site, playoff
 analytics, Branches and Sequels, False Assumptions automation, richer

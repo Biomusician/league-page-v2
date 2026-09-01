@@ -3,11 +3,16 @@
 Premise: the best fantasy starting lineup buildable out of players whose first
 or last name is exactly the name of a real city.
 
-One edition per run lives in `editorial/features/all-city/<edition>.json`,
+One edition per run lives in `editorial/features/<feature>/<edition>.json`,
 git-tracked and hand-edited the same way `editorial/coalitions.json` is. A
 rerun later in the season is a NEW edition file bound to a new issue_key, so
 an edition that already published stays frozen with the issue that carried it
 and the published snapshot never has to be touched.
+
+The feature key is the module key, so a rules variant is a new directory plus
+one MODULE_DEFS line. Two ship today: `all-city` (any incorporated city) and
+`all-city-marquee` (the same exercise with a 100,000 population floor, set by
+`rules.minimum_population`).
 
 This module owns the structured half of the feature: it validates an edition,
 mechanically re-checks the exact-match rule against the player's own name, and
@@ -24,7 +29,7 @@ from pathlib import Path
 
 from leaguepage.config import EDITORIAL_DIR
 
-FEATURE_KEY = "all-city"
+FEATURE_KEY = "all-city"          # the default/original variant
 FEATURE_TITLE = "The All-City Team"
 
 # Slots the feature knows how to render. FLEX/DST/bench are deliberately
@@ -52,12 +57,20 @@ COUNTRIES = ("United States", "France", "United Kingdom", "Sweden")
 
 NAME_PARTS = ("first", "last")
 
+# Table columns are data-driven so a variant can show what actually varies in
+# it. The marquee edition is every-row-marquee, so it prints population instead.
+COLUMNS = {
+    "pos": "POS", "player": "PLAYER", "city": "CITY", "class": "CLASS",
+    "population": "POPULATION", "verdict": "FANTASY VERDICT",
+}
+DEFAULT_COLUMNS = ("pos", "player", "city", "class", "verdict")
+
 # Everything a reader may see. The renderer reads nothing else, so a private
 # field added to the data later cannot leak by being forgotten about.
 PUBLIC_ENTRY_FIELDS = frozenset({
     "position", "slot", "player", "nfl_team", "matching_name", "name_part",
     "city", "state", "country", "municipal_class", "population",
-    "population_year", "qualification", "verdict", "assessment",
+    "population_year", "qualification", "verdict", "assessment", "exception",
 })
 PRIVATE_ENTRY_FIELDS = frozenset({"evidence", "sources", "research_notes",
                                   "consensus"})
@@ -71,18 +84,20 @@ def tier_for_population(population: int) -> str:
     return "city"
 
 
-def features_dir(base_dir: Path | None = None) -> Path:
+def features_dir(base_dir: Path | None = None, feature_key: str = FEATURE_KEY) -> Path:
     """Edition directory. `base_dir` is the editorial root, matching the
-    base_dir the issue builder threads through everywhere else."""
-    return (base_dir or EDITORIAL_DIR) / "features" / FEATURE_KEY
+    base_dir the issue builder threads through everywhere else; `feature_key`
+    is the module key, so each rules variant gets its own directory."""
+    return (base_dir or EDITORIAL_DIR) / "features" / feature_key
 
 
 def load_edition(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def list_editions(base_dir: Path | None = None) -> list[dict]:
-    d = features_dir(base_dir)
+def list_editions(base_dir: Path | None = None,
+                  feature_key: str = FEATURE_KEY) -> list[dict]:
+    d = features_dir(base_dir, feature_key)
     if not d.is_dir():
         return []
     out = []
@@ -96,12 +111,13 @@ def list_editions(base_dir: Path | None = None) -> list[dict]:
 
 
 def find_edition(season: str, issue_key: str, league_slug: str,
-                 *, base_dir: Path | None = None) -> dict | None:
+                 *, base_dir: Path | None = None,
+                 feature_key: str = FEATURE_KEY) -> dict | None:
     """The edition bound to exactly this issue, or None. Binding is explicit:
     an edition names its season and issue_key, and optionally the leagues it
     runs in. No 'latest wins' fallback, so a published issue can never pick up
     a different edition on a later rebuild."""
-    for ed in list_editions(base_dir):
+    for ed in list_editions(base_dir, feature_key):
         if str(ed.get("season")) != str(season) or ed.get("issue_key") != issue_key:
             continue
         leagues = ed.get("leagues")
@@ -129,6 +145,15 @@ def roster_format(edition: dict) -> list[tuple[str, int]]:
     return [(str(pos), int(count)) for pos, count in raw]
 
 
+def columns_for(edition: dict) -> list[str]:
+    return [str(c) for c in (edition.get("columns") or DEFAULT_COLUMNS)]
+
+
+def minimum_population(edition: dict) -> int | None:
+    mp = (edition.get("rules") or {}).get("minimum_population")
+    return int(mp) if mp else None
+
+
 def validate_edition(edition: dict) -> list[str]:
     """Everything that must hold before an edition can render. Returns human
     readable problems; empty list means the edition is publishable."""
@@ -151,6 +176,16 @@ def validate_edition(edition: dict) -> list[str]:
         if count < 1:
             errors.append(f"roster_format asks for {count} {pos} slots")
 
+    cols = columns_for(edition)
+    for c in cols:
+        if c not in COLUMNS:
+            errors.append(f"unknown table column '{c}'")
+    for required in ("pos", "player", "city"):
+        if required not in cols:
+            errors.append(f"table columns must include '{required}'")
+
+    floor = minimum_population(edition)
+
     starters = edition.get("starters") or []
     if not isinstance(starters, list):
         return errors + ["starters must be a list"]
@@ -166,10 +201,23 @@ def validate_edition(edition: dict) -> list[str]:
         player = e.get("player") or ""
         where = f"starter {i + 1} ({player or 'unnamed'})"
         for field in ("position", "slot", "player", "matching_name", "name_part",
-                      "city", "state", "country", "municipal_class",
+                      "city", "country", "municipal_class",
                       "qualification", "verdict", "assessment"):
             if not e.get(field):
                 errors.append(f"{where}: missing '{field}'")
+        # State is the U.S. locator; an allied city is located by its country.
+        if e.get("country") == "United States" and not e.get("state"):
+            errors.append(f"{where}: missing 'state'")
+        if floor is not None:
+            pop = e.get("population")
+            if not isinstance(pop, int):
+                errors.append(f"{where}: this edition has a {floor:,} population "
+                              "floor, so the population must be recorded")
+            elif pop < floor:
+                errors.append(f"{where}: {e.get('city')} is {pop:,}, below this "
+                              f"edition's {floor:,} floor")
+        if "population" in cols and not isinstance(e.get("population"), int):
+            errors.append(f"{where}: the table prints population, so it must be recorded")
         pos = e.get("position")
         if pos not in KNOWN_POSITIONS:
             errors.append(f"{where}: unknown position '{pos}'")
@@ -272,6 +320,42 @@ def _city_label(e: dict) -> str:
     return label
 
 
+def _exception_mark(index: int) -> str:
+    """Named carve-outs from the rule get a numbered mark against the city and
+    a footnote under the table. A ruling the reader cannot see is not a rule."""
+    return f"[{index}]"
+
+
+def _cell(e: dict, column: str, marks: dict[str, int] | None = None) -> str:
+    if column == "pos":
+        return e["position"]
+    if column == "player":
+        return e["player"] + (f" ({e['nfl_team']})" if e.get("nfl_team") else "")
+    if column == "city":
+        label = _city_label(e)
+        idx = (marks or {}).get(e.get("exception") or "")
+        return f"{label} {_exception_mark(idx)}" if idx else label
+    if column == "class":
+        return QUALIFICATIONS.get(e["qualification"], e["qualification"])
+    if column == "population":
+        pop = e.get("population")
+        return f"{pop:,}" if isinstance(pop, int) else ""
+    if column == "verdict":
+        return e["verdict"]
+    return ""
+
+
+def exception_notes(edition: dict) -> list[str]:
+    """Distinct exception texts, in lineup order. Each is a named, deliberate
+    carve-out from the default rule, so it prints rather than hiding in data."""
+    out: list[str] = []
+    for e in _ordered_starters(edition):
+        note = e.get("exception")
+        if note and note not in out:
+            out.append(note)
+    return out
+
+
 def source_line(edition: dict) -> str:
     """Public provenance: source labels and retrieval dates, no URLs and no
     evidence IDs, matching how ADP provenance already prints on the site."""
@@ -288,22 +372,20 @@ def source_line(edition: dict) -> str:
 def render_markdown(edition: dict) -> str:
     """Table, rule footnote and near-miss list. The surrounding prose is the
     commissioner's section copy and is spliced in by the issue builder."""
-    e_starters = _ordered_starters(edition)
+    cols = columns_for(edition)
+    notes = exception_notes(edition)
+    marks = {note: i + 1 for i, note in enumerate(notes)}
     lines = [
-        "| POS | PLAYER | CITY | CLASS | FANTASY VERDICT |",
-        "| --- | ------ | ---- | ----- | --------------- |",
+        "| " + " | ".join(COLUMNS[c] for c in cols) + " |",
+        "| " + " | ".join("---" for _ in cols) + " |",
     ]
-    for raw in e_starters:
+    for raw in _ordered_starters(edition):
         e = _public(raw)
-        player = e["player"]
-        if e.get("nfl_team"):
-            player += f" ({e['nfl_team']})"
-        lines.append(
-            f"| {e['position']} | {player} | {_city_label(e)} "
-            f"| {QUALIFICATIONS.get(e['qualification'], e['qualification'])} "
-            f"| {e['verdict']} |")
+        lines.append("| " + " | ".join(_cell(e, c, marks) for c in cols) + " |")
     rules = edition.get("rules") or {}
     lines += ["", f"*{rules['public_summary']}*"]
+    for i, note in enumerate(notes, start=1):
+        lines += ["", f"*{_exception_mark(i)} {note}*"]
     foot = []
     src = source_line(edition)
     if src:

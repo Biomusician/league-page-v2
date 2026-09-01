@@ -50,17 +50,18 @@ MODULE_DEFS = [
     ("branches", "Branches and Sequels", ("surfeit",), "intel"),
     ("false-assumptions", "False Assumptions", ("surfeit",), "section"),
     ("all-city", "The All-City Team", ("disco", "surfeit"), "all-city"),
+    ("all-city-marquee", "The All-Marquee Team", ("disco", "surfeit"), "all-city"),
     ("custom", "Custom Section", ("disco", "surfeit"), "section"),
 ]
 
 WEEKLY_DEFAULT = ["masthead", "lowdown", "hardware", "ctp", "power", "tracks",
                   "fades", "forceflow", "blackbox", "intel", "branches",
-                  "false-assumptions", "all-city", "custom"]
+                  "false-assumptions", "all-city", "all-city-marquee", "custom"]
 DRAFT_DEFAULT = ["masthead", "lowdown", "draft-capsules", "hardware", "power",
-                 "false-assumptions", "all-city", "custom"]
+                 "false-assumptions", "all-city", "all-city-marquee", "custom"]
 # Excluded unless the commissioner includes them. Sidebar features live here:
 # they run when there is an edition to run and stay out of the way otherwise.
-OPT_IN_MODULES = {"custom", "all-city"}
+OPT_IN_MODULES = {"custom", "all-city", "all-city-marquee"}
 
 MIN_INTEL_WEEKS = 5  # before this, playoff math is fake precision — module omits itself
 
@@ -103,22 +104,24 @@ def lowdown_state(idir: Path) -> tuple[str, str]:
 
 
 def all_city_state(league: League, season: str, issue_key: str, idir: Path,
-                   base_dir: Path | None) -> tuple[str, str]:
+                   base_dir: Path | None, module_key: str) -> tuple[str, str]:
     """(status, detail) for a sidebar feature that pairs a validated dataset
     with commissioner prose. The data has to be sound before the copy matters,
-    so a broken edition reports needs_review rather than silently rendering."""
+    so a broken edition reports needs_review rather than silently rendering.
+    The module key IS the feature key, so a rules variant needs no new code."""
     from leaguepage import all_city
 
     edition = all_city.find_edition(season, issue_key, league.slug,
-                                    base_dir=base_dir or EDITORIAL_DIR)
+                                    base_dir=base_dir or EDITORIAL_DIR,
+                                    feature_key=module_key)
     if edition is None:
         return "not_ready", (
-            f"no All-City edition bound to {season}/{issue_key}; add one under "
-            f"editorial/features/{all_city.FEATURE_KEY}/")
+            f"no {module_key} edition bound to {season}/{issue_key}; add one "
+            f"under editorial/features/{module_key}/")
     errors = all_city.validate_edition(edition)
     if errors:
         return "needs_review", f"edition '{edition['edition']}' has {len(errors)} problem(s): {errors[0]}"
-    prose = _read(idir / "sections" / "all-city.md")
+    prose = _read(idir / "sections" / f"{module_key}.md")
     if prose is None:
         return "ready", f"edition '{edition['edition']}' validates; section copy not written yet"
     if not _clean(prose):
@@ -186,7 +189,7 @@ def module_states(
                 status = "approved" if approved else "edited"
                 detail = f"{len(entries)} teams ranked ({label})"
         elif kind == "all-city":
-            status, detail = all_city_state(league, season, issue_key, idir, base_dir)
+            status, detail = all_city_state(league, season, issue_key, idir, base_dir, key)
             if approved and status == "edited":
                 status = "approved"
         elif kind == "intel":
@@ -272,10 +275,11 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
         from leaguepage import all_city
 
         edition = all_city.find_edition(season, issue_key, league.slug,
-                                        base_dir=base_dir or EDITORIAL_DIR)
+                                        base_dir=base_dir or EDITORIAL_DIR,
+                                        feature_key=key)
         if edition is None or all_city.validate_edition(edition):
             return None  # unbound or broken edition: assemble_issue warns and blocks
-        return all_city.render_section(edition, _read(idir / "sections" / "all-city.md"))
+        return all_city.render_section(edition, _read(idir / "sections" / f"{key}.md"))
     if kind == "intel":
         return None  # scenario engine is a later phase; module self-omits
     # Rough/test content is returned so the commissioner preview can show it;
