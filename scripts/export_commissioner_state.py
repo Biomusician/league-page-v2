@@ -36,6 +36,9 @@ AUTHORITATIVE_TABLES = [
     "team_names", "story_decisions", "award_decisions", "matchup_state",
     "power_rankings", "issue_revision_requests", "takes", "bit_usage",
     "editorial_usage",
+    # Past playoff odds and positional ranks cannot be recomputed from Sleeper,
+    # so the Change Inbox baseline history is authoritative, not cache.
+    "sync_snapshots",
 ]
 
 # meta/ is a key-value grab bag; these prefixes are authoritative editorial

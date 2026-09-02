@@ -127,6 +127,39 @@ def _angles_md(angles: list[dict], state: dict | None) -> str:
     return "\n".join(lines)
 
 
+def phase_of(matchup: dict) -> str:
+    """"preview" before the games, "result" once real points exist. The issue
+    is one artefact that evolves; there is no separate recap workflow, so the
+    brief has to change what it asks for as evidence arrives."""
+    pts = [t.get("points") for t in matchup.get("teams", [])]
+    return "result" if any(p for p in pts if p) else "preview"
+
+
+def _result_block(matchup: dict) -> str:
+    """The result, plus the honest limit on what it licenses. Postgame briefs
+    that let a writer assert causation are worse than no brief."""
+    a, b = matchup["teams"]
+
+    def nm(t):
+        return t.get("display_name") or t.get("team_name") or t["team_slug"]
+
+    winner, loser = (a, b) if (a.get("points") or 0) >= (b.get("points") or 0) else (b, a)
+    margin = abs((a.get("points") or 0) - (b.get("points") or 0))
+    return "\n".join([
+        "## RESULT (this matchup has been played)",
+        "",
+        f"- Final: {nm(winner)} {winner.get('points'):g}, {nm(loser)} {loser.get('points'):g}"
+        f" (margin {margin:g}).",
+        "- Write the RESULT, not the preview. The angles below were built before",
+        "  the games; use one only where the result actually bears it out, and say",
+        "  so plainly when the result went against the premise.",
+        "- **Do not claim causation.** 'The matchup was decided by X' needs X in",
+        "  the data. 'Team A lost despite its receivers scoring 54.2' is supportable;",
+        "  'Team A lost BECAUSE of its running backs' usually is not.",
+        "",
+    ])
+
+
 def _authoring_md(league: League, matchup: dict, scored: dict, state: dict | None,
                   angles: list[dict], notes_text: str) -> str:
     prominence = (state or {}).get("prominence_override") or scored["recommended_prominence"]
@@ -151,14 +184,22 @@ def _authoring_md(league: League, matchup: dict, scored: dict, state: dict | Non
             revisions = [revisions]
     rev_txt = "\n".join(f"- {r}" for r in (revisions or [])) or "- none"
     tags = ", ".join(scored["tags"]) or "none"
+    phase = phase_of(matchup)
+    deliverable = ("the result write-up at its target length"
+                   if phase == "result" else "the preview at its target length")
+    ask = ("write the full result write-up (not an outline)" if phase == "result"
+           else "write the full preview (not an outline)")
+    result_block = _result_block(matchup) if phase == "result" else ""
     return f"""# AUTHORING — {matchup['matchup_slug']} ({league.display_name} {matchup['season']} week {matchup['week']})
+
+<!-- phase: {phase} -->
 
 **Before writing a word: read `{WRITING_SKILL}` (the authoritative
 `my-writing-style` skill) and follow it.** This workflow is Jonathan's
-explicit drafting request, so write the full preview (not an outline), aiming
+explicit drafting request, so {ask}, aiming
 for 80% finished. Newsletter register. League theme: {league.subtitle}.
 
-## Assignment
+{result_block}## Assignment
 
 - Prominence: **{prominence}** — target {words} words.
 - Editorial tags: {tags}
@@ -200,7 +241,7 @@ Write `../draft.md`, starting with:
 
     <!-- {ROUGH_DRAFT_MARKER} -->
 
-then the preview at its target length. Log the angle/frame/callback you used
+then {deliverable}. Log the angle/frame/callback you used
 at the end of the file as an HTML comment for the usage tracker, e.g.:
 
     <!-- usage: angle={selected_id or 'chosen-angle-id'} frame=<family> callback=<evidence-ref-or-none> joke_family=<lane-or-none> -->

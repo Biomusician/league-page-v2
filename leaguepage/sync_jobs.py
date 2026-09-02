@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 import threading
+import time
 import traceback
 import uuid
 
@@ -68,6 +69,13 @@ def start_sync_job(db_path) -> tuple[dict, bool]:
         _JOB = job
     threading.Thread(target=_run_job, args=(job, db_path), daemon=True).start()
     return job, True
+
+
+def _timing(job: dict, key: str, seconds: float) -> None:
+    """Per-step timings recorded on the job. The roadmap forbids letting the
+    added analytics make Sync feel slow, so the cost is measured and shown on
+    the Desk rather than assumed to be small."""
+    job.setdefault("timings", {})[key] = round(seconds, 3)
 
 
 def _stage(job: dict, key: str) -> dict:
@@ -134,6 +142,7 @@ def _run_stages(job: dict, s: Storage) -> None:
 
     # snapshots + transaction context (same steps scripts/sync.py runs)
     ctx_st["status"] = "running"
+    from leaguepage import change_inbox
     from leaguepage.matchup_analysis import weekly_scores
     from leaguepage.team_analytics import get_snapshot, record_snapshot
     from leaguepage.transaction_analysis import record_transaction_contexts
@@ -151,6 +160,14 @@ def _run_stages(job: dict, s: Storage) -> None:
             played = max((len(v) for v in scores.values()), default=0)
             if played:
                 record_snapshot(s, r.league, season, played)
+            # Change Inbox baseline. Stored per SYNC rather than per week, and
+            # skipped when nothing moved, so pressing Sync twice does not blank
+            # the inbox. Timed because the roadmap forbids making Sync feel slow.
+            t0 = time.monotonic()
+            snap = change_inbox.record(s, r.league, season, int(week or 1))
+            _timing(job, f"change_snapshot:{r.league.slug}", time.monotonic() - t0)
+            if snap:
+                ctx_bits.append(f"{r.league.slug}: change snapshot recorded")
         stored = record_transaction_contexts(s, r.league)
         if stored:
             ctx_bits.append(f"{r.league.slug}: {stored} new move context(s)")
@@ -174,7 +191,9 @@ def _run_stages(job: dict, s: Storage) -> None:
         exists = bool(s.get_issue(r.league.slug, season, issue_key)) or \
             issue_dir(r.league, season, issue_key).exists()
         if exists:
+            t0 = time.monotonic()
             refresh_issue_research(s, r.league, season, issue_key)
+            _timing(job, f"issue_refresh:{r.league.slug}", time.monotonic() - t0)
             refreshed.append(f"{r.league.slug} {issue_key}")
     ed_st["status"] = "ok"
     ed_st["detail"] = ("refreshed " + ", ".join(refreshed)) if refreshed \

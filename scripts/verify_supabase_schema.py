@@ -25,7 +25,7 @@ TABLES = ["app_commissioners", "issues", "issue_modules", "sections",
           "prose_revisions", "issue_revision_requests", "team_names",
           "story_decisions", "award_decisions", "matchup_state",
           "power_rankings", "takes", "editorial_usage", "bit_usage",
-          "editorial_meta", "jobs"]
+          "editorial_meta", "jobs", "sync_snapshots"]
 
 
 def classify(status: int, body: str) -> str:

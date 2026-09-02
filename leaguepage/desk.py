@@ -410,6 +410,61 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         return templates.TemplateResponse(request, "desk/home.html", {
             "cards": cards, "last_sync": last_sync, "sync_job": job})
 
+    # ---------------------------------------------------------- Change Inbox
+
+    @app.get("/commissioner/inbox")
+    def change_inbox_view(request: Request, league: str = ""):
+        """What changed since the last reviewed sync, ranked. The Desk's
+        operational home after a sync: one screen instead of five pages."""
+        import time as _time
+
+        from leaguepage import change_inbox as ci
+        from leaguepage import sync_jobs
+
+        boards, elapsed = [], {}
+        route_choices = ci.ROUTE_CHOICES
+        with storage() as s:
+            wanted = [lg for lg in LEAGUES if not league or lg.slug == league]
+            for lg in wanted:
+                data = s.get_league(lg.league_id) or {}
+                season = str(data.get("season") or "")
+                if not season:
+                    continue
+                t0 = _time.monotonic()
+                board = ci.build_inbox(s, lg, season)
+                elapsed[lg.slug] = round(_time.monotonic() - t0, 3)
+                board["league_obj"] = lg
+                boards.append(board)
+            last_sync = s.get_meta(sync_jobs.LAST_SYNC_KEY)
+        return templates.TemplateResponse(request, "desk/inbox.html", {
+            "boards": boards, "last_sync": last_sync, "elapsed": elapsed,
+            "route_choices": route_choices,
+            "surfeit_only": ci.SURFEIT_ONLY_ROUTES})
+
+    @app.post("/commissioner/{league_slug}/{season}/inbox/decide")
+    def inbox_decide(
+        league_slug: str, season: str,
+        item_id: str = Form(...), decision: str = Form(...),
+        route: str = Form(""), issue_key: str = Form(...), note: str = Form(""),
+    ):
+        """Add to Issue / Ignore This Week / Save for Later. These are the
+        three values story_decisions has always carried, so an inbox decision
+        is the same decision the issue builder and the briefs already read."""
+        with storage() as s:
+            s.set_story_decision(
+                league_slug=league_slug, season=season, workflow=issue_key,
+                candidate_id=item_id, decision=decision,
+                route=route.strip() or None, note=note.strip() or None)
+        return RedirectResponse(f"/commissioner/inbox?league={league_slug}", status_code=303)
+
+    @app.post("/commissioner/{league_slug}/{season}/inbox/reviewed")
+    def inbox_reviewed(league_slug: str, season: str):
+        """Pin the baseline forward: everything currently shown is now 'seen',
+        and the next sync's inbox starts from here."""
+        with storage() as s:
+            s.mark_sync_reviewed(league_slug, season)
+        return RedirectResponse(f"/commissioner/inbox?league={league_slug}", status_code=303)
+
     @app.get("/commissioner/{league_slug}/{season}/draft-review")
     def draft_review(request: Request, league_slug: str, season: str):
         ctx = _draft_context(league_slug, season)

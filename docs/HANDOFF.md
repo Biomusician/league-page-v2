@@ -2,7 +2,61 @@
 
 Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
-playbook), POST_MVP.md (backlog).
+playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
+
+This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Tier 1 shipped: the weekly triage loop (2026-09-01)
+
+**Status: built, tested, exercised against a copy of the live database. Not
+deployed anywhere public (it is Desk-only, and the Desk is localhost).**
+
+Sync now records a snapshot, the Change Inbox diffs it, and one shared
+significance model ranks everything with its reasoning attached.
+
+- `leaguepage/significance.py` — the shared interpretable scorer. Named
+  components each carrying points and evidence, clamped 0..100, same idiom as
+  `matchup_interest`. Two NEGATIVE components (repetition, triviality) do the
+  real work: without them a long tail of true-but-boring facts outranks a
+  genuine upset by accumulating small positives.
+- `leaguepage/change_inbox.py` — `capture_state` / `record` per sync, then
+  `diff_snapshots` + `transaction_items` + `receipt_items` merged with the
+  existing `weekly_story_candidates` and ranked. Every item carries BEFORE and
+  AFTER, not just a headline.
+- `sync_snapshots` table (migration `0002_change_inbox.sql`). One row per
+  MATERIAL sync: an identical payload is not stored, so pressing Sync twice
+  does not blank the inbox. `snapshot_id`, not `taken_at`, is the ordering key
+  because two syncs in the same second are ordinary.
+- **No new decision store.** Add to Issue / Ignore This Week / Save for Later
+  are `story_decisions`' existing include/ignore/save plus `route`, so an inbox
+  decision is the same row the issue builder and authoring briefs already read.
+- `/commissioner/inbox` plus a WHAT CHANGED? button on Desk home. Mobile-first
+  (thumb-sized actions, no horizontal tables, its own media query).
+- **Postgame auto-refresh**: `matchup_packet.phase_of` flips a brief from
+  preview to result once real points exist, and the result block forbids
+  claiming causation the data does not support. `refresh_issue_research`
+  already ran on every sync and already preserved prose; it now also gets
+  timed. There is no separate recap workflow, by design.
+- Sync and inbox timings are recorded on the sync job (`_timing`) and shown
+  under the inbox, so "do not make Sync feel slow" is measured.
+
+Real defects the acceptance run caught, all fixed:
+
+1. Two syncs in the same second silently overwrote each other (timestamp PK).
+2. Ordinals rendered "2th" and "3th" in Desk-facing copy.
+3. Diffing week 1 against a PRESEASON baseline reported all twelve teams as
+   standings movers, because preseason order is an arbitrary tiebreak among
+   0-0 teams. Standings items now require games on both sides of the
+   comparison. Item count on the real acceptance scenario: 25 -> 14 -> 10.
+4. The existing Story Board was being flattened to a constant magnitude, which
+   sank every matchup below every change item. Matchup candidates now carry
+   their real Competitive Importance and Story Value into the ranking.
+5. `/commissioner/inbox` raised NameError on a missing local import; the route
+   tests now render every inbox surface.
+
+Not yet done inside Tier 1: streak and all-play divergence live in the
+snapshot payload but are not yet their own change items (they reach the inbox
+through the existing analytics candidates). See ROADMAP.md.
 
 ## The All-City Team sidebar feature (2026-08-31)
 

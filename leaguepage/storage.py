@@ -299,6 +299,28 @@ CREATE TABLE IF NOT EXISTS issue_revision_requests (
     created_at TEXT NOT NULL,
     resolved_at TEXT
 );
+
+-- One row per SYNC whose league state actually differs from the previous one.
+-- This is what makes "what changed since my last sync" answerable: playoff
+-- odds and positional ranks at a past moment cannot be recomputed later, so
+-- the historical record has to be kept rather than derived. Identical
+-- back-to-back syncs are not stored, so the previous row is always a real
+-- change and the Change Inbox baseline is well defined.
+-- snapshot_id, not taken_at, is the ordering key: two syncs inside the same
+-- second are ordinary (a retry, a two-league sync) and a timestamp primary key
+-- silently overwrote the earlier one.
+CREATE TABLE IF NOT EXISTS sync_snapshots (
+    snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    league_slug TEXT NOT NULL,
+    season TEXT NOT NULL,
+    taken_at TEXT NOT NULL,         -- ISO UTC, for display
+    week INTEGER NOT NULL,
+    payload_hash TEXT NOT NULL,
+    payload TEXT NOT NULL,          -- JSON: standings, odds, positional, results
+    reviewed_at TEXT                -- set when the commissioner clears the inbox
+);
+CREATE INDEX IF NOT EXISTS idx_sync_snapshots_league
+    ON sync_snapshots(league_slug, season, snapshot_id DESC);
 """
 
 
@@ -759,6 +781,77 @@ class Storage:
                 "UPDATE issues SET theme=?, updated_at=? WHERE league_slug=? AND season=? AND issue_key=?",
                 (theme, utcnow_iso(), league_slug, season, issue_key),
             )
+
+    # -- sync snapshots (Change Inbox baseline) ------------------------
+
+    @staticmethod
+    def snapshot_hash(payload: dict) -> str:
+        import hashlib
+
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+
+    def record_sync_snapshot(self, *, league_slug: str, season: str, week: int,
+                             payload: dict, taken_at: str | None = None) -> dict | None:
+        """Store this sync's league state. Returns the stored row, or None when
+        nothing changed since the last snapshot: a sync that moved no numbers
+        is not a new baseline, and storing it would make the inbox go blank
+        the second time the commissioner pressed the button."""
+        digest = self.snapshot_hash(payload)
+        latest = self.latest_sync_snapshot(league_slug, season)
+        if latest and latest["payload_hash"] == digest:
+            return None
+        stamp = taken_at or utcnow_iso()
+        with self._cursor() as cur:
+            cur.execute(
+                "INSERT INTO sync_snapshots (league_slug, season, taken_at, week, "
+                "payload_hash, payload, reviewed_at) VALUES (?, ?, ?, ?, ?, ?, NULL)",
+                (league_slug, season, stamp, int(week), digest, json.dumps(payload)),
+            )
+            snapshot_id = cur.lastrowid
+        return {"snapshot_id": snapshot_id, "league_slug": league_slug,
+                "season": season, "taken_at": stamp, "week": int(week),
+                "payload_hash": digest, "payload": payload, "reviewed_at": None}
+
+    def _snapshot_row(self, row) -> dict:
+        d = dict(row)
+        d["payload"] = json.loads(d["payload"])
+        return d
+
+    def list_sync_snapshots(self, league_slug: str, season: str,
+                            limit: int = 20) -> list[dict]:
+        rows = self._conn.execute(
+            "SELECT * FROM sync_snapshots WHERE league_slug=? AND season=? "
+            "ORDER BY snapshot_id DESC LIMIT ?", (league_slug, season, limit)).fetchall()
+        return [self._snapshot_row(r) for r in rows]
+
+    def latest_sync_snapshot(self, league_slug: str, season: str) -> dict | None:
+        rows = self.list_sync_snapshots(league_slug, season, limit=1)
+        return rows[0] if rows else None
+
+    def baseline_sync_snapshot(self, league_slug: str, season: str) -> dict | None:
+        """What the Change Inbox compares against. The most recent snapshot the
+        commissioner marked reviewed, if one is older than the current state;
+        otherwise the previous stored snapshot, which is by construction a
+        genuinely different league state."""
+        rows = self.list_sync_snapshots(league_slug, season, limit=50)
+        if len(rows) < 2:
+            return None
+        for r in rows[1:]:
+            if r["reviewed_at"]:
+                return r
+        return rows[1]
+
+    def mark_sync_reviewed(self, league_slug: str, season: str) -> str | None:
+        """Pin the inbox baseline to the current state. Returns the taken_at
+        stamped, or None when there is nothing to review."""
+        latest = self.latest_sync_snapshot(league_slug, season)
+        if not latest:
+            return None
+        with self._cursor() as cur:
+            cur.execute("UPDATE sync_snapshots SET reviewed_at=? WHERE snapshot_id=?",
+                        (utcnow_iso(), latest["snapshot_id"]))
+        return latest["taken_at"]
 
     def get_story_decisions(self, league_slug: str, season: str, workflow: str) -> dict[str, dict]:
         rows = self._conn.execute(

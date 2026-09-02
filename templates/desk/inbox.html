@@ -1,0 +1,127 @@
+{% extends "desk/base.html" %}
+{% block title %}Change Inbox{% endblock %}
+{% block masthead_right %}<a href="/commissioner">← Desk home</a>{% endblock %}
+{% block content %}
+<style>
+  /* Triage is a phone job: thumb-sized actions, no horizontal tables. */
+  .item { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--line);
+          border-radius:4px; padding:.8rem .9rem; margin:.6rem 0; }
+  .item.lead { border-left-color:var(--accent); }
+  .item.strong { border-left-color:#b5761f; }
+  .item.decided { opacity:.55; }
+  .band { display:inline-block; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase;
+          color:var(--muted); }
+  .ba { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin:.4rem 0;
+        font-family:monospace; font-size:.86rem; }
+  .ba .before { color:var(--muted); text-decoration:line-through; }
+  .ba .arrow { color:var(--accent); font-weight:bold; }
+  .ba .after { font-weight:bold; }
+  .why { margin:.35rem 0 .2rem; padding-left:1.1rem; font-size:.86rem; color:var(--muted); }
+  .why li { margin:.1rem 0; }
+  .why li.penalty { color:#8a4a3a; }
+  .actions { display:flex; gap:.45rem; flex-wrap:wrap; margin-top:.55rem; align-items:center; }
+  .actions button { min-height:2.4rem; padding:.4rem .9rem; }
+  .actions select, .actions input { min-height:2.4rem; }
+  .cat { font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .leaguehead { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:.5rem; }
+  @media (max-width: 40rem) {
+    main { padding:1rem .7rem 3rem; }
+    header.masthead { padding:.7rem 1rem; }
+    .actions button, .actions select, .actions input { flex:1 1 8rem; }
+    .item { padding:.7rem .65rem; }
+  }
+</style>
+
+<h2>Change Inbox</h2>
+<p class="meta">
+  {% if last_sync %}Last sync {{ last_sync[:16].replace("T", " ") }}.{% else %}Not synced yet.{% endif %}
+  Ranked by story significance; every item shows why it surfaced.
+</p>
+
+{% for b in boards %}
+{% set lg = b.league_obj %}
+<div class="leaguehead">
+  <h3 style="margin:.6rem 0 .2rem">{{ lg.display_name }}
+    <span class="meta">week {{ b.week }} · {{ b.open_count }} open of {{ b.counts.total }}</span></h3>
+  <form method="post" action="/commissioner/{{ lg.slug }}/{{ b.season }}/inbox/reviewed">
+    <button type="submit">Mark all reviewed</button>
+  </form>
+</div>
+
+{% if not b.has_baseline %}
+<div class="warn">No baseline yet for {{ lg.display_name }}. The first sync records one;
+  the second sync is the first that can show changes. Weekly signals below still apply.</div>
+{% else %}
+<p class="meta">Comparing {{ b.baseline_at[:16].replace("T", " ") }} → {{ b.latest_at[:16].replace("T", " ") }}.</p>
+{% endif %}
+
+{% for it in b["items"] %}
+<div class="item {% if it.significance.band == 'Lead story' %}lead{% elif it.significance.band == 'Strong' %}strong{% endif %} {% if it.decision %}decided{% endif %}">
+  <div>
+    <span class="score">{{ it.significance.score }}</span>
+    <b>{{ it.headline }}</b>
+  </div>
+  <div class="cat">{{ it.significance.band }} · {{ it.category }}{% if it.source == "change" %} · changed{% endif %}</div>
+
+  {% if it.before or it.after %}
+  <div class="ba">
+    {% if it.before %}<span class="before">{{ it.before }}</span><span class="arrow">→</span>{% endif %}
+    {% if it.after %}<span class="after">{{ it.after }}</span>{% endif %}
+  </div>
+  {% endif %}
+  {% if it.what_changed %}<div class="meta">{{ it.what_changed }}</div>{% endif %}
+
+  {% if it.facts %}<ul class="facts">{% for f in it.facts %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
+
+  <details>
+    <summary class="meta">Why this surfaced ({{ it.why|length }})</summary>
+    <ul class="why">
+      {% for line in it.why %}<li class="{% if line.startswith('-') %}penalty{% endif %}">{{ line }}</li>{% endfor %}
+    </ul>
+  </details>
+  {% if it.evidence %}
+  <details><summary class="meta">Show evidence</summary>
+    <ul class="facts">{% for e in it.evidence %}<li><code>{{ e }}</code></li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+
+  {% if it.decision %}
+  <div class="decision">→ {{ it.decision|upper }}{% if it.route %} → {{ it.route }}{% endif %}{% if it.note %} — “{{ it.note }}”{% endif %}</div>
+  {% endif %}
+
+  <form class="actions" method="post"
+        action="/commissioner/{{ lg.slug }}/{{ b.season }}/inbox/decide">
+    <input type="hidden" name="item_id" value="{{ it.item_id }}">
+    <input type="hidden" name="issue_key" value="{{ b.issue_key }}">
+    <select name="route" aria-label="destination">
+      <option value="">destination: suggested ({{ it.sections|join(", ") }})</option>
+      {% for value, label in route_choices %}
+        {% if value not in surfeit_only or lg.slug == "surfeit" %}
+        <option value="{{ value }}">→ {{ label }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+    <button name="decision" value="include" class="primary">Add to Issue</button>
+    <button name="decision" value="save">Save for Later</button>
+    <button name="decision" value="ignore">Ignore This Week</button>
+  </form>
+</div>
+{% endfor %}
+
+{% if not b["items"] %}
+<div class="card meta">Nothing to triage for {{ lg.display_name }}. Either no games have
+  been played since the last reviewed sync, or nothing cleared the materiality floor.</div>
+{% endif %}
+{% endfor %}
+
+{% if not boards %}
+<div class="warn">No synced league data yet. Run SYNC SLEEPER from the Desk home.</div>
+{% endif %}
+
+<details style="margin-top:1.5rem">
+  <summary class="meta">Build timings</summary>
+  <ul class="facts">
+    {% for slug, secs in elapsed.items() %}<li>{{ slug }}: {{ secs }}s</li>{% endfor %}
+  </ul>
+</details>
+{% endblock %}
