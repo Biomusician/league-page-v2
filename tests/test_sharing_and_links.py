@@ -138,3 +138,28 @@ def test_sortable_headers_keep_their_column_semantics():
     js = (STATIC_DIR / "sortable.js").read_text(encoding="utf-8")
     assert 'setAttribute("role", "button")' not in js
     assert 'createElement("button")' in js
+
+
+def test_the_front_door_has_one_h1_and_real_landmarks(built):
+    """dist/index.html is the site's front door and had two h1s, no main,
+    and no skip link."""
+    body = (built / "index.html").read_text(encoding="utf-8")
+    assert body.count("<h1") == 1
+    assert "<main" in body
+    assert 'class="skip"' in body
+    assert "Disco Chat" in body and "The Surfeit" in body
+
+
+def test_editorial_tables_scroll_inside_themselves(built):
+    """Tables arrive as raw HTML from published prose and were the only
+    thing on the site that scrolled the whole page sideways."""
+    css = (built / "disco" / "index.html").read_text(encoding="utf-8")
+    assert "section.module > div table { display:block; overflow-x:auto" in css
+
+
+def test_there_is_a_print_stylesheet(built):
+    """This is an archive of a newspaper; printing one produced blank
+    paper, because browsers drop background colours."""
+    css = (built / "disco" / "standings" / "index.html").read_text(encoding="utf-8")
+    assert "@media print" in css
+    assert "background:#fff" in css

@@ -143,6 +143,9 @@
   nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
               display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
   nav.exits a { display:inline-block; padding:.45rem 0; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. */
+  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
   .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
   table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
   th.sortable button { font:inherit; color:inherit; background:none; border:0;

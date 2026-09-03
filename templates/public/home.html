@@ -24,13 +24,14 @@
   .brief .grid .headline { font-size:1.02rem; font-weight:bold; display:block;
                            margin:.15rem 0 .3rem; line-height:1.35; }
   .brief .detail { font-size:.9rem; margin:0 0 .45rem; }
-  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em; }
+  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em;
+                 display:inline-block; padding:.45rem 0; }
   .rooms { display:grid; gap:.5rem; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
   .rooms .card { margin:0; padding:.6rem .8rem; }
   .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
   .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
   .teamstrip { display:flex; flex-wrap:wrap; gap:.4rem; }
-  .teamstrip a { display:inline-block; padding:.35rem .7rem; border-radius:3px;
+  .teamstrip a { display:inline-block; padding:.5rem .7rem; border-radius:3px;
                  text-decoration:none; font-size:.9rem; }
   @media (max-width:640px) {
     .brief .grid, .brief .grid.even { grid-template-columns:1fr; }
