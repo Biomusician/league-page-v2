@@ -61,7 +61,7 @@
   <p class="meta">{% for t in team_sections %}<a href="#team-{{ t.slug }}">{{ t.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
   {% for t in team_sections %}
   <div class="card" id="team-{{ t.slug }}">
-    <h3><a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a></h3>
+    <h3>{% if t.page_slug %}<a href="{{ lroot }}team/{{ t.page_slug }}/index.html">{{ t.name }}</a>{% else %}{{ t.name }}{% endif %}</h3>
     <span class="meta">{{ t.position_counts }}</span>
     <div class="tablewrap">
     <table data-sortable>

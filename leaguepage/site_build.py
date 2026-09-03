@@ -802,6 +802,10 @@ def build_league(
         rid: receipts_for_team(storage, league, season, week, snaps, names, rid)
         for rid in names}
 
+    # One compact card per team for the "Your week" module. The build cannot
+    # know whose browser this is, so every card ships and the client reveals
+    # one; the alternative is an account, and this product does not want one.
+    myteam_cards: list[dict] = []
     team_cards = []
     for r in storage.get_rosters(league.league_id):
         rid = r["roster_id"]
@@ -898,6 +902,18 @@ def build_league(
                                 if d.startswith("playoff")), None),
             key_moves=moves_ctx, next_matchup=next_card,
             deltas=deltas.get(rid, []), receipts=team_receipts_by_rid.get(rid, []))
+        myteam_cards.append({
+            "slug": slugs[rid], "name": nm,
+            "storyline": briefing.get("storyline"),
+            "position": briefing.get("position"),
+            "playoff": briefing.get("playoff"),
+            "strength": briefing.get("strength"),
+            "weakness": briefing.get("weakness"),
+            "key_move": (briefing.get("key_move") or {}).get("line"),
+            "next": briefing.get("next"),
+            "stake": _own_stake(leverage_teams.get(rid), public_names, next_card),
+            "receipt": (briefing.get("receipts") or [None])[0],
+        })
         render(f"team/{slugs[rid]}/index.html", "public/team.html", 3,
                description=(f"{nm}: {rec['wins']}-{rec['losses']}, "
                             f"{rec['fpts']:g} points for, positional room ranks, "
@@ -984,7 +1000,12 @@ def build_league(
                           "dv": classify_pick(p["delta"], league_size)})
         for t in analysis["teams"]:
             team_sections.append({
+                # Two different slugs, on purpose. `slug` is the draft
+                # analysis's own and is the in-page anchor. `page_slug` is
+                # the site's team-page slug, and using the first one for the
+                # href sent all 22 of these links to a 404.
                 "slug": t["team_slug"], "name": public_of[t["team_slug"]],
+                "page_slug": slugs.get(t["roster_id"]),
                 "position_counts": ", ".join(f"{n} {pos}" for pos, n in t["position_counts"].items()),
                 "picks": recap_by_rid.get(t["roster_id"], {}).get("picks", []),
             })
@@ -1165,6 +1186,7 @@ def build_league(
         "receipt": front_receipt,
     })
     render("index.html", "public/home.html", 1,
+           myteam=sorted(myteam_cards, key=lambda t: t["name"].lower()),
            description=_home_description(league, front, latest_ctx,
                                          weeks_played_league, week),
            latest=latest_ctx, standings=standings, published=snaps,

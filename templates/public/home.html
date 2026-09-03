@@ -103,9 +103,58 @@
 </section>
 {% endif %}
 
+{% if myteam %}
+<section class="module myteam" id="myteam" aria-labelledby="myteam-h">
+  <h2 class="section-label" id="myteam-h">Your week</h2>
+
+  {#  Nothing chosen yet. This is the whole enrolment flow: pick a name.
+      No account, no email, nothing leaves the browser. #}
+  <div data-myteam-empty>
+    <details id="myteam-choose">
+      <summary>Which team is yours? <span class="meta">(saved in this browser only)</span></summary>
+      <ul class="pick">
+        {% for t in myteam %}
+        <li><button type="button" data-pick-team="{{ t.slug }}">{{ t.name }}</button></li>
+        {% endfor %}
+      </ul>
+      <p class="meta">Stored in this browser with no account and no tracking.
+      You can clear it here at any time, and skipping this changes nothing
+      about the rest of the site.</p>
+    </details>
+  </div>
+
+  {% for t in myteam %}
+  <div class="card" data-team="{{ t.slug }}" data-team-name="{{ t.name }}" hidden>
+    <p style="margin:.1rem 0"><strong>{{ t.name }}</strong></p>
+    {% if t.storyline %}<p class="detail">{{ t.storyline }}</p>{% endif %}
+    <dl>
+      {% if t.next %}<div><dt>Next</dt><dd><a href="{{ lroot }}matchups/index.html#{{ t.next.anchor }}">{{ t.next.names }}</a>
+        <span class="meta">{{ t.next.note }}</span></dd></div>{% endif %}
+      {% if t.position %}<div><dt>Where they stand</dt><dd>{{ t.position }}</dd></div>{% endif %}
+      {% if t.playoff %}<div><dt>Playoff outlook</dt><dd>{{ t.playoff }}</dd></div>{% endif %}
+      {% if t.strength %}<div><dt>Strength</dt><dd>{{ t.strength }}</dd></div>{% endif %}
+      {% if t.weakness %}<div><dt>Concern</dt><dd>{{ t.weakness }}</dd></div>{% endif %}
+      {% if t.key_move %}<div><dt>Recent move</dt><dd>{{ t.key_move }}</dd></div>{% endif %}
+      {% if t.stake %}<div><dt>What Sunday is worth</dt><dd>{{ t.stake.if_win }} with a win,
+        {{ t.stake.if_lose }} with a loss</dd></div>{% endif %}
+    </dl>
+    {% if t.receipt %}
+    <p class="detail"><span class="tag">{{ t.receipt.status }}</span>
+      {% if t.receipt.verbatim %}“{{ t.receipt.quote }}”{% else %}{{ t.receipt.quote }}{% endif %}
+      <span class="meta">{{ t.receipt.status_note }}</span></p>
+    {% endif %}
+    <p><a class="more" href="{{ lroot }}team/{{ t.slug }}/index.html">Your team page →</a></p>
+  </div>
+  {% endfor %}
+
+  <p data-myteam-set hidden><button class="forget" type="button" data-forget-team>Not
+    <span data-myteam-name></span>? Change or forget your team</button></p>
+</section>
+{% endif %}
+
 {% if front.teams %}
 <section class="module" aria-labelledby="yourteam-h">
-  <h2 class="section-label" id="yourteam-h">Your team</h2>
+  <h2 class="section-label" id="yourteam-h">Every team</h2>
   <p class="meta">Every team's own briefing: where they stand, what changed,
     what the room is short of, and the last time the newsletter mentioned them.</p>
   <p class="teamstrip">

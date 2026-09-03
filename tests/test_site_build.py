@@ -303,7 +303,11 @@ def test_navigation_order_standings_teams_before_archive(site_env):
         labels = re.findall(r">([^<]+)</a>", nav)
         assert labels == ["Home", "Common Tactical Picture", "Peer and Near-Peer",
                           "Force Flow", "Draft", "Black Box", "Standings", "Teams",
-                          "Archive"]
+                          "Archive",
+                          # revealed by assets/myteam.js only once this
+                          # browser has picked a team; ships hidden
+                          "My team"]
+        assert 'data-myteam-nav' in nav and "hidden" in nav
 
 
 def test_teams_matrix_and_team_page_positional(site_env):

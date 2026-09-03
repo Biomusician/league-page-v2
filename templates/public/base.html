@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en"{% if league %} data-league="{{ league.slug }}"{% endif %}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -143,6 +143,17 @@
   nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
               display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
   nav.exits a { display:inline-block; padding:.45rem 0; }
+  nav.leaguenav a.mine { font-weight:bold; }
+  .myteam .pick { display:flex; flex-wrap:wrap; gap:.4rem .5rem; margin:.5rem 0 0;
+                  padding:0; list-style:none; }
+  .myteam .pick button { font:inherit; cursor:pointer; padding:.5rem .7rem;
+                         border-radius:3px; background:none; color:inherit; }
+  .myteam dl { display:grid; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr));
+               gap:.6rem 1.2rem; margin:.6rem 0 0; }
+  .myteam dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; }
+  .myteam dd { margin:0; }
+  .myteam .forget { font-size:.8rem; background:none; border:0; padding:.4rem 0;
+                    color:inherit; cursor:pointer; text-decoration:underline; }
   /* Anything a thumb has to hit gets a real height. A 15px link with no
      padding is a miss on a phone. */
   .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
@@ -184,6 +195,11 @@
   {% for href, label in items %}
   <a href="{{ lroot }}{{ href }}" {% if current_nav == label %}aria-current="page"{% endif %}>{{ label }}</a>
   {% endfor %}
+  {#  Revealed by assets/myteam.js when this browser has picked a team. It
+      starts hidden so a reader who never picks one sees the league-wide
+      nav that existed before, and so it never renders for a crawler. #}
+  <a class="mine" data-myteam-nav data-href-template="{{ lroot }}team/__SLUG__/index.html"
+     href="{{ lroot }}teams/index.html" hidden>My team</a>
 </nav>
 {% endif %}
 <main id="content">
@@ -193,6 +209,7 @@
   {% if league and league.slug == "disco" %}<img class="logo-footer" src="{{ lroot }}../assets/disco-logo-banner.jpg" alt="" width="800" height="300" loading="lazy">{% endif %}
   {% if league %}{{ league.display_name }} · {{ season }} · <a href="{{ lroot }}../index.html">League select</a>{% endif %}
 </footer>
-{% if league %}<script src="{{ lroot }}../assets/sortable.js" defer></script>{% endif %}
+{% if league %}<script src="{{ lroot }}../assets/sortable.js" defer></script>
+<script src="{{ lroot }}../assets/myteam.js" defer></script>{% endif %}
 </body>
 </html>
