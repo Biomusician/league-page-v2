@@ -1,53 +1,104 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — {{ season }}{% endblock %}
+{% block extra_css %}
+  /* Front page: one lead, then secondaries, then data. Deliberately
+     unequal — every module the same size is a dashboard, not a front page. */
+  .freshbar { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase;
+              padding:.3rem 0 .1rem; opacity:.85; }
+  .hero .kicker { font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; }
+  .hero h2.headline { margin:.25rem 0 .5rem; font-size:clamp(1.5rem, 5.2vw, 2.1rem);
+                      line-height:1.2; letter-spacing:0; text-transform:none;
+                      border:0; padding:0; }
+  .hero .lede p:first-child { margin-top:.2rem; }
+  .cta { display:inline-block; margin-top:.6rem; padding:.55rem 1.15rem;
+         font-variant:small-caps; letter-spacing:.12em; font-size:.95rem;
+         text-decoration:none; border-radius:3px; }
+  .brief .lead { padding:1.05rem 1.2rem; }
+  .brief .lead .headline { font-size:1.28rem; font-weight:bold; line-height:1.3;
+                           display:block; margin:.2rem 0 .35rem; }
+  .brief .label { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
+  .brief .grid { display:grid; gap:.75rem; grid-template-columns:repeat(auto-fit, minmax(15.5rem, 1fr)); }
+  .brief .grid .card { margin:0; padding:.8rem .95rem; }
+  .brief .grid .headline { font-size:1.02rem; font-weight:bold; display:block;
+                           margin:.15rem 0 .3rem; line-height:1.35; }
+  .brief .detail { font-size:.9rem; margin:0 0 .45rem; }
+  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em; }
+  .rooms { display:grid; gap:.5rem; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
+  .rooms .card { margin:0; padding:.6rem .8rem; }
+  .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
+  .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
+  @media (max-width:640px) {
+    .brief .grid { grid-template-columns:1fr; }
+    .brief .lead .headline { font-size:1.15rem; }
+    .cta { display:block; text-align:center; }
+  }
+{% if league and league.theme == "disco" %}
+  .cta { background:#e8a33d; color:#14181d; }
+  .brief .lead { border:2px solid #e8a33d; background:#1a2027; }
+  .freshbar { color:#8fa8b8; border-bottom:1px solid #2c343d; }
+  .hero h2.headline { color:#e8e4d8; }
+{% else %}
+  .cta { background:#facd00; color:#071a2f; }
+  .brief .lead { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
+  .freshbar { color:#9fb6cc; border-bottom:1px solid #1d3d63; }
+  .hero h2.headline { color:#e4ecf5; }
+{% endif %}
+{% endblock %}
 {% block content %}
 
+<p class="freshbar">{{ front.freshness }}</p>
+
 {% if latest %}
-<section class="hero" aria-labelledby="lowdown-hero">
-  <p class="meta">{{ latest.issue_label }}{% if latest.published_at %} · {{ latest.published_at[:10] }}{% endif %}{% if latest.preview %} · <strong>UNPUBLISHED COMMISSIONER PREVIEW</strong>{% endif %}</p>
+<section class="hero" aria-labelledby="lede-hero">
+  <p class="kicker meta">{{ latest.issue_label }}{% if latest.published_at %} · {{ latest.published_at[:10] }}{% endif %}{% if latest.preview %} · <strong>UNPUBLISHED COMMISSIONER PREVIEW</strong>{% endif %}</p>
+  <h2 class="headline" id="lede-hero">{{ latest.headline or latest.issue_label }}</h2>
+  {% if latest.revisions %}<p class="meta">Updated {{ latest.revisions[-1].at }} · {{ latest.revisions[-1].note }}</p>{% endif %}
   {% if latest.lowdown_excerpt_html %}
-  <h2 class="section-label" id="lowdown-hero">The Lowdown</h2>
   <div class="lede">{{ latest.lowdown_excerpt_html | safe }}</div>
-  <p><a href="{{ lroot }}{{ latest.href }}">Continue reading the full issue →</a></p>
-  {% else %}
-  <h2 class="section-label" id="lowdown-hero">{{ latest.issue_label }}</h2>
-  <p><a href="{{ lroot }}{{ latest.href }}">Read the full issue →</a></p>
   {% endif %}
-</section>
-
-{% if feature_matchup %}
-<section class="module" aria-label="Priority matchup">
-  <h2 class="section-label">Priority Matchup</h2>
-  <div class="card feature">
-    <p><strong>{{ feature_matchup.names }}</strong></p>
-    <p class="meta">{{ feature_matchup.records }}</p>
-    {% for t in feature_matchup.tags %}<span class="tag">{{ t }}</span>{% endfor %}
-    <p><a href="{{ lroot }}matchups/index.html">Full Common Tactical Picture →</a></p>
-  </div>
-</section>
-{% endif %}
-
-<section class="module">
-  <h2 class="section-label">In This Issue</h2>
-  <ul>
-    {% for s in latest.section_titles %}
-    <li><a href="{{ lroot }}{{ latest.href }}#{{ s.anchor }}">{{ s.title }}</a></li>
-    {% endfor %}
-  </ul>
+  <a class="cta" href="{{ lroot }}{{ latest.href }}">Read the issue →</a>
 </section>
 {% else %}
 <section class="hero">
-  <h2 class="section-label">No issue published yet</h2>
-  <p>The {{ season }} season's first issue is in production. Standings, the
-  draft board, and the archive are live in the meantime.</p>
+  <h2 class="headline">No issue published yet</h2>
+  <p>The {{ season }} season's first issue is in production. The briefing
+  below, the draft board and the archive are live in the meantime.</p>
 </section>
 {% endif %}
 
+{% if front.briefing %}
+<section class="module brief" aria-labelledby="brief-h">
+  <h2 class="section-label" id="brief-h">This week in 30 seconds</h2>
+  {% set lead = front.lead %}
+  <div class="card lead">
+    <span class="label">{{ lead.label }}</span>
+    {% for t in lead.tags %}<span class="tag {% if t == 'QUESTIONABLE MOVE' %}warn{% endif %}">{{ t }}</span>{% endfor %}
+    <span class="headline">{{ lead.headline }}</span>
+    <p class="detail">{{ lead.detail }}</p>
+    <a class="more" href="{{ lroot }}{{ lead.href }}">{{ lead.cta }} →</a>
+  </div>
+  {% if front.secondary %}
+  <div class="grid">
+    {% for i in front.secondary %}
+    <div class="card">
+      <span class="label">{{ i.label }}</span>
+      {% for t in i.tags %}<span class="tag {% if t == 'QUESTIONABLE MOVE' %}warn{% endif %}">{{ t }}</span>{% endfor %}
+      <span class="headline">{{ i.headline }}</span>
+      <p class="detail">{{ i.detail }}</p>
+      <a class="more" href="{{ lroot }}{{ i.href }}">{{ i.cta }} →</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if front.show_standings %}
 <section class="module">
-  <h2 class="section-label">Standings snapshot</h2>
+  <h2 class="section-label">Standings</h2>
   <div class="tablewrap">
   <table>
-    <caption class="meta" style="text-align:left">Top of the table · full standings linked below</caption>
+    <caption class="meta" style="text-align:left">Top of the table after week {{ front.weeks_played }}</caption>
     <tr><th scope="col">#</th><th scope="col">Team</th><th scope="col">W</th><th scope="col">L</th><th scope="col">PF</th></tr>
     {% for t in standings[:5] %}
     <tr><td>{{ loop.index }}</td><td class="wrap">{{ t.name }}</td><td>{{ t.wins }}</td><td>{{ t.losses }}</td><td>{{ t.pf }}</td></tr>
@@ -55,6 +106,45 @@
   </table>
   </div>
   <p><a href="{{ lroot }}standings/index.html">Full standings →</a></p>
+</section>
+{% elif front.rooms %}
+<section class="module">
+  <h2 class="section-label">Strongest rooms</h2>
+  <p class="meta">Who owns each skill position before a snap is played, ranked
+    against this league's own lineup demand.</p>
+  <div class="rooms">
+    {% for r in front.rooms %}
+    <div class="card">
+      <span class="pos">{{ r.pos }} · #1 of {{ r.n }}</span>
+      <div><a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a></div>
+    </div>
+    {% endfor %}
+  </div>
+  <p><a href="{{ lroot }}teams/index.html">Compare every roster →</a></p>
+</section>
+{% endif %}
+
+{% if latest and latest.section_titles %}
+<section class="module">
+  <h2 class="section-label">In this issue</h2>
+  <ul>
+    {% for s in latest.section_titles %}
+    <li><a href="{{ lroot }}{{ latest.href }}#{{ s.anchor }}">{{ s.title }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="module">
+  <h2 class="section-label">Go deeper</h2>
+  <p class="deeper">
+    <a href="{{ lroot }}matchups/index.html">Common Tactical Picture</a>
+    <a href="{{ lroot }}power/index.html">Peer and Near-Peer</a>
+    <a href="{{ lroot }}transactions/index.html">Force Flow</a>
+    <a href="{{ lroot }}draft/index.html">Draft board</a>
+    <a href="{{ lroot }}teams/index.html">Teams</a>
+    <a href="{{ lroot }}black-box/index.html">Black Box</a>
+  </p>
 </section>
 
 <section class="module">

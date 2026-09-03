@@ -119,10 +119,23 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
             "html": _render_md(_strip_duplicate_heading(s["content_md"], s["title"])),
         })
     lowdown = next((s for s in snap["sections"] if s["module_key"] == "lowdown"), None)
-    excerpt = None
+    excerpt = headline = None
     if lowdown:
-        paras = [p for p in lowdown["content_md"].split("\n\n")
-                 if p.strip() and not p.strip().startswith("#")]
+        parts = lowdown["content_md"].split("\n\n")
+        # The Lowdown's own headline is the first heading that is not just the
+        # module's name again ("# The Lowdown" / "## Vol 8.I: Back On
+        # Station"). It is the single best thing to put at the top of the
+        # front page, so lift it out rather than making a reader click
+        # through to find out what the issue is about.
+        for p in parts:
+            p = p.strip()
+            if p.startswith("#"):
+                text = p.lstrip("#").strip()
+                if text.lower() != (snap.get("issue_label") or "").lower() \
+                        and text.lower() != lowdown["title"].lower():
+                    headline = text
+                    break
+        paras = [p for p in parts if p.strip() and not p.strip().startswith("#")]
         excerpt = _render_md("\n\n".join(paras[:2]))
     return {
         "issue_key": snap["issue_key"], "issue_label": snap["issue_label"],
@@ -130,6 +143,7 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
         "preview": preview, "sections": sections,
         "section_titles": [{"anchor": s["anchor"], "title": s["title"]} for s in sections],
         "lowdown_excerpt_html": excerpt,
+        "headline": headline,
         "href": snap["href"],
         "revisions": snap.get("revisions") or [],
         "revised_at": (snap.get("revised_at") or "")[:10] or None,
@@ -669,11 +683,34 @@ def build_league(
     render("archive/index.html", "public/archive.html", 2,
            published=snaps, historical_groups=historical_groups, current_nav="Archive")
 
-    # league home (front page)
-    feature = next((c for c in cards if c["prominence"] == "FEATURE" and (c["preview_html"] or c["tags"])), None)
+    # league home (front page) — season-state aware editorial hierarchy
+    from leaguepage import front_page
+    from leaguepage.receipts import front_page_receipt
+
+    front_receipt = front_page_receipt(storage, league, season, week, snaps, names)
+    front = front_page.build({
+        "week": week,
+        "weeks_played": weeks_played_league,
+        "playoff_week_start": (league_data.get("settings") or {}).get("playoff_week_start"),
+        "author_roster_id": league.author_roster_id,
+        "last_sync": storage.get_meta("last_sync_at"),
+        "names": {rid: v["name"] or f"Roster {rid}" for rid, v in names.items()},
+        "slugs": slugs,
+        "cards": cards,
+        "moves": meaningful,
+        "profile": profile,
+        "form": form,
+        "movers": st_analysis["movers"],
+        "hot": st_analysis["hot"],
+        "trouble": st_analysis["trouble"],
+        "playoff": st_analysis["playoff"],
+        "reaches": reaches_ctx,
+        "steals": steals_ctx,
+        "receipt": front_receipt,
+    })
     render("index.html", "public/home.html", 1,
            latest=latest_ctx, standings=standings, published=snaps,
-           feature_matchup=feature, current_nav="Home")
+           front=front, current_nav="Home")
 
 
 def build_site(
