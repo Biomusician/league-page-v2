@@ -17,6 +17,19 @@
   </table>
   </div>
 </section>
+{% elif watching %}
+<p>No records yet — the box needs three recorded weeks before it will claim
+anything. These are the marks the season starts from.</p>
+<div class="tablewrap">
+<table>
+  <tr><th scope="col">Mark</th><th scope="col">Held by</th><th scope="col">On what</th></tr>
+  {% for w in watching %}
+  <tr><td class="wrap">{{ w.label }}</td><td class="wrap">{{ w.value }}</td><td class="wrap">{{ w.note }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+<p class="meta">Computed from the synced draft and rosters. Nothing here is a
+record; records need games.</p>
 {% else %}
 <p>Not enough recorded weeks to claim any records yet. The box is listening.</p>
 {% endif %}

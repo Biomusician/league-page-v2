@@ -1,5 +1,22 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Common Tactical Picture{% endblock %}
+{% block extra_css %}
+  .scout { border-top:1px dashed; margin-top:.7rem; padding-top:.6rem; }
+  .scout h3 { font-size:.74rem; letter-spacing:.14em; text-transform:uppercase;
+              margin:.1rem 0 .35rem; }
+  .scout h4 { font-size:.82rem; margin:.55rem 0 .2rem; font-variant:small-caps;
+              letter-spacing:.06em; }
+  .scout ul { margin:.1rem 0; padding-left:1.1rem; font-size:.92rem; }
+  .scout li { margin:.18rem 0; }
+  .scout .src { font-size:.78rem; margin:.5rem 0 0; }
+{% if league and league.theme == "disco" %}
+  .scout { border-color:#2c343d; }
+  .scout h3 { color:#8fa8b8; }
+{% else %}
+  .scout { border-color:#1d3d63; }
+  .scout h3 { color:#9fb6cc; }
+{% endif %}
+{% endblock %}
 {% block content %}
 <h2 class="section-label">Common Tactical Picture · Week {{ week }}</h2>
 {% for c in cards %}
@@ -10,8 +27,22 @@
        <span class="tag prom">{{ c.prominence }}</span></div>
   {% if c.preview_html %}
   <div>{{ c.preview_html | safe }}</div>
+  {% elif c.scout %}
+  <div class="scout">
+    <h3>Scout view · computed, not the Commissioner</h3>
+    {% if c.scout.why %}
+    <h4>Why this matchup is interesting</h4>
+    <ul>{% for line in c.scout.why %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if c.scout.watch %}
+    <h4>Watch</h4>
+    <ul>{% for line in c.scout.watch %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% endif %}
+    <p class="meta src">{{ c.scout.note }}</p>
+  </div>
   {% else %}
-  <p class="meta"><i>Preview pending.</i></p>
+  <p class="meta"><i>No preview written, and nothing in the data marks this one
+  out yet. It goes on the board like everything else.</i></p>
   {% endif %}
 </section>
 {% endfor %}

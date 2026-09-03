@@ -79,6 +79,20 @@
     <b>Best Steal:</b> {{ bs.name }} <span class="meta">(pick {{ bs.pick_no }} · ref {{ bs.adp }})</span> — {{ dv(bs.dv) }}
     {% endif %}
   </p>
+  <p class="meta">Headline Reach and Steal cover QB/RB/WR/TE. Kickers and
+  defenses sit below the draftable range on the reference board while lineups
+  force everyone to draft one, so their deviations are reported separately.</p>
+  {% endif %}
+  {% if team.draft_recap.special_teams %}
+  <div class="card">
+    <strong>Special Teams Outliers</strong>
+    <ul>
+      {% for p in team.draft_recap.special_teams %}
+      <li>{{ p.name }} <span class="meta">(pick {{ p.pick_no }} · ref {{ p.adp }})</span> — {{ dv(p.dv) }}
+        {% if p.context %}<br><span class="meta">{{ p.context }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
   {% endif %}
   <div class="tablewrap">
   <table data-sortable>

@@ -3,6 +3,17 @@
 {% block content %}
 <h2 class="section-label">Force Flow</h2>
 
+{% if not log %}
+<p>Nobody has touched a roster since the draft. Every team is still exactly
+the force it designed on draft night, which is itself worth knowing — this
+page fills up the moment that stops being true.</p>
+<p>Once moves start, Force Flow reads each one against the roster it changed:
+what the team was short of, what it gave up, what the move cost in FAAB, and
+whether the positional rank actually moved. Moves that do not survive that
+reading get labelled, not hidden.</p>
+<p><a href="{{ lroot }}draft/index.html">See how these rosters were built →</a></p>
+{% endif %}
+
 {% if editorial_sections %}
 <section class="module">
   <h2 class="section-label">Moves That Mattered</h2>
@@ -35,10 +46,10 @@
 </section>
 {% endif %}
 
+{% if log %}
 <section class="module">
   <h2 class="section-label">Transaction Log</h2>
   <p class="meta">The full reference log. Not everything here mattered; that is what the sections above are for.</p>
-  {% if log %}
   <div class="tablewrap">
   <table data-sortable>
     <tr><th scope="col" data-sort-type="number" data-sort-dir="desc">Week</th>
@@ -53,6 +64,6 @@
     {% endfor %}
   </table>
   </div>
-  {% else %}<p>No transactions yet.</p>{% endif %}
 </section>
+{% endif %}
 {% endblock %}

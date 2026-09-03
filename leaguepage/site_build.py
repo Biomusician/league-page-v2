@@ -345,8 +345,10 @@ def build_league(
                 "preview_html": _render_md(text) if approved else None,
             })
         cards.sort(key=lambda c: order.index(c["prominence"]))
-    render("matchups/index.html", "public/matchups.html", 2,
-           cards=cards, week=week, current_nav="Common Tactical Picture")
+    # The Common Tactical Picture page renders further down, once the
+    # positional profile, transactions and draft recaps exist: a matchup with
+    # no approved preview gets a computed Scout View instead of the words
+    # "Preview pending", and Scout View needs all three.
 
     # standings (+ restrained analysis: movers, form, playoff picture)
     standings, weeks_played = _standings_rows(storage, league, names, week)
@@ -416,10 +418,12 @@ def build_league(
                         "movement": movement, "tier_name": tiers.get(r.get("tier")),
                         "record": f"{rec.get('wins', 0)}-{rec.get('losses', 0)} · {rec.get('pf', 0)} PF",
                         "note": r.get("note"),
+                        "roster_id": rid,
                     })
                 break
-    render("power/index.html", "public/power.html", 2,
-           rankings=ranking_ctx, label=label, current_nav="Peer and Near-Peer")
+    # Peer and Near-Peer renders below, once the positional profile exists:
+    # with no published Commissioner ranking the page shows the Model Board
+    # rather than "No ranking has been published yet this season."
 
     # teams index + team pages
     published_awards = []
@@ -473,24 +477,79 @@ def build_league(
     # draft market value: shared by the draft page and team Draft Recaps
     from leaguepage.adp import load_adp_for_league
     from leaguepage.draft_analysis import analyze_league_draft
-    from leaguepage.draft_value import classify_pick
+    from leaguepage.draft_value import (
+        classify_pick, headline_deviations, position_order_context,
+    )
 
-    draft_analysis = analyze_league_draft(storage, league, managers={},
-                                          adp=load_adp_for_league(league))
+    _adp = load_adp_for_league(league)
+    draft_analysis = analyze_league_draft(storage, league, managers={}, adp=_adp)
     league_size = (draft_analysis or {}).get("total_teams") or profile["n"]
+    analysis_picks = (draft_analysis or {}).get("picks") or []
     recap_by_rid: dict[int, dict] = {}
     if draft_analysis:
         for t in draft_analysis["teams"]:
             _picks = [dict(p, dv=classify_pick(p.get("delta"), league_size))
                       for p in t["picks_by_round"]]
-            br, bs = t.get("biggest_reach"), t.get("biggest_value")
+            # Headline Reach/Steal are skill positions only, matching the
+            # Draft page: overall ECR ranks every K and DST below the
+            # draftable range while lineups force everyone to draft one, so
+            # a kicker's 80-pick "reach" measures the reference board's
+            # shape, not a roster decision. It was headlining team pages as
+            # the Biggest Reach, which is the calibration decision leaking.
+            _hd = headline_deviations(t["picks_by_round"], league_size, top=1)
+            _st = [dict(p, dv=classify_pick(p["delta"], league_size),
+                        context=position_order_context(_adp, analysis_picks, p))
+                   for p in _hd["special_teams"][:2]]
             recap_by_rid[t["roster_id"]] = {
                 "picks": _picks,
-                "biggest_reach": (dict(br, dv=classify_pick(br["delta"], league_size))
-                                  if br and br["delta"] <= -league_size else None),
-                "biggest_steal": (dict(bs, dv=classify_pick(bs["delta"], league_size))
-                                  if bs and bs["delta"] >= league_size else None),
+                "biggest_reach": (dict(_hd["skill_reaches"][0],
+                                       dv=classify_pick(_hd["skill_reaches"][0]["delta"],
+                                                        league_size))
+                                  if _hd["skill_reaches"] else None),
+                "biggest_steal": (dict(_hd["skill_steals"][0],
+                                       dv=classify_pick(_hd["skill_steals"][0]["delta"],
+                                                        league_size))
+                                  if _hd["skill_steals"] else None),
+                "special_teams": _st,
             }
+
+    # Common Tactical Picture: a Commissioner preview when one is approved,
+    # a computed Scout View when there is not, and nothing at all when the
+    # matchup genuinely has nothing to say for itself.
+    from leaguepage.model_views import scout_view
+
+    moves_ctx_by_rid = {rid: [_move_ctx(r) for r in rows]
+                        for rid, rows in tx_by_rid.items()}
+    if computed:
+        by_anchor = {sm["matchup"]["matchup_slug"]: sm for sm in computed["scored"]}
+        for card in cards:
+            sm = by_anchor.get(card["anchor"])
+            card["scout"] = (
+                None if card["preview_html"] or not sm else
+                scout_view(sm["matchup"], profile=profile,
+                           names={rid: v["name"] or f"Roster {rid}"
+                                  for rid, v in names.items()},
+                           tags=card["tags"], moves_by_rid=moves_ctx_by_rid,
+                           recap_by_rid=recap_by_rid))
+    render("matchups/index.html", "public/matchups.html", 2,
+           cards=cards, week=week, current_nav="Common Tactical Picture")
+
+    # Peer and Near-Peer: the Commissioner's ranking is authoritative when it
+    # exists; the Model Board fills the page when it does not, and stays on
+    # as a comparison column when it does, because the disagreement is the
+    # entertaining part.
+    from leaguepage.model_views import compare_to_commissioner, model_board
+
+    board = model_board(profile=profile,
+                        names={rid: v["name"] or f"Roster {rid}"
+                               for rid, v in names.items()},
+                        slugs=slugs, standings=standings, form=form,
+                        weeks_played=weeks_played_league)
+    if ranking_ctx:
+        ranking_ctx = compare_to_commissioner(board, ranking_ctx)
+    render("power/index.html", "public/power.html", 2,
+           rankings=ranking_ctx, label=label, board=board,
+           current_nav="Peer and Near-Peer")
 
     team_cards = []
     for r in storage.get_rosters(league.league_id):
@@ -654,8 +713,15 @@ def build_league(
             {"label": "Lowest single-week score", "holder": names[lo[0]]["name"] or f"Roster {lo[0]}",
              "value": f"{lo[2]:g}", "when": f"week {lo[1]}"},
         ]
+    from leaguepage.model_views import black_box_preview
+
     render("black-box/index.html", "public/blackbox.html", 2,
            records=records, population=population,
+           watching=black_box_preview(profile=profile,
+                                      names={rid: v["name"] or f"Roster {rid}"
+                                             for rid, v in names.items()},
+                                      reaches=reaches_ctx, steals=steals_ctx,
+                                      weeks_played=weeks_played_league),
            editorial_sections=_published_module_sections(snaps, "blackbox"),
            current_nav="Black Box")
 

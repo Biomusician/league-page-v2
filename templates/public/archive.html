@@ -22,5 +22,14 @@
   {% endfor %}
 </section>
 {% endfor %}
-{% if not published and not historical_groups %}<p>Nothing archived yet.</p>{% endif %}
+{% if not published and not historical_groups %}
+<p>No issues yet. The archive is the point of this site — every issue is
+frozen the day it publishes and stays exactly as it was written, corrections
+recorded beside the original rather than over it. The first one lands here as
+soon as it goes out.</p>
+<p>In the meantime the league's own record is already live:
+  <a href="{{ lroot }}draft/index.html">the draft board</a>,
+  <a href="{{ lroot }}teams/index.html">every roster</a> and
+  <a href="{{ lroot }}standings/index.html">the standings</a>.</p>
+{% endif %}
 {% endblock %}

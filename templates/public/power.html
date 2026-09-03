@@ -1,20 +1,72 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Peer and Near-Peer Competition{% endblock %}
+{% block extra_css %}
+  .modelnote { font-size:.85rem; padding:.55rem .85rem; border-radius:3px;
+               margin:.4rem 0 1rem; }
+  .board .row { display:flex; gap:.7rem; align-items:baseline; flex-wrap:wrap; }
+  .board .rk { font-size:1.3rem; font-weight:bold; min-width:2.2rem; }
+  .board .facts { font-size:.88rem; margin:.35rem 0 0; }
+  .board .facts b { font-weight:normal; font-variant:small-caps; letter-spacing:.06em; }
+  .gap { font-size:.78rem; }
+{% if league and league.theme == "disco" %}
+  .modelnote { background:#1c2229; border-left:4px solid #8fa8b8; color:#c9c4b4; }
+  .board .rk { color:#e8a33d; }
+{% else %}
+  .modelnote { background:#10293f; border-left:4px solid #58b6f0; color:#c2d2e0; }
+  .board .rk { color:#facd00; }
+{% endif %}
+{% endblock %}
 {% block content %}
 <h2 class="section-label">Peer and Near-Peer Competition</h2>
+
 {% if rankings %}
-<p class="meta">The commissioner's editorial ranking ({{ label }}). It is a judgment, published as one.</p>
+<p class="meta">The Commissioner's editorial ranking ({{ label }}). It is a
+judgment, published as one.</p>
 {% for r in rankings %}
 <div class="card">
   <p style="margin:.1rem 0"><strong>#{{ r.rank }} {{ r.name }}</strong>
     {% if r.movement %}<span class="tag">{{ r.movement }}</span>{% endif %}
     {% if r.tier_name %}<span class="tag prom">{{ r.tier_name }}</span>{% endif %}
+    {% if r.model_rank %}<span class="tag gap">model #{{ r.model_rank }}</span>{% endif %}
   </p>
-  <p class="meta">{{ r.record }}</p>
+  <p class="meta">{{ r.record }}{% if r.model_gap_label %} · {{ r.model_gap_label }}{% endif %}</p>
   {% if r.note %}<p>{{ r.note }}</p>{% endif %}
 </div>
 {% endfor %}
+{% if board.rows %}
+<p class="meta">Model rank is the deterministic board below the Commissioner's,
+shown for comparison. {{ board.basis }}</p>
+{% endif %}
+
+{% elif board.rows %}
+<div class="modelnote">
+  <b>Model view · Commissioner rankings not yet published.</b>
+  This board is computed from synced data — nobody wrote it, and it makes no
+  claim to be anyone's opinion. {{ board.basis }} When the Commissioner
+  publishes his ranking it takes this page over, and the model stays on as a
+  comparison column.
+</div>
+<h2 class="section-label">Model Board</h2>
+<div class="board">
+{% for r in board.rows %}
+<div class="card">
+  <div class="row">
+    <span class="rk">{{ r.rank }}</span>
+    <strong>{% if r.slug %}<a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</strong>
+    <span class="tag prom">{{ r.tier }}</span>
+    {% if r.record %}<span class="meta">{{ r.record }}</span>{% endif %}
+  </div>
+  <p class="facts">
+    {% if r.strongest %}<b>strongest room</b> {{ r.strongest }}{% endif %}
+    {% if r.weakest %} · <b>weakest</b> {{ r.weakest }}{% endif %}
+  </p>
+  {% if r.factor %}<p class="facts">{{ r.factor }}</p>{% endif %}
+</div>
+{% endfor %}
+</div>
+
 {% else %}
-<p>No ranking has been published yet this season.</p>
+<p>No ranking has been published yet, and there is not enough roster data to
+compute one. Both arrive with the first sync of the season.</p>
 {% endif %}
 {% endblock %}

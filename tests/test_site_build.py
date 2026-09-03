@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -324,3 +325,80 @@ def test_standings_playoff_picture_preseason_honest(site_env):
     assert "Playoff Picture" in st
     assert "opens after" in st or "playoff spots" in st   # too-early note, no fake odds
     assert "%" not in st.split("Playoff Picture")[1][:400]
+
+
+# ------------------------------------------------- no public dead ends
+
+PRIMARY_ROUTES = ("index.html", "matchups/index.html", "power/index.html",
+                  "transactions/index.html", "draft/index.html",
+                  "black-box/index.html", "standings/index.html",
+                  "teams/index.html", "archive/index.html")
+
+MUST_BE_SUBSTANTIVE = ("index.html", "matchups/index.html", "power/index.html",
+                       "black-box/index.html", "standings/index.html",
+                       "teams/index.html", "draft/index.html")
+
+DEAD_END_STRINGS = ("Preview pending", "No ranking has been published",
+                    "Coming soon", "TBD", "TODO",
+                    "Not enough recorded weeks to claim any records")
+
+
+def test_no_primary_route_is_a_dead_end(site_env):
+    """Every tab in the nav must answer a click with something.
+
+    The state that shipped: eleven matchups saying "Preview pending.", both
+    Peer and Near-Peer pages saying "No ranking has been published yet", and
+    a Black Box that just shrugged."""
+    db, tmp = site_env
+    _build(db, tmp)
+    for slug in ("disco", "surfeit"):
+        for route in PRIMARY_ROUTES:
+            page = (tmp / "dist" / slug / route).read_text(encoding="utf-8")
+            for bad in DEAD_END_STRINGS:
+                assert bad not in page, f"{slug}/{route} is a dead end: {bad!r}"
+            body = re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", page)
+            body = re.sub(r"<[^>]+>", " ", body.split("<main")[-1])
+            # Routes that must carry real analysis in every season state,
+            # versus index pages whose job is to be a list of links.
+            floor = 40 if route in MUST_BE_SUBSTANTIVE else 20
+            assert len(body.split()) > floor, f"{slug}/{route} has almost no content"
+
+
+def test_matchups_show_scout_view_when_no_preview_is_approved(site_env):
+    db, tmp = site_env
+    _build(db, tmp)
+    page = (tmp / "dist" / "surfeit" / "matchups" / "index.html").read_text(encoding="utf-8")
+    assert "Scout view" in page
+    assert "computed, not the Commissioner" in page
+    assert "Why this matchup is interesting" in page
+
+
+def test_power_page_shows_the_model_board_with_its_disclosure(site_env):
+    db, tmp = site_env
+    _build(db, tmp)
+    page = (tmp / "dist" / "disco" / "power" / "index.html").read_text(encoding="utf-8")
+    assert "Model view · Commissioner rankings not yet published" in page
+    assert "Model Board" in page
+    assert "nobody wrote it" in page
+    assert "strongest room" in page
+
+
+def test_team_draft_recap_never_headlines_a_kicker(site_env):
+    """The calibration decision, applied where it was leaking.
+
+    Overall ECR puts every K and DST below the draftable range, so their
+    deltas measure the reference board, not a roster decision. The Draft
+    page already excluded them from headline Reaches; team pages did not."""
+    db, tmp = site_env
+    _build(db, tmp)
+    for slug, teams in (("surfeit", 10), ("disco", 12)):
+        for rid in range(1, teams + 1):
+            path = tmp / "dist" / slug / "team" / f"team-{rid}" / "index.html"
+            if not path.exists():
+                continue
+            page = path.read_text(encoding="utf-8")
+            if "Biggest Reach" not in page:
+                continue
+            headline = page.split("Biggest Reach")[1][:400]
+            assert ">K<" not in headline and ">DEF<" not in headline
+            assert "Headline Reach and Steal cover QB/RB/WR/TE" in page
