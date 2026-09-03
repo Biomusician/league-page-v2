@@ -345,7 +345,16 @@ class Storage:
         added = {
             "archive_issues": ["doc_created TEXT", "doc_modified TEXT",
                                "dating_confidence TEXT", "dating_note TEXT"],
-            "takes": ["context TEXT", "author TEXT", "players TEXT", "topic TEXT"],
+            # Takes gained a lifecycle in the 2026-09-03 tranche. roster_id is
+            # the stable subject link: team slugs derive from the public name
+            # and move on a rename, which would orphan a take.
+            "takes": ["context TEXT", "author TEXT", "players TEXT", "topic TEXT",
+                      "issue_key TEXT", "subject_type TEXT", "subject_name TEXT",
+                      "subject_roster_id INTEGER", "review_after TEXT",
+                      "review_week INTEGER", "verbatim INTEGER DEFAULT 1",
+                      "evidence TEXT", "last_evaluated_at TEXT",
+                      "recommended_status TEXT", "public INTEGER DEFAULT 0",
+                      "href TEXT", "note TEXT"],
             "story_decisions": ["route TEXT"],  # lowdown | matchup | award | blackbox | custom
             "issues": ["theme TEXT"],           # optional issue-wide gimmick
         }
@@ -643,7 +652,16 @@ class Storage:
     # A take stores the exact original wording forever; later evaluation goes
     # in status/resolution so assertion and judgment stay separately auditable.
 
-    TAKE_STATUSES = ("open", "validated", "contradicted", "retired", "too_early")
+    # The lifecycle deliberately puts two hedged rungs between "open" and a
+    # verdict. A take that loses one week is not wrong; a system that says so
+    # stops being funny and starts being stupid.
+    TAKE_STATUSES = ("open", "too_early", "leaning_right", "leaning_wrong",
+                     "resolved_right", "resolved_wrong", "void")
+    UNSETTLED_STATUSES = ("open", "too_early", "leaning_right", "leaning_wrong")
+    # Pre-lifecycle vocabulary, migrated on read so old rows keep their meaning.
+    _STATUS_ALIASES = {"validated": "resolved_right",
+                       "contradicted": "resolved_wrong",
+                       "retired": "void"}
 
     def add_take(
         self,
@@ -659,34 +677,122 @@ class Storage:
         players: list[str] | None = None,
         topic: str | None = None,
         confidence: str | None = None,
+        issue_key: str | None = None,
+        subject_type: str | None = None,
+        subject_name: str | None = None,
+        subject_roster_id: int | None = None,
+        review_after: str | None = None,
+        review_week: int | None = None,
+        verbatim: bool = True,
+        href: str | None = None,
+        note: str | None = None,
     ) -> int:
         with self._cursor() as cur:
             cur.execute(
-                "INSERT INTO takes (league_slug, season, week, context, source, author, subject, "
-                "players, topic, quote, confidence, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO takes (league_slug, season, week, context, source, author, "
+                "subject, players, topic, quote, confidence, created_at, issue_key, "
+                "subject_type, subject_name, subject_roster_id, review_after, "
+                "review_week, verbatim, href, note) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (league_slug, season, week, context, source, author, subject,
-                 json.dumps(players) if players else None, topic, quote, confidence, utcnow_iso()),
+                 json.dumps(players) if players else None, topic, quote, confidence,
+                 utcnow_iso(), issue_key, subject_type, subject_name,
+                 subject_roster_id, review_after, review_week, 1 if verbatim else 0,
+                 href, note),
             )
             return cur.lastrowid
 
-    def resolve_take(self, take_id: int, status: str, resolution: str | None = None) -> None:
-        if status not in self.TAKE_STATUSES or status == "open":
+    def _canon_status(self, status: str) -> str:
+        return self._STATUS_ALIASES.get(status, status)
+
+    def set_take_status(self, take_id: int, status: str,
+                        resolution: str | None = None, *,
+                        by_commissioner: bool = True) -> None:
+        """Move a take along the lifecycle. `open` is a legal destination:
+        a Commissioner reopening a take the engine leaned on is the whole
+        point of him being editorially authoritative."""
+        status = self._canon_status(status)
+        if status not in self.TAKE_STATUSES:
             raise ValueError(f"Invalid take status {status!r}")
+        settled = status in ("resolved_right", "resolved_wrong", "void")
         with self._cursor() as cur:
             cur.execute(
-                "UPDATE takes SET status=?, resolution=?, resolved_at=? WHERE take_id=?",
-                (status, resolution, utcnow_iso(), take_id),
+                "UPDATE takes SET status=?, resolution=COALESCE(?, resolution), "
+                "resolved_at=? WHERE take_id=?",
+                (status, resolution, utcnow_iso() if settled else None, take_id),
             )
 
-    def open_takes(self, league_slug: str) -> list[dict]:
-        """Takes still awaiting a verdict — 'too_early' means looked at, not settled."""
-        rows = self._conn.execute(
-            "SELECT * FROM takes WHERE league_slug = ? AND status IN ('open', 'too_early') "
-            "ORDER BY created_at",
-            (league_slug,),
-        ).fetchall()
-        return [dict(r) for r in rows]
+    def resolve_take(self, take_id: int, status: str, resolution: str | None = None) -> None:
+        """Backwards-compatible entry point; `open` is not a resolution."""
+        if self._canon_status(status) == "open":
+            raise ValueError("Invalid take status 'open'")
+        self.set_take_status(take_id, status, resolution)
+
+    def record_take_evaluation(self, take_id: int, *, recommended_status: str,
+                               evidence: list[str]) -> None:
+        """Persist what the engine computed. This never touches `status`:
+        the recommendation and the Commissioner's verdict stay separate
+        columns so a disagreement is visible rather than silently lost."""
+        rec = self._canon_status(recommended_status)
+        if rec not in self.TAKE_STATUSES:
+            raise ValueError(f"Invalid recommended status {rec!r}")
+        with self._cursor() as cur:
+            cur.execute(
+                "UPDATE takes SET recommended_status=?, evidence=?, "
+                "last_evaluated_at=? WHERE take_id=?",
+                (rec, json.dumps(evidence), utcnow_iso(), take_id))
+
+    def set_take_public(self, take_id: int, public: bool) -> None:
+        with self._cursor() as cur:
+            cur.execute("UPDATE takes SET public=? WHERE take_id=?",
+                        (1 if public else 0, take_id))
+
+    def get_take(self, take_id: int) -> dict | None:
+        row = self._conn.execute("SELECT * FROM takes WHERE take_id=?",
+                                 (take_id,)).fetchone()
+        return self._take_row(row) if row else None
+
+    def delete_take(self, take_id: int) -> None:
+        with self._cursor() as cur:
+            cur.execute("DELETE FROM takes WHERE take_id=?", (take_id,))
+
+    def _take_row(self, row) -> dict:
+        d = dict(row)
+        d["status"] = self._canon_status(d.get("status") or "open")
+        try:
+            d["players"] = json.loads(d["players"]) if d.get("players") else []
+        except (TypeError, ValueError):
+            d["players"] = []
+        try:
+            d["evidence"] = json.loads(d["evidence"]) if d.get("evidence") else []
+        except (TypeError, ValueError):
+            d["evidence"] = []
+        d["verbatim"] = bool(d.get("verbatim", 1))
+        d["public"] = bool(d.get("public", 0))
+        return d
+
+    def open_takes(self, league_slug: str, season: str | None = None) -> list[dict]:
+        """Takes still awaiting a verdict. 'too_early' and the two 'leaning'
+        rungs all mean looked at, not settled."""
+        marks = ",".join("?" * len(self.UNSETTLED_STATUSES))
+        q = f"SELECT * FROM takes WHERE league_slug=? AND status IN ({marks})"
+        params: list = [league_slug, *self.UNSETTLED_STATUSES]
+        if season:
+            q += " AND season=?"
+            params.append(season)
+        q += " ORDER BY created_at"
+        return [self._take_row(r) for r in self._conn.execute(q, params).fetchall()]
+
+    def public_takes(self, league_slug: str, season: str | None = None) -> list[dict]:
+        """Takes the Commissioner has explicitly cleared for public surfaces.
+        Nothing reaches a reader without this flag being set by hand."""
+        q = "SELECT * FROM takes WHERE league_slug=? AND public=1"
+        params: list = [league_slug]
+        if season:
+            q += " AND season=?"
+            params.append(season)
+        q += " ORDER BY created_at"
+        return [self._take_row(r) for r in self._conn.execute(q, params).fetchall()]
 
     def all_takes(self, league_slug: str, season: str | None = None) -> list[dict]:
         q = "SELECT * FROM takes WHERE league_slug = ?"
@@ -695,7 +801,7 @@ class Storage:
             q += " AND season = ?"
             params.append(season)
         q += " ORDER BY created_at"
-        return [dict(r) for r in self._conn.execute(q, params).fetchall()]
+        return [self._take_row(r) for r in self._conn.execute(q, params).fetchall()]
 
     # -- commissioner decisions ----------------------------------------
 

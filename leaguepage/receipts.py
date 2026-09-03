@@ -305,8 +305,33 @@ def live_receipts(storage: Storage, league: League, season: str, week: int,
 
 def front_page_receipt(storage: Storage, league: League, season: str, week: int,
                        snaps: list[dict], names: dict[int, dict]) -> dict | None:
-    """The one receipt the front page carries, or None. Records the
-    surfacing so next week reaches for a different one."""
+    """The one receipt the front page carries, or None.
+
+    Structured Takes come first: those are claims the Commissioner
+    deliberately marked and cleared, which is a stronger thing to print than
+    a sentence a regex noticed. The archive-derived heuristic is the
+    fallback for weeks when no tracked take has moved."""
+    from leaguepage import takes as takes_mod
+
+    public = {rid: v["name"] or f"Roster {rid}" for rid, v in names.items()}
+    log = shown_weeks(storage, league.slug, season)
+    tracked = [r for r in takes_mod.public_receipts(storage, league, season, public)
+               if not _recently_shown(log, f"take:{r['take_id']}", week)]
+    if tracked:
+        r = tracked[0]
+        record_shown(storage, league.slug, season, f"take:{r['take_id']}", week)
+        verb = "wrote" if r["verbatim"] else "wrote, in substance"
+        return {
+            "claim": (f"“{r['quote']}”" if r["verbatim"] else r["quote"]),
+            "status": r["status"],
+            "status_note": f"{r['evidence'][0]} — {r['when']}, he {verb} this.",
+            "href": r["href"],
+            "cta": r["issue_label"],
+            "weight": 90 if r["settled"] else 84,
+            "claim_id": f"take:{r['take_id']}",
+            "verbatim": r["verbatim"],
+        }
+
     live = live_receipts(storage, league, season, week, snaps, names)
     if not live:
         return None
@@ -327,5 +352,52 @@ def front_page_receipt(storage: Storage, league: League, season: str, week: int,
 def receipts_for_team(storage: Storage, league: League, season: str, week: int,
                       snaps: list[dict], names: dict[int, dict], rid: int,
                       *, limit: int = 2) -> list[dict]:
-    return [r for r in live_receipts(storage, league, season, week, snaps, names)
-            if r["roster_id"] == rid][:limit]
+    """Tracked takes about this team first, archive-derived ones after."""
+    from leaguepage import takes as takes_mod
+
+    public = {r_: v["name"] or f"Roster {r_}" for r_, v in names.items()}
+    out = []
+    for r in takes_mod.public_receipts(storage, league, season, public):
+        if r["subject_roster_id"] != rid:
+            continue
+        out.append({
+            "roster_id": rid, "quote": r["quote"], "verbatim": r["verbatim"],
+            "status": r["status"], "status_note": r["evidence"][0],
+            "href": r["href"], "issue_label": r["issue_label"],
+            "team": public.get(rid, ""), "tracked": True,
+        })
+    for r in live_receipts(storage, league, season, week, snaps, names):
+        if r["roster_id"] == rid:
+            out.append({**r, "verbatim": True, "tracked": False})
+    return out[:limit]
+
+
+def receipts_for_matchup(storage: Storage, league: League, season: str,
+                         week: int, names: dict[int, dict],
+                         roster_ids: list[int]) -> dict | None:
+    """One excellent past statement for a matchup, or nothing.
+
+    Deliberately capped at one. A matchup card carrying three old quotes is
+    a scrapbook, not a callback."""
+    from leaguepage import takes as takes_mod
+
+    public = {r_: v["name"] or f"Roster {r_}" for r_, v in names.items()}
+    log = shown_weeks(storage, league.slug, season)
+    best = None
+    for r in takes_mod.public_receipts(storage, league, season, public):
+        if r["subject_roster_id"] not in roster_ids:
+            continue
+        if _recently_shown(log, f"take:{r['take_id']}", week):
+            continue
+        best = r
+        break
+    if best is None:
+        return None
+    record_shown(storage, league.slug, season, f"take:{best['take_id']}", week)
+    return {
+        "quote": best["quote"], "verbatim": best["verbatim"],
+        "attribution": best["attribution"], "when": best["when"],
+        "status": best["status"], "evidence": best["evidence"],
+        "href": best["href"], "issue_label": best["issue_label"],
+        "subject_name": best["subject_name"],
+    }

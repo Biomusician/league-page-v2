@@ -35,13 +35,50 @@ def test_take_lifecycle(storage):
     # too_early keeps it in the open queue — looked at, not settled
     storage.resolve_take(take_id, "too_early")
     assert len(storage.open_takes("surfeit")) == 1
+    # 'contradicted' is the pre-lifecycle vocabulary; it maps to the
+    # canonical status rather than being rejected, so old rows keep meaning.
     storage.resolve_take(take_id, "contradicted", "RB room ranked 10th by week 6.")
     assert storage.open_takes("surfeit") == []
     resolved = storage.all_takes("surfeit", "2026")[0]
     # original wording survives evaluation untouched
     assert resolved["quote"] == "Deepest RB room in the league."
-    assert resolved["status"] == "contradicted"
+    assert resolved["status"] == "resolved_wrong"
     assert resolved["resolution"] == "RB room ranked 10th by week 6."
+    assert resolved["resolved_at"]
+
+
+def test_legacy_take_vocabulary_maps_to_the_lifecycle(storage):
+    for legacy, canonical in (("validated", "resolved_right"),
+                              ("contradicted", "resolved_wrong"),
+                              ("retired", "void")):
+        tid = storage.add_take(league_slug="disco", season="2026", week=1,
+                               source="lowdown", subject="t", quote=f"q {legacy}")
+        storage.resolve_take(tid, legacy)
+        assert storage.get_take(tid)["status"] == canonical
+
+
+def test_the_engine_recommendation_never_overwrites_the_verdict(storage):
+    """The whole point of two columns: a disagreement stays visible."""
+    tid = storage.add_take(league_slug="disco", season="2026", week=1,
+                           source="lowdown", subject="t", quote="A claim.")
+    storage.set_take_status(tid, "leaning_right")
+    storage.record_take_evaluation(tid, recommended_status="leaning_wrong",
+                                   evidence=["RB room now #10 of 12"])
+    t = storage.get_take(tid)
+    assert t["status"] == "leaning_right"
+    assert t["recommended_status"] == "leaning_wrong"
+    assert t["evidence"] == ["RB room now #10 of 12"]
+
+
+def test_a_take_is_private_until_it_is_deliberately_made_public(storage):
+    tid = storage.add_take(league_slug="disco", season="2026", week=1,
+                           source="lowdown", subject="t", quote="A claim.")
+    assert storage.get_take(tid)["public"] is False
+    assert storage.public_takes("disco", "2026") == []
+    storage.set_take_public(tid, True)
+    assert [t["take_id"] for t in storage.public_takes("disco", "2026")] == [tid]
+    storage.set_take_public(tid, False)
+    assert storage.public_takes("disco", "2026") == []
 
 
 def test_take_invalid_status_rejected(storage):

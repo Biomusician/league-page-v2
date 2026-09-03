@@ -171,6 +171,18 @@ def _run_stages(job: dict, s: Storage) -> None:
         stored = record_transaction_contexts(s, r.league)
         if stored:
             ctx_bits.append(f"{r.league.slug}: {stored} new move context(s)")
+        # Re-read every open take against the new state. Persisted here so the
+        # public build and the Desk both read a stored result rather than
+        # recomputing; timed for the same reason as everything else in Sync.
+        from leaguepage import takes as takes_mod
+
+        t0 = time.monotonic()
+        evaluated = takes_mod.evaluate_all(s, r.league, season, int(week or 1))
+        _timing(job, f"takes_eval:{r.league.slug}", time.monotonic() - t0)
+        moved = [e for e in evaluated
+                 if e["recommended_status"] != (e.get("status") or "open")]
+        if moved:
+            ctx_bits.append(f"{r.league.slug}: {len(moved)} receipt(s) ready")
     ctx_st["status"] = "ok"
     ctx_st["detail"] = "; ".join(ctx_bits) or "up to date"
 

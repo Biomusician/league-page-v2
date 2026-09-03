@@ -26,6 +26,7 @@ from fastapi import Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from leaguepage import pubqa
+from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
 from leaguepage.issue_builder import (
     BLOCKED_MARKERS, assemble_issue, issue_dir, module_states,
@@ -112,6 +113,28 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                          f"— write it or exclude it from this issue.")
             out.append({"text": w, "anchor": anchor, "kind": kind,
                         "module_key": module_key})
+        return out
+
+    def _takes_rows(league_slug: str, season: str) -> list[dict]:
+        """Tracked takes with the engine's last reading attached. A receipt
+        is 'ready' when the engine has leaned one way and the Commissioner
+        has not yet ruled."""
+        with storage() as s:
+            rows = s.all_takes(league_slug, season)
+        out = []
+        for t in rows:
+            rec = t.get("recommended_status")
+            out.append({
+                **t,
+                "status_label": takes_mod.STATUS_LABELS.get(t["status"], t["status"]),
+                "recommended_label": takes_mod.STATUS_LABELS.get(rec) if rec else None,
+                "why": t.get("resolution"),
+                "receipt_ready": bool(
+                    rec in (takes_mod.LEANING_RIGHT, takes_mod.LEANING_WRONG,
+                            takes_mod.RESOLVED_RIGHT, takes_mod.RESOLVED_WRONG)
+                    and rec != t["status"]),
+            })
+        out.sort(key=lambda t: (not t["receipt_ready"], t["take_id"]))
         return out
 
     def _editor_context(league_slug: str, season: str, issue_key: str) -> dict:
@@ -211,6 +234,12 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             "league": league, "season": season, "issue_key": issue_key, "week": week,
             "cards": cards, "matchup_cards": matchup_cards, "blockers": blockers,
             "qa": qa,
+            "takes_rows": _takes_rows(league_slug, season),
+            "take_topics": takes_mod.TOPICS,
+            "take_statuses": [(k, takes_mod.STATUS_LABELS[k])
+                              for k in takes_mod.STATUS_LABELS],
+            "take_horizons": list(takes_mod.HORIZON_LABELS.items()),
+            "base_takes": f"/commissioner/{league_slug}/{season}/take",
             "issue_row": issue_row, "name_rows": name_rows,
             "open_request_count": len(open_requests),
             "base": base, "edit_base": f"{base}/edit",
@@ -511,6 +540,162 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-team-names",
             status_code=303)
+
+    # ------------------------------------------------------------ takes
+
+    def _take_context(league, season: str) -> dict:
+        """Everything take inference needs, computed once per request."""
+        from leaguepage.pubqa import _norm_tokens
+        from leaguepage.site_build import _team_slugs
+
+        with storage() as s:
+            names = resolve_public_names(s, league)
+            public = {rid: v["name"] or f"Roster {rid}" for rid, v in names.items()}
+            slugs = _team_slugs(s, league, names)
+            players: dict[str, str] = {}
+            for r in s.get_rosters(league.league_id):
+                for pid in (r.get("players") or []):
+                    p = s.get_player(pid) or {}
+                    if p.get("full_name"):
+                        players.setdefault(p["full_name"],
+                                           (p.get("position") or "").upper())
+            drafts = s.get_drafts_for_league(league.league_id)
+            if drafts:
+                for p in s.get_draft_picks(drafts[0]["draft_id"]):
+                    meta = p.get("metadata") or {}
+                    nm = " ".join(x for x in (meta.get("first_name"),
+                                              meta.get("last_name")) if x).strip()
+                    if nm:
+                        players.setdefault(nm, (meta.get("position") or "").upper())
+            settings = (s.get_league(league.league_id) or {}).get("settings") or {}
+        return {"name_tokens": {rid: _norm_tokens(nm) for rid, nm in public.items()},
+                "public_names": public, "slugs": slugs,
+                "player_positions": players,
+                "author_roster_id": league.author_roster_id,
+                "playoff_week_start": settings.get("playoff_week_start")}
+
+    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/take")
+    async def track_take(request: Request, league_slug: str, season: str, issue_key: str):
+        """Track this take.
+
+        Metadata the Commissioner left blank is inferred; anything he typed
+        wins. `verbatim` records whether the quote is the published text
+        unchanged — a paraphrase must never be presented to a reader as a
+        quotation, and the public renderer reads this flag."""
+        from leaguepage import takes as takes_mod
+
+        body = await request.json()
+        quote = str(body.get("quote") or "").strip()
+        if not quote:
+            return JSONResponse({"ok": False, "error": "a take needs a quote"},
+                                status_code=400)
+        league = get_league(league_slug)
+        ctx = _take_context(league, season)
+        section = str(body.get("section") or "lowdown")
+
+        # Is this the published text, unchanged? Compare against the section
+        # source rather than trusting a checkbox.
+        source = _read(_section_path(league, season, issue_key, section)) or ""
+        verbatim = bool(quote) and " ".join(quote.split()) in " ".join(source.split())
+
+        subject_rid = body.get("subject_roster_id")
+        subject_rid = int(subject_rid) if str(subject_rid or "").isdigit() else None
+        if subject_rid is None:
+            inferred = takes_mod.infer_subject(
+                quote, name_tokens=ctx["name_tokens"],
+                public_names=ctx["public_names"], slugs=ctx["slugs"])
+            subject_rid = inferred.get("subject_roster_id")
+            subject_type = inferred.get("subject_type") or "league"
+            # A capsule sentence names its team in the heading above it, not
+            # in the sentence. Without this a take tracked straight from the
+            # rankings has no subject and can never be evaluated.
+            if subject_rid is None and source:
+                subject_rid = takes_mod.subject_from_heading(
+                    quote, source, name_tokens=ctx["name_tokens"])
+                if subject_rid is not None:
+                    subject_type = "team"
+        else:
+            subject_type = "team"
+        with storage() as s:
+            take_id = takes_mod.create_take(
+                s, league, season, quote=quote, issue_key=issue_key,
+                section=section, week=_week_of(issue_key),
+                topic=(body.get("topic") or None),
+                subject_type=subject_type, subject_roster_id=subject_rid,
+                subject=ctx["slugs"].get(subject_rid) if subject_rid else None,
+                subject_name=ctx["public_names"].get(subject_rid) if subject_rid else None,
+                confidence=(body.get("confidence") or None),
+                review_after=(body.get("review_after") or None),
+                verbatim=verbatim,
+                href=f"{season}/{issue_key}/index.html",
+                note=(body.get("note") or None),
+                players=takes_mod.infer_players(quote, ctx["player_positions"]),
+                playoff_week_start=ctx["playoff_week_start"])
+        return JSONResponse({"ok": True, "take_id": take_id, "verbatim": verbatim})
+
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/take-candidates")
+    def take_candidates(league_slug: str, season: str, issue_key: str):
+        """Possible takes from this issue. Offers only; creates nothing."""
+        import json as _json
+
+        from leaguepage import takes as takes_mod
+        from leaguepage.config import PUBLISHED_DIR
+        from leaguepage.publish import snapshot_family
+
+        league = get_league(league_slug)
+        ctx = _take_context(league, season)
+        family = snapshot_family(PUBLISHED_DIR, league_slug, season, issue_key)
+        if family:
+            snap = _json.loads(family[-1].read_text(encoding="utf-8"))
+            snap["issue_key"] = issue_key
+            snap.setdefault("href", f"{season}/{issue_key}/index.html")
+        else:
+            # Not published yet: offer candidates from the live workspace, so
+            # a take can be tracked while the issue is still being written.
+            with storage() as s:
+                a = assemble_issue(s, league, season, issue_key,
+                                   week=_week_of(issue_key))
+            snap = {"issue_key": issue_key, "issue_label": issue_key,
+                    "href": f"{season}/{issue_key}/index.html",
+                    "sections": [{"module_key": m["module_key"], "title": m["title"],
+                                  "content_md": m.get("content_md") or ""}
+                                 for m in a["sections"] if m.get("content_md")]}
+        with storage() as s:
+            tracked = {t["quote"] for t in s.all_takes(league_slug, season)}
+        cands = takes_mod.candidate_takes(
+            snap, existing_quotes=tracked,
+            **{k: ctx[k] for k in ("name_tokens", "public_names", "slugs",
+                                   "player_positions", "author_roster_id")})
+        return JSONResponse({"candidates": cands})
+
+    @app.post("/commissioner/{league_slug}/{season}/take/{take_id}")
+    async def take_action(request: Request, league_slug: str, season: str,
+                          take_id: int):
+        """Commissioner verdict. The engine's recommendation is untouched by
+        this, so a disagreement stays visible in the ledger."""
+        from leaguepage.storage import Storage as _S
+
+        body = await request.json()
+        action = str(body.get("action") or "")
+        with storage() as s:
+            take = s.get_take(take_id)
+            if not take or take["league_slug"] != league_slug:
+                return JSONResponse({"ok": False, "error": "unknown take"},
+                                    status_code=404)
+            if action == "status":
+                status = str(body.get("status") or "")
+                if status not in _S.TAKE_STATUSES:
+                    return JSONResponse({"ok": False, "error": "bad status"},
+                                        status_code=400)
+                s.set_take_status(take_id, status, body.get("resolution") or None)
+            elif action == "public":
+                s.set_take_public(take_id, bool(body.get("public")))
+            elif action == "delete":
+                s.delete_take(take_id)
+            else:
+                return JSONResponse({"ok": False, "error": "bad action"},
+                                    status_code=400)
+        return JSONResponse({"ok": True})
 
     # -------------------------------------------- publication check panel
 

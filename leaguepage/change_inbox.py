@@ -421,28 +421,40 @@ def receipt_items(storage: Storage, league: League, after: dict,
     """Open takes whose subject just did something. A take is only worth
     resurfacing when new evidence exists, so this reads the current state
     rather than the take table alone."""
+    from leaguepage import takes as takes_mod
+
     out = []
-    slugs = {v: k for k, v in names.items()}
     for t in storage.open_takes(league.slug):
-        subject = t.get("subject") or ""
-        rid = slugs.get(subject)
+        rid = t.get("subject_roster_id")
         if rid is None:
+            rid = {v: k for k, v in names.items()}.get(t.get("subject") or "")
+        name = names.get(rid) or t.get("subject_name") or t.get("subject") or "the league"
+        rec_status = t.get("recommended_status")
+        evidence_lines = t.get("evidence") or []
+        # A tracked claim is only inbox-worthy once the engine has actually
+        # leaned somewhere. An open take with nothing new to say is not news,
+        # and putting it here every week would train him to skip the section.
+        if rec_status not in (takes_mod.LEANING_RIGHT, takes_mod.LEANING_WRONG,
+                              takes_mod.RESOLVED_RIGHT, takes_mod.RESOLVED_WRONG):
             continue
-        rec = _get(after.get("records"), rid) or []
-        stand = _get(after.get("standings"), rid)
+        if rec_status == t.get("status"):
+            continue        # already ruled on; not a new decision for him
+        direction = ("evidence supports it" if rec_status in
+                     (takes_mod.LEANING_RIGHT, takes_mod.RESOLVED_RIGHT)
+                     else "evidence is moving against it")
         out.append(_item(
             f"change:receipt:{t['take_id']}", "receipt",
-            f"Receipt available on {subject}",
-            what_changed="new evidence exists for a tracked claim",
-            before=f"\"{(t.get('quote') or '')[:90]}\"",
-            after=(f"now {'-'.join(str(x) for x in rec)}, {stand}th"
-                   if rec and stand else "current state available"),
-            magnitude=0.55, teams=[subject],
-            facts=[f"Tracked {t.get('context') or 'take'} {t.get('season')}; "
-                   f"status {t.get('status')}."],
+            f"Receipt ready on {name}",
+            what_changed=direction,
+            before=f"\"{(t.get('quote') or '')[:110]}\"",
+            after=(evidence_lines[0] if evidence_lines else "current state available"),
+            magnitude=0.65, teams=[name],
+            facts=([f"Tracked in {t.get('issue_key') or t.get('context') or 'an issue'}; "
+                    f"engine reads it as {takes_mod.STATUS_LABELS.get(rec_status, rec_status)}."]
+                   + list(evidence_lines[:3])),
             evidence=[f"take:{t['take_id']}"],
-            receipt=0.9, receipt_label="an open claim can be checked against results",
-            history=0.4, magnitude_label="a claim is now testable"))
+            receipt=0.95, receipt_label="a tracked claim now has evidence either way",
+            history=0.4, magnitude_label="a claim the Commissioner made is testable"))
     return out
 
 

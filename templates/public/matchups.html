@@ -50,6 +50,16 @@ synced data. It is not a prediction, and it is not his copy.</p>
   <p class="meta"><i>No preview written, and nothing in the data marks this one
   out yet. It goes on the board like everything else.</i></p>
   {% endif %}
+  {% if c.past_statement %}{% set ps = c.past_statement %}
+  <div class="scout receipt">
+    <h3>Past statement · {{ ps.status }}</h3>
+    <p>{% if ps.verbatim %}“{{ ps.quote }}”{% else %}{{ ps.quote }}{% endif %}</p>
+    <p class="meta">{{ ps.when }} — the Commissioner {{ ps.attribution }} this
+      about {{ ps.subject_name }}.
+      <a href="{{ lroot }}{{ ps.href }}">{{ ps.issue_label }} →</a></p>
+    <ul>{% for e in ps.evidence %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
   {% if c.history %}
   <div class="scout history">
     <h3>History</h3>

@@ -1,0 +1,202 @@
+{# Track This Take — the editor affordance.
+   Select a sentence anywhere on the page and the quote prefills; otherwise
+   paste one. Nothing is required except the quote, because a Take the
+   Commissioner could not be bothered to finish is still worth having. #}
+<style>
+  .takes .row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .takes textarea { width:100%; min-height:4.5rem; font-family:Georgia, serif;
+                    font-size:.95rem; }
+  .takes label { font-size:.78rem; letter-spacing:.06em; text-transform:uppercase;
+                 color:var(--muted); display:block; margin:.5rem 0 .15rem; }
+  .takes select, .takes input[type=text] { font-size:.9rem; padding:.3rem; }
+  .takes .field { flex:1 1 9rem; }
+  .takes .hint { font-size:.8rem; color:var(--muted); margin:.35rem 0 0; }
+  .takes .cand { border-top:1px dotted var(--line); padding:.5rem 0; }
+  .takes .cand q { font-style:italic; }
+  .takes .cand .why { font-size:.8rem; color:var(--muted); }
+  .takes .tracked { border:1px solid var(--line); background:#faf8f1;
+                    padding:.5rem .7rem; margin:.4rem 0; }
+  .takes .tracked .q { font-style:italic; }
+  .takes .chipline { display:flex; gap:.35rem; flex-wrap:wrap; margin:.25rem 0; }
+  .takes .ev { font-size:.82rem; color:var(--muted); margin:.15rem 0 0 .2rem; }
+  .takes .para { font-size:.78rem; color:#7a5b18; }
+  @media (max-width:40rem) {
+    .takes .field { flex:1 1 100%; }
+    .takes button, .takes select { min-height:2.6rem; }
+  }
+</style>
+<details class="sec card takes" id="sec-takes">
+  <summary>Takes
+    <span class="chip">{{ takes_rows|length }} tracked</span>
+    {% set ready = takes_rows | selectattr("receipt_ready") | list %}
+    {% if ready %}<span class="chip edited">{{ ready|length }} receipt(s) ready</span>{% endif %}
+  </summary>
+
+  <div class="cardctl">
+    <button type="button" class="primary" onclick="takeFromSelection()">Track this take</button>
+    <span class="hint">Select a sentence first and it fills itself in.</span>
+  </div>
+
+  <div id="takeform" hidden>
+    <label for="tk-quote">Quote</label>
+    <textarea id="tk-quote"></textarea>
+    <p class="hint" id="tk-verbatim"></p>
+    <div class="row">
+      <div class="field">
+        <label for="tk-section">Section</label>
+        <select id="tk-section">
+          {% for m in cards %}<option value="{{ m.module_key }}">{{ m.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="tk-subject">Subject</label>
+        <select id="tk-subject">
+          <option value="">infer from the quote</option>
+          {% for r in name_rows %}
+          <option value="{{ r.roster_id }}">{{ r.public_name or ("Roster " ~ r.roster_id) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="tk-topic">Topic</label>
+        <select id="tk-topic">
+          <option value="">infer</option>
+          {% for t in take_topics %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="tk-confidence">Confidence</label>
+        <select id="tk-confidence">
+          <option value="">—</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="tk-horizon">Review</label>
+        <select id="tk-horizon">
+          <option value="">—</option>
+          {% for k, label in take_horizons %}<option value="{{ k }}">{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="cardctl">
+      <button type="button" class="primary" onclick="saveTake()">Save take</button>
+      <button type="button" onclick="document.getElementById('takeform').hidden = true">Cancel</button>
+    </div>
+  </div>
+
+  <div class="subcard">
+    <h4>Possible takes from this issue</h4>
+    <p class="hint">Conservative scan of the published text. Nothing here is
+      tracked until you say so.</p>
+    <button type="button" onclick="loadCandidates()">Scan this issue</button>
+    <div id="takecands"></div>
+  </div>
+
+  {% if takes_rows %}
+  <div class="subcard">
+    <h4>Tracked</h4>
+    {% for t in takes_rows %}
+    <div class="tracked" id="take-{{ t.take_id }}">
+      <div class="q">“{{ t.quote }}”</div>
+      <div class="chipline">
+        <span class="chip">{{ t.status_label }}</span>
+        {% if t.recommended_label and t.recommended_status != t.status %}
+        <span class="chip edited">engine says {{ t.recommended_label }}</span>{% endif %}
+        {% if t.subject_name %}<span class="chip">{{ t.subject_name }}</span>{% endif %}
+        {% if t.topic %}<span class="chip">{{ t.topic }}</span>{% endif %}
+        {% if t.review_after %}<span class="chip">review: {{ t.review_after }}</span>{% endif %}
+        {% if not t.verbatim %}<span class="chip notwritten para">paraphrase</span>{% endif %}
+        {% if t.public %}<span class="chip approved">public</span>{% endif %}
+      </div>
+      {% if t.why %}<div class="ev">{{ t.why }}</div>{% endif %}
+      {% for e in t.evidence %}<div class="ev">· {{ e }}</div>{% endfor %}
+      <div class="cardctl">
+        <select id="st-{{ t.take_id }}">
+          {% for k, label in take_statuses %}
+          <option value="{{ k }}" {% if k == t.status %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" onclick="takeAction({{ t.take_id }}, 'status', {status: document.getElementById('st-{{ t.take_id }}').value})">Set</button>
+        <button type="button" onclick="takeAction({{ t.take_id }}, 'public', {public: {{ 'false' if t.public else 'true' }}})">
+          {{ "Unpublish" if t.public else "Allow on the site" }}</button>
+        <button type="button" onclick="if(confirm('Delete this take?')) takeAction({{ t.take_id }}, 'delete', {})">Delete</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</details>
+
+<script>
+const TAKE_URL = {{ (edit_base ~ "/take") | tojson }};
+const TAKE_CANDS = {{ (edit_base ~ "/take-candidates") | tojson }};
+const TAKE_ACTION = {{ (base_takes) | tojson }};
+
+function takeFromSelection() {
+  const sel = (window.getSelection() || "").toString().trim();
+  const form = document.getElementById("takeform");
+  form.hidden = false;
+  if (sel) document.getElementById("tk-quote").value = sel;
+  document.getElementById("tk-verbatim").textContent = "";
+  document.getElementById("tk-quote").focus();
+  form.scrollIntoView({block: "nearest"});
+}
+
+async function saveTake(prefill) {
+  const q = prefill || document.getElementById("tk-quote").value.trim();
+  if (!q) { alert("A take needs a quote."); return; }
+  const body = {
+    quote: q,
+    section: document.getElementById("tk-section").value,
+    subject_roster_id: document.getElementById("tk-subject").value,
+    topic: document.getElementById("tk-topic").value,
+    confidence: document.getElementById("tk-confidence").value,
+    review_after: document.getElementById("tk-horizon").value,
+  };
+  const r = await fetch(TAKE_URL, {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || !data.ok) { alert(data.error || "Could not save that take."); return; }
+  location.reload();
+}
+
+async function trackCandidate(i) {
+  const c = window._takeCands[i];
+  document.getElementById("takeform").hidden = false;
+  document.getElementById("tk-quote").value = c.quote;
+  if (c.section) document.getElementById("tk-section").value = c.section;
+  if (c.topic) document.getElementById("tk-topic").value = c.topic;
+  if (c.subject_roster_id) document.getElementById("tk-subject").value = c.subject_roster_id;
+  document.getElementById("takeform").scrollIntoView({block: "nearest"});
+}
+
+async function loadCandidates() {
+  const box = document.getElementById("takecands");
+  box.textContent = "scanning…";
+  const r = await fetch(TAKE_CANDS);
+  const data = await r.json().catch(() => ({candidates: []}));
+  window._takeCands = data.candidates || [];
+  if (!window._takeCands.length) {
+    box.textContent = "Nothing in this issue reads as a testable claim yet.";
+    return;
+  }
+  box.innerHTML = window._takeCands.map((c, i) =>
+    `<div class="cand"><q>${c.quote.replace(/</g, "&lt;")}</q>
+     <div class="why">${(c.subject_name || "no single subject")} · ${c.topic}
+       · ${c.reasons.join("; ").replace(/</g, "&lt;")}</div>
+     <div class="cardctl"><button type="button" onclick="trackCandidate(${i})">Track</button></div>
+     </div>`).join("");
+}
+
+async function takeAction(id, action, extra) {
+  const r = await fetch(TAKE_ACTION + "/" + id, {method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(Object.assign({action: action}, extra || {}))});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || !data.ok) { alert(data.error || "Could not do that."); return; }
+  location.reload();
+}
+</script>

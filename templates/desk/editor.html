@@ -90,6 +90,8 @@
 
 {% with qa_actions = true %}{% include "desk/_qa_panel.html" %}{% endwith %}
 
+{% include "desk/_takes_panel.html" %}
+
 {% set neutral = name_rows | selectattr("neutral") | list %}
 {% set renamed = name_rows | selectattr("renamed_on_sleeper") | list %}
 <details class="sec card" id="sec-team-names" {% if neutral or renamed %}open{% endif %}>

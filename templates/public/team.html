@@ -78,7 +78,8 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
     {% for r in b.receipts %}
     <div class="receipt">
       <span class="tag">{{ r.status }}</span>
-      <blockquote>“{{ r.quote }}”</blockquote>
+      {% if r.verbatim %}<blockquote>“{{ r.quote }}”</blockquote>
+      {% else %}<blockquote>{{ r.quote }} <span class="meta">(paraphrased)</span></blockquote>{% endif %}
       <span class="meta">{{ r.status_note }} — <a href="{{ lroot }}{{ r.href }}">{{ r.issue_label }}</a></span>
     </div>
     {% endfor %}

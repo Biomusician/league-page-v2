@@ -850,3 +850,65 @@ def unignore_finding(storage: Storage, league_slug: str, season: str,
     current.discard(finding_id)
     storage.set_meta(_ignore_key(league_slug, season, issue_key),
                      json.dumps(sorted(current)))
+
+
+# ------------------------------------------------------------- receipts
+#
+# A receipt is a quotation of the Commissioner attached to a verdict, which
+# makes it the highest-consequence thing this site publishes. The gate
+# checks the things that would make one dishonest rather than merely ugly.
+
+RECEIPT_REQUIRED = ("quote", "href", "issue_key")
+
+
+def check_receipts(receipts: list[dict], ctx: QAContext) -> list[Finding]:
+    """Validate publishable receipts before they can reach a reader.
+
+    The paraphrase rule is the important one: a take the Commissioner edited
+    when he tracked it is not a quotation, and presenting it as one puts
+    words in his mouth in his own archive."""
+    out: list[Finding] = []
+    for r in receipts:
+        label = (r.get("quote") or "")[:60]
+        for field in RECEIPT_REQUIRED:
+            if not r.get(field):
+                out.append(Finding(
+                    IDENTITY, BLOCKER, "Receipt is missing provenance",
+                    f"A public receipt needs its {field}: a quotation without "
+                    "the issue it came from cannot be checked by a reader.",
+                    "receipts", excerpt=label))
+        if r.get("verbatim") is False and r.get("presented_as_quote"):
+            out.append(Finding(
+                IDENTITY, BLOCKER, "Paraphrase presented as a quotation",
+                "This take was edited when it was tracked, so it is not the "
+                "published wording. Public surfaces must mark it as a "
+                "paraphrase rather than wrap it in quotation marks.",
+                "receipts", excerpt=label))
+        for handle in ctx.private_handles:
+            if re.search(rf"\b{re.escape(handle)}\b", r.get("quote") or ""):
+                out.append(Finding(
+                    PRIVACY, BLOCKER, "Private handle inside a receipt",
+                    "The quoted text carries a login handle from the private "
+                    "manager file.", "receipts",
+                    excerpt="(handle withheld from this report)", privacy=True))
+        for field in ("note", "confidence", "recommended_status"):
+            if r.get(field):
+                out.append(Finding(
+                    PRIVACY, BLOCKER, f"Commissioner-only field on a public receipt",
+                    f"'{field}' is private editorial state and must not travel "
+                    "with a receipt to the public build.", "receipts",
+                    excerpt=label, privacy=True))
+        quote = r.get("quote") or ""
+        if _ROSTER_N_RE.search(quote) or _PENDING_NAME_RE.search(quote):
+            out.append(Finding(
+                IDENTITY, BLOCKER, "Unresolved identity inside a receipt",
+                "The quoted text still carries a roster placeholder.",
+                "receipts", excerpt=label))
+        subject = r.get("subject_name")
+        if subject and subject not in ctx.public_names.values():
+            out.append(Finding(
+                FRESHNESS, WARNING, "Receipt names a stale team",
+                f"'{subject}' is not a current public team name.",
+                "receipts", excerpt=label,
+                evidence=[f"current names: {', '.join(sorted(ctx.public_names.values()))}"]))
+    return _dedupe(out)

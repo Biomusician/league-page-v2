@@ -518,6 +518,7 @@ def build_league(
     # matchup genuinely has nothing to say for itself.
     from leaguepage.history import matchup_history
     from leaguepage.model_views import scout_view
+    from leaguepage.receipts import receipts_for_matchup
 
     moves_ctx_by_rid = {rid: [_move_ctx(r) for r in rows]
                         for rid, rows in tx_by_rid.items()}
@@ -538,6 +539,11 @@ def build_league(
                 storage, league, season, week, sm["matchup"],
                 sm.get("story_memory") or {}, public_names,
                 private_handles=handles) if sm else []
+            # One tracked take involving either side, at most. A matchup card
+            # carrying three old quotes is a scrapbook, not a callback.
+            card["past_statement"] = receipts_for_matchup(
+                storage, league, season, week, names,
+                [t["roster_id"] for t in sm["matchup"]["teams"]]) if sm else None
     render("matchups/index.html", "public/matchups.html", 2,
            cards=cards, week=week, current_nav="Common Tactical Picture")
 
@@ -563,7 +569,6 @@ def build_league(
     # accumulate.
     from leaguepage.front_page import season_state
     from leaguepage.pubqa import _norm_tokens
-    from leaguepage.receipts import live_receipts
     from leaguepage.team_briefing import (
         build as build_briefing, editorial_strengths, league_mentions,
         section_order,
@@ -574,9 +579,13 @@ def build_league(
         (league_data.get("settings") or {}).get("playoff_week_start"))
     name_tokens = {rid: _norm_tokens(v["name"]) for rid, v in names.items()
                    if v["name"]}
-    team_receipts_by_rid: dict[int, list[dict]] = {}
-    for _r in live_receipts(storage, league, season, week, snaps, names):
-        team_receipts_by_rid.setdefault(_r["roster_id"], []).append(_r)
+    # Tracked takes first, archive-derived receipts after; receipts_for_team
+    # applies that order and caps the list.
+    from leaguepage.receipts import receipts_for_team
+
+    team_receipts_by_rid = {
+        rid: receipts_for_team(storage, league, season, week, snaps, names, rid)
+        for rid in names}
 
     team_cards = []
     for r in storage.get_rosters(league.league_id):
@@ -810,6 +819,21 @@ def build_league(
     from leaguepage.receipts import front_page_receipt
 
     front_receipt = front_page_receipt(storage, league, season, week, snaps, names)
+    # Nothing about a receipt may reach the build without passing the gate:
+    # provenance, the paraphrase rule, private fields and stale identity are
+    # blockers here exactly as they are inside an issue.
+    from leaguepage import pubqa as _qa
+    from leaguepage.takes import public_receipts as _pub_receipts
+
+    _rq = _qa.build_context(storage, league, season, "public-receipts")
+    _receipt_findings = _qa.check_receipts(
+        [dict(r, presented_as_quote=r["verbatim"]) for r in
+         _pub_receipts(storage, league, season, public_names)], _rq)
+    for _f in _receipt_findings:
+        if _f.severity == _qa.BLOCKER:
+            raise RuntimeError(
+                f"receipt gate: {_f.title} — {_f.detail}")
+        warnings.append(f"{league.slug}: receipt warning — {_f.title}")
     front = front_page.build({
         "week": week,
         "weeks_played": weeks_played_league,
