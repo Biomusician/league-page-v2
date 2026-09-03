@@ -149,26 +149,68 @@ def explain(item: dict) -> list[str]:
 # ------------------------------------------------------------ repetition
 
 def lane_of(item_id: str) -> str:
-    """The repetition lane for an item: the first two segments of its id, which
-    is the story KIND ("change:standings", "story:blowout", "analytics:odds").
-    Deriving it from the id rather than from the item body means the same lane
-    can be recovered from a stored decision row, where only the id survives."""
-    parts = (item_id or "").split(":")
+    """The repetition lane for an item: its KIND plus its SUBJECT.
+
+    This used to be the kind alone ("change:standings"), which meant one
+    included standings story last week applied the full penalty to all
+    twelve teams this week -- including a different team's five-place
+    collapse. What actually gets stale is writing about the same team's
+    standings twice, so the subject belongs in the lane.
+
+    Deriving it from the id rather than the item body means the lane can be
+    recovered from a stored decision row, where only the id survives.
+    """
+    parts = [p for p in (item_id or "").split(":") if p]
+    if not parts:
+        return "item"
+    return ":".join(parts[:3])
+
+
+def kind_of(item_id: str) -> str:
+    """The story kind alone. Repeating a kind is a milder sin than repeating
+    a subject, so it carries a fraction of the penalty."""
+    parts = [p for p in (item_id or "").split(":") if p]
     return ":".join(parts[:2]) if len(parts) >= 2 else (parts[0] if parts else "item")
 
 
-def repetition_context(item: dict, prior_used: dict[str, int]) -> dict:
-    """`prior_used` maps lane -> weeks since that lane was last INCLUDED in an
-    issue. A lane that ran last week is fully penalized; the penalty decays and
+# How much of the repetition penalty a repeated KIND carries, against a
+# repeated subject at full weight.
+KIND_REPETITION_SHARE = 0.4
+
+
+def _decay(weeks_ago: int | None) -> float:
+    """A lane that ran last week is fully penalised; the penalty decays and
     is gone after four weeks, so a running gag cools off instead of dying."""
-    lane = lane_of(item.get("item_id", ""))
-    weeks_ago = prior_used.get(lane)
     if weeks_ago is None:
-        return {}
+        return 0.0
     if weeks_ago <= 1:
-        return {"repetition": 1.0, "repetition_label": f"{lane} ran last week"}
+        return 1.0
     if weeks_ago == 2:
-        return {"repetition": 0.6, "repetition_label": f"{lane} ran 2 weeks ago"}
+        return 0.6
     if weeks_ago <= 4:
-        return {"repetition": 0.3, "repetition_label": f"{lane} ran {weeks_ago} weeks ago"}
+        return 0.3
+    return 0.0
+
+
+def repetition_context(item: dict, prior_used: dict[str, int]) -> dict:
+    """`prior_used` maps lane -> weeks since that lane was last INCLUDED.
+
+    Both lanes are consulted: the exact subject at full weight, the story
+    kind at a fraction of it. Writing about the same team's standings two
+    weeks running is repetitive; writing about a different team's is barely
+    repetitive at all.
+    """
+    item_id = item.get("item_id", "")
+    lane, kind = lane_of(item_id), kind_of(item_id)
+    subject_ago = prior_used.get(lane)
+    kind_ago = prior_used.get(kind)
+    subject = _decay(subject_ago)
+    kind_pen = _decay(kind_ago) * KIND_REPETITION_SHARE
+    if subject >= kind_pen and subject:
+        when = "last week" if subject_ago <= 1 else f"{subject_ago} weeks ago"
+        return {"repetition": subject, "repetition_label": f"{lane} ran {when}"}
+    if kind_pen:
+        when = "last week" if kind_ago <= 1 else f"{kind_ago} weeks ago"
+        return {"repetition": kind_pen,
+                "repetition_label": f"another {kind} story ran {when}"}
     return {}

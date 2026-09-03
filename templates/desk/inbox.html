@@ -23,6 +23,11 @@
   .actions button { min-height:2.4rem; padding:.4rem .9rem; }
   .actions select, .actions input { min-height:2.4rem; }
   .cat { font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  /* why a reader would care, as opposed to why the ranker ranked it */
+  .matters { font-size:.86rem; margin:.25rem 0 .1rem; }
+  .actions input[type=text] { flex:1 1 12rem; min-width:8rem; font:inherit;
+                              padding:.25rem .4rem; }
+  .actions .undo { margin-left:auto; }
   .leaguehead { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:.5rem; }
   @media (max-width: 40rem) {
     main { padding:1rem .7rem 3rem; }
@@ -61,7 +66,8 @@
     <span class="score">{{ it.significance.score }}</span>
     <b>{{ it.headline }}</b>
   </div>
-  <div class="cat">{{ it.significance.band }} · {{ it.category }}{% if it.source == "change" %} · changed{% endif %}</div>
+  <div class="cat">{{ it.significance.band }} · {{ it.category }}{% if it.source == "change" %} · changed{% endif %}{% if it.saved_week %} · saved in week {{ it.saved_week }}{% endif %}</div>
+  {% if it.matters %}<div class="matters">{{ it.matters }}</div>{% endif %}
 
   {% if it.before or it.after %}
   <div class="ba">
@@ -101,9 +107,11 @@
         {% endif %}
       {% endfor %}
     </select>
+    <input type="text" name="note" placeholder="why (optional)" maxlength="200">
     <button name="decision" value="include" class="primary">Add to Issue</button>
     <button name="decision" value="save">Save for Later</button>
     <button name="decision" value="ignore">Ignore This Week</button>
+    {% if it.decision %}<button name="decision" value="" class="undo">Reopen</button>{% endif %}
   </form>
 </div>
 {% endfor %}

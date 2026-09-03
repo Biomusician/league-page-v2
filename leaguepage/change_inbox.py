@@ -159,6 +159,29 @@ def record(storage: Storage, league: League, season: str, week: int,
                                         week=week, payload=payload)
 
 
+# Why a reader would care, as opposed to why the ranker ranked it. `explain`
+# answers the second question well and the first not at all: "+12 standings
+# or playoff consequence (50%)" is a scoring line, and 50% is not a reason.
+MATTERS = {
+    "result": "Results are the only thing the standings are made of.",
+    "standings": "The table is what everyone checks first.",
+    "playoff": "This moves who is actually going to be playing in December.",
+    "strength": "Roster construction is the thing that keeps producing "
+                "results after this week.",
+    "transaction": "Somebody spent something to change their team.",
+    "record": "A season mark is the kind of thing the Black Box exists for.",
+    "receipt": "A published claim has moved, one way or the other.",
+    "matchup": "This is a game somebody will want previewed.",
+}
+
+
+def _matters(item: dict) -> str:
+    """One sentence on why this is worth a reader's attention."""
+    if item.get("consequence_label"):
+        return f"{MATTERS.get(item.get('category'), '')} {item['consequence_label'].capitalize()}.".strip()
+    return MATTERS.get(item.get("category"), "")
+
+
 # ------------------------------------------------------------ change items
 
 def _item(item_id, category, headline, *, what_changed, before=None, after=None,
@@ -219,9 +242,17 @@ def diff_snapshots(before: dict, after: dict, names: dict[int, str],
                 what_changed=f"{nm(win_rid)} was {ordinal(seed_w)} going in and won by {margin:g}",
                 before=f"{nm(win_rid)} {ordinal(seed_w)}, {nm(lose_rid)} {ordinal(seed_l)}",
                 after=f"{nm(win_rid)} {win_pts:g}, {nm(lose_rid)} {lose_pts:g}",
-                magnitude=gap / spread, teams=[nm(win_rid), nm(lose_rid)],
+                magnitude=_clamp01(gap / spread + 0.25), teams=[nm(win_rid), nm(lose_rid)],
                 facts=[f"Week {wk}: {win_pts:g} to {lose_pts:g}."], evidence=ev,
-                consequence=0.5, expectation=_clamp01(gap / spread),
+                # An upset is rare by construction -- that is what the word
+                # means -- and it matters more the higher the team that lost.
+                # A fixed 0.5 consequence had a nine-seed beating a three-seed
+                # scoring below a bench-piece trade, and filed as Minor.
+                consequence=_clamp01(0.35 + 0.65 * (1 - (seed_l - 1) / spread)),
+                consequence_label=f"the {ordinal(seed_l)} seed lost",
+                rarity=_clamp01(0.3 + gap / spread),
+                rarity_label=f"{gap} seeds of upset",
+                expectation=_clamp01(gap / spread),
                 expectation_label=f"{gap} seeds of upset",
                 magnitude_label=f"{gap} seeds"))
         if margin >= FLOORS["margin_blowout"]:
@@ -402,14 +433,22 @@ def transaction_items(storage: Storage, league: League, before: dict, after: dic
                 what_changed=label,
                 before=None,
                 after=f"{', '.join(sorted(set(teams)))} added {', '.join(sorted(set(adds))[:3])}",
-                magnitude=max(share, 0.55 if is_trade else 0.0),
+                # A trade is not important because it is a trade. It is
+                # important when it moves real players or costs real money,
+                # so the old floor of 0.55 on every trade -- which put a
+                # bench-piece swap above a three-seed upset -- is gone.
+                magnitude=_clamp01(max(share, 0.30 + 0.08 * len(set(adds))
+                                       if is_trade else 0.0)),
                 teams=sorted(set(teams)),
                 facts=[f"Week {wk} {t.get('type')}"
                        + (f", {faab} of a {budget:g} budget ({share:.0%})." if faab else ".")],
                 evidence=[f"sleeper:transaction:{tid}"],
-                cost=_clamp01(share) if faab else (0.5 if is_trade else 0.0),
+                # A zero-FAAB trade cost nothing in money. It cost players,
+                # which is what magnitude above is measuring, so claiming a
+                # cost here as well was scoring the same fact twice.
+                cost=_clamp01(share),
                 cost_label=(f"{share:.0%} of the waiver budget" if faab
-                            else "assets rather than money"),
+                            else "no money changed hands"),
                 magnitude_label=(f"{share:.0%} of budget" if faab else "a trade")))
     return out
 
@@ -489,6 +528,7 @@ def build_inbox(storage: Storage, league: League, season: str,
 
     decisions = storage.get_story_decisions(league.slug, season, issue_key)
     prior_lanes = _prior_lanes(storage, league, season, week)
+    saved = saved_earlier(storage, league, season, week)
 
     def ctx_for(item):
         return significance.repetition_context(item, prior_lanes)
@@ -496,10 +536,17 @@ def build_inbox(storage: Storage, league: League, season: str,
     ranked = significance.rank(items, ctx_for)
     for it in ranked:
         d = decisions.get(it["item_id"]) or {}
-        it["decision"] = d.get("decision")
+        # An empty decision is a reopened item, not a decided one.
+        it["decision"] = d.get("decision") or None
         it["route"] = d.get("route")
         it["note"] = d.get("note")
         it["why"] = significance.explain(it)
+        it["matters"] = it.get("matters") or _matters(it)
+        held = saved.get(it["item_id"])
+        it["saved_week"] = held
+        if held and it["decision"] is None:
+            it["what_changed"] = (f"Saved in week {held} and still true. "
+                                  + (it.get("what_changed") or "")).strip()
 
     open_items = [i for i in ranked if i["decision"] is None]
     return {
@@ -521,7 +568,47 @@ def build_inbox(storage: Storage, league: League, season: str,
 # Result candidates the snapshot diff already covers, and covers better,
 # because the diff carries before/after and a real magnitude.
 DUPLICATED_BY_DIFF = ("story:blowout:", "story:photo-finish:",
-                      "story:high-score:", "story:low-score:")
+                      "story:high-score:", "story:low-score:",
+                      # the analytics stream restates what the snapshot diff
+                      # already said, with a flat magnitude and no
+                      # before/after, so the same fact was triaged twice
+                      "analytics:standings:", "analytics:odds:",
+                      "analytics:pos:")
+
+
+# What a candidate is worth before anything specific is known about it.
+# Every non-matchup candidate used to arrive at a flat 0.4 with no other
+# signal, which meant they all scored exactly 16 and the second half of the
+# inbox was sorted alphabetically by id.
+CANDIDATE_BASE = {
+    "result": 0.55, "record": 0.60, "take": 0.55, "force-flow": 0.45,
+    "transaction": 0.45, "analytics": 0.40, "track": 0.35, "fade": 0.35,
+    "coalition": 0.30, "matchup": 0.40,
+}
+
+
+def _candidate_magnitude(c: dict) -> tuple[float, str, dict]:
+    """Carry the signals the candidate already has instead of discarding them.
+
+    A candidate arrives with a category, the facts that justified it, and
+    sometimes a confidence note. None of that reached the ranker.
+    """
+    cat = (c.get("category") or "story").lower()
+    base = CANDIDATE_BASE.get(cat, 0.35)
+    facts = [f for f in (c.get("facts") or []) if f]
+    # more supporting facts is weak evidence that more happened
+    base += min(0.15, 0.05 * max(0, len(facts) - 1))
+    extra: dict = {}
+    if c.get("players"):
+        extra["consequence"] = 0.25
+        extra["consequence_label"] = "names a specific player"
+    if (c.get("confidence") or "").strip():
+        extra["rarity"] = 0.2
+        extra["rarity_label"] = str(c["confidence"])[:60]
+    label = f"{cat} signal"
+    if facts:
+        label += f", {len(facts)} supporting fact{'' if len(facts) == 1 else 's'}"
+    return _clamp01(base), label, extra
 
 
 def _candidate_items(storage: Storage, league: League, season: str, week: int,
@@ -559,7 +646,7 @@ def _candidate_items(storage: Storage, league: League, season: str, week: int,
         cat = {"result": "result", "matchup": "matchup", "force-flow": "transaction",
                "transaction": "transaction", "take": "receipt",
                "analytics": "standings"}.get(c.get("category"), c.get("category") or "story")
-        magnitude, mag_label, extra = 0.4, "standing weekly signal", {}
+        magnitude, mag_label, extra = _candidate_magnitude(c)
         if cid.startswith("story:matchup:"):
             slug = cid.removeprefix("story:matchup:")
             ci_score, sv_score = interest.get(slug, (0, 0))
@@ -580,6 +667,60 @@ def _candidate_items(storage: Storage, league: League, season: str, week: int,
             "source": "candidate", "fresh": False, **extra,
         })
     return out
+
+
+def as_candidates(items: list[dict]) -> list[dict]:
+    """Inbox items in the shape the issue builders read.
+
+    The inbox offered "Add to Issue" on every item and the decision reached
+    nothing for a `change:*` id, because the builders iterate the story
+    candidate list and a diff item was never in it. So a triaged upset
+    appeared in no PREP.md, no AUTHORING file and no ghost brief, and the
+    Commissioner re-typed by hand what he had already decided.
+    """
+    out = []
+    for it in items:
+        facts = list(it.get("facts") or [])
+        if it.get("before") and it.get("after"):
+            facts.insert(0, f"{it['before']} -> {it['after']}")
+        why = it.get("matters") or it.get("what_changed") or ""
+        out.append({
+            "candidate_id": it["item_id"],
+            "category": it.get("category") or "change",
+            "headline": it.get("headline") or "",
+            "teams": it.get("teams") or [],
+            "players": it.get("players") or [],
+            "facts": facts,
+            "evidence": it.get("evidence") or [],
+            "why": why,
+            "recommended_sections": it.get("sections") or ["lowdown"],
+            "confidence": (it.get("significance") or {}).get("band"),
+        })
+    return out
+
+
+def saved_earlier(storage: Storage, league: League, season: str,
+                  week: int, *, weeks_back: int = 5) -> dict[str, int]:
+    """item_id -> the week it was saved, for anything saved and not since used.
+
+    "Save for later" wrote a decision row under this week's key and nothing
+    ever read it again, so later was never. An item can only come back while
+    it is still true -- the decision row holds an id, not a story -- which is
+    the honest limit: a saved item that has stopped being the case has
+    stopped being a story.
+    """
+    saved: dict[str, int] = {}
+    for back in range(weeks_back, 0, -1):
+        wk = week - back
+        if wk < 1:
+            continue
+        for cid, d in storage.get_story_decisions(
+                league.slug, season, f"week-{wk:02d}").items():
+            if d.get("decision") == "save":
+                saved[cid] = wk
+            elif d.get("decision") in ("include", "ignore"):
+                saved.pop(cid, None)
+    return saved
 
 
 def _prior_lanes(storage: Storage, league: League, season: str,

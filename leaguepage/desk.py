@@ -77,6 +77,16 @@ def refresh_issue_research(s: Storage, league, season: str, issue_key: str) -> N
 
         build_weekly_packet(s, league, week)
     candidates = candidates_for(s, league, season, issue_key)
+    # Everything he triaged in the Change Inbox joins the candidate list, so
+    # a decision made there reaches the briefs instead of stopping at a
+    # stored row nothing reads.
+    if week is not None:
+        from leaguepage import change_inbox
+
+        known = {c["candidate_id"] for c in candidates}
+        board = change_inbox.build_inbox(s, league, season, limit=200)
+        candidates += [c for c in change_inbox.as_candidates(board["items"])
+                       if c["candidate_id"] not in known]
     awards = awards_for(s, league, season, issue_key)
     build_lowdown_prep(s, league, season, issue_key, candidates)
     build_section_authoring(s, league, season, issue_key, candidates, awards)
@@ -447,9 +457,12 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         item_id: str = Form(...), decision: str = Form(...),
         route: str = Form(""), issue_key: str = Form(...), note: str = Form(""),
     ):
-        """Add to Issue / Ignore This Week / Save for Later. These are the
-        three values story_decisions has always carried, so an inbox decision
-        is the same decision the issue builder and the briefs already read."""
+        """Add to Issue / Ignore This Week / Save for Later, plus Reopen.
+
+        These are the three values story_decisions has always carried, so an
+        inbox decision is the same decision the issue builder and the briefs
+        already read. An empty decision clears the row: triage with no undo
+        makes a misclick permanent."""
         with storage() as s:
             s.set_story_decision(
                 league_slug=league_slug, season=season, workflow=issue_key,

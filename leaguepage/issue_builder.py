@@ -445,9 +445,13 @@ def build_section_authoring(
             continue
         targets = [d["route"]] if d.get("route") else (c.get("recommended_sections") or ["custom"])
         for t in targets:
+            # "lowdown" mapped to None, so a story he deliberately routed to
+            # the Lowdown produced no brief at all. The Lowdown has its own
+            # PREP file; sending a routed story there as well means the
+            # decision is visible in exactly one place either way.
             mod = {"force-flow": "forceflow", "black-box": "blackbox",
                    "tracks": "tracks", "fades": "fades", "awards": "hardware",
-                   "lowdown": None, "ctp": None, "matchup": None}.get(t, t)
+                   "lowdown": "lowdown", "ctp": None, "matchup": None}.get(t, t)
             if mod:
                 by_section.setdefault(mod, []).append((c, d))
 

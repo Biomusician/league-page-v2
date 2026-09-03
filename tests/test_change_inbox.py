@@ -68,7 +68,11 @@ def test_upset_is_detected_with_before_and_after():
     assert "Team 9" in up["headline"] and "Team 2" in up["headline"]
     assert up["before"] == "Team 9 9th, Team 2 2nd"
     assert up["after"] == "Team 9 130, Team 2 100"
-    assert up["magnitude"] == pytest.approx(7 / 9)
+    # the seed gap plus a floor: an upset is a real event even when the
+    # gap is small, which is what stopped a nine-seed win from being filed
+    # below a bench-piece trade
+    assert up["magnitude"] == pytest.approx(min(1.0, 7 / 9 + 0.25))
+    assert "the 2nd seed lost" in up["consequence_label"]
 
 
 def test_a_favourite_winning_is_not_an_upset():
@@ -222,14 +226,27 @@ def test_a_big_trade_does_outrank_a_modest_standings_move():
 def test_repetition_penalty_demotes_a_lane_that_just_ran():
     item = _item("change:standings:4", "standings", 0.6, consequence=0.5)
     fresh = sig.score_item(item)
-    stale = sig.score_item(item, sig.repetition_context(item, {"change:standings": 1}))
+    stale = sig.score_item(
+        item, sig.repetition_context(item, {"change:standings:4": 1}))
     assert stale["score"] < fresh["score"] - 20
     assert any("ran last week" in c["label"] for c in stale["components"])
 
 
+def test_another_team_is_barely_penalised_for_the_same_kind_of_story():
+    """One included standings story used to apply the full penalty to all
+    twelve teams, including a different team's five-place collapse."""
+    item = _item("change:standings:4", "standings", 0.6, consequence=0.5)
+    fresh = sig.score_item(item)
+    same_kind = sig.score_item(
+        item, sig.repetition_context(item, {"change:standings": 1}))
+    same_team = sig.score_item(
+        item, sig.repetition_context(item, {"change:standings:4": 1}))
+    assert same_team["score"] < same_kind["score"] < fresh["score"]
+
+
 def test_repetition_penalty_decays_and_expires():
     item = _item("change:standings:4", "standings", 0.6, consequence=0.5)
-    scores = [sig.score_item(item, sig.repetition_context(item, {"change:standings": w}))["score"]
+    scores = [sig.score_item(item, sig.repetition_context(item, {"change:standings:4": w}))["score"]
               for w in (1, 2, 3, 9)]
     assert scores == sorted(scores)          # colder lane, higher score
     assert scores[-1] == sig.score_item(item)["score"]   # fully expired
