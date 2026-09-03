@@ -516,21 +516,28 @@ def build_league(
     # Common Tactical Picture: a Commissioner preview when one is approved,
     # a computed Scout View when there is not, and nothing at all when the
     # matchup genuinely has nothing to say for itself.
+    from leaguepage.history import matchup_history
     from leaguepage.model_views import scout_view
 
     moves_ctx_by_rid = {rid: [_move_ctx(r) for r in rows]
                         for rid, rows in tx_by_rid.items()}
+    public_names = {rid: v["name"] or f"Roster {rid}" for rid, v in names.items()}
     if computed:
+        handles = _private_handles()
         by_anchor = {sm["matchup"]["matchup_slug"]: sm for sm in computed["scored"]}
         for card in cards:
             sm = by_anchor.get(card["anchor"])
             card["scout"] = (
                 None if card["preview_html"] or not sm else
-                scout_view(sm["matchup"], profile=profile,
-                           names={rid: v["name"] or f"Roster {rid}"
-                                  for rid, v in names.items()},
+                scout_view(sm["matchup"], profile=profile, names=public_names,
                            tags=card["tags"], moves_by_rid=moves_ctx_by_rid,
                            recap_by_rid=recap_by_rid))
+            # History runs regardless of whether a preview exists: the
+            # Commissioner's prose and the receipts are complementary.
+            card["history"] = matchup_history(
+                storage, league, season, week, sm["matchup"],
+                sm.get("story_memory") or {}, public_names,
+                private_handles=handles) if sm else []
     render("matchups/index.html", "public/matchups.html", 2,
            cards=cards, week=week, current_nav="Common Tactical Picture")
 

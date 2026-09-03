@@ -44,6 +44,18 @@
   <p class="meta"><i>No preview written, and nothing in the data marks this one
   out yet. It goes on the board like everything else.</i></p>
   {% endif %}
+  {% if c.history %}
+  <div class="scout history">
+    <h3>History</h3>
+    <ul>
+      {% for h in c.history %}
+      <li><b>{{ h.kind }}:</b> {{ h.text }}
+        <span class="meta">— {{ h.source }}</span>
+        {% if h.href %}<a class="meta" href="{{ lroot }}{{ h.href }}">read it →</a>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 </section>
 {% endfor %}
 {% if not cards %}<p>No matchups on the board yet.</p>{% endif %}
