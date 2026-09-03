@@ -87,6 +87,28 @@
   .meta, .credit, footer.colophon { color:#9fb6cc; }
 
 
+  .brief { padding:1rem 1.15rem; }
+  .brief .storyline { font-size:1.12rem; line-height:1.4; margin:.1rem 0 .8rem; }
+  .brief dl { display:grid; grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr));
+              gap:.75rem 1.4rem; margin:.5rem 0 0; }
+  .brief dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+              margin-bottom:.12rem; }
+  .brief dd { margin:0; font-size:1.02rem; }
+  .brief dd .sub { display:block; font-size:.84rem; margin-top:.1rem; }
+  .brief .lists { margin-top:.9rem; padding-top:.7rem; border-top:1px dotted; }
+  .brief .lists h4 { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+                     margin:.6rem 0 .2rem; }
+  .brief ul { margin:.1rem 0; padding-left:1.1rem; font-size:.93rem; }
+  .receipt { font-size:.92rem; margin:.5rem 0 0; }
+  .receipt blockquote { margin:.2rem 0; font-style:italic; }
+  .mention blockquote { margin:.25rem 0 .1rem; font-style:italic; }
+  @media (max-width:640px) { .brief dl { grid-template-columns:1fr 1fr; } }
+
+  .brief { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
+  .brief dt { color:#9fb6cc; }
+  .brief .lists { border-color:#1d3d63; }
+
+
 </style>
 </head>
 <body>
@@ -125,9 +147,38 @@
 
 <h2 class="section-label">SHACtin&#39; a Fool 🐻 (SHAC)</h2>
 
-<p class="meta">Record 0-0 · standings #3 · PF 0.0
+<p class="meta">Preseason · no games played</p>
 
- · playoff outlook: Playoff outlook opens after 3 played weeks.</p>
+
+
+<section class="module" aria-labelledby="brief-h">
+  <h2 class="section-label" id="brief-h">
+    Your team going in</h2>
+  <div class="card brief">
+    <p class="storyline">Built around QB, exposed at RB — the season will decide whether that trade is the right one.</p>
+    <dl>
+      <div><dt>Current position</dt><dd>Preseason · model board 4th of 10</dd></div>
+      
+      
+      <div><dt>Best meaningful strength</dt><dd>QB · #2 of 10
+        </dd></div>
+      <div><dt>Biggest weakness</dt><dd>RB · #8 of 10
+        </dd></div>
+      
+      <div><dt>Next</dt><dd><a href="../../matchups/index.html#shactin-a-fool-vs-roster-4">SHACtin&#39; a Fool 🐻 (SHAC) vs Dave</a>
+        <span class="sub">week 1 on the board</span></dd></div>
+    </dl>
+    
+    <div class="lists">
+      
+      <h4>What to watch</h4>
+      <ul><li>RB is the room most likely to cost a week</li></ul>
+    </div>
+    
+    
+  </div>
+</section>
+
 
 
 
@@ -159,20 +210,33 @@
   </table>
   </div>
   
-  <p><b>Strengths:</b> DEF room ranks 1/10 with real depth behind the starters; QB room ranks 2/10 with real depth behind the starters<br>
-     <b>Weaknesses:</b> K room ranks 10/10; RB room ranks 8/10; TE room ranks 7/10</p>
+  <p><b>Strengths:</b> QB room ranks 2/10 with real depth behind the starters; DEF room ranks 1/10 with real depth behind the starters<br>
+     <b>Weaknesses:</b> TE room ranks 7/10; RB room ranks 8/10; K room ranks 10/10</p>
   
   <p class="meta">Rooms are ranked against this league's actual lineup demand
   (preseason (consensus ranks)); starters weigh more than depth, and a room can rank well
-  while being carried by one player; the assessment says so when it is.</p>
+  while being carried by one player; the assessment says so when it is. Every
+  room is ranked here, including K and DEF; the briefing above leads with
+  skill-position construction, because that is what decides a season.</p>
+  
+  
 </section>
 
 
 
-<section class="module">
-  <h2 class="section-label">Team Outlook</h2>
-  <ul><li>DEF room ranks 1/10 with real depth behind the starters</li><li>K room ranks 10/10</li></ul>
-</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -183,12 +247,29 @@
   
   <p>
     
-    <b>Biggest Reach:</b> Seattle Seahawks <span class="meta">(pick 122 · ref 190.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 68 picks early</span><br>
+    <b>Biggest Reach:</b> Kyle Monangai <span class="meta">(pick 79 · ref 110.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 31 picks early</span><br>
     
     
     <b>Best Steal:</b> Jaxson Dart <span class="meta">(pick 119 · ref 96.0)</span> — <span class="dv dv-strong dv-steal" style="--dvi:0.77">STEAL · 23 picks late</span>
     
   </p>
+  <p class="meta">Headline Reach and Steal cover QB/RB/WR/TE. Kickers and
+  defenses sit below the draftable range on the reference board while lineups
+  force everyone to draft one, so their deviations are reported separately.</p>
+  
+  
+  <div class="card">
+    <strong>Special Teams Outliers</strong>
+    <ul>
+      
+      <li>Seattle Seahawks <span class="meta">(pick 122 · ref 190.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 68 picks early</span>
+        <br><span class="meta">4th DST drafted · consensus DST3</span></li>
+      
+      <li>Houston Texans <span class="meta">(pick 142 · ref 186.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 44 picks early</span>
+        <br><span class="meta">6th DST drafted · consensus DST1</span></li>
+      
+    </ul>
+  </div>
   
   <div class="tablewrap">
   <table data-sortable>
@@ -285,6 +366,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <section class="module">
   <h2 class="section-label">Roster</h2>
   <div class="tablewrap">
@@ -324,6 +454,58 @@
   </table>
   </div>
 </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="module">
+  <h2 class="section-label">Last time we talked about you</h2>
+  
+  <div class="card mention">
+    <p class="meta">2026 Draft Issue · The Lowdown</p>
+    <blockquote>“Second, divestment bets: Jesse (team name pending, like half this league) and SHAC drafted zero kickers.”</blockquote>
+    <p class="meta"><a href="../../2026/draft/index.html#lowdown">Read it in context →</a></p>
+  </div>
+  
+  <div class="card mention">
+    <p class="meta">2026 Draft Issue · Draft Power Rankings</p>
+    <blockquote>“Bijan Robinson plus an Atlanta triple is a concentrated bet on one offense, and Jaxson Dart 23 picks late hedges the quarterback risk for cheap.”</blockquote>
+    <p class="meta"><a href="../../2026/draft/index.html#custom">Read it in context →</a></p>
+  </div>
+  
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

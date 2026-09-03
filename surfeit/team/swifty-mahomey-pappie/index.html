@@ -87,6 +87,28 @@
   .meta, .credit, footer.colophon { color:#9fb6cc; }
 
 
+  .brief { padding:1rem 1.15rem; }
+  .brief .storyline { font-size:1.12rem; line-height:1.4; margin:.1rem 0 .8rem; }
+  .brief dl { display:grid; grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr));
+              gap:.75rem 1.4rem; margin:.5rem 0 0; }
+  .brief dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+              margin-bottom:.12rem; }
+  .brief dd { margin:0; font-size:1.02rem; }
+  .brief dd .sub { display:block; font-size:.84rem; margin-top:.1rem; }
+  .brief .lists { margin-top:.9rem; padding-top:.7rem; border-top:1px dotted; }
+  .brief .lists h4 { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+                     margin:.6rem 0 .2rem; }
+  .brief ul { margin:.1rem 0; padding-left:1.1rem; font-size:.93rem; }
+  .receipt { font-size:.92rem; margin:.5rem 0 0; }
+  .receipt blockquote { margin:.2rem 0; font-style:italic; }
+  .mention blockquote { margin:.25rem 0 .1rem; font-style:italic; }
+  @media (max-width:640px) { .brief dl { grid-template-columns:1fr 1fr; } }
+
+  .brief { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
+  .brief dt { color:#9fb6cc; }
+  .brief .lists { border-color:#1d3d63; }
+
+
 </style>
 </head>
 <body>
@@ -125,9 +147,38 @@
 
 <h2 class="section-label">Swifty Mahomey (Pappie)</h2>
 
-<p class="meta">Record 0-0 · standings #9 · PF 0.0
+<p class="meta">Preseason · no games played</p>
 
- · playoff outlook: Playoff outlook opens after 3 played weeks.</p>
+
+
+<section class="module" aria-labelledby="brief-h">
+  <h2 class="section-label" id="brief-h">
+    Your team going in</h2>
+  <div class="card brief">
+    <p class="storyline">Built around WR, exposed at TE — the season will decide whether that trade is the right one.</p>
+    <dl>
+      <div><dt>Current position</dt><dd>Preseason · model board 6th of 10</dd></div>
+      
+      
+      <div><dt>Best meaningful strength</dt><dd>WR · #4 of 10
+        </dd></div>
+      <div><dt>Biggest weakness</dt><dd>TE · #8 of 10
+        </dd></div>
+      
+      <div><dt>Next</dt><dd><a href="../../matchups/index.html#roster-6-vs-swifty-mahomey">MJ vs Swifty Mahomey (Pappie)</a>
+        <span class="sub">week 1 on the board</span></dd></div>
+    </dl>
+    
+    <div class="lists">
+      
+      <h4>What to watch</h4>
+      <ul><li>TE is the room most likely to cost a week</li></ul>
+    </div>
+    
+    
+  </div>
+</section>
+
 
 
 
@@ -160,19 +211,34 @@
   </div>
   
   <p><b>Strengths:</b> —<br>
-     <b>Weaknesses:</b> K room ranks 8/10; TE room ranks 8/10</p>
+     <b>Weaknesses:</b> TE room ranks 8/10</p>
   
   <p class="meta">Rooms are ranked against this league's actual lineup demand
   (preseason (consensus ranks)); starters weigh more than depth, and a room can rank well
-  while being carried by one player; the assessment says so when it is.</p>
+  while being carried by one player; the assessment says so when it is. Every
+  room is ranked here, including K and DEF; the briefing above leads with
+  skill-position construction, because that is what decides a season.</p>
+  
+  
+  <p><b>Defining this team right now:</b> K room ranks 8/10</p>
+  
 </section>
 
 
 
-<section class="module">
-  <h2 class="section-label">Team Outlook</h2>
-  <ul><li>K room ranks 8/10</li></ul>
-</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -183,12 +249,29 @@
   
   <p>
     
-    <b>Biggest Reach:</b> Los Angeles Rams <span class="meta">(pick 107 · ref 191.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span><br>
+    <b>Biggest Reach:</b> Travis Kelce <span class="meta">(pick 74 · ref 104.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 30 picks early</span><br>
     
     
     <b>Best Steal:</b> Matthew Stafford <span class="meta">(pick 134 · ref 108.0)</span> — <span class="dv dv-strong dv-steal" style="--dvi:0.87">STEAL · 26 picks late</span>
     
   </p>
+  <p class="meta">Headline Reach and Steal cover QB/RB/WR/TE. Kickers and
+  defenses sit below the draftable range on the reference board while lineups
+  force everyone to draft one, so their deviations are reported separately.</p>
+  
+  
+  <div class="card">
+    <strong>Special Teams Outliers</strong>
+    <ul>
+      
+      <li>Los Angeles Rams <span class="meta">(pick 107 · ref 191.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span>
+        <br><span class="meta">3rd DST drafted · consensus DST4</span></li>
+      
+      <li>Harrison Mevis <span class="meta">(pick 147 · ref 229.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span>
+        <br><span class="meta">7th K drafted · consensus K9</span></li>
+      
+    </ul>
+  </div>
   
   <div class="tablewrap">
   <table data-sortable>
@@ -285,6 +368,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <section class="module">
   <h2 class="section-label">Roster</h2>
   <div class="tablewrap">
@@ -324,6 +456,58 @@
   </table>
   </div>
 </section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="module">
+  <h2 class="section-label">Last time we talked about you</h2>
+  
+  <div class="card mention">
+    <p class="meta">2026 Draft Issue · The Lowdown</p>
+    <blockquote>“Swifty Mahomey at least got paid for waiting, landing the actual Patrick Mahomes at pick 114 after wearing his name all August.”</blockquote>
+    <p class="meta"><a href="../../2026/draft/index.html#lowdown">Read it in context →</a></p>
+  </div>
+  
+  <div class="card mention">
+    <p class="meta">2026 Draft Issue · Draft Power Rankings</p>
+    <blockquote>“Landed the actual Patrick Mahomes at pick 114 after wearing his name all August, then built a four-piece Rams block around Stafford anyway, which is hedging your identity crisis at market rates.”</blockquote>
+    <p class="meta"><a href="../../2026/draft/index.html#custom">Read it in context →</a></p>
+  </div>
+  
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

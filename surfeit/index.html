@@ -87,6 +87,51 @@
   .meta, .credit, footer.colophon { color:#9fb6cc; }
 
 
+  /* Front page: one lead, then secondaries, then data. Deliberately
+     unequal — every module the same size is a dashboard, not a front page. */
+  .freshbar { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase;
+              padding:.3rem 0 .1rem; opacity:.85; }
+  .hero .kicker { font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; }
+  .hero h2.headline { margin:.25rem 0 .5rem; font-size:clamp(1.5rem, 5.2vw, 2.1rem);
+                      line-height:1.2; letter-spacing:0; text-transform:none;
+                      border:0; padding:0; }
+  .hero .lede p:first-child { margin-top:.2rem; }
+  .cta { display:inline-block; margin-top:.6rem; padding:.55rem 1.15rem;
+         font-variant:small-caps; letter-spacing:.12em; font-size:.95rem;
+         text-decoration:none; border-radius:3px; }
+  .brief .lead { padding:1.05rem 1.2rem; }
+  .brief .lead .headline { font-size:1.28rem; font-weight:bold; line-height:1.3;
+                           display:block; margin:.2rem 0 .35rem; }
+  .brief .label { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
+  .brief .grid { display:grid; gap:.75rem; grid-template-columns:repeat(auto-fit, minmax(15.5rem, 1fr)); }
+  /* four secondaries at auto-fit give 3 + 1 orphan; two columns reads better */
+  .brief .grid.even { grid-template-columns:repeat(2, 1fr); }
+  .brief .grid .card { margin:0; padding:.8rem .95rem; }
+  .brief .grid .headline { font-size:1.02rem; font-weight:bold; display:block;
+                           margin:.15rem 0 .3rem; line-height:1.35; }
+  .brief .detail { font-size:.9rem; margin:0 0 .45rem; }
+  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em; }
+  .rooms { display:grid; gap:.5rem; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
+  .rooms .card { margin:0; padding:.6rem .8rem; }
+  .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
+  .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
+  .teamstrip { display:flex; flex-wrap:wrap; gap:.4rem; }
+  .teamstrip a { display:inline-block; padding:.35rem .7rem; border-radius:3px;
+                 text-decoration:none; font-size:.9rem; }
+  @media (max-width:640px) {
+    .brief .grid, .brief .grid.even { grid-template-columns:1fr; }
+    .brief .lead .headline { font-size:1.15rem; }
+    .cta { display:block; text-align:center; }
+  }
+
+  .cta { background:#facd00; color:#071a2f; }
+  .brief .lead { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
+  .teamstrip a { background:#0e2743; border:1px solid #1d3d63; }
+  .teamstrip a:hover { border-color:#facd00; }
+  .freshbar { color:#9fb6cc; border-bottom:1px solid #1d3d63; }
+  .hero h2.headline { color:#e4ecf5; }
+
+
 </style>
 </head>
 <body>
@@ -124,11 +169,14 @@
 <main id="content">
 
 
+<p class="freshbar">Preseason · no games played yet · synced 2026-08-30</p>
 
-<section class="hero" aria-labelledby="lowdown-hero">
-  <p class="meta">Draft Issue · 2026-08-31</p>
+
+<section class="hero" aria-labelledby="lede-hero">
+  <p class="kicker meta">Draft Issue · 2026-08-31</p>
+  <h2 class="headline" id="lede-hero">Every Draft Is a List of Assumptions</h2>
   
-  <h2 class="section-label" id="lowdown-hero">The Lowdown</h2>
+  
   <div class="lede"><p>Every draft is a planning document. Ten of us just published our assumptions
 about the 2026 season, in writing, with timestamps, and the season&rsquo;s entire
 job is to red-team them. Welcome to The Surfeit! This is the closest many of us will come to a real wargame; may your assumptions be validated!</p>
@@ -143,24 +191,100 @@ Third, timing bets, and I&rsquo;ll go first because I made the most obvious one:
 and my reward was Juwan Johnson. Swifty Mahomey at least got paid for
 waiting, landing the actual Patrick Mahomes at pick 114 after wearing his
 name all August.</p></div>
-  <p><a href="2026/draft/index.html">Continue reading the full issue →</a></p>
+  
+  <a class="cta" href="2026/draft/index.html">Read the issue →</a>
+</section>
+
+
+
+<section class="module brief" aria-labelledby="brief-h">
+  <h2 class="section-label" id="brief-h">This week in 30 seconds</h2>
+  
+  <div class="card lead">
+    <span class="label">Biggest Move</span>
+    <span class="tag warn">QUESTIONABLE MOVE</span>
+    <span class="headline">Los Bandidos (Bandit): Added Kaleb Johnson (free agent) · dropped Josh Jacobs</span>
+    <p class="detail">Questionable fit on the current data: the team already ranks #10 of 10 at RB and gave up Josh Jacobs from its #10 RB room. No injury or obvious starter upgrade in the synced data explains the tradeoff.</p>
+    <a class="more" href="transactions/index.html">Force Flow →</a>
+  </div>
+  
+  <div class="grid">
+    
+    <div class="card">
+      <span class="label">Game of the Week</span>
+      <span class="tag ">Coalition Warfare</span>
+      <span class="headline">Wild SeeKats (Seabass/Kats) vs Los Bandidos (Bandit)</span>
+      <p class="detail">Week 1 opener — the first read on both rosters.</p>
+      <a class="more" href="matchups/index.html#wild-seekats-vs-los-bandidos">Common Tactical Picture →</a>
+    </div>
+    
+    <div class="card">
+      <span class="label">Boldest Call</span>
+      <span class="tag ">REACH</span>
+      <span class="headline">L’entente Discordiale (Borat/Jack) took Jordan James</span>
+      <p class="detail">REACH · 131 picks early against the consensus board. The single largest departure from the market in this draft.</p>
+      <a class="more" href="draft/index.html">Draft board →</a>
+    </div>
+    
+    <div class="card">
+      <span class="label">Team to Watch</span>
+      
+      <span class="headline">Wild SeeKats (Seabass/Kats)</span>
+      <p class="detail">The widest gap on the board: TE #1 of 10, WR #10. One room carries it and one room can sink it.</p>
+      <a class="more" href="team/wild-seekats-seabass-kats/index.html">Team page →</a>
+    </div>
+    
+  </div>
   
 </section>
 
 
-<section class="module" aria-label="Priority matchup">
-  <h2 class="section-label">Priority Matchup</h2>
-  <div class="card feature">
-    <p><strong>Wild SeeKats (Seabass/Kats) vs Los Bandidos (Bandit)</strong></p>
-    <p class="meta">0-0 vs 0-0</p>
-    <span class="tag">Coalition Warfare</span>
-    <p><a href="matchups/index.html">Full Common Tactical Picture →</a></p>
-  </div>
+
+<section class="module" aria-labelledby="yourteam-h">
+  <h2 class="section-label" id="yourteam-h">Your team</h2>
+  <p class="meta">Every team's own briefing: where they stand, what changed,
+    what the room is short of, and the last time the newsletter mentioned them.</p>
+  <p class="teamstrip">
+    <a href="team/dave/index.html">Dave</a><a href="team/gary/index.html">Gary</a><a href="team/los-bandidos-bandit/index.html">Los Bandidos (Bandit)</a><a href="team/l-entente-discordiale-borat-jack/index.html">L’entente Discordiale (Borat/Jack)</a><a href="team/mj/index.html">MJ</a><a href="team/shactin-a-fool-shac/index.html">SHACtin&#39; a Fool 🐻 (SHAC)</a><a href="team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a><a href="team/swanson/index.html">Swanson</a><a href="team/swifty-mahomey-pappie/index.html">Swifty Mahomey (Pappie)</a><a href="team/wild-seekats-seabass-kats/index.html">Wild SeeKats (Seabass/Kats)</a>
+  </p>
 </section>
 
 
+
 <section class="module">
-  <h2 class="section-label">In This Issue</h2>
+  <h2 class="section-label">Strongest rooms</h2>
+  <p class="meta">Who owns each skill position before a snap is played, ranked
+    against this league's own lineup demand.</p>
+  <div class="rooms">
+    
+    <div class="card">
+      <span class="pos">QB · #1 of 10</span>
+      <div><a href="team/los-bandidos-bandit/index.html">Los Bandidos (Bandit)</a></div>
+    </div>
+    
+    <div class="card">
+      <span class="pos">RB · #1 of 10</span>
+      <div><a href="team/gary/index.html">Gary</a></div>
+    </div>
+    
+    <div class="card">
+      <span class="pos">WR · #1 of 10</span>
+      <div><a href="team/los-bandidos-bandit/index.html">Los Bandidos (Bandit)</a></div>
+    </div>
+    
+    <div class="card">
+      <span class="pos">TE · #1 of 10</span>
+      <div><a href="team/wild-seekats-seabass-kats/index.html">Wild SeeKats (Seabass/Kats)</a></div>
+    </div>
+    
+  </div>
+  <p><a href="teams/index.html">Compare every roster →</a></p>
+</section>
+
+
+
+<section class="module">
+  <h2 class="section-label">In this issue</h2>
   <ul>
     
     <li><a href="2026/draft/index.html#lowdown">The Lowdown</a></li>
@@ -172,25 +296,15 @@ name all August.</p></div>
 
 
 <section class="module">
-  <h2 class="section-label">Standings snapshot</h2>
-  <div class="tablewrap">
-  <table>
-    <caption class="meta" style="text-align:left">Top of the table · full standings linked below</caption>
-    <tr><th scope="col">#</th><th scope="col">Team</th><th scope="col">W</th><th scope="col">L</th><th scope="col">PF</th></tr>
-    
-    <tr><td>1</td><td class="wrap">Statistical Anomalies (McLovin)</td><td>0</td><td>0</td><td>0.0</td></tr>
-    
-    <tr><td>2</td><td class="wrap">Swanson</td><td>0</td><td>0</td><td>0.0</td></tr>
-    
-    <tr><td>3</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td><td>0</td><td>0</td><td>0.0</td></tr>
-    
-    <tr><td>4</td><td class="wrap">Dave</td><td>0</td><td>0</td><td>0.0</td></tr>
-    
-    <tr><td>5</td><td class="wrap">Gary</td><td>0</td><td>0</td><td>0.0</td></tr>
-    
-  </table>
-  </div>
-  <p><a href="standings/index.html">Full standings →</a></p>
+  <h2 class="section-label">Go deeper</h2>
+  <p class="deeper">
+    <a href="matchups/index.html">Common Tactical Picture</a>
+    <a href="power/index.html">Peer and Near-Peer</a>
+    <a href="transactions/index.html">Force Flow</a>
+    <a href="draft/index.html">Draft board</a>
+    <a href="teams/index.html">Teams</a>
+    <a href="black-box/index.html">Black Box</a>
+  </p>
 </section>
 
 <section class="module">
