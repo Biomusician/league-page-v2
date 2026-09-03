@@ -551,6 +551,26 @@ def build_league(
            rankings=ranking_ctx, label=label, board=board,
            current_nav="Peer and Near-Peer")
 
+    # Team pages: a personal briefing on top, editorial weighting under it,
+    # and a section order that ages the draft down the page as results
+    # accumulate.
+    from leaguepage.front_page import season_state
+    from leaguepage.pubqa import _norm_tokens
+    from leaguepage.receipts import live_receipts
+    from leaguepage.team_briefing import (
+        build as build_briefing, editorial_strengths, league_mentions,
+        section_order,
+    )
+
+    front_state = season_state(
+        weeks_played_league, week,
+        (league_data.get("settings") or {}).get("playoff_week_start"))
+    name_tokens = {rid: _norm_tokens(v["name"]) for rid, v in names.items()
+                   if v["name"]}
+    team_receipts_by_rid: dict[int, list[dict]] = {}
+    for _r in live_receipts(storage, league, season, week, snaps, names):
+        team_receipts_by_rid.setdefault(_r["roster_id"], []).append(_r)
+
     team_cards = []
     for r in storage.get_rosters(league.league_id):
         rid = r["roster_id"]
@@ -574,9 +594,7 @@ def build_league(
         awards = [{"name": AWARD_NAMES.get(a["award_key"], a["award_key"]), "issue": a["issue"]}
                   for a in published_awards
                   if a.get("winner") in (slugs[rid], nm)]
-        mentions = [{"href": s["href"], "label": f"{s['season']} {s['issue_label']}"}
-                    for s in snaps
-                    if any(nm in sec["content_md"] for sec in s["sections"])]
+        mentions = league_mentions(snaps, nm, rid, name_tokens)
         sw = strengths_weaknesses(profile, rid)
         positional_rows = []
         for pos in profile["positions"]:
@@ -606,6 +624,30 @@ def build_league(
             t_ = outlook["teams"][rid]
             playoff_line = (t_["band"] if outlook["stage"] == "bands"
                             else f"{t_['odds']:.0%} ({t_['band']})")
+        moves_ctx = [_move_ctx(m) for m in tx_by_rid.get(rid, [])[-3:]]
+        e_str, e_weak = editorial_strengths(profile, rid, sw)
+        model_rank = next((row["rank"] for row in board["rows"]
+                           if row["roster_id"] == rid), None)
+        # exact side match, never a substring: "Dave" lives inside plenty of
+        # other strings
+        next_card = next(({"names": c["names"], "anchor": c["anchor"],
+                           "note": (", ".join(c["tags"]) if c["tags"] else
+                                    ("the result is on the board" if c["score"]
+                                     else f"week {week} on the board"))}
+                          for c in cards if nm in c["names"].split(" vs ")), None)
+        briefing = build_briefing(
+            # Preseason standings position is an arbitrary tiebreak among 0-0
+            # teams, so the briefing shows the model board's rank instead.
+            state=front_state, name=nm, record=rec,
+            standing=st if weeks_played_league else model_rank,
+            weeks_played=weeks_played_league, profile=profile, rid=rid,
+            form=(form or {}).get(rid), streak=streak_map.get(rid),
+            all_play=apd,
+            playoff_line=playoff_line if weeks_played_league else None,
+            playoff_delta=next((d for d in deltas.get(rid, [])
+                                if d.startswith("playoff")), None),
+            key_moves=moves_ctx, next_matchup=next_card,
+            deltas=deltas.get(rid, []), receipts=team_receipts_by_rid.get(rid, []))
         render(f"team/{slugs[rid]}/index.html", "public/team.html", 3,
                team={"name": nm, "record": f"{rec['wins']}-{rec['losses']}",
                      "standing": st, "pf": rec["fpts"],
@@ -616,15 +658,22 @@ def build_league(
                      "awards": awards, "roster": roster_players,
                      "mentions": mentions,
                      "positional": positional_rows,
-                     "strengths": [x["note"] for x in sw["strengths"]],
-                     "weaknesses": [x["note"] for x in sw["weaknesses"]],
-                     "outlook_signals": team_outlook(storage, league, season, rid,
-                                                    week, profile=profile),
+                     "strengths": e_str,
+                     "weaknesses": e_weak,
+                     # Preseason team_outlook is exactly the strengths and
+                     # weaknesses already printed above it; only show it once
+                     # it carries something those lines do not.
+                     "outlook_signals": [
+                         s_ for s_ in team_outlook(storage, league, season, rid,
+                                                   week, profile=profile)
+                         if s_ not in e_str and s_ not in e_weak],
                      "trend": trend_lines,
                      "playoff": playoff_line,
-                     "key_moves": [_move_ctx(m) for m in tx_by_rid.get(rid, [])[-3:]],
+                     "key_moves": moves_ctx,
                      "draft_recap": recap_by_rid.get(rid),
                      "league_size": league_size,
+                     "briefing": briefing,
+                     "sections": section_order(front_state),
                      "stage": profile["stage"]},
                current_nav="Teams")
     render("teams/index.html", "public/teams.html", 2,

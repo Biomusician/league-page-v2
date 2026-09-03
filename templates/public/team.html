@@ -1,6 +1,33 @@
 {% extends "public/base.html" %}
 {% from "public/_dv.html" import dv %}
 {% block title %}{{ team.name }} — {{ league.display_name }}{% endblock %}
+{% block extra_css %}
+  .brief { padding:1rem 1.15rem; }
+  .brief .storyline { font-size:1.12rem; line-height:1.4; margin:.1rem 0 .8rem; }
+  .brief dl { display:grid; grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr));
+              gap:.75rem 1.4rem; margin:.5rem 0 0; }
+  .brief dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+              margin-bottom:.12rem; }
+  .brief dd { margin:0; font-size:1.02rem; }
+  .brief dd .sub { display:block; font-size:.84rem; margin-top:.1rem; }
+  .brief .lists { margin-top:.9rem; padding-top:.7rem; border-top:1px dotted; }
+  .brief .lists h4 { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+                     margin:.6rem 0 .2rem; }
+  .brief ul { margin:.1rem 0; padding-left:1.1rem; font-size:.93rem; }
+  .receipt { font-size:.92rem; margin:.5rem 0 0; }
+  .receipt blockquote { margin:.2rem 0; font-style:italic; }
+  .mention blockquote { margin:.25rem 0 .1rem; font-style:italic; }
+  @media (max-width:640px) { .brief dl { grid-template-columns:1fr 1fr; } }
+{% if league and league.theme == "disco" %}
+  .brief { border:2px solid #e8a33d; background:#1a2027; }
+  .brief dt { color:#8fa8b8; }
+  .brief .lists { border-color:#2c343d; }
+{% else %}
+  .brief { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
+  .brief dt { color:#9fb6cc; }
+  .brief .lists { border-color:#1d3d63; }
+{% endif %}
+{% endblock %}
 {% block content %}
 <h2 class="section-label">{{ team.name }}</h2>
 {% if team.coalition %}
@@ -10,18 +37,58 @@
   <div class="meta">{{ team.coalition.roles }}</div>
 </div>
 {% endif %}
-<p class="meta">Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
-{% if team.co_managed %} · co-managed command structure{% endif %}
-{% if team.playoff %} · playoff outlook: {{ team.playoff }}{% endif %}</p>
+<p class="meta">
+{%- if team.briefing and team.briefing.state == "preseason" -%}
+Preseason · no games played
+{%- else -%}
+Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
+{%- endif -%}
+{% if team.co_managed %} · co-managed command structure{% endif %}</p>
 
-{% if team.trend %}
-<section class="module">
-  <h2 class="section-label">Trend</h2>
-  <ul>{% for t in team.trend %}<li>{{ t }}</li>{% endfor %}</ul>
+{% set b = team.briefing %}
+{% if b %}
+<section class="module" aria-labelledby="brief-h">
+  <h2 class="section-label" id="brief-h">
+    {% if b.state == "preseason" %}Your team going in{% else %}Your team this week{% endif %}</h2>
+  <div class="card brief">
+    {% if b.storyline %}<p class="storyline">{{ b.storyline }}</p>{% endif %}
+    <dl>
+      {% if b.position %}<div><dt>Current position</dt><dd>{{ b.position }}</dd></div>{% endif %}
+      {% if b.playoff %}<div><dt>Playoff outlook</dt><dd>{{ b.playoff }}
+        {% if b.playoff_delta %}<span class="sub">{{ b.playoff_delta }}</span>{% endif %}</dd></div>{% endif %}
+      {% if b.form %}<div><dt>Form</dt><dd>{{ b.form }}</dd></div>{% endif %}
+      {% if b.strength %}<div><dt>Best meaningful strength</dt><dd>{{ b.strength }}
+        {% if b.strength_note %}<span class="sub">{{ b.strength_note }}</span>{% endif %}</dd></div>{% endif %}
+      {% if b.weakness %}<div><dt>Biggest weakness</dt><dd>{{ b.weakness }}
+        {% if b.weakness_note %}<span class="sub">{{ b.weakness_note }}</span>{% endif %}</dd></div>{% endif %}
+      {% if b.key_move %}<div><dt>Key move</dt><dd>{{ b.key_move.line }}
+        {% if b.key_move.questionable %}<span class="tag warn">QUESTIONABLE</span>{% endif %}
+        {% if b.key_move.shift %}<span class="sub">{{ b.key_move.shift }}</span>{% endif %}</dd></div>{% endif %}
+      {% if b.next %}<div><dt>Next</dt><dd><a href="{{ lroot }}matchups/index.html#{{ b.next.anchor }}">{{ b.next.names }}</a>
+        <span class="sub">{{ b.next.note }}</span></dd></div>{% endif %}
+    </dl>
+    {% if b.changed or b.watch %}
+    <div class="lists">
+      {% if b.changed %}<h4>What changed</h4>
+      <ul>{% for c in b.changed %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+      {% if b.watch %}<h4>What to watch</h4>
+      <ul>{% for w in b.watch %}<li>{{ w }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endif %}
+    {% for r in b.receipts %}
+    <div class="receipt">
+      <span class="tag">{{ r.status }}</span>
+      <blockquote>“{{ r.quote }}”</blockquote>
+      <span class="meta">{{ r.status_note }} — <a href="{{ lroot }}{{ r.href }}">{{ r.issue_label }}</a></span>
+    </div>
+    {% endfor %}
+  </div>
 </section>
 {% endif %}
 
-{% if team.positional %}
+{% for key in team.sections %}
+
+{% if key == "positional" and team.positional %}
 <section class="module">
   <h2 class="section-label">Positional Strength</h2>
   <div class="tablewrap">
@@ -39,18 +106,19 @@
   {% endif %}
   <p class="meta">Rooms are ranked against this league's actual lineup demand
   ({{ team.stage }}); starters weigh more than depth, and a room can rank well
-  while being carried by one player; the assessment says so when it is.</p>
+  while being carried by one player; the assessment says so when it is. Every
+  room is ranked here, including K and DEF; the briefing above leads with
+  skill-position construction, because that is what decides a season.</p>
+  {% if team.trend %}
+  <p><b>Trend:</b> {{ team.trend | join("; ") }}</p>
+  {% endif %}
+  {% if team.outlook_signals %}
+  <p><b>Defining this team right now:</b> {{ team.outlook_signals | join("; ") }}</p>
+  {% endif %}
 </section>
 {% endif %}
 
-{% if team.outlook_signals %}
-<section class="module">
-  <h2 class="section-label">Team Outlook</h2>
-  <ul>{% for s in team.outlook_signals %}<li>{{ s }}</li>{% endfor %}</ul>
-</section>
-{% endif %}
-
-{% if team.key_moves %}
+{% if key == "moves" and team.key_moves %}
 <section class="module">
   <h2 class="section-label">Key Moves</h2>
   <ul>
@@ -67,7 +135,7 @@
 </section>
 {% endif %}
 
-{% if team.draft_recap and team.draft_recap.picks %}
+{% if key == "draft" and team.draft_recap and team.draft_recap.picks %}
 <section class="module">
   <h2 class="section-label">Draft Recap</h2>
   {% if team.draft_recap.biggest_reach or team.draft_recap.biggest_steal %}
@@ -115,7 +183,7 @@
 </section>
 {% endif %}
 
-{% if team.score_history %}
+{% if key == "performance" and team.score_history %}
 <section class="module">
   <h2 class="section-label">Performance</h2>
   <div class="tablewrap">
@@ -124,17 +192,20 @@
     <tr><td>Points</td>{% for w, p in team.score_history %}<td>{{ p }}</td>{% endfor %}</tr>
   </table>
   </div>
-  {% if team.all_play %}<p class="meta">All-play: {{ team.all_play }}</p>{% endif %}
+  {% if team.all_play %}<p class="meta">All-play: {{ team.all_play }} — what the
+  record would be against the whole league every week, which is the honest read
+  on whether the schedule has helped or hurt.</p>{% endif %}
 </section>
 {% endif %}
 
-{% if team.awards %}
+{% if key == "awards" and team.awards %}
 <section class="module">
   <h2 class="section-label">Award Cabinet</h2>
   <ul>{% for a in team.awards %}<li><strong>{{ a.name }}</strong> — {{ a.issue }}</li>{% endfor %}</ul>
 </section>
 {% endif %}
 
+{% if key == "roster" %}
 <section class="module">
   <h2 class="section-label">Roster</h2>
   <div class="tablewrap">
@@ -146,11 +217,20 @@
   </table>
   </div>
 </section>
+{% endif %}
 
-{% if team.mentions %}
+{% if key == "mentions" and team.mentions %}
 <section class="module">
-  <h2 class="section-label">Newsletter History</h2>
-  <ul>{% for m in team.mentions %}<li><a href="{{ lroot }}{{ m.href }}">{{ m.label }}</a></li>{% endfor %}</ul>
+  <h2 class="section-label">Last time we talked about you</h2>
+  {% for m in team.mentions %}
+  <div class="card mention">
+    <p class="meta">{{ m.season }} {{ m.issue_label }} · {{ m.section_title }}</p>
+    <blockquote>“{{ m.quote }}”</blockquote>
+    <p class="meta"><a href="{{ lroot }}{{ m.href }}{% if m.anchor %}#{{ m.anchor }}{% endif %}">Read it in context →</a></p>
+  </div>
+  {% endfor %}
 </section>
 {% endif %}
+
+{% endfor %}
 {% endblock %}

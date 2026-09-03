@@ -52,8 +52,18 @@ _POS_CANON = {"quarterback": "QB", "running back": "RB",
 _SENTENCE_RE = re.compile(r"[^.!?]*[.!?]")
 
 
+_TABLE_ROW_RE = re.compile(r"^\s*\|.*$|^.*\|.*\|.*$", re.M)
+
+
 def _sentences(text: str) -> list[str]:
-    flat = re.sub(r"\s+", " ", re.sub(r"^#{1,6}\s.*$", " ", text, flags=re.M))
+    """Prose sentences only.
+
+    Headings and markdown table rows are stripped first: a table row reads
+    as a sentence to a regex and produces quotes like "0 | | 3 | Statistical
+    Anomalies | A- | 139." — technically a match, editorially worthless."""
+    body = re.sub(r"^#{1,6}\s.*$", " ", text, flags=re.M)
+    body = _TABLE_ROW_RE.sub(" ", body)
+    flat = re.sub(r"\s+", " ", body)
     return [s.strip() for s in _SENTENCE_RE.findall(flat) if len(s.strip()) > 30]
 
 
