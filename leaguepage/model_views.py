@@ -178,7 +178,7 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
         factor = None
         if weeks_played and rid in (form or {}):
             f = form[rid]
-            factor = f"#{f['rank']} scoring over the last {f['window']}"
+            factor = f"#{f['rank']} scoring over the last {f['window_label']}"
         elif best and worst:
             factor = (f"average skill-room rank {construction:.1f} of {n}; "
                       f"{best} carries it, {worst} is the exposure")

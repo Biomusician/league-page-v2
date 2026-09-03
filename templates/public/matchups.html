@@ -19,10 +19,17 @@
 {% endblock %}
 {% block content %}
 <h2 class="section-label">Common Tactical Picture · Week {{ week }}</h2>
+{% if cards | selectattr("scout") | first %}
+<p class="meta">Where the Commissioner has not written a preview, Scout View
+stands in: roster construction, league history and transactions, computed from
+synced data. It is not a prediction, and it is not his copy.</p>
+{% endif %}
 {% for c in cards %}
 <section class="card {{ 'feature' if c.prominence == 'FEATURE' else '' }}" id="{{ c.anchor }}" aria-label="{{ c.names }}">
   <p style="margin:.1rem 0"><strong style="font-size:{{ '1.35rem' if c.prominence == 'FEATURE' else '1.1rem' }}">{{ c.names }}</strong></p>
+  {% if c.score or not c.records.startswith("0-0 vs 0-0") %}
   <p class="meta">{{ c.records }}{% if c.score %} · {{ c.score }}{% endif %}</p>
+  {% endif %}
   <div>{% for t in c.tags %}<span class="tag">{{ t }}</span>{% endfor %}
        <span class="tag prom">{{ c.prominence }}</span></div>
   {% if c.preview_html %}
@@ -38,7 +45,6 @@
     <h4>Watch</h4>
     <ul>{% for line in c.scout.watch %}<li>{{ line }}</li>{% endfor %}</ul>
     {% endif %}
-    <p class="meta src">{{ c.scout.note }}</p>
   </div>
   {% else %}
   <p class="meta"><i>No preview written, and nothing in the data marks this one

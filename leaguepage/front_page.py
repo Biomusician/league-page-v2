@@ -159,7 +159,7 @@ def _team_to_watch(ctx) -> list[dict]:
         return []
     return [_item(
         "watch", "Team to Watch", ctx["names"].get(best_rid, f"Roster {best_rid}"),
-        f"#1 scoring over the last {f['window']}.",
+        f"#1 scoring over the last {f['window_label']}.",
         f"team/{ctx['slugs'][best_rid]}/index.html",
         weight=74, cta="Team page")]
 
@@ -304,5 +304,13 @@ def build(ctx: dict) -> dict:
                            "table is a row of zeroes and a random tiebreak."),
         "rooms": (strongest_rooms(ctx.get("profile"), ctx["names"], ctx["slugs"])
                   if not show_standings else []),
+        # A static site cannot know who is reading it, so the closest thing to
+        # "my team" is one click from the front page to every team page. The
+        # alternative is a reader hunting through Teams for their own name,
+        # which is the single most common thing anyone wants to do here.
+        "teams": sorted(({"name": nm, "slug": ctx["slugs"].get(rid)}
+                         for rid, nm in ctx["names"].items()
+                         if ctx["slugs"].get(rid)),
+                        key=lambda t: t["name"].lower()),
         "weeks_played": weeks_played,
     }

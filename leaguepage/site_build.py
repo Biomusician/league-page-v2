@@ -371,9 +371,9 @@ def build_league(
         for rid, f_ in _form.items():
             nm_ = names[rid]["name"] or f"Roster {rid}"
             if f_["rank"] <= 2 or (_streaks.get(rid, {}).get("kind") == "top-half scoring"):
-                st_analysis["hot"].append(f"{nm_}: #{f_['rank']} scoring over the last {f_['window']}")
+                st_analysis["hot"].append(f"{nm_}: #{f_['rank']} scoring over the last {f_['window_label']}")
             if f_["rank"] >= n_teams - 1 or (_streaks.get(rid, {}).get("kind") == "bottom-half scoring"):
-                st_analysis["trouble"].append(f"{nm_}: #{f_['rank']} of {n_teams} over the last {f_['window']}")
+                st_analysis["trouble"].append(f"{nm_}: #{f_['rank']} of {n_teams} over the last {f_['window_label']}")
     _outlook = _po(storage, league, week)
     if _outlook.get("stage") == "too_early":
         st_analysis["playoff"] = {"note": _outlook["note"],
@@ -619,7 +619,7 @@ def build_league(
         trend_lines = []
         if form and rid in form:
             f = form[rid]
-            trend_lines.append(f"#{f['rank']} scoring over the last {f['window']}")
+            trend_lines.append(f"#{f['rank']} scoring over the last {f['window_label']}")
         if rid in streak_map:
             s_ = streak_map[rid]
             trend_lines.append(f"{s_['length']} straight weeks of {s_['kind']}")

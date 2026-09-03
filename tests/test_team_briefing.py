@@ -41,7 +41,7 @@ def brief(**over):
 
 def test_briefing_answers_the_five_questions():
     b = brief(state=MIDSEASON, weeks_played=6, record={"wins": 4, "losses": 2},
-              standing=3, form={"rank": 2, "window": "3 weeks"},
+              standing=3, form={"rank": 2, "window": 3, "window_label": "3 weeks"},
               playoff_line="71% (likely)", playoff_delta="playoff odds +14",
               key_moves=[{"line": "Claimed Player X for 24 FAAB",
                           "text": "aimed at RB", "rank_shift": "RB #10 → #6",

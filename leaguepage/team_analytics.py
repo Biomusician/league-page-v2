@@ -256,7 +256,10 @@ def recent_form(storage: Storage, league: League, through_week: int,
     avg = {rid: sum(v) / len(v) for rid, v in windowed.items()}
     order = sorted(avg, key=lambda rid: -avg[rid])
     ap = all_play({rid: [(0, s) for s in windowed[rid]] for rid in windowed})
-    return {rid: {"window": w, "avg": round(avg[rid], 1),
+    # window is the integer week count; window_label is what a reader sees,
+    # because "#2 scoring over the last 3" is missing its unit.
+    label = f"{w} week{'' if w == 1 else 's'}"
+    return {rid: {"window": w, "window_label": label, "avg": round(avg[rid], 1),
                   "rank": order.index(rid) + 1,
                   "all_play": ap.get(rid)} for rid in windowed}
 
@@ -479,7 +482,7 @@ def team_outlook(storage: Storage, league: League, season: str, rid: int,
         form = recent_form(storage, league, through_week)
         if form and rid in form:
             f = form[rid]
-            signals.append(f"#{f['rank']} scoring over the last {f['window']}")
+            signals.append(f"#{f['rank']} scoring over the last {f['window_label']}")
         st = scoring_streaks(storage, league, through_week).get(rid)
         if st:
             signals.append(f"{st['length']} straight weeks of {st['kind']}")
@@ -512,7 +515,7 @@ def league_shift_lines(storage: Storage, league: League, season: str,
     if form:
         best = min(form, key=lambda rid: form[rid]["rank"])
         lines.append(f"• hottest: {names.get(best, best)} "
-                     f"(#1 scoring over the last {form[best]['window']})")
+                     f"(#1 scoring over the last {form[best]['window_label']})")
     return lines[:6]
 
 

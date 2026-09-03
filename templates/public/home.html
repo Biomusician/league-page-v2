@@ -18,6 +18,8 @@
                            display:block; margin:.2rem 0 .35rem; }
   .brief .label { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
   .brief .grid { display:grid; gap:.75rem; grid-template-columns:repeat(auto-fit, minmax(15.5rem, 1fr)); }
+  /* four secondaries at auto-fit give 3 + 1 orphan; two columns reads better */
+  .brief .grid.even { grid-template-columns:repeat(2, 1fr); }
   .brief .grid .card { margin:0; padding:.8rem .95rem; }
   .brief .grid .headline { font-size:1.02rem; font-weight:bold; display:block;
                            margin:.15rem 0 .3rem; line-height:1.35; }
@@ -27,19 +29,26 @@
   .rooms .card { margin:0; padding:.6rem .8rem; }
   .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
   .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
+  .teamstrip { display:flex; flex-wrap:wrap; gap:.4rem; }
+  .teamstrip a { display:inline-block; padding:.35rem .7rem; border-radius:3px;
+                 text-decoration:none; font-size:.9rem; }
   @media (max-width:640px) {
-    .brief .grid { grid-template-columns:1fr; }
+    .brief .grid, .brief .grid.even { grid-template-columns:1fr; }
     .brief .lead .headline { font-size:1.15rem; }
     .cta { display:block; text-align:center; }
   }
 {% if league and league.theme == "disco" %}
   .cta { background:#e8a33d; color:#14181d; }
   .brief .lead { border:2px solid #e8a33d; background:#1a2027; }
+  .teamstrip a { background:#1a2027; border:1px solid #2c343d; }
+  .teamstrip a:hover { border-color:#e8a33d; }
   .freshbar { color:#8fa8b8; border-bottom:1px solid #2c343d; }
   .hero h2.headline { color:#e8e4d8; }
 {% else %}
   .cta { background:#facd00; color:#071a2f; }
   .brief .lead { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
+  .teamstrip a { background:#0e2743; border:1px solid #1d3d63; }
+  .teamstrip a:hover { border-color:#facd00; }
   .freshbar { color:#9fb6cc; border-bottom:1px solid #1d3d63; }
   .hero h2.headline { color:#e4ecf5; }
 {% endif %}
@@ -78,7 +87,7 @@
     <a class="more" href="{{ lroot }}{{ lead.href }}">{{ lead.cta }} →</a>
   </div>
   {% if front.secondary %}
-  <div class="grid">
+  <div class="grid{% if front.secondary|length == 4 %} even{% endif %}">
     {% for i in front.secondary %}
     <div class="card">
       <span class="label">{{ i.label }}</span>
@@ -90,6 +99,17 @@
     {% endfor %}
   </div>
   {% endif %}
+</section>
+{% endif %}
+
+{% if front.teams %}
+<section class="module" aria-labelledby="yourteam-h">
+  <h2 class="section-label" id="yourteam-h">Your team</h2>
+  <p class="meta">Every team's own briefing: where they stand, what changed,
+    what the room is short of, and the last time the newsletter mentioned them.</p>
+  <p class="teamstrip">
+    {% for t in front.teams %}<a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a>{% endfor %}
+  </p>
 </section>
 {% endif %}
 

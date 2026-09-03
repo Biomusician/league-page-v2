@@ -134,7 +134,7 @@ def build(*, state: str, name: str, record: dict, standing: int | None,
 
     form_line = None
     if form:
-        form_line = f"#{form['rank']} scoring over the last {form['window']}"
+        form_line = f"#{form['rank']} scoring over the last {form['window_label']}"
         if streak:
             form_line += f" · {streak['length']} straight weeks of {streak['kind']}"
     elif streak:

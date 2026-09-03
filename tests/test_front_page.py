@@ -175,7 +175,7 @@ def test_item_count_is_capped():
     front = fp.build(ctx(
         weeks_played=6, week=7, cards=[card()], moves=[move(questionable=True)],
         movers=["Dave: standings 5 → 4"], hot=["Gary: #1 scoring"],
-        trouble=["Dave: #5 of 5"], form={2: {"rank": 1, "window": "3 weeks"}},
+        trouble=["Dave: #5 of 5"], form={2: {"rank": 1, "window": 3, "window_label": "3 weeks"}},
         receipt={"claim": "“a claim”", "status": "Aging well",
                  "status_note": "why", "href": "2026/draft/index.html"}))
     assert len(front["briefing"]) == fp.MAX_ITEMS
