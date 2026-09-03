@@ -215,9 +215,16 @@ def build_context(
 # ------------------------------------------------------------- identity
 
 
-_ROSTER_N_RE = re.compile(r"\bRoster\s+\d+\b")
+_ROSTER_N_RE = re.compile(r"\broster\s+\d+\b", re.I)
 _ROSTER_SLUG_RE = re.compile(r"\broster-\d+\b")
-_MATCHUP_SLUG_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)*-vs-[a-z0-9]+(?:-[a-z0-9]+)*\b")
+# An internal matchup slug looks like "roster-6-vs-all-barkley-no-bite": at
+# least one side is multi-segment. "man-vs-machine" and "us-vs-them" are
+# ordinary English and were being blocked as leaked internals, with no
+# override path. A gate that blocks a good sentence gets switched off.
+_MATCHUP_SLUG_RE = re.compile(
+    r"\b(?=[a-z0-9-]*-vs-)"
+    r"(?:[a-z0-9]+-){2,}vs-[a-z0-9]+(?:-[a-z0-9]+)*"
+    r"|[a-z0-9]+-vs(?:-[a-z0-9]+){2,}\b")
 _PENDING_NAME_RE = re.compile(r"team[\s-]*name[\s-]*(pending|tbd|unknown)", re.I)
 
 # A heading in a per-team section: "### 4. Jesse (-137)"
@@ -342,13 +349,20 @@ def _check_privacy(text: str, module_key: str, ctx: QAContext) -> list[Finding]:
 
 # ---------------------------------------------------------- placeholders
 
+# Markers, not words that happen to appear in a marker. "Playoffs are coming
+# soon for this roster" is a sentence; "Coming soon" alone on a line is a
+# stub. And "weeks XXX through XXI" is a Roman numeral, which is exactly how
+# this newsletter numbers its volumes.
 PLACEHOLDER_PATTERNS: list[tuple[str, str]] = [
     (r"Preview pending", "an unwritten matchup preview"),
-    (r"\bComing soon\b", "a 'coming soon' stub"),
+    (r"(?m)^[\s>*_-]*Coming soon\b[\s.!]*$", "a 'coming soon' stub"),
     (r"\bTBD\b", "a TBD marker"),
     (r"\bTODO\b", "a TODO marker"),
     (r"\bFIXME\b", "a FIXME marker"),
-    (r"\bXXX\b", "an XXX marker"),
+    # This newsletter numbers its volumes in Roman numerals, so a bare XXX
+    # in prose is far more likely to be thirty than a placeholder. It counts
+    # only where a marker actually sits: alone on a line, or bracketed.
+    (r"(?m)^[\s>*_-]*X{3,}[\s.!]*$|\[\s*X{3,}\s*\]", "an XXX marker"),
     (r"\bLorem ipsum\b", "placeholder latin"),
     (r"<\s*placeholder\s*>", "a placeholder tag"),
     (r"\[\s*(?:insert|fill in|add)[^\]]*\]", "an authoring instruction"),
@@ -387,9 +401,23 @@ _DANGLING_BULLET_RE = re.compile(r"^\s*[-*+]\s*$", re.M)
 _LONG_HEADING = 110
 
 
+def scrub_code(text: str) -> str:
+    """Blank out code spans and fences, keeping offsets intact.
+
+    `a**b` in a code span is not a bold marker that failed to render, and
+    blocking on it made a config example unpublishable."""
+    out = re.sub(r"```.*?```", lambda m: " " * len(m.group(0)), text, flags=re.S)
+    return re.sub(r"`[^`\n]*`", lambda m: " " * len(m.group(0)), out)
+
+
 def _rendered_text(content_md: str) -> str:
     html = md.markdown(strip_editorial_comments(content_md),
                        extensions=["tables", "smarty"])
+    # An inline code span is deliberate, so `a**b` inside one is not a bold
+    # marker that failed to render. A <pre> block is deliberately NOT
+    # stripped: a heading indented four spaces becomes one, and that is
+    # exactly the defect the unrendered-heading check exists to catch.
+    html = re.sub(r"(?is)(?<!<pre>)<code\b[^>]*>(.*?)</code>", " ", html)
     text = re.sub(r"(?is)<(script|style)\b.*?</\1>", " ", html)
     text = re.sub(r"(?i)<br\s*/?>", "\n", text)
     text = re.sub(r"(?i)</(p|div|li|tr|h[1-6]|td|th)>", "\n", text)
@@ -422,6 +450,15 @@ def _check_formatting(content_md: str, module_key: str, ctx: QAContext) -> list[
             "Markdown link syntax survived rendering, so readers see the "
             "brackets instead of a link.",
             module_key, excerpt=_context_of(rendered, m.start(), m.end())))
+    for m in re.finditer(r'src="([^"]+)"', html):
+        src = m.group(1)
+        if src.startswith(("http://", "https://", "data:")):
+            continue
+        out.append(Finding(
+            FORMATTING, BLOCKER, "Image source is not publishable",
+            f"'{src}' is a relative path. The published page is served from "
+            "a different directory, so the image will not load.",
+            module_key, excerpt=src))
     for m in _EMPTY_HEADING_RE.finditer(html):
         out.append(Finding(
             FORMATTING, BLOCKER, "Empty heading",
@@ -430,6 +467,8 @@ def _check_formatting(content_md: str, module_key: str, ctx: QAContext) -> list[
     for m in re.finditer(r'href="([^"]+)"', html):
         href = m.group(1)
         if href.startswith(("http://", "https://", "#", "mailto:")):
+            continue
+        if href.startswith(("fn:", "fnref:")):   # markdown footnotes
             continue
         out.append(Finding(
             FORMATTING, BLOCKER, "Link target is not publishable",
