@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>DISCO CHAT — Draft</title>
+
+<meta name="description" content="All 228 DISCO CHAT picks against the consensus board, with every reach and every value on the record.">
+<link rel="canonical" href="https://league-page-ten-sandy.vercel.app/disco/draft/index.html">
+<meta property="og:site_name" content="DISCO CHAT">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DISCO CHAT — Draft">
+<meta property="og:description" content="All 228 DISCO CHAT picks against the consensus board, with every reach and every value on the record.">
+<meta property="og:url" content="https://league-page-ten-sandy.vercel.app/disco/draft/index.html">
+<meta property="og:image" content="https://league-page-ten-sandy.vercel.app/assets/disco-logo-light.png">
+<meta property="og:image:width" content="800">
+<meta property="og:image:height" content="300">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="twitter:title" content="DISCO CHAT — Draft">
+<meta name="twitter:description" content="All 228 DISCO CHAT picks against the consensus board, with every reach and every value on the record.">
+<meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/disco-logo-light.png">
 <style>
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -83,6 +100,39 @@
   .meta, .credit, footer.colophon { color:#8fa8b8; }
   section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
 
+  h2.section-label { font-size:1.3rem; font-weight:700; }
+  section.module > div h2 { font-size:1.12rem; font-weight:700;
+                            text-transform:none; letter-spacing:0; }
+  section.module > div h3 { font-size:1.02rem; }
+  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h3.matchup-title.feature { font-size:1.35rem; }
+  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
+  /* Editorial tables arrive as raw HTML from published prose and were the
+     only thing on the site that scrolled the whole page sideways. */
+  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
+  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
+              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
+  nav.exits a { display:inline-block; padding:.45rem 0; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. */
+  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
+  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
+  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:inherit; }
+  /* The archive is a newspaper. Printing it produced blank paper, because
+     browsers drop background colours and every foreground here is light. */
+  @media print {
+    body { background:#fff; color:#111; }
+    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
+    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
+    .comments { display:none; }
+    main { max-width:none; padding:0; }
+    .tablewrap, section.module > div table { overflow:visible; display:table; }
+    td, th { white-space:normal; border-color:#999; }
+    .card { border-color:#999; background:none; }
+    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
+  }
 
 </style>
 </head>
@@ -178,7 +228,8 @@
   <p class="meta"><a href="#team-statistical-anomalies">Statistical Anomalies (McLovin)</a> · <a href="#team-tua-girls-one-kupp">Tua Girls One Kupp (HOP)</a> · <a href="#team-vhs-cowboys">VHS Cowboys (Juan)</a> · <a href="#team-stafford-son">Stafford and Sons (Fingers)</a> · <a href="#team-love-sutton-brocks">Love Sutton Brocks (EMCO)</a> · <a href="#team-roster-6">The Dude Abides (The Dude)</a> · <a href="#team-all-barkley-no-bite">All Barkley No Bite (Sealed)</a> · <a href="#team-george-friends">George &amp; Friends (DIP)</a> · <a href="#team-hand-me-a-white-claw">Hand me a White Claw (PITCH)</a> · <a href="#team-roster-10">Corn-Fed Fatties (Babe)</a> · <a href="#team-roster-11">Double TDs (Double)</a> · <a href="#team-secret-asian-man">Secret Asian Man (POP)</a></p>
   
   <div class="card" id="team-statistical-anomalies">
-    <strong>Statistical Anomalies (McLovin)</strong> <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
+    <h3><a href="../team/statistical-anomalies/index.html">Statistical Anomalies (McLovin)</a></h3>
+    <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -287,7 +338,8 @@
   </div>
   
   <div class="card" id="team-tua-girls-one-kupp">
-    <strong>Tua Girls One Kupp (HOP)</strong> <span class="meta">2 QB, 6 RB, 4 TE, 7 WR</span>
+    <h3><a href="../team/tua-girls-one-kupp/index.html">Tua Girls One Kupp (HOP)</a></h3>
+    <span class="meta">2 QB, 6 RB, 4 TE, 7 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -396,7 +448,8 @@
   </div>
   
   <div class="card" id="team-vhs-cowboys">
-    <strong>VHS Cowboys (Juan)</strong> <span class="meta">3 QB, 5 RB, 2 TE, 9 WR</span>
+    <h3><a href="../team/vhs-cowboys/index.html">VHS Cowboys (Juan)</a></h3>
+    <span class="meta">3 QB, 5 RB, 2 TE, 9 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -505,7 +558,8 @@
   </div>
   
   <div class="card" id="team-stafford-son">
-    <strong>Stafford and Sons (Fingers)</strong> <span class="meta">2 QB, 6 RB, 3 TE, 8 WR</span>
+    <h3><a href="../team/stafford-son/index.html">Stafford and Sons (Fingers)</a></h3>
+    <span class="meta">2 QB, 6 RB, 3 TE, 8 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -614,7 +668,8 @@
   </div>
   
   <div class="card" id="team-love-sutton-brocks">
-    <strong>Love Sutton Brocks (EMCO)</strong> <span class="meta">3 QB, 7 RB, 3 TE, 6 WR</span>
+    <h3><a href="../team/love-sutton-brocks/index.html">Love Sutton Brocks (EMCO)</a></h3>
+    <span class="meta">3 QB, 7 RB, 3 TE, 6 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -723,7 +778,8 @@
   </div>
   
   <div class="card" id="team-roster-6">
-    <strong>The Dude Abides (The Dude)</strong> <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
+    <h3><a href="../team/roster-6/index.html">The Dude Abides (The Dude)</a></h3>
+    <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -832,7 +888,8 @@
   </div>
   
   <div class="card" id="team-all-barkley-no-bite">
-    <strong>All Barkley No Bite (Sealed)</strong> <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
+    <h3><a href="../team/all-barkley-no-bite/index.html">All Barkley No Bite (Sealed)</a></h3>
+    <span class="meta">3 QB, 6 RB, 3 TE, 7 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -941,7 +998,8 @@
   </div>
   
   <div class="card" id="team-george-friends">
-    <strong>George &amp; Friends (DIP)</strong> <span class="meta">4 QB, 4 RB, 2 TE, 9 WR</span>
+    <h3><a href="../team/george-friends/index.html">George &amp; Friends (DIP)</a></h3>
+    <span class="meta">4 QB, 4 RB, 2 TE, 9 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -1050,7 +1108,8 @@
   </div>
   
   <div class="card" id="team-hand-me-a-white-claw">
-    <strong>Hand me a White Claw (PITCH)</strong> <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
+    <h3><a href="../team/hand-me-a-white-claw/index.html">Hand me a White Claw (PITCH)</a></h3>
+    <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -1159,7 +1218,8 @@
   </div>
   
   <div class="card" id="team-roster-10">
-    <strong>Corn-Fed Fatties (Babe)</strong> <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
+    <h3><a href="../team/roster-10/index.html">Corn-Fed Fatties (Babe)</a></h3>
+    <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -1268,7 +1328,8 @@
   </div>
   
   <div class="card" id="team-roster-11">
-    <strong>Double TDs (Double)</strong> <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
+    <h3><a href="../team/roster-11/index.html">Double TDs (Double)</a></h3>
+    <span class="meta">4 QB, 6 RB, 2 TE, 7 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -1377,7 +1438,8 @@
   </div>
   
   <div class="card" id="team-secret-asian-man">
-    <strong>Secret Asian Man (POP)</strong> <span class="meta">3 QB, 5 RB, 2 TE, 9 WR</span>
+    <h3><a href="../team/secret-asian-man/index.html">Secret Asian Man (POP)</a></h3>
+    <span class="meta">3 QB, 5 RB, 2 TE, 9 WR</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
@@ -2651,7 +2713,7 @@ value against a reference board — not whether the pick ultimately succeeds.</p
 
 </main>
 <footer class="colophon">
-  <img class="logo-footer" src="../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  <img class="logo-footer" src="../../assets/disco-logo-banner.jpg" alt="" width="800" height="300" loading="lazy">
   DISCO CHAT · 2026 · <a href="../../index.html">League select</a>
 </footer>
 <script src="../../assets/sortable.js" defer></script>

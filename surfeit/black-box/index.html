@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>THE SURFEIT — Black Box</title>
+
+<meta name="description" content="Season records and standing marks in THE SURFEIT, before a game has been played.">
+<link rel="canonical" href="https://league-page-ten-sandy.vercel.app/surfeit/black-box/index.html">
+<meta property="og:site_name" content="THE SURFEIT">
+<meta property="og:type" content="website">
+<meta property="og:title" content="THE SURFEIT — Black Box">
+<meta property="og:description" content="Season records and standing marks in THE SURFEIT, before a game has been played.">
+<meta property="og:url" content="https://league-page-ten-sandy.vercel.app/surfeit/black-box/index.html">
+<meta property="og:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
+<meta property="og:image:width" content="560">
+<meta property="og:image:height" content="528">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="twitter:title" content="THE SURFEIT — Black Box">
+<meta name="twitter:description" content="Season records and standing marks in THE SURFEIT, before a game has been played.">
+<meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
 <style>
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -86,6 +103,39 @@
   blockquote { border-left:3px solid #58b6f0; color:#c2d2e0; }
   .meta, .credit, footer.colophon { color:#9fb6cc; }
 
+  h2.section-label { font-size:1.3rem; font-weight:700; }
+  section.module > div h2 { font-size:1.12rem; font-weight:700;
+                            text-transform:none; letter-spacing:0; }
+  section.module > div h3 { font-size:1.02rem; }
+  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h3.matchup-title.feature { font-size:1.35rem; }
+  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
+  /* Editorial tables arrive as raw HTML from published prose and were the
+     only thing on the site that scrolled the whole page sideways. */
+  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
+  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
+              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
+  nav.exits a { display:inline-block; padding:.45rem 0; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. */
+  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
+  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
+  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:inherit; }
+  /* The archive is a newspaper. Printing it produced blank paper, because
+     browsers drop background colours and every foreground here is light. */
+  @media print {
+    body { background:#fff; color:#111; }
+    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
+    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
+    .comments { display:none; }
+    main { max-width:none; padding:0; }
+    .tablewrap, section.module > div table { overflow:visible; display:table; }
+    td, th { white-space:normal; border-color:#999; }
+    .card { border-color:#999; background:none; }
+    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
+  }
 
 </style>
 </head>
@@ -132,22 +182,24 @@ anything. These are the marks the season starts from.</p>
 <table>
   <tr><th scope="col">Mark</th><th scope="col">Held by</th><th scope="col">On what</th></tr>
   
-  <tr><td class="wrap">Deepest QB room on paper</td><td class="wrap">Los Bandidos (Bandit)</td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
+  <tr><th scope="row" class="wrap">Deepest QB room on paper</th><td class="wrap"><a href="../team/los-bandidos-bandit/index.html">Los Bandidos (Bandit)</a></td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
   
-  <tr><td class="wrap">Deepest RB room on paper</td><td class="wrap">Gary</td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
+  <tr><th scope="row" class="wrap">Deepest RB room on paper</th><td class="wrap"><a href="../team/gary/index.html">Gary</a></td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
   
-  <tr><td class="wrap">Deepest WR room on paper</td><td class="wrap">Los Bandidos (Bandit)</td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
+  <tr><th scope="row" class="wrap">Deepest WR room on paper</th><td class="wrap"><a href="../team/los-bandidos-bandit/index.html">Los Bandidos (Bandit)</a></td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
   
-  <tr><td class="wrap">Deepest TE room on paper</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
+  <tr><th scope="row" class="wrap">Deepest TE room on paper</th><td class="wrap"><a href="../team/wild-seekats-seabass-kats/index.html">Wild SeeKats (Seabass/Kats)</a></td><td class="wrap">#1 of 10 against this league&#39;s lineup demand</td></tr>
   
-  <tr><td class="wrap">Largest departure from consensus</td><td class="wrap">Jordan James — L’entente Discordiale (Borat/Jack)</td><td class="wrap">REACH · 131 picks early</td></tr>
+  <tr><th scope="row" class="wrap">Largest departure from consensus</th><td class="wrap">Jordan James — L’entente Discordiale (Borat/Jack)</td><td class="wrap">REACH · 131 picks early</td></tr>
   
-  <tr><td class="wrap">Largest value on the board</td><td class="wrap">Trevor Lawrence — Los Bandidos (Bandit)</td><td class="wrap">STEAL · 37 picks late</td></tr>
+  <tr><th scope="row" class="wrap">Largest value on the board</th><td class="wrap">Trevor Lawrence — Los Bandidos (Bandit)</td><td class="wrap">STEAL · 37 picks late</td></tr>
   
 </table>
 </div>
 <p class="meta">Computed from the synced draft and rosters. Nothing here is a
 record; records need games.</p>
+
+
 
 
 

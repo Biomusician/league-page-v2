@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>Statistical Anomalies (McLovin) — THE SURFEIT</title>
+
+<meta name="description" content="Statistical Anomalies (McLovin): 0-0, 0 points for, positional room ranks, draft recap and what changed.">
+<link rel="canonical" href="https://league-page-ten-sandy.vercel.app/surfeit/team/statistical-anomalies-mclovin/index.html">
+<meta property="og:site_name" content="THE SURFEIT">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Statistical Anomalies (McLovin) — THE SURFEIT">
+<meta property="og:description" content="Statistical Anomalies (McLovin): 0-0, 0 points for, positional room ranks, draft recap and what changed.">
+<meta property="og:url" content="https://league-page-ten-sandy.vercel.app/surfeit/team/statistical-anomalies-mclovin/index.html">
+<meta property="og:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
+<meta property="og:image:width" content="560">
+<meta property="og:image:height" content="528">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="twitter:title" content="Statistical Anomalies (McLovin) — THE SURFEIT">
+<meta name="twitter:description" content="Statistical Anomalies (McLovin): 0-0, 0 points for, positional room ranks, draft recap and what changed.">
+<meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
 <style>
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -86,6 +103,39 @@
   blockquote { border-left:3px solid #58b6f0; color:#c2d2e0; }
   .meta, .credit, footer.colophon { color:#9fb6cc; }
 
+  h2.section-label { font-size:1.3rem; font-weight:700; }
+  section.module > div h2 { font-size:1.12rem; font-weight:700;
+                            text-transform:none; letter-spacing:0; }
+  section.module > div h3 { font-size:1.02rem; }
+  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h3.matchup-title.feature { font-size:1.35rem; }
+  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
+  /* Editorial tables arrive as raw HTML from published prose and were the
+     only thing on the site that scrolled the whole page sideways. */
+  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
+  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
+              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
+  nav.exits a { display:inline-block; padding:.45rem 0; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. */
+  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
+  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
+  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:inherit; }
+  /* The archive is a newspaper. Printing it produced blank paper, because
+     browsers drop background colours and every foreground here is light. */
+  @media print {
+    body { background:#fff; color:#111; }
+    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
+    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
+    .comments { display:none; }
+    main { max-width:none; padding:0; }
+    .tablewrap, section.module > div table { overflow:visible; display:table; }
+    td, th { white-space:normal; border-color:#999; }
+    .card { border-color:#999; background:none; }
+    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
+  }
 
   .brief { padding:1rem 1.15rem; }
   .brief .storyline { font-size:1.12rem; line-height:1.4; margin:.1rem 0 .8rem; }
@@ -102,7 +152,8 @@
   .receipt { font-size:.92rem; margin:.5rem 0 0; }
   .receipt blockquote { margin:.2rem 0; font-style:italic; }
   .mention blockquote { margin:.25rem 0 .1rem; font-style:italic; }
-  @media (max-width:640px) { .brief dl { grid-template-columns:1fr 1fr; } }
+  /* No mobile override. The base auto-fit already collapses to one column;
+     forcing two put a 205px label into a 143px box on every team page. */
 
   .brief { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
   .brief dt { color:#9fb6cc; }
@@ -137,7 +188,7 @@
   
   <a href="../../standings/index.html" >Standings</a>
   
-  <a href="../../teams/index.html" aria-current="page">Teams</a>
+  <a href="../../teams/index.html" >Teams</a>
   
   <a href="../../archive/index.html" >Archive</a>
   
@@ -155,7 +206,7 @@
   <h2 class="section-label" id="brief-h">
     Your team going in</h2>
   <div class="card brief">
-    <p class="storyline">Built around WR, exposed at TE — the season will decide whether that trade is the right one.</p>
+    <p class="storyline">Built around WR, exposed at TE. The season will decide whether that trade-off was the right one.</p>
     <dl>
       <div><dt>Current position</dt><dd>Preseason · model board 7th of 10</dd></div>
       
@@ -165,7 +216,7 @@
       <div><dt>Biggest weakness</dt><dd>TE · #10 of 10
         </dd></div>
       
-      <div><dt>Next</dt><dd><a href="../../matchups/index.html#statistical-anomalies-vs-l-entente-discordiale">Statistical Anomalies (McLovin) vs L’entente Discordiale (Borat/Jack)</a>
+      <div><dt>Next</dt><dd><a href="../../matchups/index.html#statistical-anomalies-mclovin-vs-l-entente-discordiale-borat-jack">Statistical Anomalies (McLovin) vs L’entente Discordiale (Borat/Jack)</a>
         <span class="sub">Coalition Warfare</span></dd></div>
     </dl>
     
@@ -174,6 +225,8 @@
       <h4>What to watch</h4>
       <ul><li>TE is the room most likely to cost a week</li></ul>
     </div>
+    
+    
     
     
   </div>
@@ -211,16 +264,16 @@
   </div>
   
   <p><b>Strengths:</b> WR room ranks 3/10 with real depth behind the starters<br>
-     <b>Weaknesses:</b> TE room ranks 10/10</p>
+     
+     <b>Weaknesses:</b> TE room ranks 10/10
+     </p>
   
   <p class="meta">Rooms are ranked against this league's actual lineup demand
-  (preseason (consensus ranks)); starters weigh more than depth, and a room can rank well
-  while being carried by one player; the assessment says so when it is. Every
-  room is ranked here, including K and DEF; the briefing above leads with
-  skill-position construction, because that is what decides a season.</p>
+  using preseason consensus ranks; starters weigh more than depth, and a room can rank
+  well while being carried by one player; the assessment says so when it is. Every room is ranked here, including K and
+  DEF; the briefing above leads with skill-position construction, because that
+  is what decides a season.</p>
   
-  
-  <p><b>Defining this team right now:</b> K room ranks 2/10 with real depth behind the starters</p>
   
 </section>
 
@@ -260,14 +313,18 @@
   force everyone to draft one, so their deviations are reported separately.</p>
   
   
+  <p class="meta">Of 15 picks, 15 are still here.</p>
+  
+  
+  
   <div class="card">
     <strong>Special Teams Outliers</strong>
     <ul>
       
-      <li>Cameron Dicker <span class="meta">(pick 126 · ref 206.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span>
+      <li>Cameron Dicker <span class="meta">(pick 126)</span>
         <br><span class="meta">3rd K drafted · consensus K2</span></li>
       
-      <li>Jacksonville Jaguars <span class="meta">(pick 146 · ref 195.0)</span> — <span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 49 picks early</span>
+      <li>Jacksonville Jaguars <span class="meta">(pick 146)</span>
         <br><span class="meta">9th DST drafted · consensus DST5</span></li>
       
     </ul>
@@ -476,7 +533,7 @@
 
 
 <section class="module">
-  <h2 class="section-label">Last time we talked about you</h2>
+  <h2 class="section-label">What the current issue says about this team</h2>
   
   <div class="card mention">
     <p class="meta">2026 Draft Issue · Draft Power Rankings</p>
@@ -504,6 +561,11 @@
 
 
 
+<nav class="exits" aria-label="Where to next">
+  <a href="../../teams/index.html">&larr; Every team</a>
+  <a href="../../standings/index.html">Standings &rarr;</a>
+  <a href="../../matchups/index.html">This week&rsquo;s board &rarr;</a>
+</nav>
 
 </main>
 <footer class="colophon">

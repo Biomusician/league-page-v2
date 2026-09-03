@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>DISCO CHAT — Force Flow</title>
+
+<meta name="description" content="Every completed add, drop and trade in DISCO CHAT, with what each move was reading and what it cost.">
+<link rel="canonical" href="https://league-page-ten-sandy.vercel.app/disco/transactions/index.html">
+<meta property="og:site_name" content="DISCO CHAT">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DISCO CHAT — Force Flow">
+<meta property="og:description" content="Every completed add, drop and trade in DISCO CHAT, with what each move was reading and what it cost.">
+<meta property="og:url" content="https://league-page-ten-sandy.vercel.app/disco/transactions/index.html">
+<meta property="og:image" content="https://league-page-ten-sandy.vercel.app/assets/disco-logo-light.png">
+<meta property="og:image:width" content="800">
+<meta property="og:image:height" content="300">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="twitter:title" content="DISCO CHAT — Force Flow">
+<meta name="twitter:description" content="Every completed add, drop and trade in DISCO CHAT, with what each move was reading and what it cost.">
+<meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/disco-logo-light.png">
 <style>
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -83,6 +100,43 @@
   .meta, .credit, footer.colophon { color:#8fa8b8; }
   section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
 
+  h2.section-label { font-size:1.3rem; font-weight:700; }
+  section.module > div h2 { font-size:1.12rem; font-weight:700;
+                            text-transform:none; letter-spacing:0; }
+  section.module > div h3 { font-size:1.02rem; }
+  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h3.matchup-title.feature { font-size:1.35rem; }
+  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
+  /* Editorial tables arrive as raw HTML from published prose and were the
+     only thing on the site that scrolled the whole page sideways. */
+  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
+  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
+              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
+  nav.exits a { display:inline-block; padding:.45rem 0; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. */
+  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
+  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
+  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:inherit; }
+  /* The archive is a newspaper. Printing it produced blank paper, because
+     browsers drop background colours and every foreground here is light. */
+  @media print {
+    body { background:#fff; color:#111; }
+    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
+    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
+    .comments { display:none; }
+    main { max-width:none; padding:0; }
+    .tablewrap, section.module > div table { overflow:visible; display:table; }
+    td, th { white-space:normal; border-color:#999; }
+    .card { border-color:#999; background:none; }
+    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
+  }
+
+  .aged { font-size:.92rem; margin:.4rem 0 0; padding-top:.35rem;
+          border-top:1px dotted; }
+  .aged b { font-variant:small-caps; letter-spacing:.05em; font-weight:normal; }
 
 </style>
 </head>
@@ -131,33 +185,38 @@
   <h2 class="section-label">Reading the Moves</h2>
   
   <div class="card">
-    <strong>Claimed Zavion Thomas off waivers · dropped Calvin Ridley</strong> — Stafford and Sons (Fingers)
+    <strong>Claimed Zavion Thomas off waivers · dropped Calvin Ridley</strong> — <a href="../team/stafford-and-sons-fingers/index.html">Stafford and Sons (Fingers)</a>
     <span class="meta">(wk 1 · waiver)</span>
     
     <p>Likely rationale: This appears aimed at WR: the room ranked #12 of 12 before the move.</p>
     
+    
   </div>
   
   <div class="card">
-    <strong>Claimed Mike Gesicki off waivers</strong> — Statistical Anomalies (McLovin)
+    <strong>Claimed Mike Gesicki off waivers</strong> — <a href="../team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a>
     <span class="meta">(wk 1 · waiver)</span>
     
     <p>Likely rationale: This appears aimed at TE: the room ranked #12 of 12 before the move.</p>
     
+    
   </div>
   
   <div class="card">
-    <strong>Claimed Malik Davis for 5 FAAB · dropped Jerry Jeudy</strong> — VHS Cowboys (Juan)
+    <strong>Claimed Malik Davis for 5 FAAB · dropped Jerry Jeudy</strong> — <a href="../team/vhs-cowboys-juan/index.html">VHS Cowboys (Juan)</a>
     <span class="meta">(wk 1 · waiver · 5 FAAB)</span>
     
     <p>Likely rationale: This appears aimed at RB: the room ranked #11 of 12 before the move.</p>
+    
     
   </div>
   
   <p class="meta">Move rationales are inferred from roster construction,
   positional strength, transaction cost, and available context. They describe
   plausible roster logic, not the manager's stated intent unless explicitly
-  noted.</p>
+  noted. "How it aged" is a separate reading taken later: the rationale above
+  is what the roster said at the time and is never rewritten to match the
+  result.</p>
 </section>
 
 
@@ -174,28 +233,28 @@
         <th scope="col" data-sort-type="text">Dropped</th>
         <th scope="col" data-sort-type="number" data-sort-dir="desc">FAAB</th></tr>
     
-    <tr><td>1</td><td>waiver</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+    <tr><td>1</td><td>waiver</td><th scope="row" class="wrap"><a href="../team/all-barkley-no-bite-sealed/index.html">All Barkley No Bite (Sealed)</a></th>
         <td class="wrap">Germie Bernard</td><td class="wrap">—</td><td>1</td></tr>
     
-    <tr><td>1</td><td>free agent</td><td class="wrap">All Barkley No Bite (Sealed)</td>
+    <tr><td>1</td><td>free agent</td><th scope="row" class="wrap"><a href="../team/all-barkley-no-bite-sealed/index.html">All Barkley No Bite (Sealed)</a></th>
         <td class="wrap">—</td><td class="wrap">Audric Estime</td><td>—</td></tr>
     
-    <tr><td>1</td><td>waiver</td><td class="wrap">Stafford and Sons (Fingers)</td>
+    <tr><td>1</td><td>waiver</td><th scope="row" class="wrap"><a href="../team/stafford-and-sons-fingers/index.html">Stafford and Sons (Fingers)</a></th>
         <td class="wrap">Zavion Thomas</td><td class="wrap">Calvin Ridley</td><td>—</td></tr>
     
-    <tr><td>1</td><td>waiver</td><td class="wrap">Statistical Anomalies (McLovin)</td>
+    <tr><td>1</td><td>waiver</td><th scope="row" class="wrap"><a href="../team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a></th>
         <td class="wrap">Mike Gesicki</td><td class="wrap">—</td><td>—</td></tr>
     
-    <tr><td>1</td><td>free agent</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+    <tr><td>1</td><td>free agent</td><th scope="row" class="wrap"><a href="../team/tua-girls-one-kupp-hop/index.html">Tua Girls One Kupp (HOP)</a></th>
         <td class="wrap">—</td><td class="wrap">AJ Barner</td><td>—</td></tr>
     
-    <tr><td>1</td><td>free agent</td><td class="wrap">Tua Girls One Kupp (HOP)</td>
+    <tr><td>1</td><td>free agent</td><th scope="row" class="wrap"><a href="../team/tua-girls-one-kupp-hop/index.html">Tua Girls One Kupp (HOP)</a></th>
         <td class="wrap">—</td><td class="wrap">David Njoku</td><td>—</td></tr>
     
-    <tr><td>1</td><td>waiver</td><td class="wrap">VHS Cowboys (Juan)</td>
+    <tr><td>1</td><td>waiver</td><th scope="row" class="wrap"><a href="../team/vhs-cowboys-juan/index.html">VHS Cowboys (Juan)</a></th>
         <td class="wrap">Odell Beckham</td><td class="wrap">Isaac TeSlaa</td><td>5</td></tr>
     
-    <tr><td>1</td><td>waiver</td><td class="wrap">VHS Cowboys (Juan)</td>
+    <tr><td>1</td><td>waiver</td><th scope="row" class="wrap"><a href="../team/vhs-cowboys-juan/index.html">VHS Cowboys (Juan)</a></th>
         <td class="wrap">Malik Davis</td><td class="wrap">Jerry Jeudy</td><td>5</td></tr>
     
   </table>
@@ -205,7 +264,7 @@
 
 </main>
 <footer class="colophon">
-  <img class="logo-footer" src="../../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  <img class="logo-footer" src="../../assets/disco-logo-banner.jpg" alt="" width="800" height="300" loading="lazy">
   DISCO CHAT · 2026 · <a href="../../index.html">League select</a>
 </footer>
 <script src="../../assets/sortable.js" defer></script>

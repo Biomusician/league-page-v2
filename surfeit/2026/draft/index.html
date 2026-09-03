@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>THE SURFEIT — 2026 Draft Issue</title>
+
+<meta name="description" content="Every Draft Is a List of Assumptions — Draft Issue, THE SURFEIT.">
+<link rel="canonical" href="https://league-page-ten-sandy.vercel.app/surfeit/2026/draft/index.html">
+<meta property="og:site_name" content="THE SURFEIT">
+<meta property="og:type" content="article">
+<meta property="og:title" content="THE SURFEIT — 2026 Draft Issue">
+<meta property="og:description" content="Every Draft Is a List of Assumptions — Draft Issue, THE SURFEIT.">
+<meta property="og:url" content="https://league-page-ten-sandy.vercel.app/surfeit/2026/draft/index.html">
+<meta property="og:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
+<meta property="og:image:width" content="560">
+<meta property="og:image:height" content="528">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="twitter:title" content="THE SURFEIT — 2026 Draft Issue">
+<meta name="twitter:description" content="Every Draft Is a List of Assumptions — Draft Issue, THE SURFEIT.">
+<meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
 <style>
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -86,6 +103,39 @@
   blockquote { border-left:3px solid #58b6f0; color:#c2d2e0; }
   .meta, .credit, footer.colophon { color:#9fb6cc; }
 
+  h2.section-label { font-size:1.3rem; font-weight:700; }
+  section.module > div h2 { font-size:1.12rem; font-weight:700;
+                            text-transform:none; letter-spacing:0; }
+  section.module > div h3 { font-size:1.02rem; }
+  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h3.matchup-title.feature { font-size:1.35rem; }
+  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
+  /* Editorial tables arrive as raw HTML from published prose and were the
+     only thing on the site that scrolled the whole page sideways. */
+  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
+  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
+              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
+  nav.exits a { display:inline-block; padding:.45rem 0; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. */
+  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
+  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
+  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:inherit; }
+  /* The archive is a newspaper. Printing it produced blank paper, because
+     browsers drop background colours and every foreground here is light. */
+  @media print {
+    body { background:#fff; color:#111; }
+    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
+    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
+    .comments { display:none; }
+    main { max-width:none; padding:0; }
+    .tablewrap, section.module > div table { overflow:visible; display:table; }
+    td, th { white-space:normal; border-color:#999; }
+    .card { border-color:#999; background:none; }
+    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
+  }
 
 </style>
 </head>
@@ -117,7 +167,7 @@
   
   <a href="../../teams/index.html" >Teams</a>
   
-  <a href="../../archive/index.html" >Archive</a>
+  <a href="../../archive/index.html" aria-current="page">Archive</a>
   
 </nav>
 
@@ -310,6 +360,12 @@ December. Full board with every delta is on the Draft page.</p>
 <p>Special-teams value is shown beside each team rather than folded in, the same treatment the Draft page gives its headline Reaches and Steals. Nothing about any individual pick&rsquo;s REACH or STEAL classification changes; those compare one selection with the board and are unaffected.</p></div>
 </section>
 
+<nav class="exits" aria-label="Where to next">
+  <a href="../../archive/index.html">&larr; Every issue</a>
+  <a href="../../teams/index.html">Every team &rarr;</a>
+  <a href="../../draft/index.html">The draft board &rarr;</a>
+  <a href="../../index.html">THE SURFEIT home &rarr;</a>
+</nav>
 
 
 </main>

@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>DISCO CHAT — 2026</title>
+
+<meta name="description" content="Corn-Fed Fatties (Babe) vs Double TDs (Double) — DISCO CHAT, before a game has been played.">
+<link rel="canonical" href="https://league-page-ten-sandy.vercel.app/disco/index.html">
+<meta property="og:site_name" content="DISCO CHAT">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DISCO CHAT — 2026">
+<meta property="og:description" content="Corn-Fed Fatties (Babe) vs Double TDs (Double) — DISCO CHAT, before a game has been played.">
+<meta property="og:url" content="https://league-page-ten-sandy.vercel.app/disco/index.html">
+<meta property="og:image" content="https://league-page-ten-sandy.vercel.app/assets/disco-logo-light.png">
+<meta property="og:image:width" content="800">
+<meta property="og:image:height" content="300">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="twitter:title" content="DISCO CHAT — 2026">
+<meta name="twitter:description" content="Corn-Fed Fatties (Babe) vs Double TDs (Double) — DISCO CHAT, before a game has been played.">
+<meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/disco-logo-light.png">
 <style>
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -83,6 +100,39 @@
   .meta, .credit, footer.colophon { color:#8fa8b8; }
   section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
 
+  h2.section-label { font-size:1.3rem; font-weight:700; }
+  section.module > div h2 { font-size:1.12rem; font-weight:700;
+                            text-transform:none; letter-spacing:0; }
+  section.module > div h3 { font-size:1.02rem; }
+  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h3.matchup-title.feature { font-size:1.35rem; }
+  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
+  /* Editorial tables arrive as raw HTML from published prose and were the
+     only thing on the site that scrolled the whole page sideways. */
+  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
+  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
+              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
+  nav.exits a { display:inline-block; padding:.45rem 0; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. */
+  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
+  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
+  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:inherit; }
+  /* The archive is a newspaper. Printing it produced blank paper, because
+     browsers drop background colours and every foreground here is light. */
+  @media print {
+    body { background:#fff; color:#111; }
+    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
+    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
+    .comments { display:none; }
+    main { max-width:none; padding:0; }
+    .tablewrap, section.module > div table { overflow:visible; display:table; }
+    td, th { white-space:normal; border-color:#999; }
+    .card { border-color:#999; background:none; }
+    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
+  }
 
   /* Front page: one lead, then secondaries, then data. Deliberately
      unequal — every module the same size is a dashboard, not a front page. */
@@ -107,13 +157,14 @@
   .brief .grid .headline { font-size:1.02rem; font-weight:bold; display:block;
                            margin:.15rem 0 .3rem; line-height:1.35; }
   .brief .detail { font-size:.9rem; margin:0 0 .45rem; }
-  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em; }
+  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em;
+                 display:inline-block; padding:.45rem 0; }
   .rooms { display:grid; gap:.5rem; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
   .rooms .card { margin:0; padding:.6rem .8rem; }
   .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
   .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
   .teamstrip { display:flex; flex-wrap:wrap; gap:.4rem; }
-  .teamstrip a { display:inline-block; padding:.35rem .7rem; border-radius:3px;
+  .teamstrip a { display:inline-block; padding:.5rem .7rem; border-radius:3px;
                  text-decoration:none; font-size:.9rem; }
   @media (max-width:640px) {
     .brief .grid, .brief .grid.even { grid-template-columns:1fr; }
@@ -190,7 +241,7 @@
     
     <span class="headline">Corn-Fed Fatties (Babe) vs Double TDs (Double)</span>
     <p class="detail">Week 1 opener — the first read on both rosters.</p>
-    <a class="more" href="matchups/index.html#roster-10-vs-roster-11">Common Tactical Picture →</a>
+    <a class="more" href="matchups/index.html#corn-fed-fatties-babe-vs-double-tds-double">Common Tactical Picture →</a>
   </div>
   
   <div class="grid even">
@@ -215,7 +266,7 @@
       <span class="label">Team to Watch</span>
       
       <span class="headline">VHS Cowboys (Juan)</span>
-      <p class="detail">The widest gap on the board: QB #1 of 12, RB #11. One room carries it and one room can sink it.</p>
+      <p class="detail">Built to a point: QB #1 of 12, RB #11 of 12. One room carries it and one room can sink it.</p>
       <a class="more" href="team/vhs-cowboys-juan/index.html">Team page →</a>
     </div>
     
@@ -310,7 +361,7 @@
 
 </main>
 <footer class="colophon">
-  <img class="logo-footer" src="../assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+  <img class="logo-footer" src="../assets/disco-logo-banner.jpg" alt="" width="800" height="300" loading="lazy">
   DISCO CHAT · 2026 · <a href="../index.html">League select</a>
 </footer>
 <script src="../assets/sortable.js" defer></script>
