@@ -44,7 +44,9 @@ import statistics
 
 from leaguepage.adp import load_adp_for_league
 from leaguepage.config import League
-from leaguepage.matchup_analysis import FLEX_ELIGIBLE, all_play, team_record, weekly_scores
+from leaguepage.draft_value import SKILL_POSITIONS
+from leaguepage.matchup_analysis import (FLEX_ELIGIBLE, all_play, faab_cost,
+                                         team_record, weekly_scores)
 from leaguepage.storage import Storage
 
 CORE_POSITIONS = ("QB", "RB", "WR", "TE", "K", "DEF")
@@ -222,6 +224,12 @@ def strengths_weaknesses(profile: dict, rid: int, *, max_strengths: int = 3,
     rows.sort(key=lambda x: x[1])
     strengths, weaknesses = [], []
     for pos, rank, srank, drank, t in rows:
+        # A room with nobody in it ties every other empty room at zero, and
+        # the stable sort hands the lowest roster_id the top spot. An
+        # abandoned team was publishing "TE room ranks 2/4 with real depth
+        # behind the starters" about a roster holding no players at all.
+        if not t.get("count"):
+            continue
         if rank <= max(2, round(0.3 * n)) and len(strengths) < max_strengths:
             note = f"{pos} room ranks {rank}/{n}"
             if t["fragility"] >= 0.6 and t["count"] > 1:
@@ -248,14 +256,18 @@ def strengths_weaknesses(profile: dict, rid: int, *, max_strengths: int = 3,
 def recent_form(storage: Storage, league: League, through_week: int,
                 window: int = FORM_WINDOW) -> dict[int, dict] | None:
     scores = weekly_scores(storage, league.league_id, through_week)
-    played = {rid: [s for _, s in rows] for rid, rows in scores.items()}
-    if not played or max(len(v) for v in played.values()) < 2:
+    if not scores or max(len(v) for v in scores.values()) < 2:
         return None
-    w = min(window, max(len(v) for v in played.values()))
-    windowed = {rid: v[-w:] for rid, v in played.items() if v}
-    avg = {rid: sum(v) / len(v) for rid, v in windowed.items()}
+    w = min(window, max(len(v) for v in scores.values()))
+    # Keep the week numbers. Collapsing the window to a single pseudo-week
+    # made all_play compare one team's week 1 against another's week 3 and
+    # multiplied the game count by the window size, which is not all-play at
+    # all: it is a cross-product of scores.
+    windowed = {rid: rows[-w:] for rid, rows in scores.items() if rows}
+    avg = {rid: sum(pts for _, pts in rows) / len(rows)
+           for rid, rows in windowed.items()}
     order = sorted(avg, key=lambda rid: -avg[rid])
-    ap = all_play({rid: [(0, s) for s in windowed[rid]] for rid in windowed})
+    ap = all_play(windowed)
     # window is the integer week count; window_label is what a reader sees,
     # because "#2 scoring over the last 3" is missing its unit.
     label = f"{w} week{'' if w == 1 else 's'}"
@@ -292,6 +304,37 @@ def scoring_streaks(storage: Storage, league: League, through_week: int) -> dict
 
 # --------------------------------------------------------- playoff model
 
+def remaining_schedule(storage: Storage, league_id: str, first_week: int,
+                       last_week: int) -> dict[int, list[tuple[int, int]]]:
+    """The pairings for weeks that have not been played yet.
+
+    Sleeper publishes the whole regular season up front and fills the points
+    in as they are scored, so a future week comes back as rows with a real
+    `matchup_id` and zero points. Simulating against those instead of
+    against a random re-pairing of the league is the difference between a
+    forecast and a disclaimer: strength of remaining schedule becomes a real
+    quantity, and one game can be shown to matter more than another.
+
+    A week is only offered here if nobody has scored in it. A week already
+    played is history, not schedule.
+    """
+    out: dict[int, list[tuple[int, int]]] = {}
+    for week in range(max(1, first_week), last_week + 1):
+        rows = storage.get_matchups(league_id, week)
+        if not rows or any((r.get("points") or 0) > 0 for r in rows):
+            continue
+        by_matchup: dict[object, list[int]] = {}
+        for r in rows:
+            mid = r.get("matchup_id")
+            if mid is None:          # a bye, or a week Sleeper has not paired
+                continue
+            by_matchup.setdefault(mid, []).append(r["roster_id"])
+        pairs = [(g[0], g[1]) for g in by_matchup.values() if len(g) == 2]
+        if pairs:
+            out[week] = pairs
+    return out
+
+
 def playoff_outlook(storage: Storage, league: League, through_week: int,
                     sims: int = 2000) -> dict:
     """Transparent Monte Carlo on OBSERVED scoring only (no consensus ranks:
@@ -319,16 +362,28 @@ def playoff_outlook(storage: Storage, league: League, through_week: int,
         recent = vals[-FORM_WINDOW:]
         means[rid] = 0.75 * means[rid] + 0.25 * (sum(recent) / len(recent))
     remaining = list(range(weeks_played + 1, playoff_start))
+    schedule = remaining_schedule(storage, league.league_id,
+                                  weeks_played + 1, playoff_start - 1)
+    known = [wk for wk in remaining if schedule.get(wk)]
     rng = random.Random(f"{league.league_id}:{weeks_played}")
     rids = sorted(means)
     made = {rid: 0 for rid in rids}
     seeds: dict[int, list[int]] = {rid: [] for rid in rids}
     for _ in range(sims):
         wins = {rid: records[rid]["wins"] for rid in rids}
-        pts = {rid: records[rid].get("points_for", 0.0) for rid in rids}
-        for _wk in remaining:
-            order = rng.sample(rids, len(rids))     # schedule beyond sync unknown:
-            for a, b in zip(order[::2], order[1::2]):  # random pairing, documented
+        # team_record returns "fpts". Reading "points_for" meant every
+        # simulated season started every team at zero points, so the
+        # tiebreak that decides the last playoff spot was throwing away all
+        # the scoring that had actually happened.
+        pts = {rid: records[rid]["fpts"] for rid in rids}
+        for wk in remaining:
+            pairs = schedule.get(wk)
+            if not pairs:                            # unpaired week: fall back
+                order = rng.sample(rids, len(rids))
+                pairs = list(zip(order[::2], order[1::2]))
+            for a, b in pairs:
+                if a not in means or b not in means:
+                    continue
                 sa = rng.gauss(means[a], sds[a])
                 sb = rng.gauss(means[b], sds[b])
                 pts[a] += sa
@@ -355,8 +410,22 @@ def playoff_outlook(storage: Storage, league: League, through_week: int,
                             "median_seed": (statistics.median(seeds[rid])
                                             if seeds[rid] else None)}
                       for rid in rids},
-            "note": "Remaining opponents beyond the synced schedule are simulated "
-                    "as random league pairings."}
+            "schedule_weeks": len(known), "remaining_weeks": len(remaining),
+            "note": schedule_note(len(known), len(remaining))}
+
+
+def schedule_note(known: int, total: int) -> str:
+    """What the model actually simulated against, said plainly."""
+    if not total:
+        return "The regular season is complete."
+    if known >= total:
+        return ("Simulated against the actual remaining schedule, opponent by "
+                "opponent.")
+    if known:
+        return (f"{known} of the {total} remaining weeks are simulated against "
+                "the actual schedule; the rest as random league pairings.")
+    return ("Remaining opponents are not synced, so they are simulated as "
+            "random league pairings.")
 
 
 # ------------------------------------------------- snapshots and deltas
@@ -372,12 +441,17 @@ def record_snapshot(storage: Storage, league: League, season: str, week: int,
     rosters = storage.get_rosters(league.league_id)
     wins = {r["roster_id"]: team_record(r) for r in rosters}
     standing_order = sorted(wins, key=lambda rid: (-wins[rid]["wins"],
-                                                   -wins[rid].get("points_for", 0.0)))
+                                                   -wins[rid]["fpts"]))
     outlook = playoff_outlook(storage, league, max(week, 0))
     payload = {
         "week": week, "stage": profile["stage"],
         "positional_ranks": {pos: profile["ranks"][pos] for pos in profile["positions"]},
-        "standings": {rid: i + 1 for i, rid in enumerate(standing_order)},
+        # Before a game is played every team is 0-0 on 0 points, so this
+        # sort is roster_id order wearing a rank. Storing it would make the
+        # first real week diff against an arbitrary baseline and announce
+        # movement nobody made.
+        "standings": ({rid: i + 1 for i, rid in enumerate(standing_order)}
+                      if weeks_played else None),
         "playoff": ({rid: t["odds"] for rid, t in outlook["teams"].items()}
                     if "teams" in outlook else None),
     }
@@ -407,10 +481,14 @@ def snapshot_deltas(storage: Storage, league: League, season: str,
     def _i(d, rid):
         return d.get(str(rid), d.get(rid))
 
-    for rid_key in current["standings"]:
+    cur_standings = current.get("standings") or {}
+    prior_standings = prior.get("standings") or {}
+    ranks = current["positional_ranks"] or {}
+    subjects = cur_standings or next(iter(ranks.values()), {})
+    for rid_key in subjects:
         rid = int(rid_key)
         notes = []
-        s_now, s_then = _i(current["standings"], rid), _i(prior["standings"], rid)
+        s_now, s_then = _i(cur_standings, rid), _i(prior_standings, rid)
         if s_now and s_then and abs(s_now - s_then) >= 2:
             arrow = "↑" if s_now < s_then else "↓"
             notes.append(f"standings {s_then} → {s_now} {arrow}")
@@ -445,7 +523,7 @@ def key_moves(storage: Storage, league: League, through_week: int,
             if tx.get("status") != "complete":
                 continue
             adds = tx.get("adds") or {}
-            bids = sum(b.get("amount", 0) for b in (tx.get("waiver_budget") or []))
+            bids = faab_cost(tx)
             for pid, rid in adds.items():
                 pv = values.get(pid) or {}
                 consequential = (tx.get("type") == "trade"
@@ -490,10 +568,18 @@ def team_outlook(storage: Storage, league: League, season: str, rid: int,
             signals.append(d)
         for m in key_moves(storage, league, through_week).get(rid, [])[:1]:
             signals.append(m["note"])
-    if sw["strengths"]:
-        signals.append(sw["strengths"][0]["note"])
-    if sw["weaknesses"]:
-        signals.append(sw["weaknesses"][0]["note"])
+    # The same calibration rule the briefing follows. A K or DEF line
+    # survives only as the league's outright best or worst and never in
+    # place of a skill-position line -- this is what renders as "defining
+    # this team right now", and it was printing "K room ranks 2/10" two
+    # lines under a paragraph promising the opposite.
+    for group in (sw["strengths"], sw["weaknesses"]):
+        pick = next((e for e in group
+                     if (e.get("position") or "") in SKILL_POSITIONS), None)
+        if pick is None and group and group[0].get("rank") in (1, profile["n"]):
+            pick = group[0]
+        if pick:
+            signals.append(pick["note"])
     return signals[:5]
 
 
@@ -525,7 +611,12 @@ def roster_contrast_lines(profile: dict, rid_a: int, rid_b: int,
     each other, so this is framed as construction contrast, never 'X covers Y'."""
     lines = []
     diffs = []
-    for pos in profile["positions"]:
+    # Skill rooms carry the comparison. Every manager is forced to draft a
+    # kicker and a defense, so a K or DEF gap measures the reference board's
+    # shape rather than anything either of these two decided to do.
+    positions = [p for p in profile["positions"] if p in SKILL_POSITIONS] \
+        or list(profile["positions"])
+    for pos in positions:
         ra, rb = profile["ranks"][pos][rid_a], profile["ranks"][pos][rid_b]
         diffs.append((abs(ra - rb), pos, ra, rb))
     diffs.sort(reverse=True)
@@ -533,7 +624,7 @@ def roster_contrast_lines(profile: dict, rid_a: int, rid_b: int,
         if gap >= 3:
             lines.append(f"• {pos} rooms: {name_a} #{ra} vs {name_b} #{rb}")
     for rid, nm in ((rid_a, name_a), (rid_b, name_b)):
-        best = min(profile["positions"], key=lambda p: profile["ranks"][p][rid])
+        best = min(positions, key=lambda p: profile["ranks"][p][rid])
         lines.append(f"• {nm}'s best room: {best} "
                      f"(#{profile['ranks'][best][rid]}/{profile['n']})")
     return lines

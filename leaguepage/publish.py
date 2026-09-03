@@ -166,6 +166,26 @@ def publish_assembled_issue(
     snap_path = ((published_dir or PUBLISHED_DIR) / league.slug / season
                  / f"{issue_key}.json")
     snap_path.parent.mkdir(parents=True, exist_ok=True)
+    if snap_path.exists():
+        # The whole promise of this directory is that what shipped that day
+        # is still on disk. A republish used to overwrite it in place with
+        # no revision and no "Updated" line, and the ordinary way to reach
+        # that was a deploy that failed after the snapshot stage and got
+        # retried. So: an identical re-entry is a no-op, and a changed one
+        # is refused and pointed at the correction mechanism, which keeps
+        # the original and adds a sibling.
+        prior = _json.loads(snap_path.read_text(encoding="utf-8"))
+        if prior.get("sections") == sections:
+            storage.set_issue_status(league_slug=league.slug, season=season,
+                                     issue_key=issue_key, status="published",
+                                     published_path=snap_path.as_posix())
+            return snap_path
+        raise PublishError(
+            f"{issue_key} was already published on "
+            f"{(prior.get('published_at') or '')[:10]} and the text has changed "
+            f"since. Publishing again would rewrite the record of what shipped. "
+            f"Use a correction (revise_issue) so the original is kept and the "
+            f"change travels with a note.")
     snap_path.write_text(_json.dumps(snapshot, indent=1, ensure_ascii=False) + "\n",
                          encoding="utf-8")
     storage.set_issue_status(league_slug=league.slug, season=season, issue_key=issue_key,

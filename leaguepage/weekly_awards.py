@@ -15,7 +15,8 @@ from __future__ import annotations
 
 from leaguepage import evidence
 from leaguepage.config import League
-from leaguepage.matchup_analysis import FLEX_ELIGIBLE, analyze_week
+from leaguepage.draft_value import SPECIAL_TEAMS
+from leaguepage.matchup_analysis import FLEX_ELIGIBLE, analyze_week, faab_cost
 from leaguepage.storage import Storage
 
 # thresholds are editorial knobs, stated in each nomination's basis
@@ -49,6 +50,12 @@ def best_bench_swap(storage: Storage, roster_positions: list[str], row: dict) ->
     best = None
     for i, sid in enumerate(starters):
         slot = layout[i] if i < len(layout) else "FLEX"
+        # A benched kicker outscoring the started one is not a decision
+        # anybody made. You start your only kicker, and shaming a manager
+        # for it is the calibration error this codebase already refuses
+        # everywhere else.
+        if slot in SPECIAL_TEAMS:
+            continue
         s_pts = float(players_points.get(sid, 0))
         s_player = storage.get_player(sid) or {}
         for bid in benched_ids:
@@ -239,7 +246,7 @@ def weekly_award_nominations(
         for t in storage.get_transactions(league.league_id, w):
             if t.get("status") != "complete" or t.get("type") not in ("waiver", "free_agent"):
                 continue
-            faab = sum(x.get("amount", 0) for x in (t.get("waiver_budget") or []))
+            faab = faab_cost(t)
             for pid, rid in (t.get("adds") or {}).items():
                 raw = week_rows_by_roster.get(rid)
                 if not raw:

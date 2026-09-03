@@ -50,7 +50,13 @@ def weekly_scores(storage: Storage, league_id: str, through_week: int) -> dict[i
     anyone that week, so an unplayed/preseason week contributes nothing)."""
     out: dict[int, list[tuple[int, float]]] = defaultdict(list)
     for week in range(1, through_week + 1):
-        rows = storage.get_matchups(league_id, week)
+        # A row with no matchup_id is not a game. analyze_week and the
+        # points-against tally both drop those already; this did not, so a
+        # week Sleeper returned unpaired showed up in the standings, the
+        # streaks and the form while the Common Tactical Picture rendered it
+        # as empty.
+        rows = [r for r in storage.get_matchups(league_id, week)
+                if r.get("matchup_id") is not None]
         if not rows or not any((r.get("points") or 0) > 0 for r in rows):
             continue
         for r in rows:
@@ -123,22 +129,89 @@ def lineup_efficiency(storage: Storage, roster_positions: list[str], row: dict) 
     actual = float(row.get("points") or 0)
     if not optimal:
         return None
+    if actual > optimal + 0.01:
+        # The best legal lineup cannot score less than the one that was
+        # actually started. When it does, our reconstruction is wrong --
+        # usually a rostered player missing from the cached players dict,
+        # so his position reads "?" and no slot will take him. An
+        # efficiency of 214% is worse than no efficiency at all.
+        return None
     return {"actual": actual, "optimal": optimal,
             "efficiency": round(actual / optimal, 3) if optimal else None}
 
 
-def _streak(scores_and_results: list[tuple[int, bool]]) -> str | None:
-    """[(week, won)] chronological -> e.g. 'W3' / 'L2'."""
+def season_efficiency(storage: Storage, roster_positions: list[str],
+                      league_id: str, through_week: int) -> dict[int, dict]:
+    """Cumulative actual-vs-optimal starter points, per roster.
+
+    One week's efficiency is mostly luck: everybody has a Sunday where the
+    bench guy went off. A season's is a claim about how somebody sets a
+    lineup, which is why this sums the numerator and the denominator across
+    played weeks rather than averaging the weekly ratios. Averaging ratios
+    would let a 40-point week and a 140-point week count the same.
+
+    Returns per roster: actual, optimal, pct, left_on_bench, weeks.
+    """
+    totals: dict[int, dict] = {}
+    for week in range(1, through_week + 1):
+        rows = storage.get_matchups(league_id, week)
+        if not rows or not any((r.get("points") or 0) > 0 for r in rows):
+            continue
+        for row in rows:
+            eff = lineup_efficiency(storage, roster_positions, row)
+            if not eff:
+                continue
+            t = totals.setdefault(row["roster_id"],
+                                  {"actual": 0.0, "optimal": 0.0, "weeks": 0})
+            t["actual"] += eff["actual"]
+            t["optimal"] += eff["optimal"]
+            t["weeks"] += 1
+    out = {}
+    for rid, t in totals.items():
+        if not t["optimal"]:
+            continue
+        out[rid] = {
+            "actual": round(t["actual"], 1),
+            "optimal": round(t["optimal"], 1),
+            "pct": round(100 * t["actual"] / t["optimal"], 1),
+            "left_on_bench": round(t["optimal"] - t["actual"], 1),
+            "weeks": t["weeks"],
+        }
+    return out
+
+
+WIN, LOSS, TIE = "W", "L", "T"
+
+
+def _outcome(mine: float, theirs: float) -> str:
+    """A drawn game is not a loss for both teams.
+
+    `pts > opp` made 100.0 against 100.0 read as False on both sides, so a
+    tie printed as L1 for each of them -- and the take engine, asking the
+    same question, recommended BUSTED on a game nobody lost."""
+    if mine > theirs:
+        return WIN
+    if mine < theirs:
+        return LOSS
+    return TIE
+
+
+def _streak(scores_and_results: list[tuple[int, str]]) -> str | None:
+    """[(week, outcome)] chronological -> e.g. 'W3' / 'L2' / 'T1'."""
     if not scores_and_results:
         return None
     last = scores_and_results[-1][1]
+    if isinstance(last, bool):          # legacy callers passing win/lose
+        last = WIN if last else LOSS
     n = 0
-    for _, won in reversed(scores_and_results):
-        if won == last:
+    for _, outcome in reversed(scores_and_results):
+        if isinstance(outcome, bool):
+            outcome = WIN if outcome else LOSS
+        if outcome == last:
             n += 1
         else:
             break
-    return f"{'W' if last else 'L'}{n}"
+    return f"{last}{n}"
 
 
 def head_to_head(storage: Storage, league_id: str, a: int, b: int, through_week: int) -> dict:
@@ -171,10 +244,23 @@ def recent_transactions(storage: Storage, league_id: str, roster_ids: set[int],
                 out.append({
                     "week": w, "type": t.get("type"),
                     "adds": t.get("adds"), "drops": t.get("drops"),
-                    "faab": sum(x.get("amount", 0) for x in (t.get("waiver_budget") or [])) or None,
+                    "faab": faab_cost(t) or None,
                     "evidence": [f"sleeper:transaction:{t.get('transaction_id')}"],
                 })
     return out
+
+
+def faab_cost(tx: dict) -> int:
+    """What a transaction actually cost in FAAB.
+
+    Sleeper puts a waiver claim's price in `settings.waiver_bid`. The
+    `waiver_budget` list is budget moving BETWEEN teams in a trade, and it
+    is empty on an ordinary claim — so code that reads only `waiver_budget`
+    sees every waiver claim in the league as free. Read both.
+    """
+    bid = (tx.get("settings") or {}).get("waiver_bid") or 0
+    bid += sum(x.get("amount", 0) for x in (tx.get("waiver_budget") or []))
+    return int(bid)
 
 
 def analyze_week(
@@ -238,7 +324,7 @@ def analyze_week(
             mid = next((x.get("matchup_id") for x in pair if x["roster_id"] == r["roster_id"]), None)
             opp = next((x for x in pair if x.get("matchup_id") == mid and x["roster_id"] != r["roster_id"]), None)
             if opp is not None:
-                results.append((wk, pts > float(opp.get("points") or 0)))
+                results.append((wk, _outcome(pts, float(opp.get("points") or 0))))
         margins = []
         for wk, pts in history:
             pair = [x for x in storage.get_matchups(league.league_id, wk)

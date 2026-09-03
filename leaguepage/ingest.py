@@ -101,10 +101,24 @@ def sync_league(
             elif draft.get("status") == "complete":
                 result.warnings.append(f"draft {draft['draft_id']} complete but no picks returned")
 
-        for w in range(max(1, week - weeks_back + 1), week + 1):
+        # Sleeper publishes the whole regular season's pairings up front and
+        # fills the points in as they are scored, so asking for a future week
+        # returns real matchup_ids with zero points. Fetching them is what
+        # lets the playoff model simulate the schedule that will actually be
+        # played instead of pairing the league at random every simulated
+        # week. Future weeks are fetched once and then left alone -- their
+        # pairings do not change -- so a re-sync stays cheap.
+        playoff_start = int((league_data.get("settings") or {})
+                            .get("playoff_week_start") or 15)
+        for w in range(max(1, week - weeks_back + 1), max(week, playoff_start - 1) + 1):
+            future = w > week
+            if future and _has_pairings(storage, league.league_id, w):
+                continue
             try:
                 storage.save_matchups(league.league_id, w, client.get_matchups(league.league_id, w))
-                storage.save_transactions(league.league_id, w, client.get_transactions(league.league_id, w))
+                if not future:   # a week nobody has played has no transactions
+                    storage.save_transactions(
+                        league.league_id, w, client.get_transactions(league.league_id, w))
                 result.weeks_synced.append(w)
             except SleeperAPIError as exc:
                 result.warnings.append(f"week {w} skipped: {exc}")
@@ -115,6 +129,12 @@ def sync_league(
         logger.error("Failed syncing %s: %s", league.slug, exc)
         result.error = str(exc)
         return result
+
+
+def _has_pairings(storage: Storage, league_id: str, week: int) -> bool:
+    """Whether a future week's schedule is already stored."""
+    rows = storage.get_matchups(league_id, week)
+    return bool(rows) and any(r.get("matchup_id") is not None for r in rows)
 
 
 def sync_all(

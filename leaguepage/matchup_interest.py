@@ -33,6 +33,9 @@ WEIGHTS = {
     "base_story": 10,
 }
 
+# Playoff leverage is a claim about the table, so the table needs a sample.
+LEVERAGE_MIN_WEEKS = 6
+
 PROMINENCE_LEVELS = ("FEATURE", "MAJOR", "STANDARD", "CAPSULE")
 WORD_TARGETS = {"FEATURE": "250-400", "MAJOR": "125-200", "STANDARD": "75-125", "CAPSULE": "40-75"}
 
@@ -77,6 +80,17 @@ def competitive_importance(matchup: dict, week_ctx: dict, weights: dict = WEIGHT
             comps.append({"label": f"{t['team_slug']} on a {s} streak",
                           "points": weights["streak"], "evidence": matchup["evidence"]})
             break
+    # The most valuable competitive signal in the model, and until now the
+    # only weight nothing ever emitted: `classify` tested for a "leverage"
+    # label that no component produced, so the Playoff Leverage tag could
+    # never fire. The bubble test already exists for the author-feature
+    # rule, and it is the same question.
+    if week_ctx.get("weeks_played", 0) >= LEVERAGE_MIN_WEEKS:
+        live, why = author_matchup_stakes(matchup, week_ctx)
+        if live:
+            comps.append({"label": f"late-season leverage: {why}",
+                          "points": weights["late_season_leverage"],
+                          "evidence": matchup["evidence"]})
     return {"score": _components_to_score(comps), "components": comps}
 
 
@@ -168,7 +182,7 @@ def classify(matchup: dict, ci: dict, sv: dict, week_ctx: dict) -> list[str]:
         tags.append("Revenge Game")
     if "projected within" in labels:
         tags.append("Photo Finish candidate")
-    if week_ctx.get("weeks_played", 0) >= 6 and "leverage" in labels:
+    if week_ctx.get("weeks_played", 0) >= LEVERAGE_MIN_WEEKS and "leverage" in labels:
         tags.append("Playoff Leverage")
     return tags
 

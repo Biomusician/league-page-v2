@@ -10,7 +10,7 @@ from __future__ import annotations
 from leaguepage import evidence
 from leaguepage.config import League
 from leaguepage.editorial import confirmed_coalition_mappings
-from leaguepage.matchup_analysis import weekly_scores
+from leaguepage.matchup_analysis import faab_cost, weekly_scores
 from leaguepage.storage import Storage
 
 TREND_WINDOW = 3          # weeks for Tracks/Fades trends
@@ -45,7 +45,7 @@ def force_flow_candidates(storage: Storage, league: League, week: int,
                 continue
             tid = t.get("transaction_id")
             ttype = t.get("type")
-            faab = sum(x.get("amount", 0) for x in (t.get("waiver_budget") or []))
+            faab = faab_cost(t)
             reasons, facts, players, teams = [], [], [], []
             for pid, rid in (t.get("adds") or {}).items():
                 p = storage.get_player(pid) or {}

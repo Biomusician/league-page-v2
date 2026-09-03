@@ -28,6 +28,7 @@ import json
 import re
 
 from leaguepage.config import League
+from leaguepage.draft_value import SPECIAL_TEAMS
 from leaguepage.storage import Storage
 
 AGING_WELL = "Aging well"
@@ -47,6 +48,15 @@ _CLAIM_WORDS = re.compile(
     re.I)
 _POSITION_RE = re.compile(r"\b(QB|RB|WR|TE|quarterback|running back|wide receiver|"
                           r"tight end)\b", re.I)
+# A claim about a kicker or defense "premium" measures the reference board's
+# shape, not a roster decision -- the calibration rule the rest of the
+# codebase already enforces, and the exact sentence the published Surfeit
+# correction was issued to stop headlining. `candidate_takes` blocked these
+# at capture time; the archive-derived path had no guard, so one ordinary
+# kicker drop could put one back on the front page at full weight.
+_SPECIAL_TEAMS_CLAIM_RE = re.compile(
+    r"\bkicker|\bkickers\b|\bdefense[s]?\b|\bDST\b|\bD/ST\b", re.I)
+_ST_MARKET_RE = re.compile(r"premium|reach|early|tax", re.I)
 _POS_CANON = {"quarterback": "QB", "running back": "RB",
               "wide receiver": "WR", "tight end": "TE"}
 _SENTENCE_RE = re.compile(r"[^.!?]*[.!?]")
@@ -160,6 +170,15 @@ def extract_claims(snaps: list[dict], league_slug: str,
                 players = _players_in(sentence)
                 if not positions and not players:
                     continue
+                skill = [p for p in players
+                         if (player_positions.get(p) or "").upper()
+                         not in SPECIAL_TEAMS]
+                if not skill and not positions:
+                    # named nobody but special-teams players
+                    continue
+                if (not skill and _SPECIAL_TEAMS_CLAIM_RE.search(sentence)
+                        and _ST_MARKET_RE.search(sentence)):
+                    continue
                 cid = _claim_id(league_slug, snap["issue_key"], sentence)
                 if cid in seen:
                     continue
@@ -169,7 +188,10 @@ def extract_claims(snaps: list[dict], league_slug: str,
                     "roster_id": rid,
                     "quote": sentence,
                     "positions": sorted(positions),
+                    # Special-teams players are recorded, because the claim
+                    # named them, but only skill players can carry a verdict.
                     "players": sorted(players),
+                    "judgeable": sorted(skill),
                     "issue_key": snap["issue_key"],
                     "issue_label": snap["issue_label"],
                     "href": snap["href"],
@@ -188,7 +210,10 @@ def evaluate(claims: list[dict], *, rosters: dict[int, set[str]],
         rid = c["roster_id"]
         status, note, weight = TOO_EARLY, None, 0
 
-        gone = sorted(p for p in c["players"] if p not in rosters.get(rid, set()))
+        judgeable = c.get("judgeable")
+        if judgeable is None:            # claims stored before the split
+            judgeable = c["players"]
+        gone = sorted(p for p in judgeable if p not in rosters.get(rid, set()))
         if gone:
             status = UNDER_PRESSURE
             note = (f"{', '.join(gone)} "
@@ -262,6 +287,12 @@ def live_receipts(storage: Storage, league: League, season: str, week: int,
     from leaguepage.team_analytics import positional_profile
 
     public = {rid: v["name"] for rid, v in names.items() if v.get("name")}
+    # Snapshots arrive for every season on file, and a claim is graded
+    # against the rosters as they stand today. Every player moves between
+    # seasons, so on the first sync of a new year every claim from the old
+    # one resolves at once and the front page leads with a receipt about a
+    # roster that no longer exists.
+    snaps = [s for s in snaps if s.get("season") == season]
     if not public or not snaps:
         return []
     rosters: dict[int, set[str]] = {}

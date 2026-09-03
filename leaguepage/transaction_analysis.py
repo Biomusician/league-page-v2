@@ -27,6 +27,7 @@ import json
 from leaguepage.config import League
 from leaguepage.storage import Storage
 from leaguepage.team_analytics import player_values, positional_profile
+from leaguepage.matchup_analysis import faab_cost as _bid
 from leaguepage.matchup_analysis import weekly_scores
 
 MAX_SCAN_WEEK = 18
@@ -124,14 +125,6 @@ def _player(storage: Storage, pid: str) -> dict:
     return {"pid": pid, "name": name or pid,
             "position": (p.get("position") or "").upper() or "?",
             "injury_status": p.get("injury_status")}
-
-
-def _bid(tx: dict) -> int:
-    """FAAB cost: waiver claims carry it in settings.waiver_bid; trades
-    move budget through waiver_budget entries."""
-    bid = (tx.get("settings") or {}).get("waiver_bid") or 0
-    bid += sum(x.get("amount", 0) for x in (tx.get("waiver_budget") or []))
-    return int(bid)
 
 
 def _bottom(rank: int | None, n: int, share: float) -> bool:
@@ -288,25 +281,120 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
             "text": f"{prefix}: " + " ".join(sentences)}
 
 
-def _outcome(storage: Storage, league: League, pid: str, rid: int,
-             after_week: int, through_week: int) -> str | None:
-    """What happened since the add — kept separate from the at-the-time
-    rationale, which is never rewritten."""
-    starts, pts, seen = 0, 0.0, False
+def _player_since(storage: Storage, league: League, pid: str, rid: int | None,
+                  after_week: int, through_week: int) -> dict:
+    """Starts, points and weeks for one player since a move.
+
+    `rid` of None follows the player wherever he went, which is how the
+    dropped side gets read: the interesting question about a drop is what he
+    did next, and for whom.
+    """
+    starts = pts = weeks = 0
+    holder = None
     for wk in range(after_week + 1, through_week + 1):
         for row in storage.get_matchups(league.league_id, wk):
-            if row.get("roster_id") != rid:
+            if rid is not None and row.get("roster_id") != rid:
                 continue
             pp = (row.get("players_points") or {}).get(pid)
-            if pp is not None:
-                pts += float(pp)
-                seen = True
-            if pid in (row.get("starters") or []):
-                starts += 1
-    if not seen and starts == 0:
+            started = pid in (row.get("starters") or [])
+            if pp is None and not started:
+                continue
+            holder = row.get("roster_id")
+            weeks += 1
+            pts += float(pp or 0)
+            starts += 1 if started else 0
+    return {"starts": starts, "points": round(pts, 1), "weeks": weeks,
+            "roster_id": holder,
+            "ppg": round(pts / starts, 1) if starts else None}
+
+
+def how_it_aged(storage: Storage, league: League, row: dict, *,
+                through_week: int, names: dict[int, str] | None = None,
+                profile: dict | None = None,
+                context: dict | None = None) -> dict | None:
+    """What actually happened after a move, as a separate column.
+
+    The rationale recorded at the time is never rewritten -- rewriting it
+    with hindsight would be inventing a reason he never had. This answers a
+    different question: did the thing he was reaching for arrive?
+
+    Three parts, each of which can be absent: what the added players did,
+    what the dropped players did next and for whom, and whether the room the
+    move was aimed at actually moved.
+    """
+    names = names or {}
+    wk = row.get("week")
+    if wk is None or through_week <= wk:
         return None
-    if starts:
-        return (f"Since the move: started {starts}x for {pts:g} points.")
+    added, dropped = [], []
+    for a in row.get("adds") or []:
+        since = _player_since(storage, league, a["pid"], a["rid"], wk, through_week)
+        if since["weeks"]:
+            added.append({**since, "name": a.get("name") or a["pid"],
+                          "position": a.get("pos")})
+    for d in row.get("drops") or []:
+        since = _player_since(storage, league, d["pid"], None, wk, through_week)
+        if since["weeks"]:
+            dropped.append({**since, "name": d.get("name") or d["pid"],
+                            "position": d.get("pos"),
+                            "claimed_by": names.get(since["roster_id"])})
+    room = None
+    ctx = context or {}
+    if profile and ctx.get("adds"):
+        for pid, meta in ctx["adds"].items():
+            pos, before = meta.get("pos"), meta.get("after")
+            ranks = (profile.get("ranks") or {}).get(pos) or {}
+            now = ranks.get(row["rids"][0]) if row.get("rids") else None
+            if before and now and pos:
+                room = {"position": pos, "before": before, "now": now,
+                        "solved": now < before}
+            break
+    if not (added or dropped or room):
+        return None
+    return {"added": added, "dropped": dropped, "room": room,
+            "through_week": through_week}
+
+
+def aged_line(aged: dict) -> str:
+    """One sentence a reader can take at face value."""
+    bits = []
+    for a in aged["added"]:
+        if a["starts"]:
+            bits.append(f"{a['name']} has started {a['starts']} of "
+                        f"{a['weeks']} weeks since, for {a['points']:g} points")
+        else:
+            bits.append(f"{a['name']} has not started since")
+    for d in aged["dropped"]:
+        where = f" for {d['claimed_by']}" if d.get("claimed_by") else " elsewhere"
+        if d["starts"]:
+            bits.append(f"{d['name']} has scored {d['points']:g}{where}")
+        else:
+            bits.append(f"{d['name']} has not started since{where}")
+    room = aged.get("room")
+    if room:
+        if room["solved"]:
+            bits.append(f"the {room['position']} room went "
+                        f"#{room['before']} to #{room['now']}")
+        else:
+            bits.append(f"the {room['position']} room is still #{room['now']}")
+    if not bits:
+        return ""
+    # str.capitalize lowercases the rest, which turned "New Back" into "New
+    # back" and "the RB room" into "the rb room".
+    line = "; ".join(bits)
+    return line[0].upper() + line[1:] + "."
+
+
+def _outcome(storage: Storage, league: League, pid: str, rid: int,
+             after_week: int, through_week: int) -> str | None:
+    """What happened since the add, kept separate from the at-the-time
+    rationale, which is never rewritten."""
+    since = _player_since(storage, league, pid, rid, after_week, through_week)
+    if not since["weeks"] and not since["starts"]:
+        return None
+    if since["starts"]:
+        return (f"Since the move: started {since['starts']}x for "
+                f"{since['points']:g} points.")
     return "The player has yet to enter the starting lineup."
 
 
@@ -326,6 +414,10 @@ def analyze_transactions(storage: Storage, league: League,
     profile = positional_profile(storage, league, adp=adp,
                                  weeks_played=weeks_played)
     usable = _usable_counts(storage.get_rosters(league.league_id), values)
+    from leaguepage.team_names import resolve_public_names
+
+    public_names = {rid: (v["name"] or f"Roster {rid}")
+                    for rid, v in resolve_public_names(storage, league).items()}
 
     # player_values covers ROSTERED players only; a dropped player is off
     # every roster, so without this its value would silently read 0 and
@@ -410,6 +502,13 @@ def analyze_transactions(storage: Storage, league: League,
                     row["outcome"] = _outcome(storage, league,
                                               adds[0]["pid"], adds[0]["rid"],
                                               wk, latest_played)
+                aged = how_it_aged(storage, league, row,
+                                   through_week=latest_played,
+                                   names=public_names, profile=profile,
+                                   context=ctx)
+                if aged:
+                    row["aged"] = aged
+                    row["aged_line"] = aged_line(aged)
             row["priority"] = _priority(row)
             out.append(row)
     out.sort(key=lambda r: (-(r["week"]), -(r["created"] or 0)))

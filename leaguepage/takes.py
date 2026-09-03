@@ -385,6 +385,12 @@ def _matchup_evidence(ctx, take) -> tuple[str | None, list[str]]:
                                     take["quote"], re.I))
     if not (predicted_win or predicted_loss) or named_winner is None:
         return None, lines
+    if result.get("tie"):
+        # Nobody won, so nobody was wrong. Calling a drawn game BUSTED and
+        # quoting him on the front page for it is the kind of confident
+        # nonsense that makes a whole feature untrustworthy.
+        lines.append("the game was a tie, so the prediction is void")
+        return VOID, lines
     won = result["won"]
     right = won if predicted_win else not won
     return (RESOLVED_RIGHT if right else RESOLVED_WRONG), lines
@@ -570,7 +576,7 @@ def _last_results(storage: Storage, league: League, weeks_played: int,
                 continue
             for me, them, mine, theirs in ((a, b, pa, pb), (b, a, pb, pa)):
                 out[me["roster_id"]] = {
-                    "week": wk, "won": mine > theirs,
+                    "week": wk, "won": mine > theirs, "tie": mine == theirs,
                     "line": (f"{public_names.get(me['roster_id'])} "
                              f"{_fmt(mine)} – {_fmt(theirs)} "
                              f"{public_names.get(them['roster_id'])}")}
