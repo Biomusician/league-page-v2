@@ -4,7 +4,7 @@ Ranked product roadmap. **Future work only** — what exists today is in
 `docs/HANDOFF.md`, and why it was built that way is in `docs/DECISIONS.md`.
 Keep those three separate: HANDOFF gets stale if it doubles as a wish list.
 
-Reviewed 2026-09-02.
+Reviewed 2026-09-03.
 
 ## The product rule
 
@@ -94,7 +94,7 @@ the most work and the least useful before week 6.
 
 | # | Feature | Status | Depends on | Rationale |
 | --- | --- | --- | --- | --- |
-| 8 | **Receipts / takes tracker** | `partial` | 1 | `receipts.py` now extracts claims from published prose, tests them against current rosters and room ranks, and surfaces them on the front page and team pages with provenance. Missing: the Desk tracker view, and wiring the `takes` table in as a second claim source. |
+| 8 | **Receipts / takes tracker** | `shipped` | 1 | `takes.py`: Track This Take, seven-status lifecycle, six evidence hooks with horizon and sample-floor gating, retroactive candidate scan, Change Inbox integration, gated public receipts. The engine recommends; the Commissioner rules. |
 | 9 | **Smart archive recall** | `shipped` | none | `history.py` adds prose-quality filtering, whole-sentence quotes from the issue body, and asymmetric repetition suppression on top of `story_memory`. Live on Disco matchup pages. |
 | 10 | **Consumer email digest** | `planned` | remote auth, Resend | Separate data model from Commissioner mail. Never send whole issues; the site stays canonical. |
 | 11 | **Trend visualizations** | `planned` | 4 | Sparklines with a textual reading attached. Score history already reaches team pages; the Performance table is now the midseason lead section and is the obvious place for one. |

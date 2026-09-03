@@ -292,13 +292,23 @@ def _draft_evidence(ctx, take) -> tuple[str | None, list[str]]:
     selection with the board and is immutable market analysis. What is
     testable is whether the player is still here and playing."""
     lines, gone, kept = [], [], []
-    for name in take.get("players") or []:
+    # Kickers start every week by definition, so "did he start" says nothing
+    # about a claim. Special-teams players are reported but never carry the
+    # verdict — the same calibration rule the rest of the codebase follows.
+    positions = ctx.get("player_positions") or {}
+    named = take.get("players") or []
+    skill = [n for n in named
+             if (positions.get(n) or "") not in ("K", "DEF", "DST")]
+    judgeable = skill or []
+    for name in named:
         rid = ctx["roster_of_player"].get(name)
         if rid is None:
-            gone.append(name)
+            if name in judgeable:
+                gone.append(name)
             lines.append(f"{name} is not on any roster in this league now")
             continue
-        kept.append(name)
+        if name in judgeable:
+            kept.append(name)
         starts = ctx["starts"].get(name)
         pts = ctx["points"].get(name)
         held = ctx["public_names"].get(rid, f"Roster {rid}")
@@ -310,6 +320,10 @@ def _draft_evidence(ctx, take) -> tuple[str | None, list[str]]:
         lines.append(detail)
     if not lines:
         return None, []
+    if not judgeable:
+        # Only kickers and defenses were named; there is nothing here that a
+        # roster decision can be held to.
+        return None, lines
     praised = bool(re.search(r"steal|value|bargain|fell to|best pick|"
                              r"crusher|hit", take["quote"], re.I))
     doubted = bool(re.search(r"reach|bust|too early|risky|questionable|"
@@ -482,11 +496,14 @@ def evaluation_context(storage: Storage, league: League, season: str,
     rosters = storage.get_rosters(league.league_id)
     records = {r["roster_id"]: team_record(r) for r in rosters}
     roster_of_player, starts, points = {}, {}, {}
+    player_positions: dict[str, str] = {}
     for r in rosters:
         for pid in (r.get("players") or []):
-            nm = (storage.get_player(pid) or {}).get("full_name")
+            p_ = storage.get_player(pid) or {}
+            nm = p_.get("full_name")
             if nm:
                 roster_of_player[nm] = r["roster_id"]
+                player_positions[nm] = (p_.get("position") or "").upper()
     for wk in range(1, max(1, weeks_played) + 1):
         for row in storage.get_matchups(league.league_id, wk):
             pp = row.get("players_points") or {}
@@ -529,6 +546,7 @@ def evaluation_context(storage: Storage, league: League, season: str,
         "all_play": all_play(scores), "model_rank": model_rank,
         "playoff": playoff, "moves": moves,
         "roster_of_player": roster_of_player, "starts": starts, "points": points,
+        "player_positions": player_positions,
         "matchup_results": matchup_results,
     }
 

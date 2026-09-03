@@ -408,3 +408,59 @@ Surfacings are recorded per WEEK, not per build (`history_shown:` and
 `receipts_shown:` in meta), which is what makes rebuilding or redeploying the
 same week idempotent — the alternative, a counter, would exhaust every
 callback in a league by the third redeploy.
+
+
+## Takes: he marks them, the engine only ever recommends (2026-09-03)
+
+The receipts engine shipped in the previous tranche extracted claims from
+published prose with a regex. Across two real issues it produced exactly one
+live receipt, and the failure was not the regex — it was the premise. A
+receipt is funny because somebody stuck their neck out on purpose, and a
+machine cannot tell the difference between a sentence that was a bet and a
+sentence that was just a sentence.
+
+So a Take is created by a deliberate act, and two database columns keep the
+authority where it belongs. `status` is the Commissioner's verdict.
+`recommended_status` is what the engine computed. They are never merged: an
+engine that leans one way while he holds the other is a visible disagreement
+in the ledger rather than a silent overwrite, and that disagreement is
+frequently the interesting part.
+
+`public` defaults to 0 and only a deliberate act sets it. The consequence is
+that with no approved takes the front page shows no receipt at all, and that
+is the correct output rather than a gap to fill.
+
+**Two gates before any evidence hook runs**, both answering TOO EARLY rather
+than guessing: the take's own review horizon, and a per-topic sample floor.
+A take that loses one week is not wrong, and a system that says so stops
+being funny and starts being stupid. Playoff claims need six played weeks;
+positional, draft and transaction claims need three; a matchup prediction
+resolves on the actual result immediately, because that is what it was.
+
+**Draft claims never re-classify REACH or STEAL.** That comparison is between
+one selection and the reference board on the day, it is immutable market
+analysis, and re-scoring it later would be rewriting history to win an
+argument. What is testable is whether the player is still on the roster,
+whether he starts, and what he scores.
+
+The calibration decision reaches all the way into this feature. Special-teams
+players are named in evidence but never carry a verdict — kickers start every
+week, so "did he start" says nothing about a claim — and the retroactive
+candidate scan refuses to offer a claim that is only about a kicker or
+defense "premium", because that measures the reference board's shape rather
+than a roster decision. Enforcing it at capture time means the error cannot
+re-enter through the take ledger the way it entered the 2026 Surfeit
+rankings.
+
+## A paraphrase is never presented as a quotation (2026-09-03)
+
+The Commissioner can edit the text when he tracks a take — trimming a
+sentence to its claim is a reasonable thing to want. That makes the stored
+quote no longer his published wording, and an archive that presents it inside
+quotation marks anyway is putting words in his mouth in his own record.
+
+`verbatim` is therefore decided by the system, not by a checkbox: the quote is
+compared with the section source at creation. A paraphrase renders as "he
+wrote this, in substance" with no quotation marks, and `pubqa.check_receipts`
+makes presenting one as a quotation a publication blocker rather than a style
+preference.

@@ -627,7 +627,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 confidence=(body.get("confidence") or None),
                 review_after=(body.get("review_after") or None),
                 verbatim=verbatim,
-                href=f"{season}/{issue_key}/index.html",
+                # land the reader on the section the claim came from
+                href=f"{season}/{issue_key}/index.html#{section}",
                 note=(body.get("note") or None),
                 players=takes_mod.infer_players(quote, ctx["player_positions"]),
                 playoff_week_start=ctx["playoff_week_start"])

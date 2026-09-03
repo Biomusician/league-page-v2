@@ -6,6 +6,53 @@ playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
+## Takes and Receipts shipped (2026-09-03)
+
+**Status: built, 532 tests, exercised end to end against a copy of the live
+database. Zero real takes exist — nothing is public, which is correct.**
+
+The receipts engine's limit in the previous tranche was that claims had to be
+guessed out of prose. Now the Commissioner marks them.
+
+- `leaguepage/takes.py` — inference, lifecycle, six deterministic evidence
+  hooks, retroactive candidate scan, public rendering.
+- Schema **reuses the existing `takes` table**; new columns via the
+  established `_migrate()` path plus `migrations/0003_takes_lifecycle.sql`
+  so the Postgres cutover surface does not drift. `subject_roster_id` is the
+  stable subject link — team slugs derive from the public name and move on a
+  rename.
+- **Two columns, two boundaries.** `status` is his verdict,
+  `recommended_status` is the engine's; a disagreement stays visible. `public`
+  defaults to 0, so an unreviewed take cannot leak.
+- **Lifecycle:** open / too_early / leaning_right / leaning_wrong /
+  resolved_right / resolved_wrong / void. The two leaning rungs exist so a
+  take that loses one week is not called wrong. Legacy vocabulary
+  (validated/contradicted/retired) maps to the canonical set.
+- **Evaluation gates before hooks:** the take's own review horizon, then a
+  per-topic sample floor (`MIN_WEEKS`: playoff 6, power 4, roster/draft/trade
+  3, matchup 1). Both answer TOO EARLY.
+- **Draft claims never re-classify REACH/STEAL** — that stays immutable
+  market analysis. They read roster status, starts and points. Special-teams
+  players are reported but never carry a verdict: kickers start every week,
+  so "did he start" says nothing.
+- **Editor:** select a sentence, press *Track this take*, an inline panel
+  opens. `verbatim` is decided by comparing the quote with the section source,
+  not a checkbox; a paraphrase renders as "wrote, in substance" and never
+  inside quotation marks. Subject falls back to heading context.
+- **Receipts reach the Change Inbox as a story type**, not a competing queue,
+  and only once the engine has leaned somewhere.
+- **Public path has three gates**: he marked it public, the engine moved it,
+  and provenance survives. `pubqa.check_receipts` runs in the build and
+  blocks missing provenance, a paraphrase dressed as a quote, private fields
+  travelling with a receipt, a handle inside a quote, and roster placeholders.
+- Evaluation runs during Sync (`takes_eval:{league}` timing) and the public
+  build only reads the stored result.
+
+Retroactive candidates on the real 2026 issues: **3 Disco, 8 Surfeit.** The
+scan drops signposting, pleasantries, league-wide summaries misattributed to
+the last capsule, and any claim only about kicker/defense "premiums" — the
+calibration decision enforced at capture time.
+
 ## Tier 2 shipped: the consumer half (2026-09-02)
 
 **Status: built, tested (469 tests), privacy audit clean, deployed.** The

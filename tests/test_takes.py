@@ -469,3 +469,25 @@ def test_a_take_needs_a_quote(env):
     with pytest.raises(ValueError):
         takes.create_take(env, LEAGUE, "2026", quote="   ", issue_key="draft",
                           section="lowdown")
+
+
+def test_a_draft_take_is_never_judged_on_a_kickers_starts():
+    """Kickers start every week by definition, so "did he start" says nothing
+    about a claim. Named, reported, never the verdict."""
+    only_kicker = take(topic="draft", players=["Jake Bates"],
+                       quote="Jake Bates was the steal of this draft.")
+    r = takes.evaluate_take(only_kicker, ctx(
+        player_positions={"Jake Bates": "K"},
+        roster_of_player={"Jake Bates": 1}, starts={"Jake Bates": 6}))
+    assert r["recommended_status"] == takes.OPEN
+    assert any("Jake Bates" in e for e in r["evidence"]), "still reported"
+
+
+def test_a_mixed_take_is_judged_on_the_skill_player_only():
+    mixed = take(topic="draft", players=["Bijan Robinson", "Jake Bates"],
+                 quote="Bijan Robinson and Jake Bates were the steals here.")
+    r = takes.evaluate_take(mixed, ctx(
+        player_positions={"Bijan Robinson": "RB", "Jake Bates": "K"},
+        roster_of_player={"Jake Bates": 1}, starts={"Jake Bates": 6}))
+    # Bijan is gone; the kicker's six starts must not rescue the claim
+    assert r["recommended_status"] == takes.LEANING_WRONG

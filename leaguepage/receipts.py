@@ -320,11 +320,12 @@ def front_page_receipt(storage: Storage, league: League, season: str, week: int,
     if tracked:
         r = tracked[0]
         record_shown(storage, league.slug, season, f"take:{r['take_id']}", week)
-        verb = "wrote" if r["verbatim"] else "wrote, in substance"
+        where = ("he wrote this in the " + r["issue_label"] if r["verbatim"]
+                 else "he wrote this, in substance, in the " + r["issue_label"])
         return {
             "claim": (f"“{r['quote']}”" if r["verbatim"] else r["quote"]),
             "status": r["status"],
-            "status_note": f"{r['evidence'][0]} — {r['when']}, he {verb} this.",
+            "status_note": f"{r['evidence'][0]} — {where}.",
             "href": r["href"],
             "cta": r["issue_label"],
             "weight": 90 if r["settled"] else 84,
