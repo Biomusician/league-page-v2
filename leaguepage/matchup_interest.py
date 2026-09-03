@@ -187,8 +187,8 @@ def classify(matchup: dict, ci: dict, sv: dict, week_ctx: dict) -> list[str]:
         # move a berth; the both-teams-are-in branch moves seeding, and
         # calling that a berth contradicts the leverage model printed beside
         # it, which correctly reports a zero swing for two locked teams.
-        seeding = any("seeding is live" in lab for lab in labels)
-        tags.append("Seeding at Stake" if seeding else "Playoff Leverage")
+        tags.append("Seeding at Stake" if "seeding is live" in labels
+                    else "Playoff Leverage")
     return tags
 
 

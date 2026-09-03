@@ -30,6 +30,13 @@
   .rooms .card { margin:0; padding:.6rem .8rem; }
   .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
   .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
+  .leaderboard { list-style:none; margin:.6rem 0 0; padding:0;
+                 display:grid; grid-template-columns:repeat(auto-fit, minmax(13rem, 1fr));
+                 gap:.6rem .9rem; }
+  .leaderboard li { display:grid; gap:.05rem; padding:.6rem .75rem; border-radius:4px; }
+  .lead-label { font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; }
+  .lead-value { font-size:1.6rem; font-weight:700; line-height:1.1; }
+  .lead-team { font-weight:600; }
   .teamstrip { display:flex; flex-wrap:wrap; gap:.4rem; }
   .teamstrip a { display:inline-block; padding:.5rem .7rem; border-radius:3px;
                  text-decoration:none; font-size:.9rem; }
@@ -46,6 +53,8 @@
      effectively no boundary at all. WCAG 1.4.11 wants 3:1; this is 3.8. */
   .teamstrip a { background:#1a2027; border:1px solid #6b7a88; }
   .teamstrip a:hover { border-color:#e8a33d; }
+  .leaderboard li { background:#1a2027; border:1px solid #e8a33d; }
+  .lead-value { color:#e8a33d; }
   .freshbar { color:#8fa8b8; border-bottom:1px solid #2c343d; }
   .hero h2.headline { color:#e8e4d8; }
 {% else %}
@@ -53,6 +62,8 @@
   .brief .lead { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
   .teamstrip a { background:#0e2743; border:1px solid #6e8aa8; }
   .teamstrip a:hover { border-color:#facd00; }
+  .leaderboard li { background:#0e2743; border:1px solid #facd00; }
+  .lead-value { color:#facd00; }
   .freshbar { color:#9fb6cc; border-bottom:1px solid #1d3d63; }
   .hero h2.headline { color:#e4ecf5; }
 {% endif %}
@@ -103,6 +114,22 @@
     {% endfor %}
   </div>
   {% endif %}
+</section>
+{% endif %}
+
+{% if leaders %}
+<section class="module leaders" aria-labelledby="leaders-h">
+  <h2 class="section-label" id="leaders-h">Week {{ leaders_week }} in numbers</h2>
+  <ol class="leaderboard">
+    {% for r in leaders %}
+    <li>
+      <span class="lead-label">{{ r.label }}</span>
+      <span class="lead-value">{{ r.value }}</span>
+      <span class="lead-team">{% if r.slug %}<a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.team }}</a>{% else %}{{ r.team }}{% endif %}</span>
+      <span class="meta">{{ r.detail }}</span>
+    </li>
+    {% endfor %}
+  </ol>
 </section>
 {% endif %}
 

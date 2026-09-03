@@ -3,6 +3,28 @@
 {% block content %}
 <h2 class="section-label">Archive</h2>
 
+{% if ledger %}
+<section class="module" aria-labelledby="ledger-h">
+  <h2 class="section-label" id="ledger-h">Seasons Past</h2>
+  <p class="meta">{{ ledger_note }}</p>
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Champions and last place by season">
+  <table>
+    <caption class="meta">{{ league.display_name }} champions and last place, by season.</caption>
+    <tr><th scope="col">Season</th><th scope="col">Champion</th>
+        <th scope="col">Last place</th><th scope="col">Recorded in</th></tr>
+    {% for r in ledger %}
+    <tr>
+      <th scope="row">{{ r.season }}</th>
+      <td>{% if r.champion_slug %}<a href="{{ lroot }}team/{{ r.champion_slug }}/index.html">{{ r.champion }}</a>{% else %}{{ r.champion }}{% endif %}</td>
+      <td>{% if r.last_place_slug %}<a href="{{ lroot }}team/{{ r.last_place_slug }}/index.html">{{ r.last_place }}</a>{% else %}{{ r.last_place }}{% endif %}</td>
+      <td class="wrap"><a href="{{ lroot }}archive/a{{ r.issue_id }}/index.html">{{ r.issue_title }}</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</section>
+{% endif %}
+
 {% if published %}
 <section class="module">
   <h2 class="section-label">{{ season }} Issues</h2>

@@ -1149,10 +1149,27 @@ def build_league(
                          "origin": origin, "paragraphs": paragraphs},
                    prev_issue=_sib(-1), next_issue=_sib(1),
                    current_nav="Archive")
+    # Six seasons of titles Sleeper cannot reach, read out of the mastheads
+    # that recorded them at the time. Names resolve to team pages only where
+    # a CONFIRMED alias says who they are.
+    from leaguepage.archive_records import (drop_private_names, ledger_note,
+                                            resolve_handles, season_ledger)
+    from leaguepage.editorial import load_managers, manager_for_roster
+
+    _managers = load_managers()
+    ledger = resolve_handles(
+        drop_private_names(season_ledger(storage, league),
+                           _private_handles(sorted(public_names.values()))),
+        [{"roster_id": rid, "team_slug": slugs.get(rid),
+          "manager_keys": manager_for_roster(_managers, league.slug, rid)}
+         for rid in names],
+        _managers)
     render("archive/index.html", "public/archive.html", 2,
            description=(f"Every issue of {league.display_name} on the record, "
                         f"newest first."),
-           published=snaps, historical_groups=historical_groups, current_nav="Archive")
+           published=snaps, historical_groups=historical_groups,
+           ledger=ledger, ledger_note=ledger_note(ledger),
+           current_nav="Archive")
 
     # league home (front page) — season-state aware editorial hierarchy
     from leaguepage import front_page
@@ -1194,8 +1211,17 @@ def build_league(
         "steals": steals_ctx,
         "receipt": front_receipt,
     })
+    # The five numbers from the last completed week that anybody would
+    # repeat out loud. Facts, not awards: naming a winner is the
+    # Commissioner's job and this build step does not do it for him.
+    from leaguepage.week_leaders import week_leaders
+
+    leaders_week = weeks_played_league
+    leaders = (week_leaders(storage, league, leaders_week, public_names, slugs)
+               if leaders_week else [])
     render("index.html", "public/home.html", 1,
            myteam=sorted(myteam_cards, key=lambda t: t["name"].lower()),
+           leaders=leaders, leaders_week=leaders_week,
            description=_home_description(league, front, latest_ctx,
                                          weeks_played_league, week),
            latest=latest_ctx, standings=standings, published=snaps,
@@ -1270,6 +1296,13 @@ PUBLISHABLE_ASSETS = (".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".webp",
 
 AUDITED_SUFFIXES = (".html", ".htm", ".js", ".json", ".txt", ".xml", ".css", ".md", ".svg")
 
+# A stylesheet keyword is not a person, so the name scan reads what a
+# reader can read. Two alternatives rather than one backreference,
+# because the pattern is easier to check that way.
+_SCRIPT_OR_STYLE_RE = re.compile(
+    r"<style[^>]*>.*?</style[^>]*>|<script[^>]*>.*?</script[^>]*>",
+    re.S | re.I)
+
 
 def _private_handles(public_names: list[str] | None = None) -> list[str]:
     """Every name a manager is known by locally that he has not already
@@ -1341,11 +1374,17 @@ def audit_output(out_dir: Path, *, extra_forbidden: list[str] | None = None,
                 # published it again.
                 violations.append(f"{rel}: {label} at offset {m.start()}")
         if "/archive/a" not in f"/{rel}":
+            # Names are looked for in what a reader can read. A stylesheet
+            # keyword is not a person: matching case-insensitively made
+            # `border:3px double` a hit for a manager whose alias is
+            # "Double". Credential shapes above still scan everything,
+            # because a token inside a script really is published.
+            prose = _SCRIPT_OR_STYLE_RE.sub(" ", text)
             for h in handles:
                 # Case-insensitive and at word boundaries. Plain `h in text`
                 # missed a lowercased mention of a private alias, and hit
                 # inside longer words, so it was simultaneously too loose
                 # and too tight.
-                if handle_re(h).search(text):
+                if handle_re(h).search(prose):
                     violations.append(f"{rel}: private handle '{h}'")
     return violations

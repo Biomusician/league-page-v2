@@ -438,16 +438,21 @@ def playoff_outlook(storage: Storage, league: League, through_week: int,
             "note": schedule_note(len(known), len(remaining))}
 
 
-def format_odds(p: float, sims: int = SIMS) -> str:
+def format_odds(p: float) -> str:
     """A probability from a finite simulation, written without claiming
-    certainty. Zero of 2000 draws is not zero, and 2000 of 2000 is not one;
-    printing "0%" and "100%" turns a sample into a guarantee."""
-    floor = 1.0 / max(1, sims)
-    if p <= floor:
+    certainty.
+
+    Zero of 2000 draws is not zero and 2000 of 2000 is not one, so "0%" and
+    "100%" turn a sample into a guarantee. Rounding is the other half of it:
+    0.995 is not certainty either, and "{:.0%}" prints it as 100%. Gate on
+    what the reader would see rather than on the raw value.
+    """
+    text = f"{p:.0%}"
+    if text == "0%":
         return "<1%"
-    if p >= 1.0 - floor:
+    if text == "100%":
         return ">99%"
-    return f"{p:.0%}"
+    return text
 
 
 def schedule_note(known: int, total: int) -> str:

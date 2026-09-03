@@ -154,6 +154,10 @@
               display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
   nav.exits a { display:inline-block; padding:.45rem 0; }
   nav.leaguenav a.mine { font-weight:bold; }
+  /* Every `display` rule on this page outranks the browser's own
+     [hidden]{display:none}, so the My Team shortcut and the hidden team
+     cards rendered for readers who never chose a team. */
+  [hidden] { display:none !important; }
   .myteam .pick { display:flex; flex-wrap:wrap; gap:.4rem .5rem; margin:.5rem 0 0;
                   padding:0; list-style:none; }
   .myteam .pick button { font:inherit; cursor:pointer; padding:.5rem .7rem;
