@@ -301,3 +301,22 @@ def test_build_context_reads_current_names_and_rosters(storage):
     assert c.n_teams == 4
     assert c.public_names[1] == "Team 1"
     assert c.rosters[1]["drafted"]        # draft picks landed
+
+
+def test_only_mechanical_copy_findings_offer_an_automatic_fix():
+    """scripts/apply_qa_fixes.py applies exactly the findings that carry a
+    fix pair. Nothing outside COPY may ever carry one: what a team is called
+    and what a number means are the Commissioner's calls, not a script's."""
+    c = ctx(private_handles=["confedfatties"], positional_ranks={1: {"RB": 9}},
+            positions_n=5)
+    text = "\n".join(f"### {i}. {nm}\n\nRB room ranks 3 of 10.\n"
+                     for i, nm in enumerate(
+                         ["Los Bandidos", "Wild SeeKats", "Jesse", "Dave",
+                          "SHACtin a fool"], start=1))
+    text += ("\n\nRoster 4 said it there.. Their GM was sure, Our reading "
+             "differs. Preview pending. confedfatties agreed.\n")
+    for f in check(text, module_key="custom", c=c):
+        if f.fix_from or f.fix_to:
+            assert f.category == pubqa.COPY, f"{f.category} offered an auto-fix"
+            assert f.fix_from and f.fix_to
+            assert f.fix_from != f.fix_to

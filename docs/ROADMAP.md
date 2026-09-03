@@ -4,7 +4,7 @@ Ranked product roadmap. **Future work only** — what exists today is in
 `docs/HANDOFF.md`, and why it was built that way is in `docs/DECISIONS.md`.
 Keep those three separate: HANDOFF gets stale if it doubles as a wish list.
 
-Reviewed 2026-09-01.
+Reviewed 2026-09-02.
 
 ## The product rule
 
@@ -79,9 +79,9 @@ Do not start until Tier 1 has been used in a real weekly cycle.
 
 | # | Feature | Status | Depends on | Rationale |
 | --- | --- | --- | --- | --- |
-| 4 | **Personalized "Your Team"** | `partial` | none | Team pages already carry outlook, strengths, form, key moves and positional profile; what is missing is the interpreted briefing at the top. Mostly assembly. |
+| 4 | **Personalized "Your Team"** | `shipped` | none | `team_briefing.py`: the briefing, editorial weighting, season-stage section order, storyline, quality-ranked mentions. |
 | 5 | **Playoff scenario explorer** | `partial` | 4 | `team_analytics.playoff_outlook` already produces bands and percentages with an honest too-early stage. Missing: per-game leverage and rooting interest. |
-| 6 | **Transaction decision ledger** | `partial` | none | `transaction_analysis` already snapshots rationale and tracks outcome and rank shift. Missing: the durable at-the-time/how-it-aged split as a public surface. |
+| 6 | **Transaction decision ledger** | `partial` | none | `transaction_analysis` already snapshots rationale and tracks outcome and rank shift. The at-the-time reading is now public on Force Flow, team briefings and Scout View. Missing: the how-it-aged column, which needs played weeks. |
 | 7 | **Matchup forecast + upset path** | `partial` | 5 | Structural edge, vulnerability, form and receipts all exist. Missing: the upset-path narrative. |
 
 Recommended order within Tier 2: **6 → 4 → 7 → 5.** The ledger is closest to
@@ -94,10 +94,10 @@ the most work and the least useful before week 6.
 
 | # | Feature | Status | Depends on | Rationale |
 | --- | --- | --- | --- | --- |
-| 8 | **Receipts / takes tracker** | `partial` | 1 | The `takes` table already carries status open/validated/contradicted/retired/too_early, and the inbox already surfaces a receipt when new evidence exists. Missing: the tracker view and auto-status proposals. |
-| 9 | **Smart archive recall** | `partial` | none | `story_memory.retrieve_callbacks` already ranks by FTS relevance, dating confidence, prior reuse and league scope. Better than the "broad substring" the roadmap assumed. Missing: retrieval from arbitrary sections, not only matchups. |
+| 8 | **Receipts / takes tracker** | `partial` | 1 | `receipts.py` now extracts claims from published prose, tests them against current rosters and room ranks, and surfaces them on the front page and team pages with provenance. Missing: the Desk tracker view, and wiring the `takes` table in as a second claim source. |
+| 9 | **Smart archive recall** | `shipped` | none | `history.py` adds prose-quality filtering, whole-sentence quotes from the issue body, and asymmetric repetition suppression on top of `story_memory`. Live on Disco matchup pages. |
 | 10 | **Consumer email digest** | `planned` | remote auth, Resend | Separate data model from Commissioner mail. Never send whole issues; the site stays canonical. |
-| 11 | **Trend visualizations** | `planned` | 4 | Sparklines with a textual reading attached. Score history already reaches team pages. |
+| 11 | **Trend visualizations** | `planned` | 4 | Sparklines with a textual reading attached. Score history already reaches team pages; the Performance table is now the midseason lead section and is the obvious place for one. |
 
 ---
 

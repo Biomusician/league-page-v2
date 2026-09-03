@@ -6,6 +6,99 @@ playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
+## Tier 2 shipped: the consumer half (2026-09-02)
+
+**Status: built, tested (469 tests), privacy audit clean, deployed.** The
+product question moved from "can it calculate useful things" to "does a
+league member understand what matters, enjoy reading it, and click again".
+
+### 1. Publication quality gate — `leaguepage/pubqa.py`
+
+Six categories plus privacy: identity, placeholder, formatting, copy,
+freshness, analytical consistency. **Blockers stop publication; warnings
+never do** — a warning IS the override. **Privacy blockers have no override
+path anywhere**, deliberately.
+
+- The design constraint that shaped every detector: *voice is not a defect*.
+  Fragments, slang, deliberate capitalization and Air Force jargon are the
+  product. Every copy check is mechanical and unambiguous. Thirteen samples
+  of Jonathan's real published prose are pinned as must-not-flag tests. If a
+  future change makes the gate nag about style, those tests fail.
+- Team-heading identity resolution works on LEVEL then SHAPE: "Second
+  Opinions" sitting at the same `###` level as twelve numbered team entries
+  is not mistaken for a team. A heading fails only when it carries a token
+  belonging to NO current public name, so "The Dude" for "The Dude Abides
+  (The Dude)" passes and "Babe (confedfatties)" does not.
+- The K/DST analytical check guards the 2026-08-30 calibration decision: a
+  section that ranks teams and leans on two or more raw special-teams
+  consensus deltas without the disclosure gets warned.
+- Surfaces: Publication Check panel on the editor and publish pages (Accept /
+  Edit / Ignore per suggestion), `publish_assembled_issue` and `revise_issue`
+  both re-run the gate, `scripts/qa_issues.py` audits from the terminal.
+- Ignores live in meta `qa_ignored:{league}:{season}:{issue}` and are honored
+  for warnings only.
+
+### 2. Corrections — additive, never destructive
+
+`publish.revise_issue()` writes `<key>.r2.json` beside the original. The
+original stays on disk and in git as the record of what shipped that day;
+the site renders the newest revision and prints "Updated <date> · <note>".
+`_load_snapshots` collapses a family to its newest revision.
+`scripts/apply_qa_fixes.py` applies ONLY mechanical COPY findings (those
+carrying an exact `fix_from`/`fix_to` pair) and updates the editorial source
+so the typo cannot return. **Disco's 2026 Draft Issue is at revision 2**
+(comma splice, doubled period, "way to many").
+
+### 3. Front page — `leaguepage/front_page.py`
+
+`season_state()` reads games PLAYED, never the calendar. Item builders
+propose weighted stories; strongest leads, next few are secondary, capped at
+five, floored at two — a thin week ships three rather than five padded ones.
+Preseason drops the 0-0 standings table for skill-position room leaders; the
+playoff-race state leads with the cutline. The author rule extends here: his
+team cannot be Team to Watch.
+
+### 4. Dead-end elimination — `leaguepage/model_views.py`
+
+Scout View (matchups) and Model Board (Peer and Near-Peer) are labelled
+scaffolding that never imitates the Commissioner — no jokes, no verdicts, no
+predicted winners. Scout View returns None when a matchup has nothing to say.
+Model Board weights results at `min(0.7, 0.12 * weeks_played)` and stays on
+as a comparison column once his ranking publishes.
+`test_no_primary_route_is_a_dead_end` walks every nav tab in both leagues.
+
+### 5. Team briefings — `leaguepage/team_briefing.py`
+
+"Your Team This Week" answers the five questions above the tables.
+`editorial_strengths()` separates analytical rank from editorial importance:
+the positional table still ranks K and DEF, but a special-teams room reaches
+the headline only when it is league-best or league-worst.
+`section_order()` ages the Draft Recap down the page by season stage without
+ever dropping it. **Team Draft Recaps now use `headline_deviations`** — they
+were headlining kickers (Fairbairn, Cam Little) as Biggest Reach.
+
+### 6. Live history — `leaguepage/history.py`, `leaguepage/receipts.py`
+
+Archive callbacks go back to the issue BODY and take the whole sentence
+containing the match, not the FTS snippet (a fixed-width window that starts
+and ends mid-word). `reads_as_prose()` rejects draft-result lists, injury
+tables, matchup headers and anything a quarter numeric. Receipts quote
+claims verbatim, test them against current rosters and room ranks, and
+describe evidence rather than passing verdicts; position claims need three
+played weeks. **Repetition: facts may repeat, callbacks may not** — a
+recently-surfaced archive quote is dropped outright, while "Team 1 leads
+2–1" is the current state of the rivalry and belongs on the page weekly.
+Surfacings are recorded per week in meta (`history_shown:` /
+`receipts_shown:`), which keeps rebuilding a week idempotent.
+
+**Open, needing Jonathan's judgment (the gate found them; it will not
+guess):** Surfeit's published Lowdown still says "Jesse (team name pending)"
+— a hard blocker that prevents any future correction to that issue until the
+line changes; its power rankings head roster 4 as "Jesse", which matches no
+current public name; Disco's rankings head teams as "Tua Girls One Kupp
+(Ethen)" and "Babe (confedfatties)"; and the Surfeit rankings order teams by
+summed raw K/DST deltas without the calibration disclosure.
+
 ## Tier 1 shipped: the weekly triage loop (2026-09-01)
 
 **Status: built, tested, exercised against a copy of the live database. Not

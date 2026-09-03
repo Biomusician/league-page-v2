@@ -2,7 +2,7 @@
 
 *"Every ranking is objective until you read your own and it's low; then just complain about it in league chat."*
 
-All models are wrong, but some are useful; the scores below are just math, and the order is the math's fault not mine. I (with some LLM help, because 228 picks is way to many to do manually) compared every one of the 228 picks to FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means we let value fall to you, negative means you went and got your guys early, which hurt you in the model. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge. Complain about it, crow over your high ranking, but the incoming season, injuries, etc. are inevitable.
+All models are wrong, but some are useful; the scores below are just math, and the order is the math's fault not mine. I (with some LLM help, because 228 picks is way too many to do manually) compared every one of the 228 picks to FantasyPros' superflex consensus board, and each team's number is the sum of its deltas: positive means we let value fall to you, negative means you went and got your guys early, which hurt you in the model. Two caveats before the roasting starts: Consensus is a kind of scouting report, and scouting reports have losing records against actual team performance. Still, twelve drafts went through the same gate, so twelve drafts get graded by the same gauge. Complain about it, crow over your high ranking, but the incoming season, injuries, etc. are inevitable.
 
 ### 1. The Dude (+179)
 

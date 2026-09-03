@@ -71,15 +71,28 @@ def main() -> int:
                     rep = pubqa.check_issue(s, league, season, key, week=week)
                     reports.append((f"{league.slug} · {season} · {key} (workspace)", rep))
             else:
+                # An issue is a family (draft.json, draft.r2.json, …). Only the
+                # newest revision is what readers see, so only it is audited;
+                # the originals stay on disk as the historical record.
                 root = PUBLISHED_DIR / league.slug
+                latest: dict[tuple[str, str], dict] = {}
                 for path in sorted(root.rglob("*.json")) if root.exists() else []:
                     snap = json.loads(path.read_text(encoding="utf-8"))
-                    if args.issue and snap["issue_key"] != args.issue:
+                    key = (snap["season"], snap.get("revises") or snap["issue_key"])
+                    if int(snap.get("revision") or 1) >= int(
+                            (latest.get(key) or {}).get("revision") or 0):
+                        latest[key] = snap
+                for (season_, issue_key), snap in sorted(latest.items()):
+                    if args.issue and issue_key != args.issue:
                         continue
+                    snap = dict(snap, issue_key=issue_key)
                     rep = pubqa.check_snapshot(s, league, snap)
+                    rev = int(snap.get("revision") or 1)
+                    stamp = (snap.get("revised_at") or snap.get("published_at") or "")[:10]
                     reports.append(
-                        (f"{league.slug} · {snap['season']} · {snap['issue_key']} "
-                         f"(published {(snap.get('published_at') or '')[:10]})", rep))
+                        (f"{league.slug} · {season_} · {issue_key} "
+                         + (f"(rev {rev}, {stamp})" if rev > 1
+                            else f"(published {stamp})"), rep))
 
     if args.json:
         print(json.dumps([{"title": t, **r} for t, r in reports], indent=1))

@@ -324,3 +324,87 @@ the book that can never fire.
 The floor is worth recording in one line: it costs the roster the consensus
 RB1, RB2, WR1, TE3 and K1, and leaves exactly two qualifying kickers in the
 league, both named Tyler.
+
+## Publication quality gate: warnings are the override (2026-09-02)
+
+A pre-publish checker that can be silently bypassed protects nothing, and one
+that blocks on judgment calls gets turned off. So the severity model is two
+levels with no third:
+
+- **Blocker** — something no reader should ever see: an internal roster id or
+  slug, a raw placeholder, markup that failed to render, a broken link, an
+  included section with no copy, a private handle. Publication stops.
+- **Warning** — a possible stale statistic, a probable typo, an inconsistent
+  team name, a methodology tension. Publication proceeds. The Commissioner
+  reading it and publishing anyway IS the override, so there is no override
+  UI, no acknowledgement flag, and no way for a warning to become a blocker.
+
+`privacy=True` findings are blockers with no path around them anywhere in the
+codebase. The ignore store is consulted only for warnings, so dismissing a
+finding can never unblock a publish even if the id is dismissed by hand.
+
+**Voice is not a defect.** This is the constraint that decided every copy
+detector. Fragments, slang, deliberate capitalization, invented compounds and
+Air Force jargon are the product being sold; a gate with opinions about them
+would be worse than no gate. Every copy check is therefore mechanical and has
+one unambiguous correct form: a doubled period, a repeated word, a comma
+where a full stop belongs, "way to many". Thirteen samples of real published
+prose are pinned as must-not-flag tests, so a future detector that starts
+homogenizing style fails the suite rather than the newsletter.
+
+**Machine copy never imitates the Commissioner.** Scout View, the Model
+Board, the front-page briefing and the team briefings all read like an
+intelligent analyst's notes: no jokes, no analogies, no verdicts on people,
+no predicted winners. This is not timidity — it is what keeps his voice worth
+something. A site where everything sounds like him is a site where nothing
+does.
+
+## Corrections are additive; the original snapshot is never rewritten (2026-09-02)
+
+Published issues are immutable, and fixing a typo must not cost that. A
+correction is a NEW file (`draft.r2.json`) beside the original carrying
+`revision`, `revises`, `revision_note`, `original_published_at` and
+`revised_at`. The site renders the newest revision and prints "Updated <date>
+· <note>"; the original stays on disk and in git as the record of what
+actually went out that day.
+
+Rejected alternatives: editing the snapshot in place (destroys provenance and
+makes git history lie about what was published), and keeping a separate
+errata page (nobody reads errata; the reader needs the corrected text where
+the mistake was).
+
+`scripts/apply_qa_fixes.py` is deliberately narrow — it applies only findings
+carrying an exact `fix_from`/`fix_to` pair, and only the COPY category ever
+carries one. What a team is called and what a number means are the
+Commissioner's calls. A test asserts that no finding outside COPY can offer
+an automatic fix, so widening the script's reach requires changing that test
+on purpose.
+
+## Analytical rank is not editorial importance (2026-09-02)
+
+The positional profile ranks every room a league starts, K and DEF included,
+and that is correct: it is a fact about the roster. But "K is your
+second-best strength" is not a headline, and it was one — team pages led with
+Ka'imi Fairbairn and Cam Little as Biggest Reach because overall ECR puts
+every kicker below the draftable range, making an 80-pick "reach" a fact
+about the reference board rather than a roster decision.
+
+The split: analytical surfaces (tables, full boards, per-pick rows) rank
+everything; editorial surfaces (headlines, briefings, front-page items, Scout
+View, Model Board) lead with QB/RB/WR/TE. A special-teams room reaches a
+headline only when it is league-best or league-worst, and never displaces a
+skill-position line. `draft_value.SKILL_POSITIONS` is the single definition
+both halves read.
+
+## Repetition: facts may repeat, callbacks may not (2026-09-02)
+
+"Team 1 leads 2–1" is the current state of a rivalry and belongs on the
+matchup page every week it is true. A quote from a 2019 newsletter read two
+weeks running stops being a callback and becomes furniture. So the
+suppression is asymmetric: a recently-surfaced archive quote is dropped from
+the candidate list outright, while computed facts are merely demoted.
+
+Surfacings are recorded per WEEK, not per build (`history_shown:` and
+`receipts_shown:` in meta), which is what makes rebuilding or redeploying the
+same week idempotent — the alternative, a counter, would exhaust every
+callback in a league by the third redeploy.
