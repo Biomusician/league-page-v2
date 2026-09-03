@@ -173,6 +173,27 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
   defenses sit below the draftable range on the reference board while lineups
   force everyone to draft one, so their deviations are reported separately.</p>
   {% endif %}
+  {% if team.draft_recap.aging %}{% set ag = team.draft_recap.aging %}
+  <p class="meta">Of {{ ag.picks }} picks, {{ ag.held }} are still on this
+  roster{% if ag.traded %}, {{ ag.traded }} now belong{{ "s" if ag.traded == 1 else "" }}
+  to somebody else in the league{% endif %}{% if ag.gone %},
+  {{ ag.gone }} {{ "has" if ag.gone == 1 else "have" }} left every roster{% endif %}.</p>
+  {% endif %}
+  {% if team.draft_recap.departed %}
+  <div class="card">
+    <strong>Called out on draft night, and no longer here</strong>
+    <ul>
+      {% for p in team.draft_recap.departed %}
+      <li>{{ p.name }} <span class="tag">{{ p.label }}</span>
+        <span class="meta">(pick {{ p.pick_no }})</span><br>
+        <span class="meta">{{ p.line }}</span></li>
+      {% endfor %}
+    </ul>
+    <p class="meta">The reach and steal calls above are the market comparison
+    made on the night and are never re-scored with hindsight. This is only
+    whether the player is still here.</p>
+  </div>
+  {% endif %}
   {% if team.draft_recap.special_teams %}
   <div class="card">
     <strong>Special Teams Outliers</strong>

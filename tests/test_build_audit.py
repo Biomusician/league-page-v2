@@ -38,7 +38,9 @@ def _write(out, name, body):
     ("f.html", "<p>/Users/somebody/League-Page/notes.txt</p>", "absolute path"),
     ("g.html", "<p>editorial/2026/disco/draft/notes.md</p>", "private repo path"),
     ("h.html", "<p>see PREP.md for the brief</p>", "authoring artifact"),
-    ("i.html", "<p>ghp_abcdefghijklmnopqrstuvwxyz0123</p>", "GitHub token"),
+    # assembled rather than written out: a literal token in a tracked file
+    # is exactly what the repo audit exists to stop, even a fake one
+    ("i.html", "<p>" + "gh" + "p_" + "a" * 30 + "</p>", "GitHub token"),
 ])
 def test_each_private_shape_is_caught(out, name, body, label):
     _write(out, name, body)
@@ -80,8 +82,8 @@ def test_aliases_are_scanned_when_the_public_names_are_known(tmp_path, monkeypat
     """Aliases are where real first names live, and they were invisible."""
     _managers(tmp_path, monkeypatch, {
         "handleone": {"display_name": "handleone",
-                      "aliases": ["Bartholomew", "McLovin"]}})
-    handles = _private_handles(["Statistical Anomalies (McLovin)"])
+                      "aliases": ["Bartholomew", "Nickname"]}})
+    handles = _private_handles(["Some Team (Nickname)"])
     assert "Bartholomew" in handles
 
 
@@ -90,11 +92,10 @@ def test_a_nickname_he_published_himself_is_not_private(tmp_path, monkeypatch):
     aliases without subtracting the public names flags a clean build."""
     _managers(tmp_path, monkeypatch, {
         "handleone": {"display_name": "handleone",
-                      "aliases": ["McLovin", "double-tds"]}})
-    handles = _private_handles(["Statistical Anomalies (McLovin)",
-                                "Double TDs (Double)"])
-    assert "McLovin" not in handles
-    assert "double-tds" not in handles, "the slug form is in every URL on the site"
+                      "aliases": ["Nickname", "long-team-name"]}})
+    handles = _private_handles(["Some Team (Nickname)", "Long Team Name (X)"])
+    assert "Nickname" not in handles
+    assert "long-team-name" not in handles, "the slug form is in every URL"
 
 
 def test_without_public_names_only_handles_are_scanned(tmp_path, monkeypatch):

@@ -88,6 +88,23 @@ def _own_stake(lv: dict | None, names: dict[int, str], next_card) -> dict | None
             "anchor": (next_card or {}).get("anchor")}
 
 
+def _archive_depth(storage: Storage, league: League) -> dict | None:
+    """How much league history is on file, and a door into it.
+
+    The Black Box was six rows restating pages a reader had already seen,
+    with no link on any of them. The corpus behind it is the most
+    distinctive thing this site has.
+    """
+    scope = {"disco": ("disco", "daddy"), "surfeit": ()}.get(league.slug, ())
+    items = [i for key in scope for i in storage.list_archive_issues(key)]
+    if not items:
+        return None
+    seasons = sorted({i["season"] for i in items if i.get("season")})
+    return {"issues": len(items),
+            "first": seasons[0] if seasons else None,
+            "last": seasons[-1] if seasons else None}
+
+
 def _through(weeks_played: int) -> str:
     """'through week 6' / 'before a game has been played'."""
     if not weeks_played:
@@ -605,6 +622,12 @@ def build_league(
                 # never rewritten with hindsight.
                 "aged": row.get("aged_line")}
 
+    from leaguepage.draft_aging import (aging_line, departed_headliners,
+                                        draft_aging)
+    from leaguepage.draft_aging import team_summary as aging_summary
+
+    aging_by_rid = draft_aging(storage, league)
+
     # draft market value: shared by the draft page and team Draft Recaps
     from leaguepage.adp import load_adp_for_league
     from leaguepage.draft_analysis import analyze_league_draft
@@ -631,7 +654,19 @@ def build_league(
             _st = [dict(p, dv=classify_pick(p["delta"], league_size),
                         context=position_order_context(_adp, analysis_picks, p))
                    for p in _hd["special_teams"][:2]]
+            _aged = aging_by_rid.get(t["roster_id"]) or []
+            _labels = {}
+            for _h, _lab in ((_hd["skill_reaches"], "REACH"),
+                             (_hd["skill_steals"], "STEAL")):
+                for _p in _h[:1]:
+                    _labels[_p["name"]] = _lab
             recap_by_rid[t["roster_id"]] = {
+                "aging": aging_summary(_aged) if _aged else None,
+                # Never a re-grade: REACH and STEAL are the market call made
+                # on the night and stay exactly as they were. This says only
+                # whether the player is still here.
+                "departed": [dict(r, line=aging_line(r))
+                             for r in departed_headliners(_aged, _labels)],
                 "picks": _picks,
                 "biggest_reach": (dict(_hd["skill_reaches"][0],
                                        dv=classify_pick(_hd["skill_reaches"][0]["delta"],
@@ -965,17 +1000,55 @@ def build_league(
         hi = max(all_rows, key=lambda x: x[2])
         lo = min(all_rows, key=lambda x: x[2])
         records = [
-            {"label": "Highest single-week score", "holder": names[hi[0]]["name"] or f"Roster {hi[0]}",
+            {"id": "high-week", "label": "Highest single-week score",
+             "holder": names[hi[0]]["name"] or f"Roster {hi[0]}",
              "value": f"{hi[2]:g}", "when": f"week {hi[1]}"},
-            {"label": "Lowest single-week score", "holder": names[lo[0]]["name"] or f"Roster {lo[0]}",
+            {"id": "low-week", "label": "Lowest single-week score",
+             "holder": names[lo[0]]["name"] or f"Roster {lo[0]}",
              "value": f"{lo[2]:g}", "when": f"week {lo[1]}"},
         ]
+        # The interesting question about a record is who is near it. A table
+        # of settled marks is a leaderboard footnote; a mark with somebody
+        # four points off it is a thing to watch on Sunday.
+        latest_wk = max(wk for _, wk, _ in all_rows)
+        latest = [(rid, pts) for rid, wk, pts in all_rows if wk == latest_wk]
+        if latest:
+            best = max(latest, key=lambda x: x[1])
+            if best[1] < hi[2]:
+                records.append({
+                    "id": "closest", "label": "Closest to the high mark",
+                    "holder": names[best[0]]["name"] or f"Roster {best[0]}",
+                    "value": f"{hi[2] - best[1]:.1f} short",
+                    "when": f"week {latest_wk}"})
+        margins = []
+        for wk in sorted({w for _, w, _ in all_rows}):
+            by_mid: dict[int, list[tuple[int, float]]] = defaultdict(list)
+            for row in storage.get_matchups(league.league_id, wk):
+                if row.get("matchup_id") is not None and (row.get("points") or 0) > 0:
+                    by_mid[row["matchup_id"]].append((row["roster_id"],
+                                                      float(row["points"])))
+            for pair in by_mid.values():
+                if len(pair) == 2:
+                    a, b = sorted(pair, key=lambda x: -x[1])
+                    margins.append((abs(a[1] - b[1]), wk, a[0], b[0]))
+        if margins:
+            widest = max(margins)
+            closest = min(margins)
+            records.append({
+                "id": "widest-margin", "label": "Widest margin",
+                "holder": names[widest[2]]["name"] or f"Roster {widest[2]}",
+                "value": f"{widest[0]:.1f}", "when": f"week {widest[1]}"})
+            records.append({
+                "id": "closest-margin", "label": "Narrowest margin",
+                "holder": names[closest[2]]["name"] or f"Roster {closest[2]}",
+                "value": f"{closest[0]:.1f}", "when": f"week {closest[1]}"})
     from leaguepage.model_views import black_box_preview
 
     render("black-box/index.html", "public/blackbox.html", 2,
            description=(f"Season records and standing marks in "
                         f"{league.display_name}, {_through(weeks_played_league)}."),
            records=records, population=population,
+           archive_depth=_archive_depth(storage, league),
            watching=black_box_preview(profile=profile,
                                       names={rid: v["name"] or f"Roster {rid}"
                                              for rid, v in names.items()},
@@ -1179,9 +1252,9 @@ def _private_handles(public_names: list[str] | None = None) -> list[str]:
     if not path.exists():
         return []
     data = json.loads(path.read_text(encoding="utf-8"))
-    # Compare on a normalised form. An alias is often the slug of the team
-    # name ("double-tds" against "Double TDs (Double)"), and the slug is in
-    # every URL on the site, so a plain substring test still flagged it.
+    # Compare on a normalised form. An alias is often the slugified form of
+    # the team name, and that slug appears in every URL on the site, so a
+    # plain substring test still flagged it.
     def _norm(text: str) -> str:
         return "".join(ch for ch in text.lower() if ch.isalnum())
 

@@ -111,11 +111,17 @@ def _build(storage, league, season, issue_key, section, week) -> dict:
     top_value = analysis["league_biggest_values"][:2]
 
     if section == "lowdown":
+        # Once games have been played, the draft is context rather than the
+        # story. This branch listed reaches and steals as the STRONGEST
+        # NUMBERS in week 9, which is a brief for an issue that came out in
+        # August.
+        played = _weeks_played(storage, league)
         lines.append("WORTH MENTIONING")
         lines += _candidate_lines(storage, league, season, issue_key,
                                   analysis, managers, coalitions, names)
         lines.append("")
-        lines.append("STRONGEST NUMBERS")
+        lines.append("STRONGEST NUMBERS" if not played
+                     else f"THE DRAFT, {played} WEEKS ON (context, not the story)")
         for p in top_reach:
             lines.append(f"• Boldest pick: {_fmt_delta(p)} ({names.get(_rid_of(analysis, p['team_slug']))})")
         for p in top_value:
@@ -145,6 +151,25 @@ def _build(storage, league, season, issue_key, section, week) -> dict:
             lines.append("YOUR OWN PRIOR CALLS (future False Assumptions material)")
             for t in takes[:2]:
                 lines.append(f"• \"{t['quote']}\" ({t['context']})")
+        if played:
+            # What the season has actually produced, which is what a week-9
+            # Lowdown is about.
+            from leaguepage.team_analytics import playoff_outlook, recent_form
+
+            lines.append("")
+            lines.append(f"THE SEASON SO FAR ({played} weeks played)")
+            form = recent_form(storage, league, played) or {}
+            hot = sorted(form.items(), key=lambda kv: kv[1]["rank"])[:2]
+            for rid, f in hot:
+                lines.append(f"• {names.get(rid)}: #{f['rank']} scoring over "
+                             f"the last {f['window_label']}")
+            outlook = playoff_outlook(storage, league, played)
+            if outlook.get("teams"):
+                ranked = sorted(outlook["teams"].items(),
+                                key=lambda kv: -kv[1]["odds"])
+                lines.append(f"• {outlook['note']}")
+                for rid, t in ranked[:2] + ranked[-2:]:
+                    lines.append(f"  - {names.get(rid)}: {t['band']}")
         lines.append("")
         lines.append("POSSIBLE STRUCTURE")
         lines += STRUCTURES["lowdown"]

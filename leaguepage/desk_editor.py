@@ -160,8 +160,23 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             def _brief(section: str) -> dict:
                 b = brief_for_section(s, league, season, issue_key, section, week)
                 written_at = (prose_rows.get(section) or {}).get("updated_at")
-                b["stale_prose"] = bool(written_at and b.get("data_as_of")
-                                        and b["data_as_of"] > written_at)
+                # `data_as_of` is the leagues-table fetched_at, which moves on
+                # every sync, so this chip lit up on every section every week
+                # whether or not anything relevant had changed. It is a "we
+                # synced" chip, not a "this is now wrong" chip. Compare the
+                # brief's own content instead: if the research behind the
+                # section is byte-identical to what it was when he wrote,
+                # nothing he wrote has gone stale.
+                b["stale_prose"] = False
+                if written_at and b.get("data_as_of") and b["data_as_of"] > written_at:
+                    digest = hashlib.sha1(
+                        (b.get("text") or "").encode("utf-8")).hexdigest()[:16]
+                    key = (f"brief_digest:{league_slug}:{season}:{issue_key}:"
+                           f"{section}")
+                    seen = s.get_meta(key)
+                    b["stale_prose"] = bool(seen and seen != digest)
+                    if seen != digest:
+                        s.set_meta(key, digest)
                 return b
 
             matchup_cards = []

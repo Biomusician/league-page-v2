@@ -13,7 +13,7 @@
   <table>
     <tr><th scope="col">Record</th><th scope="col">Holder</th><th scope="col">Value</th><th scope="col">When</th></tr>
     {% for r in records %}
-    <tr><th scope="row" class="wrap">{{ r.label }}</th><td class="wrap">{{ team(r.holder, team_links) }}</td><td>{{ r.value }}</td><td>{{ r.when }}</td></tr>
+    <tr id="{{ r.id }}"><th scope="row" class="wrap"><a href="#{{ r.id }}">{{ r.label }}</a></th><td class="wrap">{{ team(r.holder, team_links) }}</td><td>{{ r.value }}</td><td>{{ r.when }}</td></tr>
     {% endfor %}
   </table>
   </div>
@@ -33,6 +33,18 @@ anything. These are the marks the season starts from.</p>
 record; records need games.</p>
 {% else %}
 <p>Not enough recorded weeks to claim any records yet. The box is listening.</p>
+{% endif %}
+
+{% if archive_depth %}
+<section class="module">
+  <h2 class="section-label">The corpus behind the box</h2>
+  <p>{{ archive_depth.issues }} issues on file{% if archive_depth.first %},
+  {{ archive_depth.first }} to {{ archive_depth.last }}{% endif %}. Every
+  record above is measured against this season only, and says so; the
+  archive is the longer memory, and it is not machine-readable, so nothing
+  here claims an all-time mark.</p>
+  <p><a href="{{ lroot }}archive/index.html">Read the archive &rarr;</a></p>
+</section>
 {% endif %}
 
 {% if editorial_sections %}
