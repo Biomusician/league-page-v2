@@ -16,7 +16,7 @@ Four quarterbacks, nine wide receivers, and Jacoby Brissett at a 63-pick discoun
 
 Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay triple for upside, and only one real reach (Jarquez Hunter, minus-60). Plus-84 without even turning heads in the draft room. Textbook.
 
-### 4. Tua Girls One Kupp (Ethen) (+67)
+### 4. Tua Girls One Kupp (HOP) (+67)
 
 Tre' Harris at a 42-pick discount and four tight ends, which is either depth
 or a cry for help; the plus-67 says depth. Two quarterbacks in superflex is
@@ -40,7 +40,7 @@ Four quarterbacks and a Tampa triple, held to plus-16 by the Quinshon
 Judkins reach (minus-35). Right side of zero, wrong side of memorable. A
 perfectly fine draft.
 
-### 8. Babe (confedfatties) (-49)
+### 8. Corn-Fed Fatties (Babe) (-49)
 
 Aaron Rodgers 35 picks late was the good idea. Carson Beck 81 picks early
 was definitely an idea of some kind. Four quarterbacks and two stacks means the plan had

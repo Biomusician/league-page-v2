@@ -320,3 +320,20 @@ def test_only_mechanical_copy_findings_offer_an_automatic_fix():
             assert f.category == pubqa.COPY, f"{f.category} offered an auto-fix"
             assert f.fix_from and f.fix_to
             assert f.fix_from != f.fix_to
+
+
+def test_a_table_column_headed_hash_is_not_a_broken_heading():
+    r"""Caught publishing a real correction: the leaked-heading pattern used
+    \s, which spans newlines, so any table with a "#" column header — every
+    standings and ranking table — was reported as broken markup."""
+    table = ("Recomputed, the order changes:\n\n"
+             "| # | Team | Value |\n| --- | --- | --- |\n"
+             "| 1 | Los Bandidos (Bandit) | +118 |\n"
+             "| 2 | Wild SeeKats (Seabass) | -13 |\n")
+    assert not only(check(table, module_key="custom"), pubqa.FORMATTING)
+
+
+def test_a_genuinely_unrendered_heading_is_still_caught():
+    # four-space indent makes python-markdown treat it as a code block
+    fs = check("Some prose.\n\n    ## Correction — methodology\n\nMore prose.\n")
+    assert "Markdown heading did not render" in titles(fs)

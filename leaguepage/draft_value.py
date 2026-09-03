@@ -181,3 +181,66 @@ def consensus_style(profiles: dict[int, dict]) -> dict[int, str | None]:
         else:
             out[rid] = None
     return out
+
+
+# ---------------------------------------------- team-level market value
+#
+# The calibration decision (docs/DECISIONS.md, 2026-08-30) applied to a whole
+# team's draft rather than one pick. Summing every delta on a board that
+# ranks kickers and defenses below the draftable range does not measure who
+# drafted well — it measures who paid a structural tax that the reference
+# board imposes on everybody. In The Surfeit's 2026 draft that tax was 83%
+# of all deviation, so the ranking was mostly a kicker table.
+
+
+def team_market_split(picks: list[dict]) -> dict:
+    """Skill-position market value, the special-teams tax, and the raw total.
+
+    `skill` is the number that reflects roster decisions. `special_teams` is
+    reported beside it, never folded in, because a team cannot choose not to
+    draft a kicker."""
+    rated = [p for p in picks if p.get("delta") is not None]
+    skill = [p for p in rated if (p.get("position") or "").upper() in SKILL_POSITIONS]
+    st = [p for p in rated if (p.get("position") or "").upper() in SPECIAL_TEAMS]
+    return {
+        "skill": sum(p["delta"] for p in skill),
+        "special_teams": sum(p["delta"] for p in st),
+        "total": sum(p["delta"] for p in rated),
+        "skill_picks": len(skill),
+        "special_teams_picks": len(st),
+    }
+
+
+def market_value_ranking(teams: list[dict], names: dict[int, str]) -> dict:
+    """Both orderings side by side, so a change in method is auditable.
+
+    `teams` are draft_analysis team summaries. Returns rows carrying each
+    team's raw-total rank, its skill-only rank, and the movement between
+    them, plus how much of the league's total deviation was special teams —
+    the number that says whether the distinction mattered here at all."""
+    rows = []
+    for t in teams:
+        rid = t["roster_id"]
+        split = team_market_split(t.get("picks_by_round", []))
+        rows.append({"roster_id": rid, "name": names.get(rid, f"Roster {rid}"),
+                     **split})
+    by_total = sorted(rows, key=lambda r: (-r["total"], r["roster_id"]))
+    by_skill = sorted(rows, key=lambda r: (-r["skill"], r["roster_id"]))
+    raw_rank = {r["roster_id"]: i + 1 for i, r in enumerate(by_total)}
+    skill_rank = {r["roster_id"]: i + 1 for i, r in enumerate(by_skill)}
+    for r in rows:
+        r["raw_rank"] = raw_rank[r["roster_id"]]
+        r["skill_rank"] = skill_rank[r["roster_id"]]
+        r["movement"] = raw_rank[r["roster_id"]] - skill_rank[r["roster_id"]]
+    total_abs = sum(abs(r["total"]) for r in rows)
+    st_abs = sum(abs(r["special_teams"]) for r in rows)
+    moved = [r for r in rows if r["movement"]]
+    return {
+        "rows": sorted(rows, key=lambda r: r["skill_rank"]),
+        "special_teams_share": (st_abs / total_abs) if total_abs else 0.0,
+        "teams_moved": len(moved),
+        "largest_move": max((abs(r["movement"]) for r in rows), default=0),
+        # "Material" means the order a reader would quote actually changes:
+        # somebody moves, and special teams carry a real share of the spread.
+        "material": bool(moved) and (st_abs / total_abs if total_abs else 0) >= 0.25,
+    }

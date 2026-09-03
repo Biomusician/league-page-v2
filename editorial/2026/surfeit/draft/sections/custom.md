@@ -24,7 +24,7 @@ and Jaxson Dart 23 picks late hedges the quarterback risk for cheap. Two
 defenses is one more than doctrine requires, and Seattle at minus-68 was
 the expensive one.
 
-### 4. Jesse (-137)
+### 4. Swanson (-137)
 
 Two different city triples (Chicago and Denver), which is a wargame where
 two scenarios decide everything. Caleb Williams 29 picks late funds part of
@@ -80,4 +80,25 @@ burned 70 picks or more of value. We are a league that pays premium rates for
 commodity capabilities, and False Assumptions will be checking invoices in
 December. Full board with every delta is on the Draft page.
 
-<!-- usage: angle=draft:power-rankings frame=force-design-review callback=assumption-based-planning joke_family=kicker-procurement -->
+## Correction — ranking methodology
+
+*Added after publication. The capsules below the original ranking are unchanged; what follows corrects the arithmetic that ordered them.*
+
+The ranking above scored each team as the sum of every pick's deviation from the consensus board, kickers and defenses included. On this board that was the wrong denominator: **83% of all the deviation in this draft came from special teams**. Overall consensus ranks every kicker and defense below the draftable range while the lineup forces all ten teams to draft them, so those numbers measure the reference board's shape, not a roster decision. Nobody chose to pay that tax and nobody could avoid it.
+
+Recomputed on skill positions only (QB/RB/WR/TE), against the same stored FantasyPros Expert Consensus Rank (redraft, half PPR) (retrieved 2026-08-29) board, the order changes for **8 of 10 teams**, the largest move being 3 places:
+
+| # | Team | Skill-position value | Special-teams tax | Was |
+| --- | --- | --- | --- | --- |
+| 1 | Los Bandidos (Bandit) | +118 | -160 | #2 (+1) |
+| 2 | Dave | +77 | -76 | #1 (-1) |
+| 3 | Swifty Mahomey (Pappie) | -1 | -166 | #6 (+3) |
+| 4 | SHACtin' a Fool 🐻 (SHAC) | -3 | -112 | #3 (-1) |
+| 5 | Wild SeeKats (Seabass/Kats) | -13 | -130 | — |
+| 6 | Gary | -20 | -169 | #7 (+1) |
+| 7 | Swanson | -55 | -82 | #4 (-3) |
+| 8 | Statistical Anomalies (McLovin) | -64 | -129 | — |
+| 9 | L’entente Discordiale (Borat/Jack) | -144 | -269 | #10 (+1) |
+| 10 | MJ | -188 | -142 | #9 (-1) |
+
+Special-teams value is shown beside each team rather than folded in, the same treatment the Draft page gives its headline Reaches and Steals. Nothing about any individual pick's REACH or STEAL classification changes; those compare one selection with the board and are unaffected.

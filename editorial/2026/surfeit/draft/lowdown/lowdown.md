@@ -10,8 +10,7 @@ Three assumption classes showed up on draft night. First, concentration
 bets: L'entente Discordiale holds three 49ers and three Bills, which
 means two NFL games a week decide most of their fate. Jordan James at
 pick 123, against a consensus rank of 254, is the same bet with the
-afterburner lit. Second, divestment bets: Jesse (team name pending, like half
-this league) and SHAC drafted zero kickers. Divest-to-invest is
+afterburner lit. Second, divestment bets: Jesse (Swanson) and SHAC drafted zero kickers. Divest-to-invest is
 real doctrine. This is divest-and-hope, and I respect the commitment.
 Third, timing bets, and I'll go first because I made the most obvious one: I punted TE until round 14 while the league median said round 7,
 and my reward was Juwan Johnson. Swifty Mahomey at least got paid for

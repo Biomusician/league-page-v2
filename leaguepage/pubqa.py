@@ -374,7 +374,12 @@ def _check_placeholders(text: str, module_key: str, ctx: QAContext) -> list[Find
 
 # ------------------------------------------------------------ formatting
 
-_LEAK_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s+\S", re.M)
+# An unrendered heading has its '#' and its text on the SAME line. Using \s
+# here instead of [ \t] made this match across a newline, so a table whose
+# first column header is "#" — the standings and ranking tables — was
+# reported as broken markup. The gate false-positiving on ordinary tables is
+# worse than the leak it was looking for.
+_LEAK_HEADING_RE = re.compile(r"^[ \t]{0,3}#{1,6}[ \t]+\S", re.M)
 _LEAK_BOLD_RE = re.compile(r"\*\*\S|\S\*\*")
 _LEAK_LINK_RE = re.compile(r"\[[^\]\n]{1,80}\]\([^)\n]{1,200}\)")
 _EMPTY_HEADING_RE = re.compile(r"<h([1-6])[^>]*>\s*</h\1>", re.I)
