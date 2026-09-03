@@ -1,0 +1,15 @@
+{# Team names are the site's connective tissue. A name printed as plain text
+   is a dead end; the same name as a link turns five terminal pages into
+   hubs. `links` maps a public team name to an already-lroot-relative href,
+   so a name we cannot resolve degrades to text rather than to a broken
+   link. #}
+{% macro team(name, links) -%}
+{%- if links and links.get(name) -%}<a href="{{ links[name] }}">{{ name }}</a>{%- else -%}{{ name }}{%- endif -%}
+{%- endmacro %}
+
+{# "Alpha, Bravo" -> two links. A trade touches two rosters. #}
+{% macro team_list(label, links, sep=", ") -%}
+{%- for part in label.split(sep) -%}
+{%- if not loop.first %}{{ sep }}{% endif %}{{ team(part, links) }}
+{%- endfor -%}
+{%- endmacro %}

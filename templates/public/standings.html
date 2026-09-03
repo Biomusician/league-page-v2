@@ -1,17 +1,24 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Standings{% endblock %}
+{% from "public/_links.html" import team %}
 {% block content %}
 <h2 class="section-label">Standings</h2>
+{% if not weeks_played %}
+<p class="meta">Nobody has played, so every team is 0-0 on nothing and there is
+no order to publish. The rows below are alphabetical by nothing in particular.
+<a href="{{ lroot }}power/index.html">The model board ranks the rooms &rarr;</a></p>
+{% endif %}
 <div class="tablewrap">
 <table data-sortable>
-  <tr><th scope="col" data-sort-type="number">#</th><th scope="col" data-sort-type="text">Team</th>
+  <caption class="meta">{{ league.display_name }} standings{% if weeks_played %}, through week {{ weeks_played }}{% endif %}.</caption>
+  <tr>{% if weeks_played %}<th scope="col" data-sort-type="number">#</th>{% endif %}<th scope="col" data-sort-type="text">Team</th>
       <th scope="col" data-sort-type="number" data-sort-dir="desc">W</th>
       <th scope="col" data-sort-type="number" data-sort-dir="desc">L</th>
       <th scope="col" data-sort-type="number" data-sort-dir="desc">PF</th>
       <th scope="col" data-sort-type="number" data-sort-dir="desc">PA</th>
       {% if weeks_played %}<th scope="col" data-nosort>Streak</th>{% endif %}</tr>
   {% for t in standings %}
-  <tr><td>{{ loop.index }}</td><td class="wrap">{{ t.name }}</td><td>{{ t.wins }}</td><td>{{ t.losses }}</td>
+  <tr>{% if weeks_played %}<td>{{ loop.index }}</td>{% endif %}<th scope="row" class="wrap">{{ team(t.name, team_links) }}</th><td>{{ t.wins }}</td><td>{{ t.losses }}</td>
       <td>{{ t.pf }}</td><td>{{ t.pa }}</td>{% if weeks_played %}<td>{{ t.streak or "—" }}</td>{% endif %}</tr>
   {% endfor %}
 </table>
@@ -56,12 +63,14 @@ having played every other team each week; efficiency is actual starters vs the b
   <tr><th scope="col" data-sort-type="text">Team</th>
       <th scope="col" data-sort-type="number" data-sort-dir="desc">All-Play</th>
       <th scope="col" data-sort-type="number">Scoring Rank</th>
-      <th scope="col" data-sort-type="number" data-sort-dir="desc">Lineup Efficiency</th></tr>
+      <th scope="col" data-sort-type="number" data-sort-dir="desc">Lineup Efficiency</th>
+      <th scope="col" data-sort-type="number">Points Left on the Bench</th></tr>
   {% for t in standings %}
-  <tr><td class="wrap">{{ t.name }}</td>
+  <tr><th scope="row" class="wrap">{{ team(t.name, team_links) }}</th>
       <td data-sort-value="{{ t.all_play.split('-')[0] if t.all_play else '' }}">{{ t.all_play or "—" }}</td>
       <td>{{ t.points_rank }}</td>
-      <td>{{ t.efficiency or "—" }}</td></tr>
+      <td data-sort-value="{{ t.efficiency_pct if t.efficiency_pct is not none else '' }}">{{ t.efficiency or "—" }}</td>
+      <td data-sort-value="{{ t.left_on_bench if t.left_on_bench is not none else '' }}">{{ t.left_on_bench if t.left_on_bench is not none else "—" }}</td></tr>
   {% endfor %}
 </table>
 </div>

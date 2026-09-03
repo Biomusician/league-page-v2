@@ -22,6 +22,12 @@
   <div>{{ s.html | safe }}</div>
 </section>
 {% endfor %}
+<nav class="exits" aria-label="Where to next">
+  <a href="{{ lroot }}archive/index.html">&larr; Every issue</a>
+  <a href="{{ lroot }}teams/index.html">Every team &rarr;</a>
+  <a href="{{ lroot }}draft/index.html">The draft board &rarr;</a>
+  <a href="{{ lroot }}index.html">{{ league.display_name }} home &rarr;</a>
+</nav>
 {% if comments %}
 <section class="module comments" id="comments">
   <h2 class="section-label">Comments</h2>

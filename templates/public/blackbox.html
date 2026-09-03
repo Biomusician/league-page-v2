@@ -1,5 +1,6 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Black Box{% endblock %}
+{% from "public/_links.html" import team %}
 {% block content %}
 <h2 class="section-label">Black Box</h2>
 
@@ -12,7 +13,7 @@
   <table>
     <tr><th scope="col">Record</th><th scope="col">Holder</th><th scope="col">Value</th><th scope="col">When</th></tr>
     {% for r in records %}
-    <tr><td class="wrap">{{ r.label }}</td><td class="wrap">{{ r.holder }}</td><td>{{ r.value }}</td><td>{{ r.when }}</td></tr>
+    <tr><th scope="row" class="wrap">{{ r.label }}</th><td class="wrap">{{ team(r.holder, team_links) }}</td><td>{{ r.value }}</td><td>{{ r.when }}</td></tr>
     {% endfor %}
   </table>
   </div>
@@ -24,7 +25,7 @@ anything. These are the marks the season starts from.</p>
 <table>
   <tr><th scope="col">Mark</th><th scope="col">Held by</th><th scope="col">On what</th></tr>
   {% for w in watching %}
-  <tr><td class="wrap">{{ w.label }}</td><td class="wrap">{{ w.value }}</td><td class="wrap">{{ w.note }}</td></tr>
+  <tr><th scope="row" class="wrap">{{ w.label }}</th><td class="wrap">{{ team(w.value, team_links) }}</td><td class="wrap">{{ w.note }}</td></tr>
   {% endfor %}
 </table>
 </div>

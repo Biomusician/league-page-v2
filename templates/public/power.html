@@ -21,10 +21,30 @@
 
 {% if rankings %}
 <p class="meta">The Commissioner's editorial ranking ({{ label }}). It is a
-judgment, published as one.</p>
+judgment, published as one.{% if ranking_source %} Taken from
+<a href="{{ lroot }}{{ ranking_source.href }}">{{ ranking_source.section }}</a>
+in the {{ ranking_source.label }}.{% endif %}</p>
+
+{% if disagreements %}
+<section class="module disagree">
+  <h2 class="section-label">Where the model disagrees</h2>
+  <p class="meta">The board below is computed from roster construction and
+  nothing else. It has no opinion about anybody, which is exactly why the
+  places it parts company with the Commissioner are worth a look.</p>
+  {% for d in disagreements %}
+  <div class="card">
+    <p style="margin:.1rem 0"><strong>{% if d.slug %}<a href="{{ lroot }}team/{{ d.slug }}/index.html">{{ d.name }}</a>{% else %}{{ d.name }}{% endif %}</strong>
+      <span class="tag prom">{{ d.gap }} place{{ "" if d.gap == 1 else "s" }} apart</span></p>
+    <p class="meta">{{ d.line }}</p>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
 {% for r in rankings %}
 <div class="card">
-  <p style="margin:.1rem 0"><strong>#{{ r.rank }} {{ r.name }}</strong>
+  <p style="margin:.1rem 0"><strong>#{{ r.rank }}
+    {%- if r.slug %} <a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a>
+    {%- else %} {{ r.name }}{% endif %}</strong>
     {% if r.movement %}<span class="tag">{{ r.movement }}</span>{% endif %}
     {% if r.tier_name %}<span class="tag prom">{{ r.tier_name }}</span>{% endif %}
     {% if r.model_rank %}<span class="tag gap">model #{{ r.model_rank }}</span>{% endif %}
@@ -34,8 +54,25 @@ judgment, published as one.</p>
 </div>
 {% endfor %}
 {% if board.rows %}
-<p class="meta">Model rank is the deterministic board below the Commissioner's,
-shown for comparison. {{ board.basis }}</p>
+<h2 class="section-label">Model Board</h2>
+<p class="meta">Computed from synced data; nobody wrote it. {{ board.basis }}</p>
+<div class="board">
+{% for r in board.rows %}
+<div class="card">
+  <div class="row">
+    <span class="rk">{{ r.rank }}</span>
+    <strong>{% if r.slug %}<a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</strong>
+    <span class="tag prom">{{ r.tier }}</span>
+    {% if r.record %}<span class="meta">{{ r.record }}</span>{% endif %}
+  </div>
+  <p class="facts">
+    {% if r.strongest %}<b>strongest room</b> {{ r.strongest }}{% endif %}
+    {% if r.weakest %} · <b>weakest</b> {{ r.weakest }}{% endif %}
+  </p>
+  {% if r.factor %}<p class="facts">{{ r.factor }}</p>{% endif %}
+</div>
+{% endfor %}
+</div>
 {% endif %}
 
 {% elif board.rows %}

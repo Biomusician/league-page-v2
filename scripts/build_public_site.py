@@ -47,7 +47,8 @@ def main() -> int:
     for w in result["warnings"]:
         print(f"  warning: {w}")
 
-    violations = audit_output(result["out_dir"])
+    violations = audit_output(result["out_dir"],
+                              public_names=result.get("public_names"))
     if args.preview:
         # rough markers are expected inside the flagged preview issue; still
         # report them so nothing is silent, but do not fail the preview build

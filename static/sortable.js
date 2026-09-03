@@ -106,16 +106,16 @@
     headers.forEach(function (th, idx) {
       if (th.hasAttribute("data-nosort")) return;
       th.classList.add("sortable");
-      th.setAttribute("tabindex", "0");
-      th.setAttribute("role", "button");
+      // The control goes INSIDE the th. Putting role="button" on the th
+      // itself overrode its implicit columnheader role, which silently
+      // voided every scope="col" association in the column and made
+      // aria-sort invalid -- on 194 headers across the site.
+      var btn = document.createElement("button");
+      btn.type = "button";
+      while (th.firstChild) btn.appendChild(th.firstChild);
+      th.appendChild(btn);
       th.setAttribute("aria-sort", "none");
-      th.addEventListener("click", function () { sortBy(idx); });
-      th.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          sortBy(idx);
-        }
-      });
+      btn.addEventListener("click", function () { sortBy(idx); });
     });
 
     try {

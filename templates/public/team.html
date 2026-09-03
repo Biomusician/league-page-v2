@@ -17,7 +17,8 @@
   .receipt { font-size:.92rem; margin:.5rem 0 0; }
   .receipt blockquote { margin:.2rem 0; font-style:italic; }
   .mention blockquote { margin:.25rem 0 .1rem; font-style:italic; }
-  @media (max-width:640px) { .brief dl { grid-template-columns:1fr 1fr; } }
+  /* No mobile override. The base auto-fit already collapses to one column;
+     forcing two put a 205px label into a 143px box on every team page. */
 {% if league and league.theme == "disco" %}
   .brief { border:2px solid #e8a33d; background:#1a2027; }
   .brief dt { color:#8fa8b8; }
@@ -73,6 +74,26 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
       <ul>{% for c in b.changed %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
       {% if b.watch %}<h4>What to watch</h4>
       <ul>{% for w in b.watch %}<li>{{ w }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endif %}
+    {% if team.own_stake %}
+    <div class="lists">
+      <h4>What Sunday is worth</h4>
+      <ul><li>{{ team.own_stake.if_win }} to make the playoffs with a win against
+        {{ team.own_stake.opponent }}, {{ team.own_stake.if_lose }} with a loss.
+        It {{ team.own_stake.verdict }}.</li></ul>
+    </div>
+    {% endif %}
+    {% if team.rooting %}
+    <div class="lists">
+      <h4>Root for</h4>
+      <ul>
+        {% for r in team.rooting %}
+        <li>{% if r.for_slug %}<a href="{{ lroot }}team/{{ r.for_slug }}/index.html">{{ r["for"] }}</a>{% else %}{{ r["for"] }}{% endif %}
+          over {% if r.against_slug %}<a href="{{ lroot }}team/{{ r.against_slug }}/index.html">{{ r.against }}</a>{% else %}{{ r.against }}{% endif %}
+          <span class="meta">({{ r.swing }} of your playoff odds)</span></li>
+        {% endfor %}
+      </ul>
     </div>
     {% endif %}
     {% for r in b.receipts %}
@@ -234,4 +255,9 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
 {% endif %}
 
 {% endfor %}
+<nav class="exits" aria-label="Where to next">
+  <a href="{{ lroot }}teams/index.html">&larr; Every team</a>
+  <a href="{{ lroot }}standings/index.html">Standings &rarr;</a>
+  <a href="{{ lroot }}matchups/index.html">This week&rsquo;s board &rarr;</a>
+</nav>
 {% endblock %}

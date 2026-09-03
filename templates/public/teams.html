@@ -1,13 +1,16 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Teams{% endblock %}
+{% from "public/_links.html" import team %}
 {% block content %}
 <h2 class="section-label">Teams</h2>
 <div class="teamgrid">
   {% for t in teams %}
   <a class="card" href="{{ lroot }}team/{{ t.slug }}/index.html" style="text-decoration:none; color:inherit">
-    <strong>{{ t.name }}</strong>
-    {% if t.coalition %}<div class="flags" aria-label="{{ t.coalition.label }}">{{ t.coalition.flags }}</div>{% endif %}
-    <div class="meta">{{ t.record }} · #{{ t.standing }}</div>
+    <h3>{{ t.name }}</h3>
+    {% if t.coalition %}<div class="flags"><span aria-hidden="true">{{ t.coalition.flags }}</span>
+      <span class="meta">{{ t.coalition.label }}</span></div>{% endif %}
+    <div class="meta">{% if weeks_played %}{{ t.record }} · #{{ t.standing }}
+      {%- else %}model board #{{ t.model_rank }} of {{ teams|length }}{% endif %}</div>
     {% if t.coalition %}<div class="meta">{{ t.coalition.roles }}</div>{% endif %}
   </a>
   {% endfor %}
@@ -20,7 +23,7 @@
   <tr><th scope="col" data-sort-type="text">Team</th>
     {% for pos in positions %}<th scope="col" data-sort-type="number">{{ pos }}</th>{% endfor %}</tr>
   {% for t in teams %}
-  <tr><td class="wrap" data-sort-value="{{ t.name }}"><a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a></td>
+  <tr><th scope="row" class="wrap" data-sort-value="{{ t.name }}"><a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a></th>
     {% for pos in positions %}<td data-sort-value="{{ t.pos_ranks[pos] }}">{{ t.pos_ranks[pos] }}</td>{% endfor %}</tr>
   {% endfor %}
 </table>

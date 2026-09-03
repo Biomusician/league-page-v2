@@ -17,6 +17,7 @@
   .scout h3 { color:#9fb6cc; }
 {% endif %}
 {% endblock %}
+{% from "public/_links.html" import team_list %}
 {% block content %}
 <h2 class="section-label">Common Tactical Picture · Week {{ week }}</h2>
 {% if cards | selectattr("scout") | first %}
@@ -25,8 +26,8 @@ stands in: roster construction, league history and transactions, computed from
 synced data. It is not a prediction, and it is not his copy.</p>
 {% endif %}
 {% for c in cards %}
-<section class="card {{ 'feature' if c.prominence == 'FEATURE' else '' }}" id="{{ c.anchor }}" aria-label="{{ c.names }}">
-  <p style="margin:.1rem 0"><strong style="font-size:{{ '1.35rem' if c.prominence == 'FEATURE' else '1.1rem' }}">{{ c.names }}</strong></p>
+<section class="card {{ 'feature' if c.prominence == 'FEATURE' else '' }}" id="{{ c.anchor }}">
+  <h3 class="matchup-title{{ ' feature' if c.prominence == 'FEATURE' else '' }}">{{ team_list(c.names, team_links, " vs ") }}</h3>
   {% if c.score or not c.records.startswith("0-0 vs 0-0") %}
   <p class="meta">{{ c.records }}{% if c.score %} · {{ c.score }}{% endif %}</p>
   {% endif %}
@@ -49,6 +50,20 @@ synced data. It is not a prediction, and it is not his copy.</p>
   {% else %}
   <p class="meta"><i>No preview written, and nothing in the data marks this one
   out yet. It goes on the board like everything else.</i></p>
+  {% endif %}
+  {% if c.stakes %}
+  <div class="scout stakes">
+    <h3>What this is worth</h3>
+    <ul>
+      {% for s in c.stakes %}
+      <li><b>{% if s.slug %}<a href="{{ lroot }}team/{{ s.slug }}/index.html">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}:</b>
+        {{ s.line }} — it {{ s.verdict }}.</li>
+      {% endfor %}
+    </ul>
+    <p class="meta">Simulated from each team's own scoring against the actual
+    remaining schedule. It is a statement about what is at stake, not a
+    prediction about who wins.</p>
+  </div>
   {% endif %}
   {% if c.past_statement %}{% set ps = c.past_statement %}
   <div class="scout receipt">

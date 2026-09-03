@@ -1,5 +1,11 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Force Flow{% endblock %}
+{% from "public/_links.html" import team_list %}
+{% block extra_css %}
+  .aged { font-size:.92rem; margin:.4rem 0 0; padding-top:.35rem;
+          border-top:1px dotted; }
+  .aged b { font-variant:small-caps; letter-spacing:.05em; font-weight:normal; }
+{% endblock %}
 {% block content %}
 <h2 class="section-label">Force Flow</h2>
 
@@ -32,17 +38,20 @@ reading get labelled, not hidden.</p>
   <h2 class="section-label">Reading the Moves</h2>
   {% for m in meaningful %}
   <div class="card">
-    <strong>{{ m.line }}</strong> — {{ m.team }}
+    <strong>{{ m.line }}</strong> — {{ team_list(m.team, team_links) }}
     <span class="meta">(wk {{ m.week }} · {{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %})</span>
     {% if m.questionable %} <span class="tag warn">QUESTIONABLE MOVE</span>{% endif %}
     {% if m.text %}<p>{{ m.text }}{% if m.rank_shift %} <span class="meta">({{ m.rank_shift }})</span>{% endif %}</p>{% endif %}
     {% if m.outcome %}<p class="meta">{{ m.outcome }}</p>{% endif %}
+    {% if m.aged %}<p class="aged"><b>How it aged:</b> {{ m.aged }}</p>{% endif %}
   </div>
   {% endfor %}
   <p class="meta">Move rationales are inferred from roster construction,
   positional strength, transaction cost, and available context. They describe
   plausible roster logic, not the manager's stated intent unless explicitly
-  noted.</p>
+  noted. "How it aged" is a separate reading taken later: the rationale above
+  is what the roster said at the time and is never rewritten to match the
+  result.</p>
 </section>
 {% endif %}
 
@@ -59,7 +68,7 @@ reading get labelled, not hidden.</p>
         <th scope="col" data-sort-type="text">Dropped</th>
         <th scope="col" data-sort-type="number" data-sort-dir="desc">FAAB</th></tr>
     {% for t in log %}
-    <tr><td>{{ t.week }}</td><td>{{ t.type }}</td><td class="wrap">{{ t.team }}</td>
+    <tr><td>{{ t.week }}</td><td>{{ t.type }}</td><th scope="row" class="wrap">{{ team_list(t.team, team_links) }}</th>
         <td class="wrap">{{ t.adds or "—" }}</td><td class="wrap">{{ t.drops or "—" }}</td><td>{{ t.faab or "—" }}</td></tr>
     {% endfor %}
   </table>

@@ -1,6 +1,7 @@
 {% extends "public/base.html" %}
 {% from "public/_dv.html" import dv %}
 {% block title %}{{ league.display_name }} — Draft{% endblock %}
+{% from "public/_links.html" import team %}
 {% block content %}
 <h2 class="section-label">Draft · {{ season }}</h2>
 {% if not board %}
@@ -60,7 +61,8 @@
   <p class="meta">{% for t in team_sections %}<a href="#team-{{ t.slug }}">{{ t.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
   {% for t in team_sections %}
   <div class="card" id="team-{{ t.slug }}">
-    <strong>{{ t.name }}</strong> <span class="meta">{{ t.position_counts }}</span>
+    <h3><a href="{{ lroot }}team/{{ t.slug }}/index.html">{{ t.name }}</a></h3>
+    <span class="meta">{{ t.position_counts }}</span>
     <div class="tablewrap">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>

@@ -1,7 +1,12 @@
 .venv/
 __pycache__/
 *.pyc
+# .env.local and .env.production were NOT covered by a bare `.env`.
+# The repo audit would flag them, but only when somebody remembers to
+# run it, and the audit is convention rather than a hook.
 .env
+.env.*
+!.env.example
 data/
 site/
 .site-worktree/
@@ -23,6 +28,7 @@ editorial/**/commissioner_notes.md
 # Git-history backup bundles stay local.
 *.bundle
 logs/
+*.log
 
 # Commissioner state backups: prose + private manager context. Never commit.
 backups/

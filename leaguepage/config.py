@@ -7,6 +7,7 @@ routing, and theme facts that Sleeper cannot know.
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,6 +23,14 @@ TEMPLATES_DIR = REPO_ROOT / "templates"
 STATIC_DIR = REPO_ROOT / "static"
 
 SLEEPER_BASE_URL = "https://api.sleeper.app/v1"
+
+# Where the built site is served. Canonical and OpenGraph URLs have to be
+# absolute, so a link pasted into a group chat can resolve them. Set
+# LEAGUEPAGE_SITE_URL to point a build at a different host; nothing else in
+# the build depends on it, and a wrong value degrades a preview card rather
+# than breaking a page.
+SITE_URL = os.environ.get("LEAGUEPAGE_SITE_URL",
+                          "https://league-page-ten-sandy.vercel.app").rstrip("/")
 
 SEASON = "2026"
 

@@ -26,16 +26,81 @@ from pathlib import Path
 import markdown as md
 from jinja2 import Environment, FileSystemLoader
 
-from leaguepage.config import DIST_DIR, LEAGUES, PUBLISHED_DIR, STATIC_DIR, TEMPLATES_DIR, League
+from leaguepage.config import (DIST_DIR, LEAGUES, PUBLISHED_DIR, SITE_URL, STATIC_DIR,
+                               TEMPLATES_DIR, League)
 from leaguepage.editorial import load_coalitions
-from leaguepage.matchup_analysis import all_play, analyze_week, team_record, weekly_scores
+from leaguepage.matchup_analysis import (all_play, analyze_week, season_efficiency,
+                                         team_record, weekly_scores)
 from leaguepage.matchup_packet import compute_week, matchup_status, week_dir
 from leaguepage.publish import BLOCKED_MARKERS, strip_editorial_comments
 from leaguepage.storage import Storage
+from leaguepage.team_analytics import lineup_slots
 from leaguepage.team_names import resolve_public_names
 
 FLAGS = {"France": "\U0001F1EB\U0001F1F7", "United Kingdom": "\U0001F1EC\U0001F1E7",
          "Japan": "\U0001F1EF\U0001F1F5", "Sweden": "\U0001F1F8\U0001F1EA"}
+
+def _issue_description(ctx: dict, league) -> str:
+    """A shared issue link should show its own headline, not the league name."""
+    head = (ctx.get("headline") or "").strip()
+    label = ctx.get("issue_label") or "Issue"
+    if head:
+        return f"{head} \u2014 {label}, {league.display_name}."
+    return f"{label} of {league.display_name}."
+
+
+def _home_description(league, front: dict | None, latest: dict | None,
+                      weeks_played: int, week: int) -> str:
+    """The front page's own lead is the hook. Falling back to a generic line
+    is fine; inventing one is not."""
+    lead = ((front or {}).get("lead") or {})
+    hook = (lead.get("headline") or "").strip()
+    if hook:
+        return f"{hook} \u2014 {league.display_name}, {_through(weeks_played)}."
+    head = ((latest or {}).get("headline") or "").strip()
+    if head:
+        return f"{head} \u2014 {league.display_name}."
+    return (f"{league.display_name}: the week read through synced data, "
+            f"{_through(weeks_played)}.")
+
+
+def _draft_description(league, analysis: dict | None) -> str:
+    picks = len((analysis or {}).get("picks") or [])
+    if not picks:
+        return f"The {league.display_name} draft board."
+    return (f"All {picks} {league.display_name} picks against the consensus "
+            f"board, with every reach and every value on the record.")
+
+
+def _own_stake(lv: dict | None, names: dict[int, str], next_card) -> dict | None:
+    """What this week's own game is worth to this team, or nothing.
+
+    A manager who is 90% in whatever happens has no stake on Sunday, and
+    saying so is more useful than printing a number that will not move.
+    """
+    if not lv or not lv["material"]:
+        return None
+    from leaguepage.leverage import describe_stake
+
+    return {"if_win": f"{lv['if_win']:.0%}", "if_lose": f"{lv['if_lose']:.0%}",
+            "opponent": names.get(lv["opponent"], ""),
+            "verdict": describe_stake(lv["if_win"], lv["if_lose"]),
+            "anchor": (next_card or {}).get("anchor")}
+
+
+def _through(weeks_played: int) -> str:
+    """'through week 6' / 'before a game has been played'."""
+    if not weeks_played:
+        return "before a game has been played"
+    return f"through week {weeks_played}"
+
+
+# The mark a shared link shows. Both are already in the deployed assets and
+# both clear the 300x157 floor a preview card needs.
+OG_IMAGES = {
+    "disco": ("disco-logo-light.png", 800, 300),
+    "surfeit": ("surfeit-badge.png", 560, 528),
+}
 
 AWARD_NAMES = {
     "shame": "Shame! Shame! Shame!", "manager-of-the-week": "Manager of the Week",
@@ -174,6 +239,9 @@ def _standings_rows(storage: Storage, league: League, names: dict[int, dict],
                 pa[pair[1]["roster_id"]] += float(pair[0].get("points") or 0)
     fpts_rank = {r["roster_id"]: i + 1 for i, r in enumerate(
         sorted(rosters, key=lambda r: -team_record(r)["fpts"]))}
+    slots = lineup_slots(storage.get_league(league.league_id) or {})
+    season_eff = (season_efficiency(storage, slots, league.league_id, MAX_SCAN_WEEK)
+                  if weeks_played else {})
     rows_out = []
     for r in sorted(rosters, key=lambda r: (-(r.get("settings") or {}).get("wins", 0),
                                             -team_record(r)["fpts"])):
@@ -181,7 +249,7 @@ def _standings_rows(storage: Storage, league: League, names: dict[int, dict],
         rec = team_record(r)
         apd = ap.get(rid)
         at = a_teams.get(rid, {})
-        eff = None
+        eff = season_eff.get(rid)
         rows_out.append({
             "roster_id": rid,
             "name": names[rid]["name"] or f"Roster {rid}",
@@ -190,7 +258,9 @@ def _standings_rows(storage: Storage, league: League, names: dict[int, dict],
             "streak": at.get("streak"),
             "all_play": f"{apd['wins']}-{apd['losses']}" if apd else None,
             "points_rank": fpts_rank[rid],
-            "efficiency": eff,
+            "efficiency": f"{eff['pct']:.0f}%" if eff else None,
+            "efficiency_pct": eff["pct"] if eff else None,
+            "left_on_bench": eff["left_on_bench"] if eff else None,
         })
     return rows_out, weeks_played
 
@@ -274,13 +344,28 @@ def build_league(
     coalitions = load_coalitions()
     snaps = _load_snapshots(league, published_dir)
 
-    def render(rel: str, template: str, depth: int, **ctx) -> None:
+    og = OG_IMAGES.get(league.slug)
+
+    public_by_rid = {rid: (names[rid]["name"] or f"Roster {rid}") for rid in slugs}
+
+    def render(rel: str, template: str, depth: int, *,
+               description: str = "", **ctx) -> None:
         # lroot is the prefix from this page back to the LEAGUE root. Derive it
         # from the output path itself; the historical depth argument counted
         # from the site root and left every relative link one level too high.
         lroot = "../" * rel.count("/")
+        # Every page gets the name-to-team-page map, built against its own
+        # relative root. A name we cannot resolve renders as text.
+        team_links = {nm: f"{lroot}team/{slugs[rid]}/index.html"
+                      for rid, nm in public_by_rid.items()}
         html = env.get_template(template).render(
-            league=league, season=season, lroot=lroot, **ctx)
+            league=league, season=season, lroot=lroot, team_links=team_links,
+            page_description=description,
+            canonical=f"{SITE_URL}/{league.slug}/{rel}",
+            og_image=f"{SITE_URL}/assets/{og[0]}" if og else None,
+            og_image_width=og[1] if og else None,
+            og_image_height=og[2] if og else None,
+            **ctx)
         _write(out_dir, f"{league.slug}/{rel}", html, pages)
 
     # issue permalinks from frozen snapshots
@@ -290,7 +375,8 @@ def build_league(
         if latest_ctx is None:
             latest_ctx = ctx
         render(f"{snap['season']}/{snap['issue_key']}/index.html", "public/issue_page.html",
-               2, issue=ctx, current_nav=None,
+               2, description=_issue_description(ctx, league), og_type="article",
+               issue=ctx, current_nav="Archive",
                comments=_comments_ctx(league, snap["season"], snap["issue_key"]))
 
     # optional commissioner preview of an unpublished issue (dist-preview only)
@@ -314,7 +400,8 @@ def build_league(
         if latest_ctx is None:
             latest_ctx = ctx
         render(f"{season}/{preview_issue}/index.html", "public/issue_page.html",
-               2, issue=ctx, current_nav=None)
+               2, description=_issue_description(ctx, league), og_type="article",
+               issue=ctx, current_nav=None)
         warnings += [f"{league.slug}: preview build includes UNPUBLISHED issue "
                      f"'{preview_issue}' — never deploy this output."]
 
@@ -389,6 +476,9 @@ def build_league(
                      for rid, t_ in rows_],
             "note": _outlook.get("note")}
     render("standings/index.html", "public/standings.html", 2,
+           description=(f"Records, points for and against, all-play and lineup "
+                        f"efficiency for every {league.display_name} team, "
+                        f"{_through(weeks_played)}."),
            standings=standings, weeks_played=weeks_played,
            analysis=st_analysis, current_nav="Standings")
 
@@ -421,6 +511,43 @@ def build_league(
                         "roster_id": rid,
                     })
                 break
+    ranking_source = None
+    if not ranking_ctx:
+        # He publishes the ranking as prose in the Draft Issue and nothing
+        # ever put it in the power_rankings table, so the page showed the
+        # model board alone and the most interesting argument on the site
+        # sat two clicks away with nothing pointing at it. Read the order he
+        # published.
+        from leaguepage.published_ranking import extract_ranking
+
+        toks = {rid: {t.strip("()'\u2019.,").lower()
+                      for t in (names[rid]["name"] or "").split()}
+                for rid in names}
+        pub_names = {rid: names[rid]["name"] or f"Roster {rid}" for rid in names}
+        for snap in snaps:
+            found = extract_ranking(snap["sections"], league_slug=league.slug,
+                                    season=snap["season"], issue_key=snap["issue_key"],
+                                    name_tokens=toks, public_names=pub_names)
+            if not found:
+                continue
+            label = snap["issue_label"]
+            ranking_source = {"label": snap["issue_label"],
+                              "section": found["section_title"],
+                              "href": f"{snap['href']}#{found['anchor']}"
+                              if found["anchor"] else snap["href"]}
+            for row in found["rows"]:
+                rid = row["roster_id"]
+                rec = next((s_ for s_ in standings if s_["roster_id"] == rid), {})
+                ranking_ctx.append({
+                    "rank": row["rank"], "name": row["name"], "movement": None,
+                    "tier_name": None,
+                    # preseason, "0-0 . 0.0 PF" on every row is just noise
+                    "record": (f"{rec.get('wins', 0)}-{rec.get('losses', 0)} "
+                               f"\u00b7 {rec.get('pf', 0)} PF"
+                               if weeks_played else None),
+                    "note": None, "roster_id": rid,
+                })
+            break
     # Peer and Near-Peer renders below, once the positional profile exists:
     # with no published Commissioner ranking the page shows the Model Board
     # rather than "No ranking has been published yet this season."
@@ -472,7 +599,11 @@ def build_league(
                 "text": row["rationale"]["text"],
                 "questionable": row["rationale"]["kind"] == "questionable",
                 "rank_shift": row.get("rank_shift"),
-                "outcome": row.get("outcome")}
+                "outcome": row.get("outcome"),
+                # what actually happened afterwards, as its own column. The
+                # rationale above is what he was reading at the time and is
+                # never rewritten with hindsight.
+                "aged": row.get("aged_line")}
 
     # draft market value: shared by the draft page and team Draft Recaps
     from leaguepage.adp import load_adp_for_league
@@ -520,6 +651,14 @@ def build_league(
     from leaguepage.model_views import scout_view
     from leaguepage.receipts import receipts_for_matchup
 
+    from leaguepage.leverage import describe_stake, week_leverage
+
+    # What this week's games are actually worth. Returns None until the
+    # table means something and the schedule is known, and says nothing
+    # about a team whose result barely moves its own odds.
+    leverage = week_leverage(storage, league, week) or {}
+    leverage_teams = leverage.get("teams") or {}
+
     moves_ctx_by_rid = {rid: [_move_ctx(r) for r in rows]
                         for rid, rows in tx_by_rid.items()}
     public_names = {rid: v["name"] or f"Roster {rid}" for rid, v in names.items()}
@@ -541,10 +680,26 @@ def build_league(
                 private_handles=handles) if sm else []
             # One tracked take involving either side, at most. A matchup card
             # carrying three old quotes is a scrapbook, not a callback.
+            stakes = []
+            for t in (sm["matchup"]["teams"] if sm else []):
+                lv = leverage_teams.get(t["roster_id"])
+                if not lv or not lv["material"]:
+                    continue
+                stakes.append({
+                    "name": public_names.get(t["roster_id"], ""),
+                    "slug": slugs.get(t["roster_id"]),
+                    "line": (f"{lv['if_win']:.0%} to make the playoffs with a win, "
+                             f"{lv['if_lose']:.0%} with a loss"),
+                    "verdict": describe_stake(lv["if_win"], lv["if_lose"]),
+                })
+            card["stakes"] = stakes
             card["past_statement"] = receipts_for_matchup(
                 storage, league, season, week, names,
                 [t["roster_id"] for t in sm["matchup"]["teams"]]) if sm else None
     render("matchups/index.html", "public/matchups.html", 2,
+           description=(f"Week {week} in {league.display_name}: {len(cards)} "
+                        f"matchup{'' if len(cards) == 1 else 's'}, what each one "
+                        f"turns on and what is at stake."),
            cards=cards, week=week, current_nav="Common Tactical Picture")
 
     # Peer and Near-Peer: the Commissioner's ranking is authoritative when it
@@ -558,10 +713,20 @@ def build_league(
                                for rid, v in names.items()},
                         slugs=slugs, standings=standings, form=form,
                         weeks_played=weeks_played_league)
+    disagreements_ctx = []
     if ranking_ctx:
         ranking_ctx = compare_to_commissioner(board, ranking_ctx)
+        for row in ranking_ctx:
+            row["slug"] = slugs.get(row.get("roster_id"))
+        from leaguepage.published_ranking import disagreements
+
+        disagreements_ctx = disagreements(ranking_ctx)
     render("power/index.html", "public/power.html", 2,
+           description=(f"Where every {league.display_name} team ranks, "
+                        f"{_through(weeks_played_league)} \u2014 and where the "
+                        f"Commissioner and the model disagree."),
            rankings=ranking_ctx, label=label, board=board,
+           ranking_source=ranking_source, disagreements=disagreements_ctx,
            current_nav="Peer and Near-Peer")
 
     # Team pages: a personal briefing on top, editorial weighting under it,
@@ -595,6 +760,8 @@ def build_league(
         st = next((i + 1 for i, s in enumerate(standings) if s["roster_id"] == rid), None)
         team_cards.append({"slug": slugs[rid], "name": nm,
                            "record": f"{rec['wins']}-{rec['losses']}", "standing": st,
+                           "model_rank": next((row["rank"] for row in board["rows"]
+                                               if row["roster_id"] == rid), None),
                            "coalition": _coalition_card(coalitions, league, rid),
                            "pos_ranks": {pos: profile["ranks"][pos][rid]
                                          for pos in profile["positions"]}})
@@ -641,6 +808,17 @@ def build_league(
             playoff_line = (t_["band"] if outlook["stage"] == "bands"
                             else f"{t_['odds']:.0%} ({t_['band']})")
         moves_ctx = [_move_ctx(m) for m in tx_by_rid.get(rid, [])[-3:]]
+        from leaguepage.leverage import rooting_interest
+
+        rooting = []
+        for r_ in rooting_interest(storage, league, week, rid):
+            rooting.append({
+                "for": public_names.get(r_["root_for"], ""),
+                "for_slug": slugs.get(r_["root_for"]),
+                "against": public_names.get(r_["against"], ""),
+                "against_slug": slugs.get(r_["against"]),
+                "swing": f"{r_['swing']:.0%}",
+            })
         e_str, e_weak = editorial_strengths(profile, rid, sw)
         model_rank = next((row["rank"] for row in board["rows"]
                            if row["roster_id"] == rid), None)
@@ -665,6 +843,9 @@ def build_league(
             key_moves=moves_ctx, next_matchup=next_card,
             deltas=deltas.get(rid, []), receipts=team_receipts_by_rid.get(rid, []))
         render(f"team/{slugs[rid]}/index.html", "public/team.html", 3,
+               description=(f"{nm}: {rec['wins']}-{rec['losses']}, "
+                            f"{rec['fpts']:g} points for, positional room ranks, "
+                            f"draft recap and what changed."),
                team={"name": nm, "record": f"{rec['wins']}-{rec['losses']}",
                      "standing": st, "pf": rec["fpts"],
                      "co_managed": bool(r.get("co_owners")),
@@ -690,9 +871,16 @@ def build_league(
                      "league_size": league_size,
                      "briefing": briefing,
                      "sections": section_order(front_state),
+                     "rooting": rooting,
+                     "own_stake": _own_stake(leverage_teams.get(rid),
+                                             public_names, next_card),
                      "stage": profile["stage"]},
-               current_nav="Teams")
+               current_nav=None)
     render("teams/index.html", "public/teams.html", 2,
+           weeks_played=weeks_played_league,
+           description=(f"Every roster in {league.display_name} side by side, "
+                        f"ranked room by room across "
+                        f"{', '.join(profile['positions'])}."),
            teams=team_cards, positions=profile["positions"],
            stage=profile["stage"], current_nav="Teams")
 
@@ -707,6 +895,9 @@ def build_league(
             meaningful.append(ctx)
     meaningful.sort(key=lambda m: -m["priority"])
     render("transactions/index.html", "public/transactions.html", 2,
+           description=(f"Every completed add, drop and trade in "
+                        f"{league.display_name}, with what each move was reading "
+                        f"and what it cost."),
            log=log, meaningful=meaningful,
            editorial_sections=_published_module_sections(snaps, "forceflow"),
            current_nav="Force Flow")
@@ -757,6 +948,7 @@ def build_league(
                   for p in hd["special_teams"]]
     recap = next((s for s in snaps if s["issue_key"] == "draft"), None)
     render("draft/index.html", "public/draft.html", 2,
+           description=_draft_description(league, analysis),
            board=board, team_sections=team_sections, status_line=status_line,
            reaches=reaches_ctx, steals=steals_ctx, special_teams=st_ctx,
            league_size=league_size,
@@ -781,6 +973,8 @@ def build_league(
     from leaguepage.model_views import black_box_preview
 
     render("black-box/index.html", "public/blackbox.html", 2,
+           description=(f"Season records and standing marks in "
+                        f"{league.display_name}, {_through(weeks_played_league)}."),
            records=records, population=population,
            watching=black_box_preview(profile=profile,
                                       names={rid: v["name"] or f"Roster {rid}"
@@ -802,16 +996,33 @@ def build_league(
             by_season[it["season"] or "Undated"].append(it)
         seasons = sorted(by_season.items(), key=lambda kv: kv[0], reverse=True)
         historical_groups.append({"title": title, "seasons": seasons})
-        for it in items:
+        # Chronological, so previous and next mean what a reader expects.
+        # Fifty-five issues with one link each is a corpus nobody can browse.
+        ordered = sorted(items, key=lambda i: (i["season"] or "", i["week"] or 0,
+                                               i["issue_id"]))
+        for pos, it in enumerate(ordered):
             full = storage.get_archive_issue(it["issue_id"]) or {}
             paragraphs = [p.strip() for p in re.split(r"\n\s*\n", full.get("body") or "")
                           if p.strip()]
             origin = "Disco Chat" if slug_key == "disco" else "Big Daddy AF"
+
+            def _sib(offset: int, _pos=pos, _all=ordered) -> dict | None:
+                j = _pos + offset
+                if not (0 <= j < len(_all)):
+                    return None
+                return {"title": _all[j]["title"],
+                        "href": f"archive/a{_all[j]['issue_id']}/index.html"}
+
             render(f"archive/a{it['issue_id']}/index.html", "public/archive_issue.html", 3,
+                   description=(f"{it['title']} \u2014 from the {origin} archive."),
+                   og_type="article",
                    item={"title": it["title"], "season": it["season"], "week": it["week"],
                          "origin": origin, "paragraphs": paragraphs},
+                   prev_issue=_sib(-1), next_issue=_sib(1),
                    current_nav="Archive")
     render("archive/index.html", "public/archive.html", 2,
+           description=(f"Every issue of {league.display_name} on the record, "
+                        f"newest first."),
            published=snaps, historical_groups=historical_groups, current_nav="Archive")
 
     # league home (front page) — season-state aware editorial hierarchy
@@ -855,6 +1066,8 @@ def build_league(
         "receipt": front_receipt,
     })
     render("index.html", "public/home.html", 1,
+           description=_home_description(league, front, latest_ctx,
+                                         weeks_played_league, week),
            latest=latest_ctx, standings=standings, published=snaps,
            front=front, current_nav="Home")
 
@@ -881,19 +1094,27 @@ def build_site(
     env = _env()
     pages: list[str] = []
     warnings: list[str] = []
+    published_names: set[str] = set()
     for league in (leagues or LEAGUES):
+        for v in resolve_public_names(storage, league).values():
+            if v.get("name"):
+                published_names.add(v["name"])
         build_league(storage, league, env, out, pages, warnings,
                      published_dir=published_dir or PUBLISHED_DIR,
                      editorial_dir=editorial_dir,
                      preview_issue=(preview_issues or {}).get(league.slug))
-    _write(out, "index.html", env.get_template("public/root.html").render(), pages)
+    _write(out, "index.html",
+           env.get_template("public/root.html").render(site_url=SITE_URL), pages)
     if STATIC_DIR.is_dir():
         assets = out / "assets"
         assets.mkdir(parents=True, exist_ok=True)
         for f in STATIC_DIR.iterdir():
             if f.is_file():
                 shutil.copy2(f, assets / f.name)
-    return {"out_dir": out, "pages": pages, "warnings": warnings}
+    # The audit needs these to tell a manager's private alias from the
+    # nickname he put in his own team name.
+    return {"out_dir": out, "pages": pages, "warnings": warnings,
+            "public_names": sorted(published_names)}
 
 
 # ------------------------------------------------------------------ audit
@@ -907,37 +1128,107 @@ ALWAYS_FORBIDDEN = [
 ]
 
 
-def _private_handles() -> list[str]:
-    """Sleeper handles from local managers.json — never publishable outside
-    the verbatim historical archive."""
+# Shapes that are private wherever they appear, whatever the surrounding
+# text says. The literal marker list below catches things this codebase
+# writes on purpose; these catch things it would only ever write by
+# accident, which is the more dangerous half.
+PRIVATE_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"https?://[A-Za-z0-9-]+\.supabase\.(co|in)"), "Supabase project URL"),
+    (re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ"), "JWT"),
+    (re.compile(r"\b(sb|sbp)_[A-Za-z0-9]{20,}"), "Supabase key"),
+    (re.compile(r"\bpostgres(?:ql)?://[^\s<>]+"), "database URL"),
+    (re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"), "GitHub token"),
+    (re.compile(r"sk-ant-[A-Za-z0-9-]{10,}"), "Anthropic key"),
+    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "private key"),
+    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "email address"),
+    (re.compile(r"\b(recommended_status|sleeper_user_id|evidence_id|"
+                r"ghost_brief|commissioner_note|quick_note)\b"), "internal field name"),
+    (re.compile(r"(?<![\w.])(?:/home/|/Users/)[^\s<>)]+"), "absolute path"),
+    (re.compile(r"\b(?:editorial|published|data|migrations|backups)/"
+                r"[^\s<>]*\.(?:md|json|sqlite3|sql)\b"), "private repo path"),
+    (re.compile(r"\bPREP\.md\b|\bAUTHORING-[a-z-]+\.md\b"), "authoring artifact"),
+]
+
+# Text files that ship in the build and were never scanned, because the audit
+# only ever looked at HTML.
+AUDITED_SUFFIXES = (".html", ".htm", ".js", ".json", ".txt", ".xml", ".css", ".md", ".svg")
+
+
+def _private_handles(public_names: list[str] | None = None) -> list[str]:
+    """Every name a manager is known by locally that he has not already
+    published himself.
+
+    Only Sleeper handles were read here, and aliases are precisely where
+    real first names and nicknames live — so the strings most likely to
+    identify somebody were the ones the audit could not see.
+
+    The catch is that half of those aliases are *not* private: managers put
+    their own nicknames in their team names, so "McLovin" is both an alias
+    and part of "Statistical Anomalies (McLovin)". Scanning for aliases
+    without subtracting the public names flagged 103 violations on a clean
+    build. A name he published himself is his to publish, so anything
+    appearing inside a current public team name is dropped.
+
+    Aliases are therefore only scanned when the caller can say what the
+    public names are. Without that list this returns handles alone, which is
+    the behaviour that has always shipped.
+    """
     from leaguepage.config import EDITORIAL_DIR
 
     path = EDITORIAL_DIR / "managers.json"
     if not path.exists():
         return []
     data = json.loads(path.read_text(encoding="utf-8"))
-    out = []
+    # Compare on a normalised form. An alias is often the slug of the team
+    # name ("double-tds" against "Double TDs (Double)"), and the slug is in
+    # every URL on the site, so a plain substring test still flagged it.
+    def _norm(text: str) -> str:
+        return "".join(ch for ch in text.lower() if ch.isalnum())
+
+    published = " | ".join(_norm(n) for n in (public_names or []))
+    out: set[str] = set()
     for key, m in data.items():
         if not isinstance(m, dict):
             continue
-        dn = m.get("display_name")
-        if dn and len(dn) >= 4:
-            out.append(dn)
-    return out
+        candidates = [key, m.get("display_name")]
+        if public_names is not None:
+            for field in ("aliases", "unverified_aliases"):
+                v = m.get(field)
+                if isinstance(v, list):
+                    candidates += [x for x in v if isinstance(x, str)]
+                elif isinstance(v, str):
+                    candidates.append(v)
+        for c in candidates:
+            if c and len(c) >= 4 and _norm(c) not in published:
+                out.add(c)
+    return sorted(out)
 
 
-def audit_output(out_dir: Path, *, extra_forbidden: list[str] | None = None) -> list[str]:
+def audit_output(out_dir: Path, *, extra_forbidden: list[str] | None = None,
+                 public_names: list[str] | None = None) -> list[str]:
     """Scan the built site for private material. Historical archive pages are
     exempt from the handle scan only (published newsletters are verbatim);
     every other check applies everywhere."""
     violations = []
-    handles = _private_handles() + (extra_forbidden or [])
-    for path in out_dir.rglob("*.html"):
+    handles = _private_handles(public_names) + (extra_forbidden or [])
+    for path in sorted(out_dir.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in AUDITED_SUFFIXES:
+            continue
         rel = path.relative_to(out_dir).as_posix()
-        text = path.read_text(encoding="utf-8")
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
         for marker in ALWAYS_FORBIDDEN:
             if marker in text:
                 violations.append(f"{rel}: forbidden marker '{marker}'")
+        for pattern, label in PRIVATE_PATTERNS:
+            m = pattern.search(text)
+            if m:
+                # The finding names the class and where it is, never the
+                # value: an audit report that quotes the secret has
+                # published it again.
+                violations.append(f"{rel}: {label} at offset {m.start()}")
         if "/archive/a" not in f"/{rel}":
             for h in handles:
                 if h in text:

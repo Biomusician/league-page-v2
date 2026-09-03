@@ -9,5 +9,10 @@
   <p>{{ para }}</p>
   {% endfor %}
 </article>
-<p><a href="{{ lroot }}archive/index.html">← Back to the archive</a></p>
+<nav class="exits" aria-label="Where to next">
+  {% if prev_issue %}<a href="{{ lroot }}{{ prev_issue.href }}">&larr; {{ prev_issue.title }}</a>{% endif %}
+  <a href="{{ lroot }}archive/index.html">All issues</a>
+  {% if next_issue %}<a href="{{ lroot }}{{ next_issue.href }}">{{ next_issue.title }} &rarr;</a>{% endif %}
+  <a href="{{ lroot }}index.html">{{ league.display_name }} home &rarr;</a>
+</nav>
 {% endblock %}
