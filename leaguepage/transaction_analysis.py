@@ -242,8 +242,15 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
     # value or an already-good position alone never qualifies — the model
     # cannot see a manager's speculative thesis.
     if kind is None and add and drop:
-        a_rank = profile["ranks"].get(add["position"], {}).get(rid)
-        d_rank = profile["ranks"].get(drop["position"], {}).get(rid)
+        # "already" is a claim about the roster BEFORE the move, and this
+        # read the profile as it stands now. The front page told the league
+        # a room "already ranked #10 of 10" while the team page showed the
+        # same move taking it from #5 to #10.
+        a_rank = add_rank_before if add_rank_before is not None else \
+            profile["ranks"].get(add["position"], {}).get(rid)
+        _dp = _ctx_rank("drops", drop["pid"])
+        d_rank = (_dp.get("before") if _dp.get("before") is not None
+                  else profile["ranks"].get(drop["position"], {}).get(rid))
         av = (values.get(add["pid"]) or {}).get("value", 0)
         dv = (values.get(drop["pid"]) or {}).get("value", 0)
         drop_bad = _bottom(d_rank, n, 0.3) and dv > 0
@@ -252,8 +259,8 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
         if drop_bad and (add_wrong or value_down):
             return {"kind": "questionable", "confidence": "medium",
                     "text": (
-                        f"Questionable fit on the current data: the team "
-                        f"already ranks #{a_rank} of {n} at "
+                        f"Questionable fit on the data at the time: the team "
+                        f"ranked #{a_rank} of {n} at "
                         f"{add['position']} and gave up "
                         f"{drop['name']} from its #{d_rank} "
                         f"{drop['position']} room. No injury or obvious "

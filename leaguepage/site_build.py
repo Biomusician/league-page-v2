@@ -28,6 +28,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from leaguepage.config import (DIST_DIR, LEAGUES, PUBLISHED_DIR, SITE_URL, STATIC_DIR,
                                TEMPLATES_DIR, League)
+from leaguepage.draft_value import SKILL_POSITIONS
 from leaguepage.editorial import load_coalitions
 from leaguepage.matchup_analysis import (all_play, analyze_week, season_efficiency,
                                          team_record, weekly_scores)
@@ -443,7 +444,17 @@ def build_league(
             score = (f"{a['points']:g} – {b['points']:g}"
                      if a.get("points") is not None and (a["points"] or b["points"]) else None)
             cards.append({
-                "anchor": m["matchup_slug"], "names": names_line, "records": rec,
+                # The site has two slug sources, and they disagreed: team
+                # pages live at /team/all-barkley-no-bite-sealed/ while the
+                # matchup anchor for the same team read "roster-6", because
+                # the packet slug is derived before public names resolve. A
+                # reader sharing "#roster-10-vs-roster-11" is sharing an
+                # internal id. Use the anchor the rest of the site uses.
+                "packet_slug": m["matchup_slug"],
+                "anchor": "-vs-".join(
+                    slugs.get(t["roster_id"], f"roster-{t['roster_id']}")
+                    for t in (a, b)),
+                "names": names_line, "records": rec,
                 "score": score, "tags": sm["tags"],
                 "prominence": (sm["state"] or {}).get("prominence_override") or sm["recommended_prominence"],
                 "preview_html": _render_md(text) if approved else None,
@@ -550,6 +561,7 @@ def build_league(
             label = snap["issue_label"]
             ranking_source = {"label": snap["issue_label"],
                               "section": found["section_title"],
+                              "corrected": found.get("corrected"),
                               "href": f"{snap['href']}#{found['anchor']}"
                               if found["anchor"] else snap["href"]}
             for row in found["rows"]:
@@ -701,7 +713,7 @@ def build_league(
         handles = _private_handles()
         by_anchor = {sm["matchup"]["matchup_slug"]: sm for sm in computed["scored"]}
         for card in cards:
-            sm = by_anchor.get(card["anchor"])
+            sm = by_anchor.get(card["packet_slug"])
             card["scout"] = (
                 None if card["preview_html"] or not sm else
                 scout_view(sm["matchup"], profile=profile, names=public_names,
@@ -743,25 +755,28 @@ def build_league(
     # entertaining part.
     from leaguepage.model_views import compare_to_commissioner, model_board
 
-    board = model_board(profile=profile,
+    _adp_src = load_adp_for_league(league)
+    board = model_board(source=(_adp_src.provenance_label() if _adp_src else None),
+                        profile=profile,
                         names={rid: v["name"] or f"Roster {rid}"
                                for rid, v in names.items()},
                         slugs=slugs, standings=standings, form=form,
                         weeks_played=weeks_played_league)
-    disagreements_ctx = []
+    disagreements_ctx, disagree_floor = [], 0
     if ranking_ctx:
         ranking_ctx = compare_to_commissioner(board, ranking_ctx)
         for row in ranking_ctx:
             row["slug"] = slugs.get(row.get("roster_id"))
         from leaguepage.published_ranking import disagreements
 
-        disagreements_ctx = disagreements(ranking_ctx)
+        disagreements_ctx, disagree_floor = disagreements(ranking_ctx)
     render("power/index.html", "public/power.html", 2,
            description=(f"Where every {league.display_name} team ranks, "
                         f"{_through(weeks_played_league)} \u2014 and where the "
                         f"Commissioner and the model disagree."),
            rankings=ranking_ctx, label=label, board=board,
            ranking_source=ranking_source, disagreements=disagreements_ctx,
+           disagree_floor=disagree_floor,
            current_nav="Peer and Near-Peer")
 
     # Team pages: a personal briefing on top, editorial weighting under it,
@@ -813,6 +828,12 @@ def build_league(
                   for a in published_awards
                   if a.get("winner") in (slugs[rid], nm)]
         mentions = league_mentions(snaps, nm, rid, name_tokens)
+        # "Last time we talked about you" was false while the only issue on
+        # file is the current one, and it is machine copy borrowing his
+        # first person. The heading now says which case it is.
+        newest = snaps[0]["issue_key"] if snaps else None
+        for _m in mentions:
+            _m["current"] = bool(newest and _m.get("issue_key") == newest)
         sw = strengths_weaknesses(profile, rid)
         positional_rows = []
         for pos in profile["positions"]:
@@ -907,6 +928,11 @@ def build_league(
                      "briefing": briefing,
                      "sections": section_order(front_state),
                      "rooting": rooting,
+                     # Disco drafts no kickers or defenses, so the K/DEF
+                     # disclosure was boilerplate from the other league,
+                     # printed twelve times.
+                     "has_special_teams": any(
+                         p_ not in SKILL_POSITIONS for p_ in profile["positions"]),
                      "own_stake": _own_stake(leverage_teams.get(rid),
                                              public_names, next_card),
                      "stage": profile["stage"]},

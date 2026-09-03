@@ -88,8 +88,9 @@ def storyline(*, state: str, record: dict, form: dict | None, streak: dict | Non
     a thing to say from two games."""
     if state == PRESEASON:
         if best and worst:
-            return (f"Built around {best['pos']}, exposed at {worst['pos']} — "
-                    "the season will decide whether that trade is the right one.")
+            return (f"Built around {best['pos']}, exposed at {worst['pos']}. "
+                    "The season will decide whether that trade-off was the "
+                    "right one.")
         return None
     wins, losses = record.get("wins", 0), record.get("losses", 0)
     if all_play and weeks_played >= 3:
@@ -251,6 +252,7 @@ def league_mentions(snaps: list[dict], team_name: str, rid: int,
         out.append({
             "quote": sentence.strip(),
             "issue_label": snap["issue_label"],
+            "issue_key": snap.get("issue_key"),
             "season": snap["season"],
             "section_title": section.get("title") or "",
             "href": snap["href"],

@@ -464,3 +464,94 @@ compared with the section source at creation. A paraphrase renders as "he
 wrote this, in substance" with no quotation marks, and `pubqa.check_receipts`
 makes presenting one as a quotation a publication blocker rather than a style
 preference.
+
+
+## The schedule was always there (2026-09-03)
+
+The playoff model paired the league at random for every remaining week and
+said so in a note under the table. The reason given in the code was
+"schedule beyond sync unknown", and that had been true for exactly as long
+as nobody checked: Sleeper serves the pairings for any week you ask for,
+filled with zeros until they are played. One league's week 3 was sitting in
+the database, fetched before week 1 kicked off, with complete `matchup_id`s
+and no points.
+
+So the constraint was in the sync loop, not in the data. `ingest` asked only
+for weeks up to the current one.
+
+This matters beyond the odds themselves. A model that does not know who is
+playing whom cannot answer "how much does Sunday move my odds", which is the
+question a manager actually has, and it cannot answer "who should I be
+rooting for", which is the question that makes a league chat fun. Both fell
+out of the same simulation run once the schedule was real.
+
+The lesson worth keeping: a disclaimer that has been in the code for months
+is not evidence that the limitation is real. It is evidence that somebody
+wrote it down once.
+
+## The engine recommends, the gate stops crying wolf (2026-09-03)
+
+Five publication blockers had no override path and fired on sentences that
+were fine: "a classic man-vs-machine week" read as a leaked internal slug,
+a code span containing `**` read as bold that failed to render, "playoffs
+are coming soon" read as a stub, "weeks XXX through XXI" read as a
+placeholder in a newsletter that numbers its volumes in Roman numerals.
+
+A gate that blocks a good sentence gets switched off, and then it protects
+nothing. Every one of those was narrowed so the real defect is still caught:
+a genuine matchup slug has a multi-segment side, a genuine placeholder sits
+alone on a line, a heading indented four spaces still trips the
+unrendered-heading check because that is exactly what it looks like.
+
+The same pass added two misses it should always have caught: a lowercase
+`roster 4` (the flagship identity blocker was case-sensitive) and a relative
+image source, which points at a directory the published page is not served
+from.
+
+## An alias is only private until he publishes it himself (2026-09-03)
+
+The build audit read Sleeper handles out of `managers.json` and nothing
+else. Aliases are precisely where real first names and nicknames live, so
+the strings most likely to identify somebody were the ones the audit could
+not see.
+
+Adding them flagged 103 violations on a clean build, because half those
+aliases are not private at all: managers put their own nicknames in their
+team names. A name he published himself is his to publish.
+
+So the audit subtracts anything appearing inside a current public team name,
+compared on a normalised form, because an alias is often the slugified team
+name and that slug is in every URL on the site. Aliases are only scanned
+when the caller can say what the public names are; without that list the
+audit falls back to handles alone rather than failing a build on its own
+team names.
+
+## A republish is not a correction (2026-09-03)
+
+`published/` exists so that what shipped that day is still on disk.
+`publish_assembled_issue` overwrote the snapshot in place, with no revision
+and no "Updated" line, and the ordinary way to reach that was not malice: a
+deploy that fails after the snapshot stage gets retried, and the retry
+re-entered the same function.
+
+An identical re-entry is now a no-op, so retries still work. A changed one
+is refused and pointed at `revise_issue`, which keeps the original and adds
+a sibling with a note. The distinction is the whole promise of the
+directory: an archive you can quietly rewrite is not an archive.
+
+## Hindsight goes in its own column (2026-09-03)
+
+Two ledgers landed this run, and both had the same temptation: the
+transaction rationale recorded at the time, and the REACH/STEAL call made on
+draft night. Both would look smarter re-scored with the benefit of results.
+
+Neither is. The rationale is what the roster said when he made the move, and
+rewriting it to match the outcome invents a reason he never had. REACH and
+STEAL compare one selection against the reference board on the day, which is
+immutable market analysis; a reach that worked out was still a reach.
+
+So "how it aged" is a separate column that answers a different question in
+the reader's own vocabulary: is the player still here, does he start, what
+has he scored, did the room move. Two thirds of that is answerable before a
+game is played, which is why the draft version ships in August rather than
+waiting for week 3.

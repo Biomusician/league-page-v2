@@ -144,9 +144,13 @@ def _team_to_watch(ctx) -> list[dict]:
             _, rid, strong, s_rank, weak, w_rank = best
             return [_item(
                 "watch", "Team to Watch", names.get(rid, f"Roster {rid}"),
-                f"The widest gap on the board: {strong} #{s_rank} of "
-                f"{profile['n']}, {weak} #{w_rank}. One room carries it and "
-                "one room can sink it.",
+                # Not "the widest gap on the board": the author's own team
+                # is excluded from this search by the author-feature rule,
+                # and on the real data his is the widest. A superlative the
+                # method cannot support is a false claim however small.
+                f"Built to a point: {strong} #{s_rank} of {profile['n']}, "
+                f"{weak} #{w_rank} of {profile['n']}. One room carries it "
+                "and one room can sink it.",
                 f"team/{ctx['slugs'][rid]}/index.html",
                 weight=72, cta="Team page")]
         return []

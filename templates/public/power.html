@@ -23,14 +23,18 @@
 <p class="meta">The Commissioner's editorial ranking ({{ label }}). It is a
 judgment, published as one.{% if ranking_source %} Taken from
 <a href="{{ lroot }}{{ ranking_source.href }}">{{ ranking_source.section }}</a>
-in the {{ ranking_source.label }}.{% endif %}</p>
+in the {{ ranking_source.label }}{% if ranking_source.corrected %}, as
+corrected in that issue{% endif %}.{% endif %}</p>
 
 {% if disagreements %}
 <section class="module disagree">
   <h2 class="section-label">Where the model disagrees</h2>
-  <p class="meta">The board below is computed from roster construction and
-  nothing else. It has no opinion about anybody, which is exactly why the
-  places it parts company with the Commissioner are worth a look.</p>
+  <p class="meta">The board below scores each roster against this league's
+  lineup demand, using a stored consensus ranking of players and nothing
+  about the people who drafted them. That is exactly why the places it parts
+  company with the Commissioner are worth a look, and also why it is not an
+  argument he is losing. Every gap of {{ disagree_floor }} places or more is
+  listed; the board's own basis is printed under it.</p>
   {% for d in disagreements %}
   <div class="card">
     <p style="margin:.1rem 0"><strong>{% if d.slug %}<a href="{{ lroot }}team/{{ d.slug }}/index.html">{{ d.name }}</a>{% else %}{{ d.name }}{% endif %}</strong>
@@ -49,7 +53,9 @@ in the {{ ranking_source.label }}.{% endif %}</p>
     {% if r.tier_name %}<span class="tag prom">{{ r.tier_name }}</span>{% endif %}
     {% if r.model_rank %}<span class="tag gap">model #{{ r.model_rank }}</span>{% endif %}
   </p>
-  <p class="meta">{{ r.record }}{% if r.model_gap_label %} · {{ r.model_gap_label }}{% endif %}</p>
+  {% if r.record or r.model_gap_label %}
+  <p class="meta">{{ r.record or "" }}{% if r.record and r.model_gap_label %} · {% endif %}{{ r.model_gap_label or "" }}</p>
+  {% endif %}
   {% if r.note %}<p>{{ r.note }}</p>{% endif %}
 </div>
 {% endfor %}
@@ -64,6 +70,7 @@ in the {{ ranking_source.label }}.{% endif %}</p>
     <strong>{% if r.slug %}<a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</strong>
     <span class="tag prom">{{ r.tier }}</span>
     {% if r.record %}<span class="meta">{{ r.record }}</span>{% endif %}
+    {% if r.tied %}<span class="tag">tied on the number</span>{% endif %}
   </div>
   <p class="facts">
     {% if r.strongest %}<b>strongest room</b> {{ r.strongest }}{% endif %}
@@ -73,13 +80,15 @@ in the {{ ranking_source.label }}.{% endif %}</p>
 </div>
 {% endfor %}
 </div>
+<p class="meta">Where two teams carry the same number the order between them
+is arbitrary, and the row says so.</p>
 {% endif %}
 
 {% elif board.rows %}
 <div class="modelnote">
   <b>Model view · Commissioner rankings not yet published.</b>
-  This board is computed from synced data — nobody wrote it, and it makes no
-  claim to be anyone's opinion. {{ board.basis }} When the Commissioner
+  This board is computed from synced data, and it makes no claim to be
+  anyone's opinion about anyone. {{ board.basis }} When the Commissioner
   publishes his ranking it takes this page over, and the model stays on as a
   comparison column.
 </div>

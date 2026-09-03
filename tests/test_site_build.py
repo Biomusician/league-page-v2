@@ -379,8 +379,12 @@ def test_power_page_shows_the_model_board_with_its_disclosure(site_env):
     page = (tmp / "dist" / "disco" / "power" / "index.html").read_text(encoding="utf-8")
     assert "Model view · Commissioner rankings not yet published" in page
     assert "Model Board" in page
-    assert "nobody wrote it" in page
+    assert "makes no claim to be" in page
     assert "strongest room" in page
+    # The board's only input is a stored consensus ranking, and the page used
+    # to claim it was "roster construction and nothing else" without ever
+    # naming it. A stat with no provenance is not publishable here.
+    assert "Room strength is measured against" in page
 
 
 def test_team_draft_recap_never_headlines_a_kicker(site_env):

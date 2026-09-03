@@ -93,7 +93,7 @@ def player_values(storage: Storage, league: League, *, adp=None,
     adp = adp if adp is not None else load_adp_for_league(league)
     ppg = (_season_ppg(storage, league.league_id, weeks_played)
            if weeks_played >= IN_SEASON_MIN_WEEKS else {})
-    stage = "in-season blend" if ppg else "preseason (consensus ranks)"
+    stage = "in-season blend" if ppg else "preseason consensus ranks"
     out: dict[str, dict] = {}
     for r in (rosters if rosters is not None
               else storage.get_rosters(league.league_id)):

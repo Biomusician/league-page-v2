@@ -126,7 +126,11 @@ def scout_view(matchup: dict, *, profile: dict | None, names: dict[int, str],
 
 
 _TAG_NOTES = {
-    "Coalition Warfare": "Coalition matchup: the standing alliance context applies.",
+    # The tag fires when EITHER side is a coalition team, so calling it
+    # warfare described a coalition-versus-coalition game that was not
+    # happening. And "the standing alliance context applies" is a sentence
+    # with no content in it.
+    "Coalition Warfare": "A coalition team is involved, which carries its own history.",
     "Rivalry": "Confirmed rivalry in this league's history.",
     "Revenge Game": "These two have traded with each other.",
     "Top Table": "Both sides are in the top of the table.",
@@ -148,7 +152,7 @@ def _tier(index: int, n: int) -> str:
 
 def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
                 standings: list[dict], form: dict[int, dict] | None,
-                weeks_played: int) -> dict:
+                weeks_played: int, source: str | None = None) -> dict:
     """A ranking the site can always show, with its reasoning printed.
 
     Preseason it is roster construction alone. Once games exist, results
@@ -170,6 +174,13 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
         score = construction * (1 - weight_results) + results * weight_results
         scored.append((score, rid, construction, results))
     scored.sort(key=lambda x: (x[0], x[1]))
+
+    # Two teams can land on the same score, and the sort then breaks the tie
+    # on roster_id: a number that cannot order the board should not be
+    # presented as though it had. Say so on the row.
+    tied = {s for s, c in
+            __import__("collections").Counter(x[0] for x in scored).items()
+            if c > 1}
 
     rows = []
     for i, (score, rid, construction, results) in enumerate(scored):
@@ -194,13 +205,20 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
             "weakest": (f"{worst} #{profile['ranks'][worst][rid]} of {n}"
                         if worst else None),
             "factor": factor,
+            "tied": score in tied,
             "record": (f"{rec.get('wins', 0)}-{rec.get('losses', 0)}"
                        if weeks_played else None),
         })
-    basis = (f"Skill-position room strength only ({', '.join(skill)}); no games "
-             "played yet." if not weeks_played else
-             f"{int((1 - weight_results) * 100)}% roster construction, "
-             f"{int(weight_results * 100)}% scoring through week {weeks_played}.")
+    # Every number on this board traces back to one reference board, and the
+    # page used to say "computed from roster construction and nothing else"
+    # without ever naming it. A stat without provenance is not publishable
+    # here, and this one was printed on five pages.
+    src = f" Room strength is measured against {source}." if source else ""
+    basis = ((f"Skill-position room strength only ({', '.join(skill)}); no games "
+              f"played yet.{src}") if not weeks_played else
+             (f"{int((1 - weight_results) * 100)}% roster construction, "
+              f"{int(weight_results * 100)}% scoring through week "
+              f"{weeks_played}.{src}"))
     return {"rows": rows, "basis": basis, "weeks_played": weeks_played}
 
 

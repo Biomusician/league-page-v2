@@ -98,13 +98,63 @@ def test_disagreements_lead_with_the_widest_gap():
         {"name": "C", "rank": 7, "model_rank": 2, "model_gap": -5},
         {"name": "D", "rank": 4, "model_rank": 4, "model_gap": 0},
     ]
-    out = disagreements(rows)
+    out, floor = disagreements(rows)
     assert [d["name"] for d in out] == ["A", "C", "B"]
     assert out[0]["gap"] == 7
-    assert "less convinced" in out[0]["line"]
-    assert "likes them more" in out[1]["line"]
+    assert floor == 1
+
+
+def test_a_team_at_the_cut_is_never_dropped_while_a_tie_is_shown():
+    """An undisclosed top-N cut left one three-place gap out while showing
+    two others, which reads as the site choosing whose disagreement counts."""
+    rows = [
+        {"name": "A", "rank": 1, "model_rank": 7, "model_gap": 6},
+        {"name": "B", "rank": 2, "model_rank": 5, "model_gap": 3},
+        {"name": "C", "rank": 7, "model_rank": 4, "model_gap": -3},
+        {"name": "D", "rank": 12, "model_rank": 9, "model_gap": -3},
+        {"name": "E", "rank": 5, "model_rank": 4, "model_gap": -1},
+    ]
+    out, floor = disagreements(rows)
+    assert floor == 3
+    assert sorted(d["name"] for d in out) == ["A", "B", "C", "D"]
+
+
+def test_the_board_does_not_editorialise():
+    """The page says the model has no opinion about anybody, so its copy
+    cannot say the model is less convinced."""
+    rows = [{"name": "A", "rank": 1, "model_rank": 8, "model_gap": 7}]
+    out, _ = disagreements(rows)
+    line = out[0]["line"]
+    assert "convinced" not in line and "likes" not in line
+    assert "roster construction alone puts them #8" in line
 
 
 def test_agreement_is_not_a_disagreement():
     rows = [{"name": "A", "rank": 1, "model_rank": 1, "model_gap": 0}]
-    assert disagreements(rows) == []
+    assert disagreements(rows) == ([], 0)
+
+
+def test_a_corrected_ranking_supersedes_the_one_it_corrected():
+    """The correction publishes the new order as a table and the numbered
+    headings above it are the order it retracted. Reading the headings had
+    the site presenting a retracted ranking as his judgment on the same page
+    as the retraction."""
+    md = "\n\n".join([
+        "### 1. The Dude Abides (The Dude)",
+        "### 2. George & Friends (DIP)",
+        "### 3. Love Sutton Brocks (EMCO)",
+        "### 4. Tua Girls One Kupp (HOP)",
+        "### Correction — ranking methodology",
+        "Recomputed on skill positions only, the order changes:",
+        "\n".join([
+            "| # | Team | Value | Was |",
+            "| --- | --- | --- | --- |",
+            "| 1 | Tua Girls One Kupp (HOP) | +9 | #4 |",
+            "| 2 | The Dude Abides (The Dude) | +4 | #1 |",
+            "| 3 | Love Sutton Brocks (EMCO) | -2 | #3 |",
+            "| 4 | George & Friends (DIP) | -8 | #2 |",
+        ]),
+    ])
+    out = _extract(md)
+    assert out["corrected"] is True
+    assert [r["roster_id"] for r in out["rows"]] == [4, 1, 3, 2]

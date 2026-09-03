@@ -6,6 +6,162 @@ playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
+## Overnight product run (2026-09-03)
+
+**Status: 8 commits, ~680 tests, real build clean, deployed.** Working notes
+for the run are in `docs/OVERNIGHT-RUN.md`; delete that file once this
+section is the record.
+
+Six read-only recon agents audited the workflow, the analytics, the public
+product, the UX, data integrity and the privacy boundary. Everything below
+was verified in the code or the real database before it was acted on.
+
+### Numbers that were wrong
+
+- **The playoff model read `records[rid]["points_for"]`; `team_record`
+  returns `fpts`.** Every simulated season started every team at zero
+  points, so the tiebreak deciding the last playoff spot discarded all the
+  scoring that had happened. The same bug made week-0 snapshot standings
+  degenerate to roster_id order, so preseason now stores no standings
+  baseline and week 1 cannot announce movement nobody made.
+- **FAAB was read from `waiver_budget` at four of five call sites.** That
+  list carries budget moving between teams in a trade and is empty on a
+  claim, so every waiver claim looked free. `matchup_analysis.faab_cost` is
+  now the single reader.
+- `recent_form` collapsed its window to one pseudo-week before computing
+  all-play, cross-producting weeks and inflating the game count.
+- `late_season_leverage` had a weight and a tag and no component that
+  emitted it, so `Playoff Leverage` could never fire.
+- Three K/DST leaks: roster contrast lines, the bench-swap award, and
+  `team_outlook`, which was publishing "K room ranks 2/10" as *defining
+  this team right now* in production.
+- A kicker premium could headline the front page as a live receipt:
+  `candidate_takes` guarded that at capture time, the archive-derived path
+  in `receipts.py` did not.
+- **A tie was a loss for both teams** (`pts > opp` is False at 100-100), and
+  the take engine recommended BUSTED on a game nobody lost.
+- An empty roster ranked near the top of every room and published "with
+  real depth behind the starters".
+- A week Sleeper returned unpaired counted in the standings while the CTP
+  rendered it empty.
+
+### The frozen record
+
+`publish_assembled_issue` overwrote `published/<key>.json` in place with no
+revision and no "Updated" line, and the ordinary route to that was a deploy
+that failed after the snapshot stage and got retried. An identical re-entry
+is now a no-op; a changed one is refused and pointed at `revise_issue`.
+
+Receipts are scoped to their own season, so the first sync of 2027 will not
+resolve every 2026 claim at once.
+
+### The real schedule, and what it unlocked
+
+Sleeper publishes the whole regular season's pairings up front and fills the
+points in as they are scored, so a future week returns real `matchup_id`s
+and zero points. `ingest` fetches them once (idempotent: a future week with
+pairings already stored is skipped), `team_analytics.remaining_schedule`
+reads them, and the playoff model simulates the schedule that will actually
+be played.
+
+That made `leaguepage/leverage.py` possible. Both numbers come out of one
+simulation run by conditioning inside it:
+
+    leverage(team)   = P(playoffs | they win) - P(playoffs | they lose)
+    rooting(team, g) = P(playoffs | A wins g) - P(playoffs | B wins g)
+
+Nothing shows below a five-point swing, and a five-point swing off a
+two-percent base is a formality rather than a stake, except elimination.
+Matchup cards carry what the game is worth to each side; team pages carry
+their own stake plus the other results to root for.
+
+### The public product
+
+- **Sharing.** All 98 pages had exactly two meta tags. They now carry a
+  page-specific description, canonical, OpenGraph and Twitter tags.
+  `config.SITE_URL` (env `LEAGUEPAGE_SITE_URL`) is the base.
+- **The link graph.** 82 of 98 pages were dead or near-dead ends. Team names
+  are links everywhere via `templates/public/_links.html`; issue, team and
+  archive pages carry a footer of exits; the 55 archive issues link to their
+  chronological neighbours. Zero dead ends now, one near-dead (the Surfeit
+  archive, which holds one issue).
+- **Peer and Near-Peer** reads the ranking he published as prose
+  (`leaguepage/published_ranking.py`) and prints the three widest
+  disagreements with the model. The parser refuses anything that is not a
+  complete, unique, one-based ranking covering three quarters of the league.
+  A `power_rankings` row still wins when one exists.
+- **Preseason honesty.** Standings and the teams grid published `#11` off a
+  roster_id tiebreak on twelve 0-0 teams. Preseason now says there is no
+  order to publish and points at the model board.
+- **Lineup efficiency** shipped: cumulative actual over optimal, plus points
+  left on the bench. When actual exceeds the best legal lineup the
+  reconstruction is wrong (a player missing from the cached players dict),
+  so it reports nothing rather than 214%.
+- **Ledgers.** Transactions carry *how it aged* (the dropped player followed
+  wherever he went, and whether the room moved); the draft carries *what
+  happened to the picks*. Neither re-scores the call made at the time.
+- **Black Box** carries closest-to-the-mark, margins, per-row anchors and a
+  door into the archive.
+
+### Mobile, accessibility, print
+
+Verified at 375px against the built site: every page has a document
+scrollWidth of exactly 375. Editorial tables (raw HTML from published prose)
+were the only whole-page horizontal scroll and now scroll inside themselves.
+`role="button"` on a `th` was overriding its columnheader role on 194
+headers; the control is now a real button inside the cell. Section headings
+are larger than body text; an injected editorial heading no longer outsizes
+its own section. The root index had two h1s, no `main` and no skip link.
+There is a print stylesheet.
+
+### The build audit
+
+`audit_output` knew 17 literal strings and looked only at `.html`: fourteen
+of sixteen classes of private data would have shipped. It now matches eleven
+private *shapes*, scans every text file in the build, and names the class
+and offset rather than quoting the value. Aliases are scanned too, minus any
+that appear inside a public team name -- managers put their own nicknames in
+their team names, and scanning aliases without that subtraction flagged 103
+violations on a clean build. `build_site` returns `public_names` so the
+deploy script can pass them in.
+
+### Commissioner workflow
+
+- **Inbox triage now reaches the issue.** "Add to Issue" on a `change:*` id
+  reached nothing: the builders iterate the story candidate list and a diff
+  item was never in it. `change_inbox.as_candidates` merges them in, and a
+  story routed to the Lowdown produces a brief instead of mapping to `None`.
+- **The ranker has a working scale.** Every non-matchup candidate arrived at
+  a flat 0.4 and scored exactly 16, so half the inbox sorted alphabetically.
+  A nine-seed upset scored 38 (Minor) against a free bench-piece trade at 40.
+  The repetition lane is now kind *plus subject*, so one standings story no
+  longer penalises all twelve teams.
+- Save for Later re-surfaces while the item is still true; every item says
+  why it matters, not just why it scored; triage takes a note and can be
+  reopened.
+- The Lowdown brief listed draft reaches under STRONGEST NUMBERS in week 9;
+  it now leads with the season once games have been played. The stale-prose
+  chip fired on every section every sync; it now compares the brief's own
+  content.
+
+### The publication gate
+
+Five blockers with no override fired on ordinary prose: `man-vs-machine`,
+a code span containing `**`, "coming soon" mid-sentence, Roman numerals
+(`XXX`), and a markdown footnote. All fixed, with the real defect still
+caught in each case. Two misses closed: a lowercase `roster 4` and a
+relative image `src`.
+
+### Known and deliberately not done
+
+- **Git history still contains one manager key** in commit b2ffa1b (a
+  slugified team name that appears in every public URL anyway). HEAD is
+  clean and the repo is private; history was not rewritten.
+- Odd team counts / BYE weeks: a bye team gets no matchup card. Both real
+  leagues have even rosters, so this is hypothetical.
+- The Commissioner-vs-model comparison reads the published prose. If he
+  starts entering rankings on the Desk, that path takes over automatically.
+
 ## Takes and Receipts shipped (2026-09-03)
 
 **Status: built, 532 tests, exercised end to end against a copy of the live

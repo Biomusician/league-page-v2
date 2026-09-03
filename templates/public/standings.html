@@ -4,9 +4,10 @@
 {% block content %}
 <h2 class="section-label">Standings</h2>
 {% if not weeks_played %}
-<p class="meta">Nobody has played, so every team is 0-0 on nothing and there is
-no order to publish. The rows below are alphabetical by nothing in particular.
-<a href="{{ lroot }}power/index.html">The model board ranks the rooms &rarr;</a></p>
+<p class="meta">Nobody has played, so every team is 0-0 on nothing and there
+is no order to publish. The rows below are in roster order, which carries no
+meaning. <a href="{{ lroot }}power/index.html">The model board ranks the
+rooms &rarr;</a></p>
 {% endif %}
 <div class="tablewrap">
 <table data-sortable>

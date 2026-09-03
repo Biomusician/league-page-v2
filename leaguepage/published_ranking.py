@@ -27,6 +27,13 @@ _HEADING_RE = re.compile(r"^[ \t]{0,3}(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$", re.M)
 # "1." / "1)" / "#1" at the head of a heading. The rank has to be the first
 # thing in it, so "Week 3 Notes" is never read as rank 3.
 _RANKED_RE = re.compile(r"^\s*#?(\d{1,2})\s*[.)\-:]\s*(.+)$")
+# A correction that recomputes the order publishes the new one as a table,
+# and the numbered headings above it are the order it superseded. Reading
+# the headings had the site presenting a retracted ranking as his judgment
+# on the same page as the retraction.
+_CORRECTION_RE = re.compile(
+    r"^#{1,6}[ \t]+.*\bcorrection\b.*$", re.I | re.M)
+_TABLE_ROW_RE = re.compile(r"^\s*\|\s*(\d{1,2})\s*\|\s*([^|]+?)\s*\|", re.M)
 
 # Below this share of the league it is a top-five list, not a ranking.
 MIN_COVERAGE = 0.75
@@ -45,10 +52,12 @@ def extract_ranking(sections: list[dict], *, league_slug: str, season: str,
     ctx.public_names = public_names
     best = None
     for section in sections:
-        rows = _ranked_rows(section.get("content_md") or "", ctx)
+        md = section.get("content_md") or ""
+        rows = _corrected_rows(md, ctx) or _ranked_rows(md, ctx)
         if not _is_a_ranking(rows, len(public_names)):
             continue
         candidate = {
+            "corrected": bool(_CORRECTION_RE.search(md)) and bool(_corrected_rows(md, ctx)),
             "section_title": section.get("title") or "",
             "anchor": section.get("anchor") or section.get("module_key") or "",
             "rows": [{"rank": rank, "roster_id": rid,
@@ -60,6 +69,27 @@ def extract_ranking(sections: list[dict], *, league_slug: str, season: str,
         if best is None or len(candidate["rows"]) > len(best["rows"]):
             best = candidate
     return best
+
+
+def _corrected_rows(content_md: str, ctx: QAContext) -> dict[int, int]:
+    """The order a published correction recomputed, if there is one.
+
+    Only the text below the correction heading is read, so the original
+    numbered headings above it cannot leak back in.
+    """
+    m = _CORRECTION_RE.search(content_md)
+    if not m:
+        return {}
+    out: dict[int, int] = {}
+    seen: set[int] = set()
+    for row in _TABLE_ROW_RE.finditer(content_md[m.end():]):
+        rank = int(row.group(1))
+        rid, _foreign = _resolve_team_heading(row.group(2), ctx)
+        if rid is None or rank in out or rid in seen:
+            continue
+        out[rank] = rid
+        seen.add(rid)
+    return out
 
 
 def _ranked_rows(content_md: str, ctx: QAContext) -> dict[int, int]:
@@ -90,28 +120,38 @@ def _is_a_ranking(rows: dict[int, int], n_teams: int) -> bool:
     return len(rows) >= max(3, round(MIN_COVERAGE * n_teams))
 
 
-def disagreements(rows: list[dict], *, top: int = 3) -> list[dict]:
-    """The widest gaps between the two rankings, largest first.
+def disagreements(rows: list[dict], *, top: int = 3) -> tuple[list[dict], int]:
+    """The widest gaps between the two rankings, and the floor that was used.
 
-    This is the payoff. A model that agrees with him everywhere is a table;
-    the three places it does not are an argument, and an argument is the
-    thing somebody forwards to the league chat.
+    This is the payoff: a model that agrees everywhere is a table, and the
+    places it does not are an argument.
+
+    An undisclosed top-N cut is not fair to the teams it excludes -- a team
+    three places apart being left out while two other three-place gaps are
+    shown reads as the site choosing whose disagreement counts. So the cut
+    is a gap FLOOR, every team at or above it is listed, and the page states
+    the floor.
     """
     scored = [r for r in rows if r.get("model_gap")]
+    if not scored:
+        return [], 0
     scored.sort(key=lambda r: (-abs(r["model_gap"]), r["rank"]))
+    floor = abs(scored[min(top, len(scored)) - 1]["model_gap"])
     out = []
-    for r in scored[:top]:
-        gap = r["model_gap"]
+    for r in scored:
+        gap = abs(r["model_gap"])
+        if gap < floor:
+            break
         out.append({
             "name": r["name"],
             "slug": r.get("slug"),
             "rank": r["rank"],
             "model_rank": r["model_rank"],
-            "gap": abs(gap),
-            # gap > 0 means the model ranks them lower than he does
-            "line": (f"He has them #{r['rank']}; the model has them "
-                     f"#{r['model_rank']}. "
-                     + ("The model is less convinced." if gap > 0
-                        else "The model likes them more than he does.")),
+            "gap": gap,
+            # A statement about the two positions, not a verdict on either
+            # ranking. The board has no opinion, and its copy should not
+            # sound like it does.
+            "line": (f"He has them #{r['rank']}; roster construction alone "
+                     f"puts them #{r['model_rank']}."),
         })
-    return out
+    return out, floor

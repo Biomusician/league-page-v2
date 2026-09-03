@@ -123,14 +123,17 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
   </table>
   </div>
   {% if team.strengths or team.weaknesses %}
-  <p><b>Strengths:</b> {{ team.strengths | join("; ") or "—" }}<br>
-     <b>Weaknesses:</b> {{ team.weaknesses | join("; ") or "—" }}</p>
+  <p>{% if team.strengths %}<b>Strengths:</b> {{ team.strengths | join("; ") }}<br>
+     {% else %}<b>Strengths:</b> no room clears the bar for one.<br>{% endif %}
+     {% if team.weaknesses %}<b>Weaknesses:</b> {{ team.weaknesses | join("; ") }}
+     {% else %}<b>Weaknesses:</b> no room is far enough back to name.{% endif %}</p>
   {% endif %}
   <p class="meta">Rooms are ranked against this league's actual lineup demand
-  ({{ team.stage }}); starters weigh more than depth, and a room can rank well
-  while being carried by one player; the assessment says so when it is. Every
-  room is ranked here, including K and DEF; the briefing above leads with
-  skill-position construction, because that is what decides a season.</p>
+  using {{ team.stage }}; starters weigh more than depth, and a room can rank
+  well while being carried by one player; the assessment says so when it is.
+  {%- if team.has_special_teams %} Every room is ranked here, including K and
+  DEF; the briefing above leads with skill-position construction, because that
+  is what decides a season.{% endif %}</p>
   {% if team.trend %}
   <p><b>Trend:</b> {{ team.trend | join("; ") }}</p>
   {% endif %}
@@ -174,10 +177,11 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
   force everyone to draft one, so their deviations are reported separately.</p>
   {% endif %}
   {% if team.draft_recap.aging %}{% set ag = team.draft_recap.aging %}
-  <p class="meta">Of {{ ag.picks }} picks, {{ ag.held }} are still on this
-  roster{% if ag.traded %}, {{ ag.traded }} now belong{{ "s" if ag.traded == 1 else "" }}
-  to somebody else in the league{% endif %}{% if ag.gone %},
-  {{ ag.gone }} {{ "has" if ag.gone == 1 else "have" }} left every roster{% endif %}.</p>
+  <p class="meta">Of {{ ag.picks }} picks, {{ ag.held }} are still here{% if ag.traded %};
+  {{ ag.traded }} now belong{{ "s" if ag.traded == 1 else "" }} to somebody else in
+  the league{% endif %}{% if ag.gone %}; {{ ag.gone }}
+  {{ "is" if ag.gone == 1 else "are" }} off every roster in the
+  league{% endif %}.</p>
   {% endif %}
   {% if team.draft_recap.departed %}
   <div class="card">
@@ -199,7 +203,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
     <strong>Special Teams Outliers</strong>
     <ul>
       {% for p in team.draft_recap.special_teams %}
-      <li>{{ p.name }} <span class="meta">(pick {{ p.pick_no }} · ref {{ p.adp }})</span> — {{ dv(p.dv) }}
+      <li>{{ p.name }} <span class="meta">(pick {{ p.pick_no }})</span>
         {% if p.context %}<br><span class="meta">{{ p.context }}</span>{% endif %}</li>
       {% endfor %}
     </ul>
@@ -264,7 +268,9 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
 
 {% if key == "mentions" and team.mentions %}
 <section class="module">
-  <h2 class="section-label">Last time we talked about you</h2>
+  <h2 class="section-label">{% if team.mentions and team.mentions[0].current
+    %}What the current issue says about this team{% else
+    %}Last time the paper mentioned this team{% endif %}</h2>
   {% for m in team.mentions %}
   <div class="card mention">
     <p class="meta">{{ m.season }} {{ m.issue_label }} · {{ m.section_title }}</p>
