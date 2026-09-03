@@ -63,10 +63,10 @@ def handle_re(handle: str) -> re.Pattern:
     """A private name, matched the way a reader would read it.
 
     Case-insensitive because a lowercased mention identifies the same person,
-    and boundary-anchored because a plain substring test flags "Babe" inside
-    "Babel" while missing "the Commish" written in lower case. The old test
-    was both too loose and too tight at once, and a real 2019 archive quote
-    naming a manager by an alias reached production through the gap.
+    and boundary-anchored because a plain substring test matches a short name
+    inside a longer word while missing the same name written in lower case.
+    The old test was too loose and too tight at once, and a real 2019 archive
+    quote naming a manager by an alias reached production through the gap.
     """
     return re.compile(rf"(?<![A-Za-z0-9]){re.escape(handle)}(?![A-Za-z0-9])",
                       re.IGNORECASE)
