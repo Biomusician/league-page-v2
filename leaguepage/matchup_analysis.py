@@ -85,6 +85,12 @@ def all_play(scores: dict[int, list[tuple[int, float]]]) -> dict[int, dict]:
     for rid, rec in result.items():
         games = rec["wins"] + rec["losses"] + rec["ties"]
         rec["pct"] = round(rec["wins"] / games, 3) if games else None
+        # A team on a bye played fewer all-play games than the rest of the
+        # league, and a percentage over a smaller denominator was being
+        # ranked against one over a larger. Report the denominator so a
+        # caller can say so, or decline to compare.
+        rec["games"] = games
+        rec["weeks"] = len([1 for _w, pbr in by_week.items() if rid in pbr])
     return dict(result)
 
 

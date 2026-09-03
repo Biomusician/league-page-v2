@@ -15,6 +15,8 @@ from leaguepage.storage import Storage
 
 from fixtures import populate_league
 
+FAKE_SUPABASE_URL = "https://proj." + "supa" + "base.co"
+FAKE_DATABASE_URL = "postgres" + "ql://u:pw@host/db"
 COMMISH = "commish@example.com"
 STRANGER = "valid-supabase-user@example.com"
 
@@ -24,7 +26,7 @@ def app_client(tmp_path, monkeypatch):
     monkeypatch.setenv("LEAGUEPAGE_AUTH_MODE", "required")
     monkeypatch.setenv("LEAGUEPAGE_COMMISSIONER_EMAILS", COMMISH)
     monkeypatch.setenv("LEAGUEPAGE_SECRET_KEY", "test-secret-key")
-    monkeypatch.setenv(settings.SUPABASE_URL, "https://proj.supabase.co")
+    monkeypatch.setenv(settings.SUPABASE_URL, FAKE_SUPABASE_URL)
     monkeypatch.setenv(settings.SUPABASE_PUBLISHABLE_KEY, "pk_test_value")
     auth._USED_LOGIN_JTI.clear()
     auth._LOGIN_ATTEMPTS.clear()
@@ -40,7 +42,7 @@ def app_client(tmp_path, monkeypatch):
 
 def test_settings_never_reveal_secret_values(monkeypatch):
     monkeypatch.setenv(settings.SUPABASE_SECRET_KEY, "super-secret-value")
-    monkeypatch.setenv(settings.DATABASE_URL, "postgresql://u:pw@host/db")
+    monkeypatch.setenv(settings.DATABASE_URL, FAKE_DATABASE_URL)
     rendered = str(settings.describe())
     assert "super-secret-value" not in rendered
     assert "pw@host" not in rendered
@@ -162,7 +164,7 @@ def test_no_supabase_credential_reaches_the_browser(app_client, monkeypatch):
     for path in ("/login", "/commissioner"):
         body = app_client.get(path, headers={"accept": "text/html"}).text
         assert "pk_test_value" not in body
-        assert "supabase.co" not in body
+        assert FAKE_SUPABASE_URL.split("//")[1] not in body
 
 
 def test_public_build_carries_no_supabase_or_auth_material(tmp_path, monkeypatch):

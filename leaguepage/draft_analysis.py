@@ -19,6 +19,7 @@ from statistics import median
 from leaguepage import evidence
 from leaguepage.adp import ADPSource
 from leaguepage.config import League
+from leaguepage.draft_value import SKILL_POSITIONS
 from leaguepage.editorial import manager_for_roster
 from leaguepage.storage import Storage
 
@@ -97,6 +98,7 @@ def enrich_picks(
     adp: ADPSource | None,
 ) -> tuple[list[dict], list[str]]:
     """Attach player identity, team identity, and reference-rank deltas."""
+    n_picks = len(picks)
     enriched: list[dict] = []
     unmatched: list[str] = []
     for pick in picks:
@@ -129,6 +131,12 @@ def enrich_picks(
                 row["adp_source"] = adp.source_key
                 row["adp"] = rank
                 row["delta"] = round(pick["pick_no"] - rank, 1)
+                # A reference rank past the end of the draft is not a
+                # position anybody could have drafted from. "REACH · 244
+                # picks early" in a 228-pick draft is a fact about where the
+                # board stops, not about the manager. In The Surfeit 16% of
+                # picks sit off the board, most of them K and DEF.
+                row["off_board"] = rank > n_picks
                 row["evidence"].append(evidence.adp_ref(adp.source_key, fields["name"]))
             else:
                 unmatched.append(fields["name"])
@@ -340,7 +348,13 @@ def analyze_league_draft(
         for t in team_summaries:
             t.setdefault("anomalies", [])
 
-    with_delta = [p for p in enriched if p["delta"] is not None]
+    # The boldest picks in the league are a claim about judgment, so they
+    # are drawn from skill positions only and from picks the board could
+    # actually rank. Unfiltered, four of Surfeit's five biggest reaches were
+    # kickers and defenses that everyone is forced to draft below the board.
+    with_delta = [p for p in enriched
+                  if p["delta"] is not None and not p.get("off_board")
+                  and (p.get("position") or "").upper() in SKILL_POSITIONS]
     league_reaches = sorted((p for p in with_delta if p["delta"] < 0), key=lambda p: p["delta"])[:5]
     league_values = sorted((p for p in with_delta if p["delta"] > 0), key=lambda p: -p["delta"])[:5]
 

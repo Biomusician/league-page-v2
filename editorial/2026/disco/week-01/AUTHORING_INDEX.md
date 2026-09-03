@@ -9,6 +9,7 @@ rough draft for the commissioner; nothing you write publishes directly.
 - matchups/roster-10-vs-roster-11/generated/AUTHORING.md
 - matchups/roster-6-vs-all-barkley-no-bite/generated/AUTHORING.md
 - matchups/roster-6-vs-goff-n-with-the-boys/generated/AUTHORING.md
+- matchups/stafford-son-vs-boutte-qbs/generated/AUTHORING.md
 - matchups/stafford-son-vs-george-friends/generated/AUTHORING.md
 - matchups/statistical-anomalies-vs-secret-asian-man/generated/AUTHORING.md
 - matchups/tua-girls-one-kupp-vs-vhs-cowboys/generated/AUTHORING.md

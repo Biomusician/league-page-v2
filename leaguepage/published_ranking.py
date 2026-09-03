@@ -56,12 +56,18 @@ def extract_ranking(sections: list[dict], *, league_slug: str, season: str,
         rows = _corrected_rows(md, ctx) or _ranked_rows(md, ctx)
         if not _is_a_ranking(rows, len(public_names)):
             continue
+        # His capsule text keys off the roster, not the rank, so a
+        # correction that reorders the board keeps each team's own words.
+        notes = {rid: note for rid, note in
+                 ((rid, note) for _r, (rid, note) in
+                  sorted(_ranked_blocks(md, ctx).items()))}
         candidate = {
             "corrected": bool(_CORRECTION_RE.search(md)) and bool(_corrected_rows(md, ctx)),
             "section_title": section.get("title") or "",
             "anchor": section.get("anchor") or section.get("module_key") or "",
             "rows": [{"rank": rank, "roster_id": rid,
-                      "name": public_names.get(rid) or f"Roster {rid}"}
+                      "name": public_names.get(rid) or f"Roster {rid}",
+                      "note": notes.get(rid) or ""}
                      for rank, rid in sorted(rows.items())],
         }
         # Prefer the most complete ranking in the issue, so a "top five" aside
@@ -94,9 +100,21 @@ def _corrected_rows(content_md: str, ctx: QAContext) -> dict[int, int]:
 
 def _ranked_rows(content_md: str, ctx: QAContext) -> dict[int, int]:
     """rank -> roster_id, for headings that carry both."""
-    out: dict[int, int] = {}
+    return {rank: rid for rank, (rid, _note) in _ranked_blocks(content_md, ctx).items()}
+
+
+def _ranked_blocks(content_md: str, ctx: QAContext) -> dict[int, tuple[int, str]]:
+    """rank -> (roster_id, the prose he wrote under that heading).
+
+    The ranking page used to print his order and throw away his reasons, so
+    a page whose whole subject is his judgment contained none of his words.
+    The parser already walks these headings; the body between one heading
+    and the next is his capsule.
+    """
+    out: dict[int, tuple[int, str]] = {}
     seen_rosters: set[int] = set()
-    for m in _HEADING_RE.finditer(content_md):
+    heads = list(_HEADING_RE.finditer(content_md))
+    for i, m in enumerate(heads):
         ranked = _RANKED_RE.match(m.group(2).strip())
         if not ranked:
             continue
@@ -106,7 +124,13 @@ def _ranked_rows(content_md: str, ctx: QAContext) -> dict[int, int]:
             # A repeated rank or a repeated team means we are misreading the
             # section, and a half-read ranking is worse than none.
             continue
-        out[rank] = rid
+        end = heads[i + 1].start() if i + 1 < len(heads) else len(content_md)
+        body = content_md[m.end():end].strip()
+        # A table under the heading is not a capsule, and neither is a
+        # correction notice. Take prose paragraphs only.
+        paras = [p.strip() for p in body.split("\n\n")
+                 if p.strip() and not p.lstrip().startswith(("|", "#", ">"))]
+        out[rank] = (rid, paras[0] if paras else "")
         seen_rosters.add(rid)
     return out
 

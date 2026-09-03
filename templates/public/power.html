@@ -8,6 +8,7 @@
   .board .facts { font-size:.88rem; margin:.35rem 0 0; }
   .board .facts b { font-weight:normal; font-variant:small-caps; letter-spacing:.06em; }
   .gap { font-size:.78rem; }
+  .capsule { margin:.4rem 0 0; }
 {% if league and league.theme == "disco" %}
   .modelnote { background:#1c2229; border-left:4px solid #8fa8b8; color:#c9c4b4; }
   .board .rk { color:#e8a33d; }
@@ -25,6 +26,22 @@ judgment, published as one.{% if ranking_source %} Taken from
 <a href="{{ lroot }}{{ ranking_source.href }}">{{ ranking_source.section }}</a>
 in the {{ ranking_source.label }}{% if ranking_source.corrected %}, as
 corrected in that issue{% endif %}.{% endif %}</p>
+
+{% for r in rankings %}
+<div class="card">
+  <p style="margin:.1rem 0"><strong>#{{ r.rank }}
+    {%- if r.slug %} <a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a>
+    {%- else %} {{ r.name }}{% endif %}</strong>
+    {% if r.movement %}<span class="tag">{{ r.movement }}</span>{% endif %}
+    {% if r.tier_name %}<span class="tag prom">{{ r.tier_name }}</span>{% endif %}
+    {% if r.model_rank %}<span class="tag gap">model #{{ r.model_rank }}</span>{% endif %}
+  </p>
+  {% if r.record or r.model_gap_label %}
+  <p class="meta">{{ r.record or "" }}{% if r.record and r.model_gap_label %} · {% endif %}{{ r.model_gap_label or "" }}</p>
+  {% endif %}
+  {% if r.note %}<p class="capsule">{{ r.note }}</p>{% endif %}
+</div>
+{% endfor %}
 
 {% if disagreements %}
 <section class="module disagree">
@@ -44,21 +61,6 @@ corrected in that issue{% endif %}.{% endif %}</p>
   {% endfor %}
 </section>
 {% endif %}
-{% for r in rankings %}
-<div class="card">
-  <p style="margin:.1rem 0"><strong>#{{ r.rank }}
-    {%- if r.slug %} <a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a>
-    {%- else %} {{ r.name }}{% endif %}</strong>
-    {% if r.movement %}<span class="tag">{{ r.movement }}</span>{% endif %}
-    {% if r.tier_name %}<span class="tag prom">{{ r.tier_name }}</span>{% endif %}
-    {% if r.model_rank %}<span class="tag gap">model #{{ r.model_rank }}</span>{% endif %}
-  </p>
-  {% if r.record or r.model_gap_label %}
-  <p class="meta">{{ r.record or "" }}{% if r.record and r.model_gap_label %} · {% endif %}{{ r.model_gap_label or "" }}</p>
-  {% endif %}
-  {% if r.note %}<p>{{ r.note }}</p>{% endif %}
-</div>
-{% endfor %}
 {% if board.rows %}
 <h2 class="section-label">Model Board</h2>
 <p class="meta">Computed from synced data; nobody wrote it. {{ board.basis }}</p>

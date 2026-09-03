@@ -47,7 +47,11 @@
   nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
   h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
   .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  /* A container that scrolls sideways must be focusable, or its hidden
+     columns are unreachable without a pointer. The templates give it
+     tabindex and a label; this gives the focus somewhere to show. */
   .tablewrap { overflow-x:auto; }
+  .tablewrap:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
   table { border-collapse:collapse; width:100%; font-size:.95rem; }
   td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
   td.wrap { white-space:normal; }
@@ -140,6 +144,12 @@
   /* Editorial tables arrive as raw HTML from published prose and were the
      only thing on the site that scrolled the whole page sideways. */
   section.module > div table { display:block; overflow-x:auto; max-width:100%; }
+  /* That rule was written for editorial prose tables and also caught the
+     site's own, inside .tablewrap. `display:block` stops a table being a
+     table for assistive technology, which quietly cost scope="col" and
+     <caption> on twenty of twenty-four tables while the wrapper that was
+     supposed to scroll sat inert. Hand the scrolling back to the wrapper. */
+  .tablewrap table { display:table; overflow-x:visible; }
   nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
               display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
   nav.exits a { display:inline-block; padding:.45rem 0; }
@@ -155,8 +165,13 @@
   .myteam .forget { font-size:.8rem; background:none; border:0; padding:.4rem 0;
                     color:inherit; cursor:pointer; text-decoration:underline; }
   /* Anything a thumb has to hit gets a real height. A 15px link with no
-     padding is a miss on a phone. */
-  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
+     padding is a miss on a phone. The first three selectors covered about
+     nothing: the standalone links that actually failed live in table
+     headers, ranking cards, section headings and .meta lines, and there
+     were roughly 130 of them between 15 and 20 pixels tall. */
+  .deeper a, .lists a, main li > a,
+  th a, .rooms a, .card strong a, main h3 > a, p.meta > a, .brief a
+    { display:inline-block; padding:.25rem 0; }
   .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
   table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
   th.sortable button { font:inherit; color:inherit; background:none; border:0;

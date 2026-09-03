@@ -9,7 +9,7 @@ is no order to publish. The rows below are in roster order, which carries no
 meaning. <a href="{{ lroot }}power/index.html">The model board ranks the
 rooms &rarr;</a></p>
 {% endif %}
-<div class="tablewrap">
+<div class="tablewrap" tabindex="0" role="region" aria-label="{{ league.display_name }} standings">
 <table data-sortable>
   <caption class="meta">{{ league.display_name }} standings{% if weeks_played %}, through week {{ weeks_played }}{% endif %}.</caption>
   <tr>{% if weeks_played %}<th scope="col" data-sort-type="number">#</th>{% endif %}<th scope="col" data-sort-type="text">Team</th>
@@ -40,7 +40,7 @@ rooms &rarr;</a></p>
 {% if analysis and analysis.playoff %}
 <h2 class="section-label">Playoff Picture</h2>
 {% if analysis.playoff.rows %}
-<div class="tablewrap"><table>
+<div class="tablewrap" tabindex="0" role="region" aria-label="Playoff picture"><table>
   <tr><th scope="col">Team</th><th scope="col">Outlook</th>{% if analysis.playoff.rows[0].odds %}<th scope="col">Odds</th>{% endif %}</tr>
   {% for r in analysis.playoff.rows %}
   <tr><td class="wrap">{{ r.name }}</td><td>{{ r.band }}</td>
@@ -59,7 +59,7 @@ season many times from each team's observed scoring only; preseason rankings pla
 <h2 class="section-label">Under the Hood</h2>
 <p class="meta">Deterministic context through week {{ weeks_played }}: all-play treats every team as
 having played every other team each week; efficiency is actual starters vs the best legal lineup.</p>
-<div class="tablewrap">
+<div class="tablewrap" tabindex="0" role="region" aria-label="Under the hood: deterministic context">
 <table data-sortable>
   <tr><th scope="col" data-sort-type="text">Team</th>
       <th scope="col" data-sort-type="number" data-sort-dir="desc">All-Play</th>

@@ -158,9 +158,12 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
     Text is complete and public-safe; confidence stays internal."""
     n = profile["n"]
 
-    # streaming: pure K/DST churn gets a light touch, not analysis theater
-    if adds and all(a["position"] in STREAM_POSITIONS for a in adds) and \
-            all(d["position"] in STREAM_POSITIONS for d in (drops or adds)):
+    # streaming: pure K/DST churn gets a light touch, not analysis theater.
+    # `drops or adds` checked the adds against themselves when nothing was
+    # dropped, so a first kicker claim after an injury was called routine
+    # churn. Churn needs both sides.
+    if adds and drops and all(a["position"] in STREAM_POSITIONS for a in adds) and \
+            all(d["position"] in STREAM_POSITIONS for d in drops):
         return {"kind": "streaming", "confidence": "high",
                 "text": "Likely streaming behavior: routine "
                         f"{adds[0]['position']} churn."}
@@ -180,12 +183,22 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
         pair = _ctx_rank("adds", add["pid"])
         add_rank_before, add_rank_after = pair.get("before"), pair.get("after")
         current_rank = profile["ranks"].get(add["position"], {}).get(rid)
-        rank_for_need = add_rank_before if add_rank_before is not None else current_rank
+        # When sync stored no context for this move, the only rank available
+        # is today's — computed after the move, and often under a different
+        # valuation stage than the week the move happened. Saying "before the
+        # move" about it was wrong twice over, so say which number this is.
+        historical = add_rank_before is not None
+        rank_for_need = add_rank_before if historical else current_rank
 
         if _bottom(rank_for_need, n, 0.34):
-            kind, confidence = "weakness", "high" if _bottom(rank_for_need, n, 0.25) else "medium"
+            kind = "weakness"
+            # A rank measured after the fact is weaker evidence for a motive
+            # than one measured at the time.
+            confidence = ("high" if historical and _bottom(rank_for_need, n, 0.25)
+                          else "medium" if historical else "low")
+            when = "before the move" if historical else "today, after the move"
             s = (f"This appears aimed at {add['position']}: the room ranked "
-                 f"#{rank_for_need} of {n} before the move")
+                 f"#{rank_for_need} of {n} {when}")
             if add_rank_after is not None and add_rank_after < rank_for_need:
                 s += f", and the addition moved it to #{add_rank_after}"
             sentences.append(s + ".")

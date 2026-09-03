@@ -134,7 +134,11 @@ def pick_port(preferred: int = DEFAULT_PORT) -> tuple[int, str]:
 
 
 def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
-    app = FastAPI(title="Commissioner's Desk", docs_url=None, redoc_url=None)
+    # docs_url/redoc_url only turn off the two HTML viewers; the schema
+    # itself stayed live at /openapi.json, publishing the whole private
+    # route map to anything that could reach the port. Nothing consumes it.
+    app = FastAPI(title="Commissioner's Desk", docs_url=None, redoc_url=None,
+                  openapi_url=None)
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     # ---- central authorization -------------------------------------
@@ -147,7 +151,8 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     from leaguepage import auth as authmod
 
     PUBLIC_PATHS = {"/health", "/login", "/auth/request", "/auth/verify",
-                    "/auth/callback", "/static/sortable.js"}
+                    "/auth/callback", "/static/sortable.js",
+                    "/static/desk.js"}
 
     class RequireCommissioner(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
@@ -348,6 +353,19 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         from leaguepage.config import STATIC_DIR
 
         return FileResponse(STATIC_DIR / "sortable.js",
+                            media_type="text/javascript")
+
+    @app.get("/static/desk.js")
+    def desk_js():
+        """Named explicitly rather than mounted as a directory: a mount
+        would serve whatever ends up in static/, and this app has exactly
+        two scripts. Public because the login page loads it and it carries
+        no secret -- the CSRF token reaches it from the page's meta tag."""
+        from fastapi.responses import FileResponse
+
+        from leaguepage.config import STATIC_DIR
+
+        return FileResponse(STATIC_DIR / "desk.js",
                             media_type="text/javascript")
 
     @app.get("/health")

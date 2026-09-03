@@ -2,23 +2,9 @@
 {% block title %}{{ league.display_name }} — Teams{% endblock %}
 {% from "public/_links.html" import team %}
 {% block content %}
-<h2 class="section-label">Teams</h2>
-<div class="teamgrid">
-  {% for t in teams %}
-  <a class="card" href="{{ lroot }}team/{{ t.slug }}/index.html" style="text-decoration:none; color:inherit">
-    <h3>{{ t.name }}</h3>
-    {% if t.coalition %}<div class="flags"><span aria-hidden="true">{{ t.coalition.flags }}</span>
-      <span class="meta">{{ t.coalition.label }}</span></div>{% endif %}
-    <div class="meta">{% if weeks_played %}{{ t.record }} · #{{ t.standing }}
-      {%- else %}model board #{{ t.model_rank }} of {{ teams|length }}{% endif %}</div>
-    {% if t.coalition %}<div class="meta">{{ t.coalition.roles }}</div>{% endif %}
-  </a>
-  {% endfor %}
-</div>
-
 <h2 class="section-label">Positional Strength — League Comparison</h2>
 <p class="meta">Click a position to rank the league's rooms; click again to reverse.</p>
-<div class="tablewrap">
+<div class="tablewrap" tabindex="0" role="region" aria-label="Positional strength, league comparison">
 <table data-sortable>
   <tr><th scope="col" data-sort-type="text">Team</th>
     {% for pos in positions %}<th scope="col" data-sort-type="number">{{ pos }}</th>{% endfor %}</tr>
@@ -33,4 +19,18 @@ Rooms are scored against this league's actual lineup requirements (starters
 weighted over depth, flex and superflex demand included), currently using
 {{ stage }}. Positional strength measures the roster, and the standings
 measure results; the gap between the two is usually where the story is.</p>
+
+<h2 class="section-label">Every team</h2>
+<div class="teamgrid">
+  {% for t in teams %}
+  <a class="card" href="{{ lroot }}team/{{ t.slug }}/index.html" style="text-decoration:none; color:inherit">
+    <h3>{{ t.name }}</h3>
+    {% if t.coalition %}<div class="flags"><span aria-hidden="true">{{ t.coalition.flags }}</span>
+      <span class="meta">{{ t.coalition.label }}</span></div>{% endif %}
+    <div class="meta">{% if weeks_played %}{{ t.record }} · #{{ t.standing }}
+      {%- else %}model board #{{ t.model_rank }} of {{ teams|length }}{% endif %}</div>
+    {% if t.coalition %}<div class="meta">{{ t.coalition.roles }}</div>{% endif %}
+  </a>
+  {% endfor %}
+</div>
 {% endblock %}

@@ -26,6 +26,7 @@ Everything here is private. Nothing in this module reaches `dist/`.
 from __future__ import annotations
 
 from leaguepage.config import League
+from leaguepage.matchup_analysis import faab_cost
 from leaguepage.storage import Storage
 
 # A change has to clear its category's floor to become an item at all. Scoring
@@ -416,7 +417,12 @@ def transaction_items(storage: Storage, league: League, before: dict, after: dic
             tid = str(t.get("transaction_id") or "")
             if tid not in wanted or t.get("status") != "complete":
                 continue
-            faab = sum(x.get("amount", 0) for x in (t.get("waiver_budget") or []))
+            # A claim's price is in settings.waiver_bid; waiver_budget is
+            # budget moving between teams in a trade. Reading only the
+            # second made every waiver claim free, so a 45%-of-budget claim
+            # was filtered out as a routine add/drop and never reached the
+            # Commissioner.
+            faab = faab_cost(t)
             share = faab / budget if budget else 0.0
             is_trade = t.get("type") == "trade"
             if share < FLOORS["faab_share"] and not is_trade:

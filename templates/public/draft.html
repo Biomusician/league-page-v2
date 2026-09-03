@@ -63,7 +63,7 @@
   <div class="card" id="team-{{ t.slug }}">
     <h3>{% if t.page_slug %}<a href="{{ lroot }}team/{{ t.page_slug }}/index.html">{{ t.name }}</a>{% else %}{{ t.name }}{% endif %}</h3>
     <span class="meta">{{ t.position_counts }}</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="{{ t.name }} draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -85,7 +85,7 @@
 <section class="module">
   <h2 class="section-label">Full Board</h2>
   <p class="meta">Sort Draft Value ascending for the biggest reaches, descending for the biggest steals.</p>
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Full draft board">
   <table data-sortable>
     <tr><th scope="col" data-sort-type="number">Pick</th>
         <th scope="col" data-sort-type="number">Rd</th>

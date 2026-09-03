@@ -179,12 +179,19 @@ def is_material(if_win: float, if_lose: float) -> bool:
 def describe_stake(if_win: float, if_lose: float) -> str:
     """Plain words for a pair of numbers most readers do not want in
     decimals, and honest about the two cases that are not really swings."""
+    pct = (if_win - if_lose) * 100
+    if pct < MATERIAL_SWING * 100:
+        # Two locked teams playing each other swing nothing, and "matters"
+        # asserted the opposite of what the numbers beside it said.
+        return "does not move either side"
     if if_lose < ELIMINATED:
-        return "a loss ends it"
+        # Zero out of two thousand draws is not zero. A 0-5 team in week 6
+        # with nine games left is alive by arithmetic and the model only
+        # says it is very unlikely, so the verdict says that instead.
+        return "a loss all but ends it"
     if if_win >= 0.97 and if_lose < 0.80:
         # At 99 against 93 a win settles nothing; he was already in.
         return "a win settles it"
-    pct = (if_win - if_lose) * 100
     if pct >= 25:
         return "decides most of it"
     if pct >= 15:

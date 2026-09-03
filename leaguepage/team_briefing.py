@@ -62,6 +62,12 @@ def _best_and_worst(profile: dict, rid: int) -> tuple[dict | None, dict | None]:
         return None, None
     best = min(skill, key=lambda p: profile["ranks"][p][rid])
     worst = max(skill, key=lambda p: profile["ranks"][p][rid])
+    # min and max both return the first extreme element, so a team whose
+    # skill rooms all rank the same got the same room printed as its
+    # strength and its concern in the same breath. If nothing separates the
+    # rooms there is no exposure to name.
+    if profile["ranks"][best][rid] == profile["ranks"][worst][rid]:
+        worst = None
     room = profile["teams"][rid]
 
     def entry(pos):
@@ -75,7 +81,7 @@ def _best_and_worst(profile: dict, rid: int) -> tuple[dict | None, dict | None]:
         return {"pos": pos, "rank": profile["ranks"][pos][rid],
                 "n": profile["n"], "nuance": nuance}
 
-    return entry(best), entry(worst)
+    return entry(best), (entry(worst) if worst else None)
 
 
 def storyline(*, state: str, record: dict, form: dict | None, streak: dict | None,

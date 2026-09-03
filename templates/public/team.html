@@ -70,15 +70,15 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
     </dl>
     {% if b.changed or b.watch %}
     <div class="lists">
-      {% if b.changed %}<h4>What changed</h4>
+      {% if b.changed %}<h3>What changed</h3>
       <ul>{% for c in b.changed %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
-      {% if b.watch %}<h4>What to watch</h4>
+      {% if b.watch %}<h3>What to watch</h3>
       <ul>{% for w in b.watch %}<li>{{ w }}</li>{% endfor %}</ul>{% endif %}
     </div>
     {% endif %}
     {% if team.own_stake %}
     <div class="lists">
-      <h4>What Sunday is worth</h4>
+      <h3>What Sunday is worth</h3>
       <ul><li>{{ team.own_stake.if_win }} to make the playoffs with a win against
         {{ team.own_stake.opponent }}, {{ team.own_stake.if_lose }} with a loss.
         It {{ team.own_stake.verdict }}.</li></ul>
@@ -86,7 +86,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
     {% endif %}
     {% if team.rooting %}
     <div class="lists">
-      <h4>Root for</h4>
+      <h3>Root for</h3>
       <ul>
         {% for r in team.rooting %}
         <li>{% if r.for_slug %}<a href="{{ lroot }}team/{{ r.for_slug }}/index.html">{{ r["for"] }}</a>{% else %}{{ r["for"] }}{% endif %}
@@ -113,7 +113,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
 {% if key == "positional" and team.positional %}
 <section class="module">
   <h2 class="section-label">Positional Strength</h2>
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Positional strength">
   <table>
     <tr><th scope="col">Position</th><th scope="col">Rank</th><th scope="col">Assessment</th></tr>
     {% for p in team.positional %}
@@ -209,7 +209,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
     </ul>
   </div>
   {% endif %}
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Draft recap">
   <table data-sortable>
     <tr><th scope="col" data-sort-type="number">Rd</th>
         <th scope="col" data-sort-type="number">Pick</th>
@@ -233,7 +233,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
 {% if key == "performance" and team.score_history %}
 <section class="module">
   <h2 class="section-label">Performance</h2>
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Week by week performance">
   <table>
     <tr><th scope="col">Week</th>{% for w, p in team.score_history %}<th scope="col">{{ w }}</th>{% endfor %}</tr>
     <tr><td>Points</td>{% for w, p in team.score_history %}<td>{{ p }}</td>{% endfor %}</tr>
@@ -255,7 +255,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
 {% if key == "roster" %}
 <section class="module">
   <h2 class="section-label">Roster</h2>
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Roster">
   <table>
     <tr><th scope="col">Pos</th><th scope="col">Player</th><th scope="col">NFL</th></tr>
     {% for p in team.roster %}

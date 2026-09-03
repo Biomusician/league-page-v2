@@ -29,12 +29,20 @@ def _write(out, name, body):
     p.write_text(body, encoding="utf-8")
 
 
+# Every credential-shaped fixture below is ASSEMBLED rather than written
+# out. A literal one in a tracked file is exactly what the repo audit exists
+# to stop, and a synthetic secret still trips a scanner reading the repo.
+SUPA = "https://abcdefghij." + "supa" + "base.co/rest/v1"
+JWT = "ey" + "Jhb" + "GciOiJIUzI1NiJ9." + "ey" + "JzdWIiOiIxIn0.sig"
+PG = "postgres" + "ql://user:pw@host:5432/league"
+
+
 @pytest.mark.parametrize("name,body,label", [
-    ("a.html", "<p>https://abcdefghij.supabase.co/rest/v1</p>", "Supabase project URL"),
-    ("b.html", "<p>eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig</p>", "JWT"),
+    ("a.html", f"<p>{SUPA}</p>", "Supabase project URL"),
+    ("b.html", f"<p>{JWT}</p>", "JWT"),
     ("c.html", "<p>write to someone@example.com about it</p>", "email address"),
     ("d.html", "<p>recommended_status: leaning_wrong</p>", "internal field name"),
-    ("e.html", "<p>postgresql://user:pw@host:5432/league</p>", "database URL"),
+    ("e.html", f"<p>{PG}</p>", "database URL"),
     ("f.html", "<p>/Users/somebody/League-Page/notes.txt</p>", "absolute path"),
     ("g.html", "<p>editorial/2026/disco/draft/notes.md</p>", "private repo path"),
     ("h.html", "<p>see PREP.md for the brief</p>", "authoring artifact"),
@@ -50,9 +58,9 @@ def test_each_private_shape_is_caught(out, name, body, label):
 
 def test_a_finding_never_quotes_the_value(out):
     """An audit report that prints the secret has published it again."""
-    _write(out, "a.html", "<p>eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzZWNyZXQifQ.sig</p>")
+    _write(out, "a.html", f"<p>{JWT}</p>")
     for v in audit_output(out, public_names=[]):
-        assert "eyJ" not in v, v
+        assert JWT[:3] not in v, v
 
 
 def test_non_html_output_is_scanned_too(out):

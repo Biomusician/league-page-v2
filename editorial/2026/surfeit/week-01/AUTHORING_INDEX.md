@@ -5,6 +5,7 @@ rough draft for the commissioner; nothing you write publishes directly.
 
 - AUTHORING_INDEX.md
 - lowdown/AUTHORING.md
+- matchups/mjs-hurt-locker-vs-swifty-mahomey/generated/AUTHORING.md
 - matchups/roster-2-vs-roster-5/generated/AUTHORING.md
 - matchups/roster-6-vs-swifty-mahomey/generated/AUTHORING.md
 - matchups/shactin-a-fool-vs-roster-4/generated/AUTHORING.md

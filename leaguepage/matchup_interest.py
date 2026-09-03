@@ -183,7 +183,12 @@ def classify(matchup: dict, ci: dict, sv: dict, week_ctx: dict) -> list[str]:
     if "projected within" in labels:
         tags.append("Photo Finish candidate")
     if week_ctx.get("weeks_played", 0) >= LEVERAGE_MIN_WEEKS and "leverage" in labels:
-        tags.append("Playoff Leverage")
+        # Two different games wear one tag. The cutline branch really can
+        # move a berth; the both-teams-are-in branch moves seeding, and
+        # calling that a berth contradicts the leverage model printed beside
+        # it, which correctly reports a zero swing for two locked teams.
+        seeding = any("seeding is live" in lab for lab in labels)
+        tags.append("Seeding at Stake" if seeding else "Playoff Leverage")
     return tags
 
 

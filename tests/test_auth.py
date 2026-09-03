@@ -29,6 +29,7 @@ PUBLIC_PATHS = {
     "/auth/verify",         # OTP code exchange
     "/auth/callback",       # magic-link redemption
     "/static/sortable.js",  # static asset, no data
+    "/static/desk.js",      # ditto; the login page loads it too
 }
 
 

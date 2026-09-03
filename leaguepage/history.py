@@ -27,6 +27,7 @@ import json
 import re
 
 from leaguepage.config import League
+from leaguepage.privacy import handle_re
 from leaguepage.storage import Storage
 
 MAX_ITEMS = 2
@@ -188,8 +189,14 @@ def matchup_history(storage: Storage, league: League, season: str, week: int,
             quote = _clean_snippet(cb.get("snippet") or "")
             if not reads_as_prose(quote):
                 continue    # a table fragment is not a callback
-        if any(h in quote for h in handles):
-            continue        # archive pages are verbatim-public; this page is not
+        # Archive pages are verbatim-public; a quote lifted onto a matchup
+        # card is not. Match the way the build audit does -- case-insensitive
+        # and at word boundaries -- or this drops the candidate the audit
+        # would have caught and fails the build instead of picking the next
+        # one. A real 2019 quote naming a manager by an alias was reaching
+        # production through exactly this gap.
+        if any(handle_re(h).search(quote) for h in handles):
+            continue
         when = " ".join(str(x) for x in (cb.get("season"), cb.get("week")) if x)
         both = sum(1 for nm in (name_a, name_b)
                    if re.search(rf"\b{re.escape(nm.split(' (')[0])}\b", quote, re.I))

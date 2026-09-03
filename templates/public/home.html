@@ -41,14 +41,17 @@
 {% if league and league.theme == "disco" %}
   .cta { background:#e8a33d; color:#14181d; }
   .brief .lead { border:2px solid #e8a33d; background:#1a2027; }
-  .teamstrip a { background:#1a2027; border:1px solid #2c343d; }
+  /* The border is the whole visual boundary of this control, and at
+     1.3:1 against a background itself 1.09:1 from the page there was
+     effectively no boundary at all. WCAG 1.4.11 wants 3:1; this is 3.8. */
+  .teamstrip a { background:#1a2027; border:1px solid #6b7a88; }
   .teamstrip a:hover { border-color:#e8a33d; }
   .freshbar { color:#8fa8b8; border-bottom:1px solid #2c343d; }
   .hero h2.headline { color:#e8e4d8; }
 {% else %}
   .cta { background:#facd00; color:#071a2f; }
   .brief .lead { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
-  .teamstrip a { background:#0e2743; border:1px solid #1d3d63; }
+  .teamstrip a { background:#0e2743; border:1px solid #6e8aa8; }
   .teamstrip a:hover { border-color:#facd00; }
   .freshbar { color:#9fb6cc; border-bottom:1px solid #1d3d63; }
   .hero h2.headline { color:#e4ecf5; }
@@ -166,7 +169,7 @@
 {% if front.show_standings %}
 <section class="module">
   <h2 class="section-label">Standings</h2>
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="{{ league.display_name }} standings">
   <table>
     <caption class="meta" style="text-align:left">Top of the table after week {{ front.weeks_played }}</caption>
     <tr><th scope="col">#</th><th scope="col">Team</th><th scope="col">W</th><th scope="col">L</th><th scope="col">PF</th></tr>

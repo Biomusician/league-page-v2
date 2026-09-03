@@ -88,7 +88,7 @@ def scout_view(matchup: dict, *, profile: dict | None, names: dict[int, str],
                            f"{profile['n']}")
     for tag in tags:
         if tag in ("Coalition Warfare", "Rivalry", "Revenge Game", "Top Table",
-                   "Basement Brawl", "Playoff Leverage"):
+                   "Basement Brawl", "Playoff Leverage", "Seeding at Stake"):
             why.append(_TAG_NOTES[tag])
 
     watch: list[str] = []
@@ -135,7 +135,11 @@ _TAG_NOTES = {
     "Revenge Game": "These two have traded with each other.",
     "Top Table": "Both sides are in the top of the table.",
     "Basement Brawl": "Both sides are in the bottom of the table.",
-    "Playoff Leverage": "The result moves a playoff berth.",
+    # The tag fires on standings position, which is not the same claim as
+    # the simulation's. Say what was measured; the leverage numbers beside
+    # it say what it is worth.
+    "Playoff Leverage": "At least one side is sitting on the playoff cutline.",
+    "Seeding at Stake": "Both sides already hold berths; this is about seeding.",
 }
 
 
@@ -186,6 +190,11 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
     for i, (score, rid, construction, results) in enumerate(scored):
         best = min(skill, key=lambda p: profile["ranks"][p][rid]) if skill else None
         worst = max(skill, key=lambda p: profile["ranks"][p][rid]) if skill else None
+        # A team whose skill rooms all rank alike had one room printed as
+        # both what carries it and what exposes it. Nothing separates them,
+        # so name neither.
+        if best and profile["ranks"][best][rid] == profile["ranks"][worst][rid]:
+            best = worst = None
         factor = None
         if weeks_played and rid in (form or {}):
             f = form[rid]

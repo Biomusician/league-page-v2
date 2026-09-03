@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Commissioner's Desk{% endblock %}</title>
+{#  The session's CSRF token, for desk.js to attach to every mutating
+    request. Empty when auth is off, which is the mode the check itself
+    short-circuits, so the page behaves identically either way. #}
+<meta name="csrf-token" content="{{ request.state.session.csrf if request.state.session else '' }}">
 <style>
   :root { --ink:#1a1c20; --paper:#f7f6f2; --accent:#7a2318; --muted:#6b6f76; --card:#ffffff; --line:#d8d5cd; }
   * { box-sizing: border-box; }
@@ -32,6 +36,32 @@
   th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
   th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
   th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  /* sortable.js moves each header's text into a real button. Without this
+     reset every sortable header renders as a grey UA button, which on the
+     editor's team-name grid alone cost 42px of table width. The public
+     stylesheet has carried this rule; the Desk never did. */
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:left; }
+  /* The Desk had no focus styles at all and relied on the UA default. */
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible, summary:focus-visible
+    { outline:3px solid var(--accent); outline-offset:2px; }
+  /* Any input sized in characters overflows a phone. Let the container
+     decide the width; `size` and `cols` stay as a fallback for no-CSS. */
+  input[type=text], input[type=email], input[type=url], textarea, select
+    { max-width:100%; }
+  td input[type=text], td textarea, td select { width:100%; }
+  /* Text under 16px makes iOS Safari zoom on focus and never zoom back,
+     stranding the writer mid-sentence. Nothing typed into is below 1rem. */
+  textarea, input, select { font-size:1rem; }
+  @media (max-width: 40rem) {
+    /* 64px of gutter is 17% of a 375px screen. Seventeen of the Desk's
+       twenty-one templates had no responsive rule at all. */
+    main { padding:1rem .7rem 3rem; }
+    header.masthead { padding:.7rem .8rem; }
+    form.inline { display:flex; }
+    .tablewrap { overflow-x:auto; }
+  }
 </style>
 </head>
 <body>
@@ -43,5 +73,6 @@
 {% block content %}{% endblock %}
 </main>
 <script src="/static/sortable.js" defer></script>
+<script src="/static/desk.js" defer></script>
 </body>
 </html>

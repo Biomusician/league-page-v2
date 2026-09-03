@@ -26,6 +26,9 @@ BENCH_MEMORIAL_MIN = 20.0
 FAAB_ARSON_PCT = 0.20
 MERCY_STRONG_MARGIN = 40.0
 UPSET_MIN_STANDINGS_GAP = 4
+# All-play over a single prior week is one game per opponent and carries no
+# information; the awards that lean on it wait for a real window.
+ALL_PLAY_MIN_WEEKS = 3
 
 
 def _slot_layout(roster_positions: list[str]) -> list[str]:
@@ -156,11 +159,25 @@ def weekly_award_nominations(
             continue
         score_rank = scores.index(r["team"]["points"]) + 1
         ap = r["team"].get("all_play")
-        if score_rank <= 3 or (ap and ap.get("pct") and ap["pct"] >= 0.7):
+        # All-play here is computed through the PREVIOUS week, so in week 2
+        # it is one week of results and a .700 from it means nothing. Without
+        # this gate the award nominated the worst score of the week under a
+        # metric line that promises a top-3 score.
+        ap_games = (ap or {}).get("wins", 0) + (ap or {}).get("losses", 0) \
+            + (ap or {}).get("ties", 0)
+        ap_weeks = ap_games // max(1, len(rows) - 1)
+        ap_qualifies = bool(ap and ap.get("pct") and ap["pct"] >= 0.7
+                            and ap_weeks >= ALL_PLAY_MIN_WEEKS)
+        if score_rank <= 3 or ap_qualifies:
+            facts = [f"Lost by {abs(r['margin']):g} with {r['team']['points']:g} points "
+                     f"(#{score_rank} score of the week)."]
+            if ap_qualifies and score_rank > 3:
+                facts.append(f"All-play {ap['wins']}-{ap['losses']} "
+                             f"({ap['pct']:.0%}) over {ap_weeks} prior weeks.")
             hard_luck.append({
                 "team_slug": r["team"]["team_slug"], "metric_value": r["team"]["points"],
-                "facts": [f"Lost by {abs(r['margin']):g} with {r['team']['points']:g} points "
-                          f"(#{score_rank} score of the week)."],
+                "score_rank": score_rank,
+                "facts": facts,
                 "evidence": matchup_ev(r),
             })
     hard_luck.sort(key=lambda n: -n["metric_value"])
@@ -184,6 +201,7 @@ def weekly_award_nominations(
             if eff is not None:
                 facts.append(f"Lineup efficiency {eff:.0%} of optimal.")
             escape.append({"team_slug": r["team"]["team_slug"], "metric_value": score_rank,
+                           "bottom_three": score_rank > len(rows) - 3,
                            "facts": facts, "evidence": matchup_ev(r)})
     escape.sort(key=lambda n: -n["metric_value"])
     awards.append({
@@ -291,7 +309,13 @@ def weekly_award_nominations(
         for pid, pts in (raw.get("players_points") or {}).items():
             if pid in starters or float(pts) < BENCH_MEMORIAL_MIN:
                 continue
-            player = (storage.get_player(pid) or {}).get("full_name") or pid
+            info = storage.get_player(pid) or {}
+            # Same rule best_bench_swap follows twenty lines up: you start
+            # your only kicker, so a benched one outscoring him is not a
+            # decision anybody made.
+            if (info.get("position") or "").upper() in SPECIAL_TEAMS:
+                continue
+            player = info.get("full_name") or pid
             memorials.append({"team_slug": r["team"]["team_slug"], "player": player,
                               "metric_value": float(pts),
                               "facts": [f"{player} scored {float(pts):g} on the bench."],
@@ -340,6 +364,9 @@ def weekly_award_nominations(
             if s_pts < 18:
                 continue
             s_player = storage.get_player(sid) or {}
+            # A kicker started over another kicker is not a contrarian read.
+            if (s_player.get("position") or "").upper() in SPECIAL_TEAMS:
+                continue
             s_rank = s_player.get("search_rank") or 10**6
             beaten = None
             for bid in pp:
@@ -376,12 +403,20 @@ def weekly_award_nominations(
             aw["slate"] = "none"
         else:
             top = aw["nominees"][0]
+            # "Strong" is the signal the Commissioner reads to decide whether
+            # an award is worth giving this week. Four of these were strong
+            # whenever they had any nominee at all, which made the field a
+            # restatement of "nominees exist". Each now has to clear the bar
+            # its own metric line advertises.
             strong = (
                 (aw["award_key"] == "shame" and top.get("outcome_changing"))
                 or (aw["award_key"] == "mercy-rule" and top.get("metric_value", 0) >= MERCY_STRONG_MARGIN)
-                or (aw["award_key"] in ("hard-luck-bastard", "waiver-wire-heist",
-                                        "benchwarmer-memorial", "escape-artist")
-                    and len(aw["nominees"]) >= 1)
+                or (aw["award_key"] == "hard-luck-bastard" and top.get("score_rank", 99) <= 3)
+                or (aw["award_key"] == "escape-artist" and top.get("bottom_three"))
+                or (aw["award_key"] == "waiver-wire-heist"
+                    and top.get("metric_value", 0) >= 2 * HEIST_MIN_POINTS)
+                or (aw["award_key"] == "benchwarmer-memorial"
+                    and top.get("metric_value", 0) >= 2 * BENCH_MEMORIAL_MIN)
             )
             aw["slate"] = "strong" if strong else "possible"
     return awards

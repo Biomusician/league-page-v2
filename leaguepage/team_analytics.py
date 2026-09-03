@@ -51,6 +51,7 @@ from leaguepage.storage import Storage
 
 CORE_POSITIONS = ("QB", "RB", "WR", "TE", "K", "DEF")
 IN_SEASON_MIN_WEEKS = 3
+SIMS = 2000
 FORM_WINDOW = 3
 LABELS = ["Strength", "Above Average", "Average", "Weakness", "Major Weakness"]
 
@@ -269,11 +270,18 @@ def recent_form(storage: Storage, league: League, through_week: int,
     order = sorted(avg, key=lambda rid: -avg[rid])
     ap = all_play(windowed)
     # window is the integer week count; window_label is what a reader sees,
-    # because "#2 scoring over the last 3" is missing its unit.
-    label = f"{w} week{'' if w == 1 else 's'}"
-    return {rid: {"window": w, "window_label": label, "avg": round(avg[rid], 1),
+    # because "#2 scoring over the last 3" is missing its unit. The label is
+    # per team, not per league: a team with a bye inside the window has
+    # fewer weeks in it than the league maximum, and labelling its average
+    # "the last 3 weeks" when it played two of them is a wrong denominator
+    # printed as a fact.
+    def _label(n: int) -> str:
+        return f"{n} week{'' if n == 1 else 's'}"
+
+    return {rid: {"window": len(rows), "window_label": _label(len(rows)),
+                  "league_window": w, "avg": round(avg[rid], 1),
                   "rank": order.index(rid) + 1,
-                  "all_play": ap.get(rid)} for rid in windowed}
+                  "all_play": ap.get(rid)} for rid, rows in windowed.items()}
 
 
 def scoring_streaks(storage: Storage, league: League, through_week: int) -> dict[int, dict]:
@@ -336,7 +344,7 @@ def remaining_schedule(storage: Storage, league_id: str, first_week: int,
 
 
 def playoff_outlook(storage: Storage, league: League, through_week: int,
-                    sims: int = 2000) -> dict:
+                    sims: int = SIMS) -> dict:
     """Transparent Monte Carlo on OBSERVED scoring only (no consensus ranks:
     see the module docstring's independence rule). Early season is honestly
     'too early'; midseason shows bands; late season shows percentages."""
@@ -361,9 +369,17 @@ def playoff_outlook(storage: Storage, league: League, through_week: int,
         sds[rid] = max(8.0, statistics.pstdev(vals)) if len(vals) > 1 else 20.0
         recent = vals[-FORM_WINDOW:]
         means[rid] = 0.75 * means[rid] + 0.25 * (sum(recent) / len(recent))
-    remaining = list(range(weeks_played + 1, playoff_start))
+    # The number of weeks a team has played is not the number of the last
+    # week it played. One unpaired or unsynced week in the middle makes them
+    # differ, and the count then puts an already-played week inside
+    # "remaining" — where it gets re-simulated against random opponents, so
+    # the model replays history against teams nobody faced.
+    latest_played = max((wk for rows in scores.values() for wk, _ in rows),
+                        default=weeks_played)
+    first_remaining = max(weeks_played, latest_played) + 1
+    remaining = list(range(first_remaining, playoff_start))
     schedule = remaining_schedule(storage, league.league_id,
-                                  weeks_played + 1, playoff_start - 1)
+                                  first_remaining, playoff_start - 1)
     known = [wk for wk in remaining if schedule.get(wk)]
     rng = random.Random(f"{league.league_id}:{weeks_played}")
     rids = sorted(means)
@@ -406,12 +422,32 @@ def playoff_outlook(storage: Storage, league: League, through_week: int,
         return "Danger"
 
     return {**base, "stage": stage,
-            "teams": {rid: {"odds": round(odds[rid], 3), "band": band(odds[rid]),
-                            "median_seed": (statistics.median(seeds[rid])
-                                            if seeds[rid] else None)}
+            # Rounded to whole percentage points. The third decimal was
+            # 0.1pp of precision on a figure whose Monte Carlo error alone is
+            # a couple of points, before the far larger uncertainty in the
+            # per-team means these draws come from.
+            "teams": {rid: {"odds": round(odds[rid], 2), "band": band(odds[rid]),
+                            # Median seed AMONG THE SIMS THEY QUALIFIED IN.
+                            # A 6%-to-make-it team reporting "median seed 6"
+                            # reads as a projection and is not one.
+                            "median_seed_when_in": (statistics.median(seeds[rid])
+                                                    if seeds[rid] else None)}
                       for rid in rids},
+            "sims": sims,
             "schedule_weeks": len(known), "remaining_weeks": len(remaining),
             "note": schedule_note(len(known), len(remaining))}
+
+
+def format_odds(p: float, sims: int = SIMS) -> str:
+    """A probability from a finite simulation, written without claiming
+    certainty. Zero of 2000 draws is not zero, and 2000 of 2000 is not one;
+    printing "0%" and "100%" turns a sample into a guarantee."""
+    floor = 1.0 / max(1, sims)
+    if p <= floor:
+        return "<1%"
+    if p >= 1.0 - floor:
+        return ">99%"
+    return f"{p:.0%}"
 
 
 def schedule_note(known: int, total: int) -> str:
@@ -445,6 +481,9 @@ def record_snapshot(storage: Storage, league: League, season: str, week: int,
     outlook = playoff_outlook(storage, league, max(week, 0))
     payload = {
         "week": week, "stage": profile["stage"],
+        # The outlook's own stage, so a later delta can refuse to print a
+        # percentage move that the site itself declines to show as a number.
+        "playoff_stage": outlook.get("stage"),
         "positional_ranks": {pos: profile["ranks"][pos] for pos in profile["positions"]},
         # Before a game is played every team is 0-0 on 0 points, so this
         # sort is roster_id order wearing a rank. Storing it would make the
@@ -476,6 +515,17 @@ def snapshot_deltas(storage: Storage, league: League, season: str,
             break
     if not current or not prior:
         return {}
+    # Player valuation switches from reference ranks to a blend with scoring
+    # at IN_SEASON_MIN_WEEKS. Across that boundary every room in the league
+    # moves, on rosters nobody touched, and the site was publishing the
+    # switch as "RB room #2 -> #8". Positional deltas only mean something
+    # when both snapshots were measured the same way.
+    same_stage = current.get("stage") == prior.get("stage")
+    # Likewise the odds: the standings page refuses to print a percentage
+    # while the outlook is in bands, so a delta must not print one either.
+    # An older snapshot with no recorded stage is treated as not comparable.
+    percentages = (current.get("playoff_stage") == "percentages"
+                   and prior.get("playoff_stage") == "percentages")
     out: dict[int, list[str]] = {}
 
     def _i(d, rid):
@@ -492,16 +542,17 @@ def snapshot_deltas(storage: Storage, league: League, season: str,
         if s_now and s_then and abs(s_now - s_then) >= 2:
             arrow = "↑" if s_now < s_then else "↓"
             notes.append(f"standings {s_then} → {s_now} {arrow}")
-        for pos, ranks in current["positional_ranks"].items():
-            r_now = _i(ranks, rid)
-            r_then = _i((prior["positional_ranks"] or {}).get(pos, {}), rid)
-            if r_now and r_then and abs(r_now - r_then) >= 3:
-                notes.append(f"{pos} room #{r_then} → #{r_now}")
-        if current.get("playoff") and prior.get("playoff"):
+        if same_stage:
+            for pos, ranks in current["positional_ranks"].items():
+                r_now = _i(ranks, rid)
+                r_then = _i((prior["positional_ranks"] or {}).get(pos, {}), rid)
+                if r_now and r_then and abs(r_now - r_then) >= 3:
+                    notes.append(f"{pos} room #{r_then} → #{r_now}")
+        if percentages and current.get("playoff") and prior.get("playoff"):
             p_now, p_then = _i(current["playoff"], rid), _i(prior["playoff"], rid)
             if p_now is not None and p_then is not None and abs(p_now - p_then) >= 0.10:
-                notes.append(f"playoff odds {p_then:+.0%} → {p_now:+.0%}"
-                             .replace("+", ""))
+                notes.append(f"playoff odds {format_odds(p_then)} → "
+                             f"{format_odds(p_now)}")
         if notes:
             out[rid] = notes
     return out

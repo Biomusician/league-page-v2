@@ -154,7 +154,11 @@ def build_context(
 
     from leaguepage.site_build import _private_handles
 
-    ctx.private_handles = _private_handles()
+    # With no public names this scanned handles and display names only, not
+    # aliases -- where real first names live. The build audit is alias-aware
+    # and runs AFTER the snapshot is frozen, so a private name in issue
+    # prose passed QA, became immutable, and only then failed the build.
+    ctx.private_handles = _private_handles(sorted(public_names.values()))
 
     # positional ranks as they stand today (freshness comparisons)
     try:

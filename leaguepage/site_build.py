@@ -28,6 +28,8 @@ from jinja2 import Environment, FileSystemLoader
 
 from leaguepage.config import (DIST_DIR, LEAGUES, PUBLISHED_DIR, SITE_URL, STATIC_DIR,
                                TEMPLATES_DIR, League)
+from leaguepage.privacy import (ALWAYS_FORBIDDEN, MIN_HANDLE_LEN, PRIVATE_PATTERNS,
+                                handle_re, published_matcher)
 from leaguepage.draft_value import SKILL_POSITIONS
 from leaguepage.editorial import load_coalitions
 from leaguepage.matchup_analysis import (all_play, analyze_week, season_efficiency,
@@ -82,8 +84,9 @@ def _own_stake(lv: dict | None, names: dict[int, str], next_card) -> dict | None
     if not lv or not lv["material"]:
         return None
     from leaguepage.leverage import describe_stake
+    from leaguepage.team_analytics import format_odds
 
-    return {"if_win": f"{lv['if_win']:.0%}", "if_lose": f"{lv['if_lose']:.0%}",
+    return {"if_win": format_odds(lv["if_win"]), "if_lose": format_odds(lv["if_lose"]),
             "opponent": names.get(lv["opponent"], ""),
             "verdict": describe_stake(lv["if_win"], lv["if_lose"]),
             "anchor": (next_card or {}).get("anchor")}
@@ -574,7 +577,9 @@ def build_league(
                     "record": (f"{rec.get('wins', 0)}-{rec.get('losses', 0)} "
                                f"\u00b7 {rec.get('pf', 0)} PF"
                                if weeks_played else None),
-                    "note": None, "roster_id": rid,
+                    # What he actually wrote about them. The page had a slot
+                    # for this and was passing None into it.
+                    "note": row.get("note") or None, "roster_id": rid,
                 })
             break
     # Peer and Near-Peer renders below, once the positional profile exists:
@@ -699,6 +704,7 @@ def build_league(
     from leaguepage.receipts import receipts_for_matchup
 
     from leaguepage.leverage import describe_stake, week_leverage
+    from leaguepage.team_analytics import format_odds
 
     # What this week's games are actually worth. Returns None until the
     # table means something and the schedule is known, and says nothing
@@ -710,7 +716,10 @@ def build_league(
                         for rid, rows in tx_by_rid.items()}
     public_names = {rid: v["name"] or f"Roster {rid}" for rid, v in names.items()}
     if computed:
-        handles = _private_handles()
+        # Alias-aware, so history.py can drop an archive quote carrying a
+        # private alias and pick the next candidate instead of poisoning the
+        # build audit two stages later.
+        handles = _private_handles(sorted(public_names.values()))
         by_anchor = {sm["matchup"]["matchup_slug"]: sm for sm in computed["scored"]}
         for card in cards:
             sm = by_anchor.get(card["packet_slug"])
@@ -735,8 +744,8 @@ def build_league(
                 stakes.append({
                     "name": public_names.get(t["roster_id"], ""),
                     "slug": slugs.get(t["roster_id"]),
-                    "line": (f"{lv['if_win']:.0%} to make the playoffs with a win, "
-                             f"{lv['if_lose']:.0%} with a loss"),
+                    "line": (f"{format_odds(lv['if_win'])} to make the playoffs "
+                             f"with a win, {format_odds(lv['if_lose'])} with a loss"),
                     "verdict": describe_stake(lv["if_win"], lv["if_lose"]),
                 })
             card["stakes"] = stakes
@@ -1229,9 +1238,23 @@ def build_site(
     if STATIC_DIR.is_dir():
         assets = out / "assets"
         assets.mkdir(parents=True, exist_ok=True)
-        for f in STATIC_DIR.iterdir():
-            if f.is_file():
-                shutil.copy2(f, assets / f.name)
+        # Copy only what the built pages actually ask for, and only in the
+        # shapes a public site has any use for. Copying the directory
+        # wholesale shipped a 176KB logo no page references, and would ship
+        # a roster export or a stray database dropped in here with no
+        # inspection at all: the audit skips file types it cannot read.
+        rendered = "\n".join(p.read_text(encoding="utf-8", errors="ignore")
+                             for p in out.rglob("*.html"))
+        for f in sorted(STATIC_DIR.iterdir()):
+            if not f.is_file():
+                continue
+            if f.suffix.lower() not in PUBLISHABLE_ASSETS:
+                warnings.append(f"static/{f.name}: not a publishable asset type; skipped")
+                continue
+            if f"assets/{f.name}" not in rendered:
+                warnings.append(f"static/{f.name}: referenced by no page; not deployed")
+                continue
+            shutil.copy2(f, assets / f.name)
     # The audit needs these to tell a manager's private alias from the
     # nickname he put in his own team name.
     return {"out_dir": out, "pages": pages, "warnings": warnings,
@@ -1240,38 +1263,11 @@ def build_site(
 
 # ------------------------------------------------------------------ audit
 
-ALWAYS_FORBIDDEN = [
-    "ROUGH DRAFT - COMMISSIONER EDIT REQUIRED", "TEST DRAFT", "provisional label",
-    "sleeper:pick:", "sleeper:roster:", "sleeper:matchup:", "sleeper:transaction:",
-    "editorial:manager:", "editorial:coalition:", "computed:", "archive:issue:",
-    "AUTHORING", "commissioner_notes", "REVIEW_PACKET",
-    "C:/Users", "C:\\Users", "League-Page-PRIVATE",
-]
+# The only file shapes a static public site has a reason to serve. Anything
+# else in static/ is either a mistake or a private file in the wrong place.
+PUBLISHABLE_ASSETS = (".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".webp",
+                      ".woff2", ".ico")
 
-
-# Shapes that are private wherever they appear, whatever the surrounding
-# text says. The literal marker list below catches things this codebase
-# writes on purpose; these catch things it would only ever write by
-# accident, which is the more dangerous half.
-PRIVATE_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"https?://[A-Za-z0-9-]+\.supabase\.(co|in)"), "Supabase project URL"),
-    (re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ"), "JWT"),
-    (re.compile(r"\b(sb|sbp)_[A-Za-z0-9]{20,}"), "Supabase key"),
-    (re.compile(r"\bpostgres(?:ql)?://[^\s<>]+"), "database URL"),
-    (re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"), "GitHub token"),
-    (re.compile(r"sk-ant-[A-Za-z0-9-]{10,}"), "Anthropic key"),
-    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "private key"),
-    (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "email address"),
-    (re.compile(r"\b(recommended_status|sleeper_user_id|evidence_id|"
-                r"ghost_brief|commissioner_note|quick_note)\b"), "internal field name"),
-    (re.compile(r"(?<![\w.])(?:/home/|/Users/)[^\s<>)]+"), "absolute path"),
-    (re.compile(r"\b(?:editorial|published|data|migrations|backups)/"
-                r"[^\s<>]*\.(?:md|json|sqlite3|sql)\b"), "private repo path"),
-    (re.compile(r"\bPREP\.md\b|\bAUTHORING-[a-z-]+\.md\b"), "authoring artifact"),
-]
-
-# Text files that ship in the build and were never scanned, because the audit
-# only ever looked at HTML.
 AUDITED_SUFFIXES = (".html", ".htm", ".js", ".json", ".txt", ".xml", ".css", ".md", ".svg")
 
 
@@ -1300,13 +1296,7 @@ def _private_handles(public_names: list[str] | None = None) -> list[str]:
     if not path.exists():
         return []
     data = json.loads(path.read_text(encoding="utf-8"))
-    # Compare on a normalised form. An alias is often the slugified form of
-    # the team name, and that slug appears in every URL on the site, so a
-    # plain substring test still flagged it.
-    def _norm(text: str) -> str:
-        return "".join(ch for ch in text.lower() if ch.isalnum())
-
-    published = " | ".join(_norm(n) for n in (public_names or []))
+    is_published = published_matcher(list(public_names or []))
     out: set[str] = set()
     for key, m in data.items():
         if not isinstance(m, dict):
@@ -1320,7 +1310,7 @@ def _private_handles(public_names: list[str] | None = None) -> list[str]:
                 elif isinstance(v, str):
                     candidates.append(v)
         for c in candidates:
-            if c and len(c) >= 4 and _norm(c) not in published:
+            if c and len(c) >= MIN_HANDLE_LEN and not is_published(c):
                 out.add(c)
     return sorted(out)
 
@@ -1352,6 +1342,10 @@ def audit_output(out_dir: Path, *, extra_forbidden: list[str] | None = None,
                 violations.append(f"{rel}: {label} at offset {m.start()}")
         if "/archive/a" not in f"/{rel}":
             for h in handles:
-                if h in text:
+                # Case-insensitive and at word boundaries. Plain `h in text`
+                # missed a lowercased mention of a private alias, and hit
+                # inside longer words, so it was simultaneously too loose
+                # and too tight.
+                if handle_re(h).search(text):
                     violations.append(f"{rel}: private handle '{h}'")
     return violations

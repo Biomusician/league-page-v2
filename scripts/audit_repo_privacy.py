@@ -26,20 +26,39 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO))
 
-TOKEN_PATTERNS = [
-    (re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"), "GitHub token"),
-    (re.compile(r"eyJ[A-Za-z0-9_-]{20,}\.eyJ"), "JWT"),
-    (re.compile(r"AKIA[0-9A-Z]{16}"), "AWS key"),
-    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "private key"),
-    (re.compile(r"sk-ant-[A-Za-z0-9-]{10,}"), "Anthropic key"),
-]
+from leaguepage.privacy import (MIN_HANDLE_LEN, PRIVATE_PATTERNS,  # noqa: E402
+                                handle_re, published_matcher)
+
+# Both audits now read one list (leaguepage/privacy.py). They used to keep
+# separate ones that disagreed: a Supabase URL or a postgres:// URL was
+# blocked from dist/ but committable to main, and an AWS key was the other
+# way round. A shape that is private is private in both places.
+#
+# The email pattern is the one deliberate exception. Tracked source legitimately
+# carries addresses (docs, .env.example placeholders, this file's own docstring),
+# and the site audit's job of keeping them off public pages is not this one's.
+TOKEN_PATTERNS = [(pat, label) for pat, label in PRIVATE_PATTERNS
+                  if label not in ("email address", "internal field name",
+                                   "absolute path", "private repo path",
+                                   "authoring artifact")]
 # `.env` and friends are forbidden; `.env.example` carries NAMES ONLY and is
 # meant to be committed, so it is explicitly exempt.
+# Everything here is gitignored, so only a `git add -f` or an
+# already-tracked file reaches this check -- which is exactly the case the
+# audit exists to catch.
 FORBIDDEN_PATHS = re.compile(
-    r"(\.sqlite3$|^\.env(?!\.example$)|/\.env(?!\.example$)|\.log$|^logs/"
+    r"(\.sqlite3$|\.db$|^\.env(?!\.example$)|/\.env(?!\.example$)|\.log$|^logs/"
+    r"|^data/|^backups/|^dist/|^dist-preview/"
+    r"|commissioner_notes\.md$|/PREP\.md$|/generated/|/dossiers/"
+    r"|\.pem$|\.key$|(^|/)id_rsa|\.mbox$"
     r"|\.bundle$|editorial/managers\.json$|auth\.json$|yahoo_token)")
 HANDLE_EXEMPT = ("archive/",)
+# .env.example exists to document the SHAPE of each setting with <placeholder>
+# values and no secrets, so a connection-string template in it is the file
+# doing its job. Nothing else is exempt from the credential patterns.
+TOKEN_EXEMPT = (".env.example",)
 
 
 def _git(*args: str) -> str:
@@ -54,8 +73,59 @@ def _handles() -> list[str]:
         raise SystemExit("editorial/managers.json not found; cannot audit "
                          "for handles. Do not push without it.")
     data = json.loads(mpath.read_text(encoding="utf-8"))
-    # The commissioner's own public account name is not private.
-    return [h for h in data if h.lower() != "biomusician"]
+    # Keys only was half the file. Aliases and display names are where real
+    # first names live, so a real first name committed to main was invisible
+    # to this audit while the site audit would have caught it.
+    names: set[str] = set()
+    for key, m in data.items():
+        names.add(key)
+        if not isinstance(m, dict):
+            continue
+        for field in ("display_name", "aliases", "unverified_aliases"):
+            v = m.get(field)
+            if isinstance(v, str):
+                names.add(v)
+            elif isinstance(v, list):
+                names.update(x for x in v if isinstance(x, str))
+    # The commissioner's own public account name is not private. It lives in
+    # the file rather than in this script so the exemption cannot drift.
+    public = {str(x).lower() for x in (data.get("_public_handles") or [])}
+    public.add("biomusician")
+    # A nickname a manager put in his own team name is his to publish, and
+    # the site audit has always subtracted those. Without the same
+    # subtraction, reading aliases here would flag every test fixture that
+    # names a real team. The published names come from the local DB, which
+    # this script already depends on being present alongside managers.json.
+    is_published = published_matcher(_public_names())
+    return sorted(h for h in names
+                  if h and len(h) >= MIN_HANDLE_LEN
+                  and h.lower() not in public and not is_published(h))
+
+
+def _public_names() -> list[str]:
+    """Current public team names, or nothing if the DB is not here.
+
+    Falling back to an empty list is the fail-LOUD direction: the audit then
+    flags published nicknames and the operator has to look, rather than
+    quietly scanning less than it reports.
+    """
+    try:
+        from leaguepage.config import LEAGUES
+        from leaguepage.storage import Storage
+        from leaguepage.team_names import resolve_public_names
+    except ImportError:
+        return []
+    out: list[str] = []
+    try:
+        with Storage() as storage:
+            for league in LEAGUES:
+                for v in resolve_public_names(storage, league).values():
+                    if v.get("name"):
+                        out.append(v["name"])
+    except Exception as exc:                       # noqa: BLE001
+        print(f"  note: public team names unavailable ({type(exc).__name__}); "
+              "handle scan will not subtract published nicknames")
+    return out
 
 
 def audit(revs: list[str]) -> list[str]:
@@ -69,13 +139,14 @@ def audit(revs: list[str]) -> list[str]:
         blobs = {p: _git("show", f"{rev}:{p}") for p in files
                  if not p.endswith((".jpg", ".png", ".gif", ".ico"))}
         for path, text in blobs.items():
-            low = text.lower()
             if not path.startswith(HANDLE_EXEMPT):
                 for h in handles:
-                    if h.lower() in low:
+                    if handle_re(h).search(text):
                         violations.append(
                             f"{rev[:10]}: private handle ({h[:3]}***) in {path}")
             for pat, label in TOKEN_PATTERNS:
+                if path in TOKEN_EXEMPT:
+                    break
                 if pat.search(text):
                     violations.append(f"{rev[:10]}: {label} pattern in {path}")
     return violations

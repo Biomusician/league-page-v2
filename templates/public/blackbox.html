@@ -9,7 +9,7 @@
   <h2 class="section-label">Records on File</h2>
   <p class="meta">Comparison population: {{ population }}. Records older than this
   dataset are not claimed.</p>
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Records on file">
   <table>
     <tr><th scope="col">Record</th><th scope="col">Holder</th><th scope="col">Value</th><th scope="col">When</th></tr>
     {% for r in records %}
@@ -21,7 +21,7 @@
 {% elif watching %}
 <p>No records yet — the box needs three recorded weeks before it will claim
 anything. These are the marks the season starts from.</p>
-<div class="tablewrap">
+<div class="tablewrap" tabindex="0" role="region" aria-label="Marks the season starts from">
 <table>
   <tr><th scope="col">Mark</th><th scope="col">Held by</th><th scope="col">On what</th></tr>
   {% for w in watching %}

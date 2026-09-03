@@ -144,8 +144,13 @@ def position_order_context(adp, picks: list[dict], pick: dict) -> str | None:
 def team_draft_profile(team_summary: dict, league_size: int) -> dict:
     """Draft-market shape of one team's draft, for briefs/outlook. Input is
     a draft_analysis.summarize_team dict. Counts only picks with deltas."""
+    # Skill positions only, for the reason in the calibration note below:
+    # averaging in the K/DST tax measures the reference board's shape, not
+    # how this manager drafts, and it flipped at least one real team's
+    # consensus label.
     deltas = [p["delta"] for p in team_summary.get("picks_by_round", [])
-              if p.get("delta") is not None]
+              if p.get("delta") is not None and not p.get("off_board")
+              and (p.get("position") or "").upper() in SKILL_POSITIONS]
     reaches = sum(1 for d in deltas if d <= -league_size)
     steals = sum(1 for d in deltas if d >= league_size)
     mean_dev = (sum(abs(d) for d in deltas) / len(deltas)) if deltas else None
