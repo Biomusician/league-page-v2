@@ -8,9 +8,8 @@ This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
 ## Overnight product run (2026-09-03)
 
-**Status: 8 commits, ~680 tests, real build clean, deployed.** Working notes
-for the run are in `docs/OVERNIGHT-RUN.md`; delete that file once this
-section is the record.
+**Status: 10 commits, 675 tests, real build clean, deployed and verified
+byte-identical to `dist/` across all 98 pages.**
 
 Six read-only recon agents audited the workflow, the analytics, the public
 product, the UX, data integrity and the privacy boundary. Everything below
