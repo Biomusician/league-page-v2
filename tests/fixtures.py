@@ -17,7 +17,8 @@ def player_name(i: int) -> str:
     return f"Player Number{i}"
 
 
-def league_payload(league: League, teams: int, season: str = "2026", status: str = "in_season") -> dict:
+def league_payload(league: League, teams: int, season: str = "2026", status: str = "in_season",
+                   playoff_week_start: int = 15, playoff_teams: int = 6) -> dict:
     return {
         "league_id": league.league_id,
         "name": league.display_name.title(),
@@ -26,6 +27,8 @@ def league_payload(league: League, teams: int, season: str = "2026", status: str
         "total_rosters": teams,
         "roster_positions": ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "BN", "BN", "BN"],
         "scoring_settings": {"rec": 0.5, "pass_td": 4.0},
+        "settings": {"playoff_week_start": playoff_week_start,
+                     "playoff_teams": playoff_teams},
     }
 
 
@@ -38,9 +41,12 @@ def populate_league(
     picks: str = "complete",     # complete | partial | none
     co_managed_roster: int | None = None,
     season: str = "2026",
+    playoff_week_start: int = 15,
 ) -> dict:
     """Create league + users + rosters + one draft (snake). Returns draft dict."""
-    storage.save_league(league.league_id, league_payload(league, teams, season))
+    storage.save_league(league.league_id,
+                        league_payload(league, teams, season,
+                                       playoff_week_start=playoff_week_start))
     users = []
     rosters = []
     for i in range(1, teams + 1):
