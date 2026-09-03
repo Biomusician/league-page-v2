@@ -25,6 +25,7 @@ from pathlib import Path
 from fastapi import Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from leaguepage import pubqa
 from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
 from leaguepage.issue_builder import (
     BLOCKED_MARKERS, assemble_issue, issue_dir, module_states,
@@ -126,6 +127,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             issue_row = s.get_issue(league_slug, season, issue_key)
             resolved = resolve_public_names(s, league)
             blockers = _blockers(s, league, season, issue_key, modules)
+            qa = pubqa.check_issue(s, league, season, issue_key, week=week)
             open_requests = s.list_rewrite_requests(league_slug, season, issue_key)
             rev_counts = {sec: len(s.get_prose_revisions(league_slug, season, issue_key, sec, limit=50))
                           for sec in set(prose_states) | {m["module_key"] for m in modules}}
@@ -208,6 +210,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         return {
             "league": league, "season": season, "issue_key": issue_key, "week": week,
             "cards": cards, "matchup_cards": matchup_cards, "blockers": blockers,
+            "qa": qa,
             "issue_row": issue_row, "name_rows": name_rows,
             "open_request_count": len(open_requests),
             "base": base, "edit_base": f"{base}/edit",
@@ -508,6 +511,64 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-team-names",
             status_code=303)
+
+    # -------------------------------------------- publication check panel
+
+    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/qa-action")
+    async def qa_action(request: Request, league_slug: str, season: str, issue_key: str):
+        """Accept / Ignore one proofread suggestion.
+
+        Accept is a LITERAL replacement of the exact text the panel showed —
+        never a regenerated sentence, never a style edit. The prior text is
+        snapshotted into revision history first, so the Commissioner can
+        restore it from the section's own History like any other edit."""
+        body = await request.json()
+        action = str(body.get("action") or "")
+        finding_id = str(body.get("finding_id") or "")
+        league = get_league(league_slug)
+        week = _week_of(issue_key)
+        if action in ("ignore", "unignore"):
+            with storage() as s:
+                fn = pubqa.ignore_finding if action == "ignore" else pubqa.unignore_finding
+                fn(s, league_slug, season, issue_key, finding_id)
+            return JSONResponse({"ok": True})
+        if action != "accept":
+            return JSONResponse({"ok": False, "error": "bad action"}, status_code=400)
+
+        with storage() as s:
+            rep = pubqa.check_issue(s, league, season, issue_key, week=week)
+            found = next((f for g in rep["groups"] for f in g["findings"]
+                          if f["finding_id"] == finding_id), None)
+            if not found:
+                return JSONResponse({"ok": False, "error": "finding no longer present"},
+                                    status_code=409)
+            if not found.get("fix_from") or not found.get("fix_to"):
+                return JSONResponse({"ok": False, "error": "no mechanical fix for this finding"},
+                                    status_code=400)
+            path = _section_path(league, season, issue_key, found["module_key"] or "")
+            current = _read(path) if path else None
+            if current is None:
+                return JSONResponse({"ok": False, "error": "section not found"},
+                                    status_code=404)
+            if current.count(found["fix_from"]) != 1:
+                return JSONResponse(
+                    {"ok": False, "error": "the text moved since the check ran; "
+                                           "reload and try again"}, status_code=409)
+            s.add_prose_revision(league_slug, season, issue_key, found["module_key"],
+                                 current, "qa-suggestion-accepted")
+            path.write_text(current.replace(found["fix_from"], found["fix_to"], 1),
+                            encoding="utf-8")
+            s.set_prose_state(league_slug, season, issue_key, found["module_key"],
+                              "commissioner-edited")
+        return JSONResponse({"ok": True})
+
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/qa")
+    def qa_panel(request: Request, league_slug: str, season: str, issue_key: str):
+        league = get_league(league_slug)
+        with storage() as s:
+            rep = pubqa.check_issue(s, league, season, issue_key,
+                                    week=_week_of(issue_key))
+        return JSONResponse(rep)
 
     # ------------------------------------------------ publish / deploy
 

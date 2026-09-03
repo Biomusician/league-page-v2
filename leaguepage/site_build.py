@@ -67,13 +67,32 @@ def _write(out_dir: Path, rel: str, html: str, pages: list[str]) -> None:
 
 
 def _load_snapshots(league: League, published_dir: Path) -> list[dict]:
+    """One entry per issue, rendering the LATEST revision of it.
+
+    Corrections are additive files (`draft.r2.json` beside `draft.json`), so
+    an issue is a family: the original is the record of what shipped that
+    day, the newest revision is what readers see, and the correction history
+    travels with it for the 'Updated …' line."""
     root = published_dir / league.slug
-    snaps = []
+    families: dict[tuple[str, str], list[dict]] = {}
     if root.exists():
-        for p in sorted(root.rglob("*.json"), reverse=True):
+        for p in sorted(root.rglob("*.json")):
             snap = json.loads(p.read_text(encoding="utf-8"))
-            snap["href"] = f"{snap['season']}/{snap['issue_key']}/index.html"
-            snaps.append(snap)
+            key = (snap["season"], snap.get("revises") or snap["issue_key"])
+            families.setdefault(key, []).append(snap)
+    snaps = []
+    for (season, issue_key), family in families.items():
+        family.sort(key=lambda s: int(s.get("revision") or 1))
+        snap = dict(family[-1])
+        snap["issue_key"] = issue_key
+        snap["href"] = f"{season}/{issue_key}/index.html"
+        snap["revisions"] = [
+            {"revision": int(s.get("revision") or 1),
+             "at": (s.get("revised_at") or s.get("published_at") or "")[:10],
+             "note": s.get("revision_note")}
+            for s in family[1:]
+        ]
+        snaps.append(snap)
     # newest first: season desc, weekly issues over draft, week number desc
     def _key(s):
         wk = s["issue_key"]
@@ -112,6 +131,9 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
         "section_titles": [{"anchor": s["anchor"], "title": s["title"]} for s in sections],
         "lowdown_excerpt_html": excerpt,
         "href": snap["href"],
+        "revisions": snap.get("revisions") or [],
+        "revised_at": (snap.get("revised_at") or "")[:10] or None,
+        "revision_note": snap.get("revision_note"),
     }
 
 

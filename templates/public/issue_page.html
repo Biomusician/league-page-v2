@@ -8,6 +8,13 @@
 </div>
 {% endif %}
 <p class="meta">{{ issue.issue_label }} · {{ season }}{% if issue.published_at %} · published {{ issue.published_at[:10] }}{% endif %}</p>
+{% if issue.revisions %}
+<p class="meta correction" role="note">
+  Updated {{ issue.revisions[-1].at }} · {{ issue.revisions[-1].note }}{% if issue.revisions|length > 1 %}
+  <span>({{ issue.revisions|length }} corrections; the issue as first published is
+  kept in the archive record)</span>{% endif %}
+</p>
+{% endif %}
 {% for s in issue.sections %}
 <section class="module" id="{{ s.anchor }}">
   <h2 class="section-label">{{ s.title }}</h2>

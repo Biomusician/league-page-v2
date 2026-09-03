@@ -131,6 +131,22 @@ def publish_assembled_issue(
     except ValueError as exc:
         raise PublishError(str(exc)) from exc
 
+    # Publication quality gate. Warnings are advisory by design (the
+    # Commissioner overrides them by publishing); blockers are things no
+    # reader should ever see and stop the pipeline here, before a snapshot
+    # is frozen. Privacy blockers have no override path at all.
+    from leaguepage import pubqa
+
+    qa = pubqa.report(pubqa.check_sections(
+        [s for s in assembled["sections"] if s.get("included", True)],
+        pubqa.build_context(storage, league, season, issue_key, week=week)))
+    if qa["blockers"]:
+        raise PublishError(
+            "Publication check failed — " + qa["headline"] + ": "
+            + " | ".join(f"{b['category_label']}: {b['title']}"
+                         + (f" ({b['excerpt'][:60]})" if b["excerpt"] and not b["privacy"] else "")
+                         for b in qa["blockers"][:6]))
+
     sections = []
     for s in assembled["sections"]:
         if s["kind"] == "auto" or not s.get("content_md"):
@@ -155,6 +171,114 @@ def publish_assembled_issue(
     storage.set_issue_status(league_slug=league.slug, season=season, issue_key=issue_key,
                              status="published", published_path=snap_path.as_posix())
     return snap_path
+
+
+# ------------------------------------------------------------- corrections
+
+REVISION_RE = _re.compile(r"^(?P<key>.+?)\.r(?P<n>\d+)$")
+
+
+def snapshot_family(published_dir: Path, league_slug: str, season: str,
+                    issue_key: str) -> list[Path]:
+    """Every frozen file for one issue, oldest first: the original snapshot
+    then each correction. Nothing here is ever rewritten or deleted."""
+    root = published_dir / league_slug / season
+    if not root.exists():
+        return []
+    out = [root / f"{issue_key}.json"] if (root / f"{issue_key}.json").exists() else []
+    revs = []
+    for p in root.glob(f"{issue_key}.r*.json"):
+        m = REVISION_RE.match(p.stem)
+        if m and m.group("key") == issue_key:
+            revs.append((int(m.group("n")), p))
+    return out + [p for _, p in sorted(revs)]
+
+
+def revise_issue(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    *,
+    note: str,
+    sections: list[dict] | None = None,
+    published_dir: Path | None = None,
+    base_dir: Path | None = None,
+    week: int | None = None,
+) -> Path:
+    """Publish a CORRECTION to an already-published issue.
+
+    Published snapshots are immutable, and they stay that way: a correction
+    is a NEW file (`<key>.r2.json`, then `.r3`, …) sitting beside the
+    original, carrying what changed and why. The public site renders the
+    latest revision and prints an 'Updated <date> · <note>' line; the
+    original remains on disk and in git as the record of what was actually
+    published on the day. Nothing about provenance is destroyed to fix a
+    typo.
+
+    `sections` defaults to re-assembling from the current editorial files,
+    which is the normal path: the Commissioner fixes the prose, then issues
+    a correction. The publication quality gate runs exactly as it does for a
+    first publication."""
+    import json as _json
+
+    from leaguepage.config import PUBLISHED_DIR
+    from leaguepage.storage import utcnow_iso
+
+    if not note or not note.strip():
+        raise PublishError("A correction needs a note saying what was corrected.")
+    pdir = published_dir or PUBLISHED_DIR
+    family = snapshot_family(pdir, league.slug, season, issue_key)
+    if not family:
+        raise PublishError(
+            f"{league.slug} {season} {issue_key} has never been published; "
+            "there is nothing to correct.")
+    original = _json.loads(family[0].read_text(encoding="utf-8"))
+    latest = _json.loads(family[-1].read_text(encoding="utf-8"))
+
+    if sections is None:
+        from leaguepage.issue_builder import assemble_issue
+
+        try:
+            assembled = assemble_issue(storage, league, season, issue_key,
+                                       base_dir=base_dir, week=week, enforce=True)
+        except ValueError as exc:
+            raise PublishError(str(exc)) from exc
+        sections = [{
+            "module_key": s["module_key"], "title": s["title"],
+            "content_md": strip_editorial_comments(s["content_md"]).strip(),
+            "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
+        } for s in assembled["sections"] if s["kind"] != "auto" and s.get("content_md")]
+
+    from leaguepage import pubqa
+
+    qa = pubqa.report(pubqa.check_sections(
+        sections, pubqa.build_context(storage, league, season, issue_key, week=week)))
+    if qa["blockers"]:
+        raise PublishError(
+            "Correction refused — " + qa["headline"] + ": "
+            + " | ".join(f"{b['category_label']}: {b['title']}"
+                         for b in qa["blockers"][:6]))
+
+    if sections == latest.get("sections"):
+        raise PublishError("The corrected text is identical to what is already "
+                           "published; nothing to revise.")
+
+    n = int(latest.get("revision") or 1) + 1
+    snapshot = {
+        **{k: v for k, v in original.items() if k != "sections"},
+        "revision": n,
+        "revises": issue_key,
+        "original_published_at": original.get("published_at"),
+        "revised_at": utcnow_iso(),
+        "revision_note": note.strip(),
+        "sections": sections,
+    }
+    path = pdir / league.slug / season / f"{issue_key}.r{n}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_json.dumps(snapshot, indent=1, ensure_ascii=False) + "\n",
+                    encoding="utf-8")
+    return path
 
 
 def render_league_home(storage: Storage, league: League, *, site_dir: Path | None = None) -> Path:

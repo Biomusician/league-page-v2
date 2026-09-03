@@ -39,12 +39,22 @@
 </div>
 
 <div id="actions" {% if job and job.state == "running" %}hidden{% endif %}>
+{% include "desk/_qa_panel.html" %}
+{% if not qa.ready %}
+  <div class="card bad">
+    <b>The publication check has {{ qa.blockers|length }} blocker(s).</b>
+    Publishing is refused until they clear — the pipeline runs the same check
+    again before it freezes a snapshot, so there is no way around this one.
+    <a href="{{ edit_base }}#publication-check">Fix them in the editor →</a>
+  </div>
+{% endif %}
 {% if blockers %}
   <div class="card bad">
     <b>Cannot publish yet — {{ blockers|length }} blocker(s):</b>
     <ul>{% for b in blockers %}<li><a href="{{ edit_base }}#{{ b.anchor }}">{{ b.text }}</a></li>{% endfor %}</ul>
   </div>
-{% else %}
+{% endif %}
+{% if not blockers and qa.ready %}
   <div class="card ok2"><b>READY TO PUBLISH.</b> All gates pass.</div>
   <div class="card">
     <h3 style="margin-top:0">Publish locally</h3>
