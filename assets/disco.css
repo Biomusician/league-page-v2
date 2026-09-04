@@ -1,0 +1,258 @@
+
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
+  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
+  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
+  .skip:focus { left:.5rem; }
+  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
+  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
+  header.masthead h1 a { text-decoration:none; color:inherit; }
+  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
+  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
+                             border:1px solid #2c343d; }
+  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
+  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
+  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
+                                    height:auto; border:1px solid #2c343d; }
+  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
+  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
+  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
+  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
+  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
+  /* A container that scrolls sideways must be focusable, or its hidden
+     columns are unreachable without a pointer. The templates give it
+     tabindex and a label; this gives the focus somewhere to show. */
+  .tablewrap { overflow-x:auto; }
+  .tablewrap:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; }
+  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
+  td.wrap { white-space:normal; }
+  blockquote { margin-left:0; padding-left:1rem; }
+  section.module { margin:2rem 0; }
+  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
+  .card.feature { }
+  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
+  .meta { font-size:.85rem; }
+  .hero p.lede { font-size:1.12rem; }
+  .flags { font-size:1.05rem; letter-spacing:.15em; }
+  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
+  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
+     at 3 league rounds); words always carry the meaning, color is a bonus. */
+  .dv { white-space:nowrap; }
+  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
+  .dv-strong { font-weight:bold; letter-spacing:.02em; }
+  /* Sortable tables (assets/sortable.js) */
+  th.sortable { cursor:pointer; }
+  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
+  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
+  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
+  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
+  @media (max-width: 640px) {
+    nav.leaguenav { font-size:.82rem; }
+    nav.leaguenav a { margin:0 .3rem; }
+    main { padding:1rem .8rem 3rem; }
+  }
+
+  /* DISCO CHAT — CRC battle-management board. Dark slate environment,
+     amber status accent, status-board hierarchy. A publication made by CRC
+     people; a board, never a movie radar. */
+  body { background:#14181d; color:#e8e4d8; }
+  header.masthead { border-bottom:3px double #e8a33d; background:#101418; }
+  header.masthead h1 { color:#e8a33d; }
+  header.masthead .sub { color:#8fa8b8; }
+  nav.leaguenav { background:#101418; border-bottom:1px solid #2c343d; }
+  nav.leaguenav a { color:#a9bcc8; }
+  nav.leaguenav a[aria-current="page"] { color:#e8a33d; border-bottom:2px solid #e8a33d; }
+  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
+  a { color:#e8a33d; }
+  .card { background:#1a2027; border:1px solid #2c343d; }
+  .card.feature { border:2px solid #e8a33d; }
+  .tag { background:#2c343d; color:#e8a33d; }
+  .tag.prom { background:#e8a33d; color:#14181d; }
+  .tag.warn { background:#3a2c14; color:#f0b866; border:1px solid #7a5a22; }
+  :root { --dv-red:#ff9d85; --dv-green:#8fd9a0; --dv-base:#e8e4d8; }
+  td, th { border:1px solid #2c343d; }
+  th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
+  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+  .meta, .credit, footer.colophon { color:#8fa8b8; }
+  section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
+
+  h2.section-label { font-size:1.3rem; font-weight:700; }
+  section.module > div h2 { font-size:1.12rem; font-weight:700;
+                            text-transform:none; letter-spacing:0; }
+  section.module > div h3 { font-size:1.02rem; }
+  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h3.matchup-title.feature { font-size:1.35rem; }
+  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
+  /* Editorial tables arrive as raw HTML inside published prose and are the
+     only thing on the site that can scroll the whole page sideways. This
+     used to say `section.module > div table`, which also caught every table
+     the site builds itself -- including the ones inside .tablewrap, whose
+     scrolling it took over, leaving the focusable wrapper inert and turning
+     the table into a block so <caption> and scope="col" stopped counting.
+     Say what it means: prose tables only. */
+  .prose table { display:block; overflow-x:auto; max-width:100%; }
+
+  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
+              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
+  nav.exits a { display:inline-block; padding:.45rem 0; }
+  nav.leaguenav a.mine { font-weight:bold; }
+  /* Every `display` rule on this page outranks the browser's own
+     [hidden]{display:none}, so the My Team shortcut and the hidden team
+     cards rendered for readers who never chose a team. */
+  [hidden] { display:none !important; }
+  .myteam .pick { display:flex; flex-wrap:wrap; gap:.4rem .5rem; margin:.5rem 0 0;
+                  padding:0; list-style:none; }
+  .myteam .pick button { font:inherit; cursor:pointer; padding:.5rem .7rem;
+                         border-radius:3px; background:none; color:inherit; }
+  .myteam dl { display:grid; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr));
+               gap:.6rem 1.2rem; margin:.6rem 0 0; }
+  .myteam dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; }
+  .myteam dd { margin:0; }
+  .myteam .forget { font-size:.8rem; background:none; border:0; padding:.4rem 0;
+                    color:inherit; cursor:pointer; text-decoration:underline; }
+  /* Anything a thumb has to hit gets a real height. A 15px link with no
+     padding is a miss on a phone. The first three selectors covered about
+     nothing: the standalone links that actually failed live in table
+     headers, ranking cards, section headings and .meta lines, and there
+     were roughly 130 of them between 15 and 20 pixels tall. */
+  .deeper a, .lists a, main li > a, p > a.more,
+  th a, .rooms a, .card strong a, main h3 > a, p.meta > a, .brief a
+    { display:inline-block; padding:.25rem 0; }
+  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
+  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
+  th.sortable button { font:inherit; color:inherit; background:none; border:0;
+                       padding:0; cursor:pointer; text-align:inherit; }
+  /* The archive is a newspaper. Printing it produced blank paper, because
+     browsers drop background colours and every foreground here is light. */
+  @media print {
+    body { background:#fff; color:#111; }
+    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
+    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
+    .comments { display:none; }
+    main { max-width:none; padding:0; }
+    .tablewrap, .prose table { overflow:visible; display:table; }
+    td, th { white-space:normal; border-color:#999; }
+    .card { border-color:#999; background:none; }
+    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
+  }
+
+/* ---- from home.html ---- */
+  /* Front page: one lead, then secondaries, then data. Deliberately
+     unequal — every module the same size is a dashboard, not a front page. */
+  .freshbar { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase;
+              padding:.3rem 0 .1rem; opacity:.85; }
+  .hero .kicker { font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; }
+  .hero h2.headline { margin:.25rem 0 .5rem; font-size:clamp(1.5rem, 5.2vw, 2.1rem);
+                      line-height:1.2; letter-spacing:0; text-transform:none;
+                      border:0; padding:0; }
+  .hero .lede p:first-child { margin-top:.2rem; }
+  .cta { display:inline-block; margin-top:.6rem; padding:.55rem 1.15rem;
+         font-variant:small-caps; letter-spacing:.12em; font-size:.95rem;
+         text-decoration:none; border-radius:3px; }
+  .brief .lead { padding:1.05rem 1.2rem; }
+  .brief .lead .headline { font-size:1.28rem; font-weight:bold; line-height:1.3;
+                           display:block; margin:.2rem 0 .35rem; }
+  .brief .label { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
+  .brief .grid { display:grid; gap:.75rem; grid-template-columns:repeat(auto-fit, minmax(15.5rem, 1fr)); }
+  /* four secondaries at auto-fit give 3 + 1 orphan; two columns reads better */
+  .brief .grid.even { grid-template-columns:repeat(2, 1fr); }
+  .brief .grid .card { margin:0; padding:.8rem .95rem; }
+  .brief .grid .headline { font-size:1.02rem; font-weight:bold; display:block;
+                           margin:.15rem 0 .3rem; line-height:1.35; }
+  .brief .detail { font-size:.9rem; margin:0 0 .45rem; }
+  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em;
+                 display:inline-block; padding:.45rem 0; }
+  .rooms { display:grid; gap:.5rem; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
+  .rooms .card { margin:0; padding:.6rem .8rem; }
+  .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
+  .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
+  .leaderboard { list-style:none; margin:.6rem 0 0; padding:0;
+                 display:grid; grid-template-columns:repeat(auto-fit, minmax(13rem, 1fr));
+                 gap:.6rem .9rem; }
+  .leaderboard li { display:grid; gap:.05rem; padding:.6rem .75rem; border-radius:4px; }
+  .lead-label { font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; }
+  .lead-value { font-size:1.6rem; font-weight:700; line-height:1.1; }
+  .lead-team { font-weight:600; }
+  .teamstrip { display:flex; flex-wrap:wrap; gap:.4rem; }
+  .teamstrip a { display:inline-block; padding:.5rem .7rem; border-radius:3px;
+                 text-decoration:none; font-size:.9rem; }
+  @media (max-width:640px) {
+    .brief .grid, .brief .grid.even { grid-template-columns:1fr; }
+    .brief .lead .headline { font-size:1.15rem; }
+    .cta { display:block; text-align:center; }
+  }
+
+  .cta { background:#e8a33d; color:#14181d; }
+  .brief .lead { border:2px solid #e8a33d; background:#1a2027; }
+  /* The border is the whole visual boundary of this control, and at
+     1.3:1 against a background itself 1.09:1 from the page there was
+     effectively no boundary at all. WCAG 1.4.11 wants 3:1; this is 3.8. */
+  .teamstrip a { background:#1a2027; border:1px solid #6b7a88; }
+  .teamstrip a:hover { border-color:#e8a33d; }
+  .leaderboard li { background:#1a2027; border:1px solid #e8a33d; }
+  .lead-value { color:#e8a33d; }
+  .freshbar { color:#8fa8b8; border-bottom:1px solid #2c343d; }
+  .hero h2.headline { color:#e8e4d8; }
+
+
+/* ---- from matchups.html ---- */
+  .scout { border-top:1px dashed; margin-top:.7rem; padding-top:.6rem; }
+  .scout h3 { font-size:.74rem; letter-spacing:.14em; text-transform:uppercase;
+              margin:.1rem 0 .35rem; }
+  .scout h4 { font-size:.82rem; margin:.55rem 0 .2rem; font-variant:small-caps;
+              letter-spacing:.06em; }
+  .scout ul { margin:.1rem 0; padding-left:1.1rem; font-size:.92rem; }
+  .scout li { margin:.18rem 0; }
+  .scout .src { font-size:.78rem; margin:.5rem 0 0; }
+
+  .scout { border-color:#2c343d; }
+  .scout h3 { color:#8fa8b8; }
+
+
+/* ---- from power.html ---- */
+  .modelnote { font-size:.85rem; padding:.55rem .85rem; border-radius:3px;
+               margin:.4rem 0 1rem; }
+  .board .row { display:flex; gap:.7rem; align-items:baseline; flex-wrap:wrap; }
+  .board .rk { font-size:1.3rem; font-weight:bold; min-width:2.2rem; }
+  .board .facts { font-size:.88rem; margin:.35rem 0 0; }
+  .board .facts b { font-weight:normal; font-variant:small-caps; letter-spacing:.06em; }
+  .gap { font-size:.78rem; }
+  .capsule { margin:.4rem 0 0; }
+
+  .modelnote { background:#1c2229; border-left:4px solid #8fa8b8; color:#c9c4b4; }
+  .board .rk { color:#e8a33d; }
+
+
+/* ---- from team.html ---- */
+  .brief { padding:1rem 1.15rem; }
+  .brief .storyline { font-size:1.12rem; line-height:1.4; margin:.1rem 0 .8rem; }
+  .brief dl { display:grid; grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr));
+              gap:.75rem 1.4rem; margin:.5rem 0 0; }
+  .brief dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+              margin-bottom:.12rem; }
+  .brief dd { margin:0; font-size:1.02rem; }
+  .brief dd .sub { display:block; font-size:.84rem; margin-top:.1rem; }
+  .brief .lists { margin-top:.9rem; padding-top:.7rem; border-top:1px dotted; }
+  .brief .lists h4 { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+                     margin:.6rem 0 .2rem; }
+  .brief ul { margin:.1rem 0; padding-left:1.1rem; font-size:.93rem; }
+  .receipt { font-size:.92rem; margin:.5rem 0 0; }
+  .receipt blockquote { margin:.2rem 0; font-style:italic; }
+  .mention blockquote { margin:.25rem 0 .1rem; font-style:italic; }
+  /* No mobile override. The base auto-fit already collapses to one column;
+     forcing two put a 205px label into a 143px box on every team page. */
+
+  .brief { border:2px solid #e8a33d; background:#1a2027; }
+  .brief dt { color:#8fa8b8; }
+  .brief .lists { border-color:#2c343d; }
+
+
+/* ---- from transactions.html ---- */
+  .aged { font-size:.92rem; margin:.4rem 0 0; padding-top:.35rem;
+          border-top:1px dotted; }
+  .aged b { font-variant:small-caps; letter-spacing:.05em; font-weight:normal; }

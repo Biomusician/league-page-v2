@@ -47,6 +47,14 @@
     var headers = Array.prototype.slice.call(headRow.cells);
     var state = { col: null, dir: null }; // dir: "asc" | "desc" | null
 
+    // One polite announcer per table, visually hidden.
+    var live = document.createElement("div");
+    live.setAttribute("aria-live", "polite");
+    live.setAttribute("role", "status");
+    live.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;" +
+      "clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap";
+    table.parentNode.insertBefore(live, table);
+
     function apply(order) {
       var parent = dataRows[0].parentNode;
       order.forEach(function (r) { parent.appendChild(r); });
@@ -60,6 +68,17 @@
             state.dir === "asc" ? "ascending" : "descending");
         else h.setAttribute("aria-sort", "none");
       });
+      // aria-sort sits on the th while focus is on the button inside it, so
+      // a screen reader gets no confirmation that up to 229 rows just
+      // reordered. Say what happened.
+      if (!live) return;
+      if (activeIdx < 0 || !state.dir) {
+        live.textContent = "Sort cleared. Original order restored.";
+      } else {
+        var name = (headers[activeIdx].textContent || "column").trim();
+        live.textContent = "Sorted by " + name + ", " +
+          (state.dir === "asc" ? "ascending" : "descending") + ".";
+      }
     }
 
     function sortBy(idx) {

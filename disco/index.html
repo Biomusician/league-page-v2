@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-league="disco">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,164 +21,8 @@
 <meta name="twitter:title" content="DISCO CHAT — 2026">
 <meta name="twitter:description" content="Corn-Fed Fatties (Babe) vs Double TDs (Double) — DISCO CHAT, before a game has been played.">
 <meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/disco-logo-light.png">
+<link rel="stylesheet" href="../assets/disco.css">
 <style>
-  * { box-sizing:border-box; }
-  html { scroll-behavior:smooth; }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
-  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
-  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
-  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
-  .skip:focus { left:.5rem; }
-  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
-  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
-  header.masthead h1 a { text-decoration:none; color:inherit; }
-  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
-  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
-                             border:1px solid #2c343d; }
-  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
-  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
-  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
-                                    height:auto; border:1px solid #2c343d; }
-  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
-  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
-  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
-  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
-  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
-  .tablewrap { overflow-x:auto; }
-  table { border-collapse:collapse; width:100%; font-size:.95rem; }
-  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
-  td.wrap { white-space:normal; }
-  blockquote { margin-left:0; padding-left:1rem; }
-  section.module { margin:2rem 0; }
-  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
-  .card.feature { }
-  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
-  .meta { font-size:.85rem; }
-  .hero p.lede { font-size:1.12rem; }
-  .flags { font-size:1.05rem; letter-spacing:.15em; }
-  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
-  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
-  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
-     at 3 league rounds); words always carry the meaning, color is a bonus. */
-  .dv { white-space:nowrap; }
-  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
-  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
-  .dv-strong { font-weight:bold; letter-spacing:.02em; }
-  /* Sortable tables (assets/sortable.js) */
-  th.sortable { cursor:pointer; }
-  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
-  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
-  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
-  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
-  @media (max-width: 640px) {
-    nav.leaguenav { font-size:.82rem; }
-    nav.leaguenav a { margin:0 .3rem; }
-    main { padding:1rem .8rem 3rem; }
-  }
-
-  /* DISCO CHAT — CRC battle-management board. Dark slate environment,
-     amber status accent, status-board hierarchy. A publication made by CRC
-     people; a board, never a movie radar. */
-  body { background:#14181d; color:#e8e4d8; }
-  header.masthead { border-bottom:3px double #e8a33d; background:#101418; }
-  header.masthead h1 { color:#e8a33d; }
-  header.masthead .sub { color:#8fa8b8; }
-  nav.leaguenav { background:#101418; border-bottom:1px solid #2c343d; }
-  nav.leaguenav a { color:#a9bcc8; }
-  nav.leaguenav a[aria-current="page"] { color:#e8a33d; border-bottom:2px solid #e8a33d; }
-  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
-  a { color:#e8a33d; }
-  .card { background:#1a2027; border:1px solid #2c343d; }
-  .card.feature { border:2px solid #e8a33d; }
-  .tag { background:#2c343d; color:#e8a33d; }
-  .tag.prom { background:#e8a33d; color:#14181d; }
-  .tag.warn { background:#3a2c14; color:#f0b866; border:1px solid #7a5a22; }
-  :root { --dv-red:#ff9d85; --dv-green:#8fd9a0; --dv-base:#e8e4d8; }
-  td, th { border:1px solid #2c343d; }
-  th { background:#1c2229; color:#e8a33d; font-variant:small-caps; letter-spacing:.06em; }
-  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
-  .meta, .credit, footer.colophon { color:#8fa8b8; }
-  section.module { border-top:1px solid #2c343d; padding-top:.6rem; }
-
-  h2.section-label { font-size:1.3rem; font-weight:700; }
-  section.module > div h2 { font-size:1.12rem; font-weight:700;
-                            text-transform:none; letter-spacing:0; }
-  section.module > div h3 { font-size:1.02rem; }
-  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
-  h3.matchup-title.feature { font-size:1.35rem; }
-  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
-  /* Editorial tables arrive as raw HTML from published prose and were the
-     only thing on the site that scrolled the whole page sideways. */
-  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
-  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
-              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
-  nav.exits a { display:inline-block; padding:.45rem 0; }
-  /* Anything a thumb has to hit gets a real height. A 15px link with no
-     padding is a miss on a phone. */
-  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
-  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
-  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
-  th.sortable button { font:inherit; color:inherit; background:none; border:0;
-                       padding:0; cursor:pointer; text-align:inherit; }
-  /* The archive is a newspaper. Printing it produced blank paper, because
-     browsers drop background colours and every foreground here is light. */
-  @media print {
-    body { background:#fff; color:#111; }
-    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
-    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
-    .comments { display:none; }
-    main { max-width:none; padding:0; }
-    .tablewrap, section.module > div table { overflow:visible; display:table; }
-    td, th { white-space:normal; border-color:#999; }
-    .card { border-color:#999; background:none; }
-    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
-  }
-
-  /* Front page: one lead, then secondaries, then data. Deliberately
-     unequal — every module the same size is a dashboard, not a front page. */
-  .freshbar { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase;
-              padding:.3rem 0 .1rem; opacity:.85; }
-  .hero .kicker { font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; }
-  .hero h2.headline { margin:.25rem 0 .5rem; font-size:clamp(1.5rem, 5.2vw, 2.1rem);
-                      line-height:1.2; letter-spacing:0; text-transform:none;
-                      border:0; padding:0; }
-  .hero .lede p:first-child { margin-top:.2rem; }
-  .cta { display:inline-block; margin-top:.6rem; padding:.55rem 1.15rem;
-         font-variant:small-caps; letter-spacing:.12em; font-size:.95rem;
-         text-decoration:none; border-radius:3px; }
-  .brief .lead { padding:1.05rem 1.2rem; }
-  .brief .lead .headline { font-size:1.28rem; font-weight:bold; line-height:1.3;
-                           display:block; margin:.2rem 0 .35rem; }
-  .brief .label { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
-  .brief .grid { display:grid; gap:.75rem; grid-template-columns:repeat(auto-fit, minmax(15.5rem, 1fr)); }
-  /* four secondaries at auto-fit give 3 + 1 orphan; two columns reads better */
-  .brief .grid.even { grid-template-columns:repeat(2, 1fr); }
-  .brief .grid .card { margin:0; padding:.8rem .95rem; }
-  .brief .grid .headline { font-size:1.02rem; font-weight:bold; display:block;
-                           margin:.15rem 0 .3rem; line-height:1.35; }
-  .brief .detail { font-size:.9rem; margin:0 0 .45rem; }
-  .brief .more { font-size:.82rem; font-variant:small-caps; letter-spacing:.08em;
-                 display:inline-block; padding:.45rem 0; }
-  .rooms { display:grid; gap:.5rem; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr)); }
-  .rooms .card { margin:0; padding:.6rem .8rem; }
-  .rooms .pos { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
-  .deeper { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; font-size:.9rem; }
-  .teamstrip { display:flex; flex-wrap:wrap; gap:.4rem; }
-  .teamstrip a { display:inline-block; padding:.5rem .7rem; border-radius:3px;
-                 text-decoration:none; font-size:.9rem; }
-  @media (max-width:640px) {
-    .brief .grid, .brief .grid.even { grid-template-columns:1fr; }
-    .brief .lead .headline { font-size:1.15rem; }
-    .cta { display:block; text-align:center; }
-  }
-
-  .cta { background:#e8a33d; color:#14181d; }
-  .brief .lead { border:2px solid #e8a33d; background:#1a2027; }
-  .teamstrip a { background:#1a2027; border:1px solid #2c343d; }
-  .teamstrip a:hover { border-color:#e8a33d; }
-  .freshbar { color:#8fa8b8; border-bottom:1px solid #2c343d; }
-  .hero h2.headline { color:#e8e4d8; }
-
 
 </style>
 </head>
@@ -212,6 +56,10 @@
   
   <a href="archive/index.html" >Archive</a>
   
+  
+  <a class="mine" data-myteam-nav data-href-template="team/__SLUG__/index.html"
+     data-teams="all-barkley-no-bite-sealed corn-fed-fatties-babe double-tds-double george-friends-dip hand-me-a-white-claw-pitch love-sutton-brocks-emco secret-asian-man-pop stafford-and-sons-fingers statistical-anomalies-mclovin the-dude-abides-the-dude tua-girls-one-kupp-hop vhs-cowboys-juan"
+     href="teams/index.html" hidden>My team</a>
 </nav>
 
 <main id="content">
@@ -225,7 +73,7 @@
   <h2 class="headline" id="lede-hero">Vol 8.I: Back On Station</h2>
   <p class="meta">Updated 2026-09-03 · identity: ranking headings use current public team names</p>
   
-  <div class="lede"><p>Disco Chat is back on the air for the 8th season, and the initial picture is exactly as cluttered as you&rsquo;re used to with BC3. Here&rsquo;s how every season actually starts. When an ACS (especially if it used to be an OSS) first stands up, it&rsquo;s chaos: every track is ambiguous and half the returns are spoofed or erroneous. Our draft this year was the same. Twelve of us dropped 228 tracks on the scope in one night, every single one declared friendly by the (battle?) manager who put it there. The season is the judge; by Halloween we&rsquo;ll know who spent the draft deccing chaff. I am solidly middle-of-the-pack per my rankings, which balances my core belief that I am a fantasy drafting god with the reality that I&rsquo;ve finished last more times than I&rsquo;d ever admit publicly.</p>
+  <div class="lede prose"><p>Disco Chat is back on the air for the 8th season, and the initial picture is exactly as cluttered as you&rsquo;re used to with BC3. Here&rsquo;s how every season actually starts. When an ACS (especially if it used to be an OSS) first stands up, it&rsquo;s chaos: every track is ambiguous and half the returns are spoofed or erroneous. Our draft this year was the same. Twelve of us dropped 228 tracks on the scope in one night, every single one declared friendly by the (battle?) manager who put it there. The season is the judge; by Halloween we&rsquo;ll know who spent the draft deccing chaff. I am solidly middle-of-the-pack per my rankings, which balances my core belief that I am a fantasy drafting god with the reality that I&rsquo;ve finished last more times than I&rsquo;d ever admit publicly.</p>
 <p>The full draft board, with every pick&rsquo;s delta against consensus rank, is on the site, and so is the archive: every recoverable issue of Disco Chat. Good luck to everyone aside from my opponents, to whom I wish a season of very average (or below average) performances. Godspeed everyone! Matchup write-ups next week!</p></div>
   
   <a class="cta" href="2026/draft/index.html">Read the issue →</a>
@@ -258,7 +106,7 @@
       <span class="label">Boldest Call</span>
       <span class="tag ">REACH</span>
       <span class="headline">Stafford and Sons (Fingers) took Jahdae Walker</span>
-      <p class="detail">REACH · 244 picks early against the consensus board. The single largest departure from the market in this draft.</p>
+      <p class="detail">outside the reference board&#39;s range against the consensus board. The single largest departure from the market in this draft.</p>
       <a class="more" href="draft/index.html">Draft board →</a>
     </div>
     
@@ -284,8 +132,278 @@
 
 
 
+
+
+<section class="module myteam" id="myteam" aria-labelledby="myteam-h">
+  <h2 class="section-label" id="myteam-h">Your week</h2>
+
+  
+  <div data-myteam-empty>
+    <details id="myteam-choose">
+      <summary>Which team is yours? <span class="meta">(saved in this browser only)</span></summary>
+      <ul class="pick">
+        
+        <li><button type="button" data-pick-team="all-barkley-no-bite-sealed">All Barkley No Bite (Sealed)</button></li>
+        
+        <li><button type="button" data-pick-team="corn-fed-fatties-babe">Corn-Fed Fatties (Babe)</button></li>
+        
+        <li><button type="button" data-pick-team="double-tds-double">Double TDs (Double)</button></li>
+        
+        <li><button type="button" data-pick-team="george-friends-dip">George &amp; Friends (DIP)</button></li>
+        
+        <li><button type="button" data-pick-team="hand-me-a-white-claw-pitch">Hand me a White Claw (PITCH)</button></li>
+        
+        <li><button type="button" data-pick-team="love-sutton-brocks-emco">Love Sutton Brocks (EMCO)</button></li>
+        
+        <li><button type="button" data-pick-team="secret-asian-man-pop">Secret Asian Man (POP)</button></li>
+        
+        <li><button type="button" data-pick-team="stafford-and-sons-fingers">Stafford and Sons (Fingers)</button></li>
+        
+        <li><button type="button" data-pick-team="statistical-anomalies-mclovin">Statistical Anomalies (McLovin)</button></li>
+        
+        <li><button type="button" data-pick-team="the-dude-abides-the-dude">The Dude Abides (The Dude)</button></li>
+        
+        <li><button type="button" data-pick-team="tua-girls-one-kupp-hop">Tua Girls One Kupp (HOP)</button></li>
+        
+        <li><button type="button" data-pick-team="vhs-cowboys-juan">VHS Cowboys (Juan)</button></li>
+        
+      </ul>
+      <p class="meta">Stored in this browser with no account and no tracking.
+      You can clear it here at any time, and skipping this changes nothing
+      about the rest of the site.</p>
+    </details>
+  </div>
+
+  
+  <div class="card" data-team="all-barkley-no-bite-sealed" data-team-name="All Barkley No Bite (Sealed)" hidden>
+    <p style="margin:.1rem 0"><strong>All Barkley No Bite (Sealed)</strong></p>
+    <p class="detail">Built around QB, exposed at RB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/the-dude-abides-the-dude/index.html">The Dude Abides (The Dude)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#the-dude-abides-the-dude-vs-all-barkley-no-bite-sealed">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 8th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>QB · #2 of 12</dd></div>
+      <div><dt>Concern</dt><dd>RB · #9 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p class="detail"><span class="tag">Under pressure</span>
+      “Two three-player city bets (New Orleans and Tampa) and an Audric Estime pick that beat consensus to the board by 69 spots.”
+      <span class="meta">Audric Estime is no longer on All Barkley No Bite (Sealed)&#39;s roster.</span></p>
+    
+    <p><a class="more" href="team/all-barkley-no-bite-sealed/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="corn-fed-fatties-babe" data-team-name="Corn-Fed Fatties (Babe)" hidden>
+    <p style="margin:.1rem 0"><strong>Corn-Fed Fatties (Babe)</strong></p>
+    <p class="detail">Built around WR, exposed at QB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/double-tds-double/index.html">Double TDs (Double)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#corn-fed-fatties-babe-vs-double-tds-double">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 7th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>WR · #4 of 12</dd></div>
+      <div><dt>Concern</dt><dd>QB · #8 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/corn-fed-fatties-babe/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="double-tds-double" data-team-name="Double TDs (Double)" hidden>
+    <p style="margin:.1rem 0"><strong>Double TDs (Double)</strong></p>
+    <p class="detail">Built around QB, exposed at RB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/corn-fed-fatties-babe/index.html">Corn-Fed Fatties (Babe)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#corn-fed-fatties-babe-vs-double-tds-double">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 9th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>QB · #3 of 12</dd></div>
+      <div><dt>Concern</dt><dd>RB · #12 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/double-tds-double/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="george-friends-dip" data-team-name="George &amp; Friends (DIP)" hidden>
+    <p style="margin:.1rem 0"><strong>George &amp; Friends (DIP)</strong></p>
+    <p class="detail">Built around WR, exposed at RB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/stafford-and-sons-fingers/index.html">Stafford and Sons (Fingers)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#stafford-and-sons-fingers-vs-george-friends-dip">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 5th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>WR · #1 of 12</dd></div>
+      <div><dt>Concern</dt><dd>RB · #10 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/george-friends-dip/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="hand-me-a-white-claw-pitch" data-team-name="Hand me a White Claw (PITCH)" hidden>
+    <p style="margin:.1rem 0"><strong>Hand me a White Claw (PITCH)</strong></p>
+    <p class="detail">Built around WR, exposed at RB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/love-sutton-brocks-emco/index.html">Love Sutton Brocks (EMCO)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#love-sutton-brocks-emco-vs-hand-me-a-white-claw-pitch">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 4th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>WR · #5 of 12</dd></div>
+      <div><dt>Concern</dt><dd>RB · #7 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/hand-me-a-white-claw-pitch/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="love-sutton-brocks-emco" data-team-name="Love Sutton Brocks (EMCO)" hidden>
+    <p style="margin:.1rem 0"><strong>Love Sutton Brocks (EMCO)</strong></p>
+    <p class="detail">Built around RB, exposed at QB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/hand-me-a-white-claw-pitch/index.html">Hand me a White Claw (PITCH)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#love-sutton-brocks-emco-vs-hand-me-a-white-claw-pitch">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 1st of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>RB · #2 of 12</dd></div>
+      <div><dt>Concern</dt><dd>QB · #10 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/love-sutton-brocks-emco/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="secret-asian-man-pop" data-team-name="Secret Asian Man (POP)" hidden>
+    <p style="margin:.1rem 0"><strong>Secret Asian Man (POP)</strong></p>
+    <p class="detail">Built around RB, exposed at QB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#statistical-anomalies-mclovin-vs-secret-asian-man-pop">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 12th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>RB · #5 of 12</dd></div>
+      <div><dt>Concern</dt><dd>QB · #11 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/secret-asian-man-pop/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="stafford-and-sons-fingers" data-team-name="Stafford and Sons (Fingers)" hidden>
+    <p style="margin:.1rem 0"><strong>Stafford and Sons (Fingers)</strong></p>
+    <p class="detail">Built around TE, exposed at QB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/george-friends-dip/index.html">George &amp; Friends (DIP)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#stafford-and-sons-fingers-vs-george-friends-dip">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 11th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>TE · #3 of 12</dd></div>
+      <div><dt>Concern</dt><dd>QB · #12 of 12</dd></div>
+      <div><dt>Recent move</dt><dd>Claimed Zavion Thomas off waivers · dropped Calvin Ridley</dd></div>
+      
+    </dl>
+    
+    <p><a class="more" href="team/stafford-and-sons-fingers/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="statistical-anomalies-mclovin" data-team-name="Statistical Anomalies (McLovin)" hidden>
+    <p style="margin:.1rem 0"><strong>Statistical Anomalies (McLovin)</strong></p>
+    <p class="detail">Built around RB, exposed at TE. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/secret-asian-man-pop/index.html">Secret Asian Man (POP)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#statistical-anomalies-mclovin-vs-secret-asian-man-pop">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 6th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>RB · #1 of 12</dd></div>
+      <div><dt>Concern</dt><dd>TE · #12 of 12</dd></div>
+      <div><dt>Recent move</dt><dd>Claimed Mike Gesicki off waivers</dd></div>
+      
+    </dl>
+    
+    <p><a class="more" href="team/statistical-anomalies-mclovin/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="the-dude-abides-the-dude" data-team-name="The Dude Abides (The Dude)" hidden>
+    <p style="margin:.1rem 0"><strong>The Dude Abides (The Dude)</strong></p>
+    <p class="detail">Built around TE, exposed at WR. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/all-barkley-no-bite-sealed/index.html">All Barkley No Bite (Sealed)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#the-dude-abides-the-dude-vs-all-barkley-no-bite-sealed">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 2nd of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>TE · #1 of 12</dd></div>
+      <div><dt>Concern</dt><dd>WR · #11 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/the-dude-abides-the-dude/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="tua-girls-one-kupp-hop" data-team-name="Tua Girls One Kupp (HOP)" hidden>
+    <p style="margin:.1rem 0"><strong>Tua Girls One Kupp (HOP)</strong></p>
+    <p class="detail">Built around WR, exposed at TE. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/vhs-cowboys-juan/index.html">VHS Cowboys (Juan)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#tua-girls-one-kupp-hop-vs-vhs-cowboys-juan">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 10th of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>WR · #2 of 12</dd></div>
+      <div><dt>Concern</dt><dd>TE · #11 of 12</dd></div>
+      
+      
+    </dl>
+    
+    <p><a class="more" href="team/tua-girls-one-kupp-hop/index.html">Your team page →</a></p>
+  </div>
+  
+  <div class="card" data-team="vhs-cowboys-juan" data-team-name="VHS Cowboys (Juan)" hidden>
+    <p style="margin:.1rem 0"><strong>VHS Cowboys (Juan)</strong></p>
+    <p class="detail">Built around QB, exposed at RB. The season will decide whether that trade-off was the right one.</p>
+    <dl>
+      <div><dt>Next</dt><dd>vs <a href="team/tua-girls-one-kupp-hop/index.html">Tua Girls One Kupp (HOP)</a>
+        <span class="meta">week 1 ·
+          <a href="matchups/index.html#tua-girls-one-kupp-hop-vs-vhs-cowboys-juan">on the board &rarr;</a></span></dd></div>
+      <div><dt>Where they stand</dt><dd>Preseason · model board 3rd of 12</dd></div>
+      
+      <div><dt>Strength</dt><dd>QB · #1 of 12</dd></div>
+      <div><dt>Concern</dt><dd>RB · #11 of 12</dd></div>
+      <div><dt>Recent move</dt><dd>Claimed Malik Davis for 5 FAAB · dropped Jerry Jeudy</dd></div>
+      
+    </dl>
+    
+    <p><a class="more" href="team/vhs-cowboys-juan/index.html">Your team page →</a></p>
+  </div>
+  
+
+  <p data-myteam-set hidden><button class="forget" type="button" data-forget-team>Not
+    <span data-myteam-name></span>? Change or forget your team</button></p>
+</section>
+
+
+
 <section class="module" aria-labelledby="yourteam-h">
-  <h2 class="section-label" id="yourteam-h">Your team</h2>
+  <h2 class="section-label" id="yourteam-h">Every team</h2>
   <p class="meta">Every team's own briefing: where they stand, what changed,
     what the room is short of, and the last time the newsletter mentioned them.</p>
   <p class="teamstrip">
@@ -365,5 +483,6 @@
   DISCO CHAT · 2026 · <a href="../index.html">League select</a>
 </footer>
 <script src="../assets/sortable.js" defer></script>
+<script src="../assets/myteam.js" defer></script>
 </body>
 </html>

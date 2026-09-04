@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-league="surfeit">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,121 +21,8 @@
 <meta name="twitter:title" content="THE SURFEIT — 2026 Draft Issue">
 <meta name="twitter:description" content="Every Draft Is a List of Assumptions — Draft Issue, THE SURFEIT.">
 <meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
+<link rel="stylesheet" href="../../../assets/surfeit.css">
 <style>
-  * { box-sizing:border-box; }
-  html { scroll-behavior:smooth; }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
-  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
-  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
-  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
-  .skip:focus { left:.5rem; }
-  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
-  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
-  header.masthead h1 a { text-decoration:none; color:inherit; }
-  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
-  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
-                             border:1px solid #2c343d; }
-  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
-  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
-  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
-                                    height:auto; border:1px solid #2c343d; }
-  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
-  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
-  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
-  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
-  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
-  .tablewrap { overflow-x:auto; }
-  table { border-collapse:collapse; width:100%; font-size:.95rem; }
-  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
-  td.wrap { white-space:normal; }
-  blockquote { margin-left:0; padding-left:1rem; }
-  section.module { margin:2rem 0; }
-  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
-  .card.feature { }
-  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
-  .meta { font-size:.85rem; }
-  .hero p.lede { font-size:1.12rem; }
-  .flags { font-size:1.05rem; letter-spacing:.15em; }
-  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
-  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
-  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
-     at 3 league rounds); words always carry the meaning, color is a bonus. */
-  .dv { white-space:nowrap; }
-  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
-  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
-  .dv-strong { font-weight:bold; letter-spacing:.02em; }
-  /* Sortable tables (assets/sortable.js) */
-  th.sortable { cursor:pointer; }
-  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
-  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
-  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
-  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
-  @media (max-width: 640px) {
-    nav.leaguenav { font-size:.82rem; }
-    nav.leaguenav a { margin:0 .3rem; }
-    main { padding:1rem .8rem 3rem; }
-  }
-
-  /* THE SURFEIT — Skunk Works Futures. Dark night-navy environment taken
-     from the unit coin: 280c navy field, 123c gold banner, 299c sky blue,
-     antique silver structure. A Futures assessment product read on a
-     darkened operations floor; distinct from Disco's slate-and-amber CRC
-     board by hue (navy + gold + sky vs slate + amber) and structure
-     (ruled section labels vs left-barred ones). */
-  body { background:#071a2f; color:#e4ecf5; }
-  header.masthead { border-bottom:3px solid #facd00; background:#050f1d; }
-  header.masthead h1 { color:#facd00; }
-  header.masthead .sub { color:#9fb6cc; }
-  header.masthead img.logo-badge { filter:drop-shadow(0 2px 6px rgba(0,0,0,.55)); }
-  nav.leaguenav { background:#050f1d; border-bottom:1px solid #1d3d63; }
-  nav.leaguenav a { color:#9fc4e2; }
-  nav.leaguenav a[aria-current="page"] { color:#facd00; border-bottom:2px solid #facd00; }
-  h2.section-label { color:#facd00; border-bottom:2px solid #1d3d63; padding-bottom:.2rem; }
-  a { color:#58b6f0; }
-  .card { background:#0e2743; border:1px solid #1d3d63; }
-  .card.feature { border:2px solid #facd00; box-shadow:3px 3px 0 #04101d; }
-  .tag { background:#16324f; color:#9fc4e2; }
-  .tag.prom { background:#facd00; color:#071a2f; }
-  .tag.warn { background:#3b2f10; color:#ffcf6b; border:1px solid #7a6322; }
-  :root { --dv-red:#ff9d85; --dv-green:#7fd8a3; --dv-base:#e4ecf5; }
-  td, th { border:1px solid #1d3d63; }
-  th { background:#10293f; color:#facd00; font-variant:small-caps; letter-spacing:.06em; }
-  blockquote { border-left:3px solid #58b6f0; color:#c2d2e0; }
-  .meta, .credit, footer.colophon { color:#9fb6cc; }
-
-  h2.section-label { font-size:1.3rem; font-weight:700; }
-  section.module > div h2 { font-size:1.12rem; font-weight:700;
-                            text-transform:none; letter-spacing:0; }
-  section.module > div h3 { font-size:1.02rem; }
-  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
-  h3.matchup-title.feature { font-size:1.35rem; }
-  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
-  /* Editorial tables arrive as raw HTML from published prose and were the
-     only thing on the site that scrolled the whole page sideways. */
-  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
-  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
-              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
-  nav.exits a { display:inline-block; padding:.45rem 0; }
-  /* Anything a thumb has to hit gets a real height. A 15px link with no
-     padding is a miss on a phone. */
-  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
-  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
-  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
-  th.sortable button { font:inherit; color:inherit; background:none; border:0;
-                       padding:0; cursor:pointer; text-align:inherit; }
-  /* The archive is a newspaper. Printing it produced blank paper, because
-     browsers drop background colours and every foreground here is light. */
-  @media print {
-    body { background:#fff; color:#111; }
-    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
-    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
-    .comments { display:none; }
-    main { max-width:none; padding:0; }
-    .tablewrap, section.module > div table { overflow:visible; display:table; }
-    td, th { white-space:normal; border-color:#999; }
-    .card { border-color:#999; background:none; }
-    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
-  }
 
 </style>
 </head>
@@ -169,6 +56,10 @@
   
   <a href="../../archive/index.html" aria-current="page">Archive</a>
   
+  
+  <a class="mine" data-myteam-nav data-href-template="../../team/__SLUG__/index.html"
+     data-teams="dave gary l-entente-discordiale-borat-jack los-bandidos-bandit mj shactin-a-fool-shac statistical-anomalies-mclovin swanson swifty-mahomey-pappie wild-seekats-seabass-kats"
+     href="../../teams/index.html" hidden>My team</a>
 </nav>
 
 <main id="content">
@@ -186,7 +77,7 @@
 <section class="module" id="lowdown">
   <h2 class="section-label">The Lowdown</h2>
   <div class="credit">by the Commissioner</div>
-  <div><h2>Every Draft Is a List of Assumptions</h2>
+  <div class="prose"><h2>Every Draft Is a List of Assumptions</h2>
 <p>Every draft is a planning document. Ten of us just published our assumptions
 about the 2026 season, in writing, with timestamps, and the season&rsquo;s entire
 job is to red-team them. Welcome to The Surfeit! This is the closest many of us will come to a real wargame; may your assumptions be validated!</p>
@@ -211,7 +102,7 @@ team pages. Best of luck to all nine of you, and slightly less to France and the
 <section class="module" id="custom">
   <h2 class="section-label">Draft Power Rankings</h2>
   
-  <div><h2>Draft Power Rankings: Assessing Ten Unique Force Designs</h2>
+  <div class="prose"><h2>Draft Power Rankings: Assessing Ten Unique Force Designs</h2>
 <p>Every draft is a force design, and this is your design debrief. All models are wrong, but some are useful. I&rsquo;ll describe the method first:
 all 150 picks measured against the FantasyPros half-PPR consensus board; a team&rsquo;s score is the sum of its deltas, positive
 when value fell to you, negative when you bought early. The counterargument
@@ -374,5 +265,6 @@ December. Full board with every delta is on the Draft page.</p>
   THE SURFEIT · 2026 · <a href="../../../index.html">League select</a>
 </footer>
 <script src="../../../assets/sortable.js" defer></script>
+<script src="../../../assets/myteam.js" defer></script>
 </body>
 </html>

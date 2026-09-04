@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-league="surfeit">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,121 +21,8 @@
 <meta name="twitter:title" content="THE SURFEIT — Draft">
 <meta name="twitter:description" content="All 150 THE SURFEIT picks against the consensus board, with every reach and every value on the record.">
 <meta name="twitter:image" content="https://league-page-ten-sandy.vercel.app/assets/surfeit-badge.png">
+<link rel="stylesheet" href="../../assets/surfeit.css">
 <style>
-  * { box-sizing:border-box; }
-  html { scroll-behavior:smooth; }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
-  body { margin:0; line-height:1.6; font-family: Georgia, 'Times New Roman', serif; font-size:1.02rem; }
-  main { max-width:52rem; margin:0 auto; padding:1.4rem 1.1rem 4rem; }
-  .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
-  .skip:focus { left:.5rem; }
-  header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
-  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
-  header.masthead h1 a { text-decoration:none; color:inherit; }
-  header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
-  header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
-                             border:1px solid #2c343d; }
-  header.masthead img.logo-badge { display:block; margin:0 auto .7rem; width:min(10.5rem, 55%); height:auto; }
-  header.masthead img.logo-mark { display:block; margin:0 auto .4rem; width:min(15rem, 70%); height:auto; }
-  footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
-                                    height:auto; border:1px solid #2c343d; }
-  nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
-  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
-  nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #d97514; outline-offset:2px; }
-  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
-  .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
-  .tablewrap { overflow-x:auto; }
-  table { border-collapse:collapse; width:100%; font-size:.95rem; }
-  td, th { padding:.35rem .6rem; text-align:left; white-space:nowrap; }
-  td.wrap { white-space:normal; }
-  blockquote { margin-left:0; padding-left:1rem; }
-  section.module { margin:2rem 0; }
-  .card { border-radius:4px; padding:1rem 1.15rem; margin:1rem 0; }
-  .card.feature { }
-  .tag { display:inline-block; border-radius:3px; padding:.08rem .5rem; font-size:.74rem; margin-right:.3rem; letter-spacing:.06em; }
-  .meta { font-size:.85rem; }
-  .hero p.lede { font-size:1.12rem; }
-  .flags { font-size:1.05rem; letter-spacing:.15em; }
-  .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
-  footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
-  /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
-     at 3 league rounds); words always carry the meaning, color is a bonus. */
-  .dv { white-space:nowrap; }
-  .dv-reach { color:color-mix(in srgb, var(--dv-red) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
-  .dv-steal { color:color-mix(in srgb, var(--dv-green) calc(var(--dvi, 0) * 100%), var(--dv-base)); }
-  .dv-strong { font-weight:bold; letter-spacing:.02em; }
-  /* Sortable tables (assets/sortable.js) */
-  th.sortable { cursor:pointer; }
-  th.sortable::after { content:" ↕"; opacity:.45; font-size:.8em; }
-  th.sortable[aria-sort="ascending"]::after { content:" ▲"; opacity:1; }
-  th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
-  th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
-  @media (max-width: 640px) {
-    nav.leaguenav { font-size:.82rem; }
-    nav.leaguenav a { margin:0 .3rem; }
-    main { padding:1rem .8rem 3rem; }
-  }
-
-  /* THE SURFEIT — Skunk Works Futures. Dark night-navy environment taken
-     from the unit coin: 280c navy field, 123c gold banner, 299c sky blue,
-     antique silver structure. A Futures assessment product read on a
-     darkened operations floor; distinct from Disco's slate-and-amber CRC
-     board by hue (navy + gold + sky vs slate + amber) and structure
-     (ruled section labels vs left-barred ones). */
-  body { background:#071a2f; color:#e4ecf5; }
-  header.masthead { border-bottom:3px solid #facd00; background:#050f1d; }
-  header.masthead h1 { color:#facd00; }
-  header.masthead .sub { color:#9fb6cc; }
-  header.masthead img.logo-badge { filter:drop-shadow(0 2px 6px rgba(0,0,0,.55)); }
-  nav.leaguenav { background:#050f1d; border-bottom:1px solid #1d3d63; }
-  nav.leaguenav a { color:#9fc4e2; }
-  nav.leaguenav a[aria-current="page"] { color:#facd00; border-bottom:2px solid #facd00; }
-  h2.section-label { color:#facd00; border-bottom:2px solid #1d3d63; padding-bottom:.2rem; }
-  a { color:#58b6f0; }
-  .card { background:#0e2743; border:1px solid #1d3d63; }
-  .card.feature { border:2px solid #facd00; box-shadow:3px 3px 0 #04101d; }
-  .tag { background:#16324f; color:#9fc4e2; }
-  .tag.prom { background:#facd00; color:#071a2f; }
-  .tag.warn { background:#3b2f10; color:#ffcf6b; border:1px solid #7a6322; }
-  :root { --dv-red:#ff9d85; --dv-green:#7fd8a3; --dv-base:#e4ecf5; }
-  td, th { border:1px solid #1d3d63; }
-  th { background:#10293f; color:#facd00; font-variant:small-caps; letter-spacing:.06em; }
-  blockquote { border-left:3px solid #58b6f0; color:#c2d2e0; }
-  .meta, .credit, footer.colophon { color:#9fb6cc; }
-
-  h2.section-label { font-size:1.3rem; font-weight:700; }
-  section.module > div h2 { font-size:1.12rem; font-weight:700;
-                            text-transform:none; letter-spacing:0; }
-  section.module > div h3 { font-size:1.02rem; }
-  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
-  h3.matchup-title.feature { font-size:1.35rem; }
-  .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
-  /* Editorial tables arrive as raw HTML from published prose and were the
-     only thing on the site that scrolled the whole page sideways. */
-  section.module > div table { display:block; overflow-x:auto; max-width:100%; }
-  nav.exits { margin:2rem 0 0; padding-top:.9rem; border-top:1px dotted;
-              display:flex; flex-wrap:wrap; gap:.35rem 1.1rem; font-size:.92rem; }
-  nav.exits a { display:inline-block; padding:.45rem 0; }
-  /* Anything a thumb has to hit gets a real height. A 15px link with no
-     padding is a miss on a phone. */
-  .deeper a, .lists a, main li > a { display:inline-block; padding:.25rem 0; }
-  .teamgrid .card:hover, .teamgrid .card:focus-visible { text-decoration:underline; }
-  table caption { caption-side:top; text-align:left; padding:0 0 .35rem; }
-  th.sortable button { font:inherit; color:inherit; background:none; border:0;
-                       padding:0; cursor:pointer; text-align:inherit; }
-  /* The archive is a newspaper. Printing it produced blank paper, because
-     browsers drop background colours and every foreground here is light. */
-  @media print {
-    body { background:#fff; color:#111; }
-    a, h1, h2, h3, th, .meta, .credit, footer.colophon, blockquote { color:#111; }
-    nav.leaguenav, nav.exits, .skip, header.masthead img, footer.colophon img,
-    .comments { display:none; }
-    main { max-width:none; padding:0; }
-    .tablewrap, section.module > div table { overflow:visible; display:table; }
-    td, th { white-space:normal; border-color:#999; }
-    .card { border-color:#999; background:none; }
-    a[href^="http"]::after { content:" (" attr(href) ")"; font-size:.8em; }
-  }
 
 </style>
 </head>
@@ -169,6 +56,10 @@
   
   <a href="../archive/index.html" >Archive</a>
   
+  
+  <a class="mine" data-myteam-nav data-href-template="../team/__SLUG__/index.html"
+     data-teams="dave gary l-entente-discordiale-borat-jack los-bandidos-bandit mj shactin-a-fool-shac statistical-anomalies-mclovin swanson swifty-mahomey-pappie wild-seekats-seabass-kats"
+     href="../teams/index.html" hidden>My team</a>
 </nav>
 
 <main id="content">
@@ -178,7 +69,7 @@
 <p class="meta">150 of 150 picks (complete); 10 teams, 15 rounds, snake.</p>
 
 
-<p><a href="../2026/draft/index.html">Read the editorial Draft Issue →</a></p>
+<p><a class="more" href="../2026/draft/index.html">Read the editorial Draft Issue →</a></p>
 
 
 
@@ -190,13 +81,16 @@
       <strong>Biggest Reaches</strong> <span class="meta">(QB/RB/WR/TE)</span>
       <ul>
         
-        <li>Jordan James <span class="meta">(<a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a>, pick 123 · ref 254.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 131 picks early</span></li>
+        <li>Jordan James <span class="meta">(<a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a>, pick 123 · ref 254.0)</span><br>
+<span class="meta">outside the reference board&#39;s range</span></li>
         
-        <li>Mike Washington <span class="meta">(<a href="#team-roster-2">Swanson</a>, pick 116 · ref 166.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 50 picks early</span></li>
+        <li>Mike Washington <span class="meta">(<a href="#team-roster-2">Swanson</a>, pick 116 · ref 166.0)</span><br>
+<span class="meta">outside the reference board&#39;s range</span></li>
         
         <li>Dalton Kincaid <span class="meta">(<a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a>, pick 63 · ref 111.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 48 picks early</span></li>
         
-        <li>MarShawn Lloyd <span class="meta">(<a href="#team-statistical-anomalies">Statistical Anomalies (McLovin)</a>, pick 106 · ref 151.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 45 picks early</span></li>
+        <li>MarShawn Lloyd <span class="meta">(<a href="#team-statistical-anomalies">Statistical Anomalies (McLovin)</a>, pick 106 · ref 151.0)</span><br>
+<span class="meta">outside the reference board&#39;s range</span></li>
         
         <li>Sam LaPorta <span class="meta">(<a href="#team-roster-6">MJ</a>, pick 48 · ref 82.0)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 34 picks early</span></li>
         
@@ -227,11 +121,14 @@
     <strong>Special Teams Outliers</strong>
     <ul>
       
-      <li>Buffalo Bills <span class="meta">(<a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a>, pick 103 · ref 233.0 · 1st DST drafted · consensus DST15)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 130 picks early</span></li>
+      <li>Buffalo Bills <span class="meta">(<a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a>, pick 103 · ref 233.0 · 1st DST drafted · consensus DST15)</span><br>
+<span class="meta">outside the reference board&#39;s range</span></li>
       
-      <li>Jason Myers <span class="meta">(<a href="#team-roster-5">Gary</a>, pick 124 · ref 219.0 · 2nd K drafted · consensus K5)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 95 picks early</span></li>
+      <li>Jason Myers <span class="meta">(<a href="#team-roster-5">Gary</a>, pick 124 · ref 219.0 · 2nd K drafted · consensus K5)</span><br>
+<span class="meta">outside the reference board&#39;s range</span></li>
       
-      <li>Jake Bates <span class="meta">(<a href="#team-roster-6">MJ</a>, pick 133 · ref 224.0 · 5th K drafted · consensus K7)</span><br><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 91 picks early</span></li>
+      <li>Jake Bates <span class="meta">(<a href="#team-roster-6">MJ</a>, pick 133 · ref 224.0 · 5th K drafted · consensus K7)</span><br>
+<span class="meta">outside the reference board&#39;s range</span></li>
       
     </ul>
     <p class="meta">Consensus ranks kickers and defenses below the range
@@ -249,9 +146,9 @@
   <p class="meta"><a href="#team-statistical-anomalies">Statistical Anomalies (McLovin)</a> · <a href="#team-roster-2">Swanson</a> · <a href="#team-shactin-a-fool">SHACtin&#39; a Fool 🐻 (SHAC)</a> · <a href="#team-roster-4">Dave</a> · <a href="#team-roster-5">Gary</a> · <a href="#team-roster-6">MJ</a> · <a href="#team-wild-seekats">Wild SeeKats (Seabass/Kats)</a> · <a href="#team-l-entente-discordiale">L’entente Discordiale (Borat/Jack)</a> · <a href="#team-swifty-mahomey">Swifty Mahomey (Pappie)</a> · <a href="#team-los-bandidos">Los Bandidos (Bandit)</a></p>
   
   <div class="card" id="team-statistical-anomalies">
-    <h3><a href="../team/statistical-anomalies/index.html">Statistical Anomalies (McLovin)</a></h3>
+    <h3><a href="../team/statistical-anomalies-mclovin/index.html">Statistical Anomalies (McLovin)</a></h3>
     <span class="meta">1 DEF, 1 K, 1 QB, 5 RB, 1 TE, 6 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Statistical Anomalies (McLovin) draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -312,7 +209,8 @@
       <tr><td>11</td><td>106</td><td class="wrap">MarShawn Lloyd</td>
           <td>RB</td>
           <td>151.0</td>
-          <td data-sort-value="-45.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 45 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>12</td><td>115</td><td class="wrap">De&#39;Zhaun Stribling</td>
           <td>WR</td>
@@ -322,7 +220,8 @@
       <tr><td>13</td><td>126</td><td class="wrap">Cameron Dicker</td>
           <td>K</td>
           <td>206.0</td>
-          <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>14</td><td>135</td><td class="wrap">Juwan Johnson</td>
           <td>TE</td>
@@ -332,16 +231,17 @@
       <tr><td>15</td><td>146</td><td class="wrap">Jacksonville Jaguars</td>
           <td>DEF</td>
           <td>195.0</td>
-          <td data-sort-value="-49.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 49 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-roster-2">
-    <h3><a href="../team/roster-2/index.html">Swanson</a></h3>
+    <h3><a href="../team/swanson/index.html">Swanson</a></h3>
     <span class="meta">1 DEF, 1 QB, 6 RB, 2 TE, 5 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Swanson draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -402,12 +302,14 @@
       <tr><td>11</td><td>105</td><td class="wrap">Denver Broncos</td>
           <td>DEF</td>
           <td>187.0</td>
-          <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>12</td><td>116</td><td class="wrap">Mike Washington</td>
           <td>RB</td>
           <td>166.0</td>
-          <td data-sort-value="-50.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 50 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>13</td><td>125</td><td class="wrap">Makai Lemon</td>
           <td>WR</td>
@@ -422,16 +324,17 @@
       <tr><td>15</td><td>145</td><td class="wrap">Alvin Kamara</td>
           <td>RB</td>
           <td>152.0</td>
-          <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-shactin-a-fool">
-    <h3><a href="../team/shactin-a-fool/index.html">SHACtin&#39; a Fool 🐻 (SHAC)</a></h3>
+    <h3><a href="../team/shactin-a-fool-shac/index.html">SHACtin&#39; a Fool 🐻 (SHAC)</a></h3>
     <span class="meta">2 DEF, 2 QB, 6 RB, 1 TE, 4 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="SHACtin&#39; a Fool 🐻 (SHAC) draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -502,26 +405,29 @@
       <tr><td>13</td><td>122</td><td class="wrap">Seattle Seahawks</td>
           <td>DEF</td>
           <td>190.0</td>
-          <td data-sort-value="-68.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 68 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>14</td><td>139</td><td class="wrap">Brian Robinson</td>
           <td>RB</td>
           <td>160.0</td>
-          <td data-sort-value="-21.0"><span class="dv dv-strong dv-reach" style="--dvi:0.7">REACH · 21 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>15</td><td>142</td><td class="wrap">Houston Texans</td>
           <td>DEF</td>
           <td>186.0</td>
-          <td data-sort-value="-44.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 44 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-roster-4">
-    <h3><a href="../team/roster-4/index.html">Dave</a></h3>
+    <h3><a href="../team/dave/index.html">Dave</a></h3>
     <span class="meta">1 K, 1 QB, 5 RB, 1 TE, 7 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Dave draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -602,16 +508,17 @@
       <tr><td>15</td><td>149</td><td class="wrap">Eddy Pineiro</td>
           <td>K</td>
           <td>225.0</td>
-          <td data-sort-value="-76.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 76 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-roster-5">
-    <h3><a href="../team/roster-5/index.html">Gary</a></h3>
+    <h3><a href="../team/gary/index.html">Gary</a></h3>
     <span class="meta">1 DEF, 1 K, 2 QB, 5 RB, 1 TE, 5 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Gary draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -682,7 +589,8 @@
       <tr><td>13</td><td>124</td><td class="wrap">Jason Myers</td>
           <td>K</td>
           <td>219.0</td>
-          <td data-sort-value="-95.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 95 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>14</td><td>137</td><td class="wrap">Jared Goff</td>
           <td>QB</td>
@@ -692,16 +600,17 @@
       <tr><td>15</td><td>144</td><td class="wrap">Baltimore Ravens</td>
           <td>DEF</td>
           <td>218.0</td>
-          <td data-sort-value="-74.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 74 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-roster-6">
-    <h3><a href="../team/roster-6/index.html">MJ</a></h3>
+    <h3><a href="../team/mj/index.html">MJ</a></h3>
     <span class="meta">1 DEF, 1 K, 1 QB, 5 RB, 2 TE, 5 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="MJ draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -777,21 +686,23 @@
       <tr><td>14</td><td>133</td><td class="wrap">Jake Bates</td>
           <td>K</td>
           <td>224.0</td>
-          <td data-sort-value="-91.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 91 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>15</td><td>148</td><td class="wrap">Pittsburgh Steelers</td>
           <td>DEF</td>
           <td>199.0</td>
-          <td data-sort-value="-51.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 51 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-wild-seekats">
-    <h3><a href="../team/wild-seekats/index.html">Wild SeeKats (Seabass/Kats)</a></h3>
+    <h3><a href="../team/wild-seekats-seabass-kats/index.html">Wild SeeKats (Seabass/Kats)</a></h3>
     <span class="meta">1 DEF, 1 K, 1 QB, 5 RB, 2 TE, 5 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Wild SeeKats (Seabass/Kats) draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -867,21 +778,23 @@
       <tr><td>14</td><td>140</td><td class="wrap">Philadelphia Eagles</td>
           <td>DEF</td>
           <td>197.0</td>
-          <td data-sort-value="-57.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 57 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>15</td><td>141</td><td class="wrap">Cam Little</td>
           <td>K</td>
           <td>214.0</td>
-          <td data-sort-value="-73.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 73 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-l-entente-discordiale">
-    <h3><a href="../team/l-entente-discordiale/index.html">L’entente Discordiale (Borat/Jack)</a></h3>
+    <h3><a href="../team/l-entente-discordiale-borat-jack/index.html">L’entente Discordiale (Borat/Jack)</a></h3>
     <span class="meta">2 DEF, 1 K, 1 QB, 6 RB, 1 TE, 4 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="L’entente Discordiale (Borat/Jack) draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -942,17 +855,20 @@
       <tr><td>11</td><td>103</td><td class="wrap">Buffalo Bills</td>
           <td>DEF</td>
           <td>233.0</td>
-          <td data-sort-value="-130.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 130 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>12</td><td>118</td><td class="wrap">Brandon Aubrey</td>
           <td>K</td>
           <td>202.0</td>
-          <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>13</td><td>123</td><td class="wrap">Jordan James</td>
           <td>RB</td>
           <td>254.0</td>
-          <td data-sort-value="-131.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 131 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>14</td><td>138</td><td class="wrap">Tyler Allgeier</td>
           <td>RB</td>
@@ -962,16 +878,17 @@
       <tr><td>15</td><td>143</td><td class="wrap">New England Patriots</td>
           <td>DEF</td>
           <td>198.0</td>
-          <td data-sort-value="-55.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 55 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-swifty-mahomey">
-    <h3><a href="../team/swifty-mahomey/index.html">Swifty Mahomey (Pappie)</a></h3>
+    <h3><a href="../team/swifty-mahomey-pappie/index.html">Swifty Mahomey (Pappie)</a></h3>
     <span class="meta">1 DEF, 1 K, 2 QB, 4 RB, 1 TE, 6 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Swifty Mahomey (Pappie) draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -1032,7 +949,8 @@
       <tr><td>11</td><td>107</td><td class="wrap">Los Angeles Rams</td>
           <td>DEF</td>
           <td>191.0</td>
-          <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>12</td><td>114</td><td class="wrap">Patrick Mahomes</td>
           <td>QB</td>
@@ -1052,16 +970,17 @@
       <tr><td>15</td><td>147</td><td class="wrap">Harrison Mevis</td>
           <td>K</td>
           <td>229.0</td>
-          <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
   </div>
   
   <div class="card" id="team-los-bandidos">
-    <h3><a href="../team/los-bandidos/index.html">Los Bandidos (Bandit)</a></h3>
+    <h3><a href="../team/los-bandidos-bandit/index.html">Los Bandidos (Bandit)</a></h3>
     <span class="meta">1 DEF, 1 K, 2 QB, 4 RB, 2 TE, 5 WR</span>
-    <div class="tablewrap">
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Los Bandidos (Bandit) draft picks">
     <table data-sortable>
       <tr><th scope="col" data-sort-type="number">Rd</th>
           <th scope="col" data-sort-type="number">Pick</th>
@@ -1137,12 +1056,14 @@
       <tr><td>14</td><td>131</td><td class="wrap">Ka&#39;imi Fairbairn</td>
           <td>K</td>
           <td>211.0</td>
-          <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
       <tr><td>15</td><td>150</td><td class="wrap">Detroit Lions</td>
           <td>DEF</td>
           <td>230.0</td>
-          <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+          <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
       
     </table>
     </div>
@@ -1153,7 +1074,7 @@
 <section class="module">
   <h2 class="section-label">Full Board</h2>
   <p class="meta">Sort Draft Value ascending for the biggest reaches, descending for the biggest steals.</p>
-  <div class="tablewrap">
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Full draft board">
   <table data-sortable>
     <tr><th scope="col" data-sort-type="number">Pick</th>
         <th scope="col" data-sort-type="number">Rd</th>
@@ -1674,7 +1595,8 @@
     <tr><td>103</td><td>11</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Buffalo Bills</td><td>DEF</td>
         <td>233.0</td>
-        <td data-sort-value="-130.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 130 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>104</td><td>11</td><td class="wrap">Gary</td>
         <td class="wrap">Kenny Gainwell</td><td>RB</td>
@@ -1684,17 +1606,20 @@
     <tr><td>105</td><td>11</td><td class="wrap">Swanson</td>
         <td class="wrap">Denver Broncos</td><td>DEF</td>
         <td>187.0</td>
-        <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>106</td><td>11</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">MarShawn Lloyd</td><td>RB</td>
         <td>151.0</td>
-        <td data-sort-value="-45.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 45 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>107</td><td>11</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Los Angeles Rams</td><td>DEF</td>
         <td>191.0</td>
-        <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>108</td><td>11</td><td class="wrap">MJ</td>
         <td class="wrap">Aaron Jones</td><td>RB</td>
@@ -1739,7 +1664,8 @@
     <tr><td>116</td><td>12</td><td class="wrap">Swanson</td>
         <td class="wrap">Mike Washington</td><td>RB</td>
         <td>166.0</td>
-        <td data-sort-value="-50.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 50 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>117</td><td>12</td><td class="wrap">Gary</td>
         <td class="wrap">KC Concepcion</td><td>WR</td>
@@ -1749,7 +1675,8 @@
     <tr><td>118</td><td>12</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Brandon Aubrey</td><td>K</td>
         <td>202.0</td>
-        <td data-sort-value="-84.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 84 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>119</td><td>12</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Jaxson Dart</td><td>QB</td>
@@ -1769,17 +1696,20 @@
     <tr><td>122</td><td>13</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Seattle Seahawks</td><td>DEF</td>
         <td>190.0</td>
-        <td data-sort-value="-68.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 68 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>123</td><td>13</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">Jordan James</td><td>RB</td>
         <td>254.0</td>
-        <td data-sort-value="-131.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 131 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>124</td><td>13</td><td class="wrap">Gary</td>
         <td class="wrap">Jason Myers</td><td>K</td>
         <td>219.0</td>
-        <td data-sort-value="-95.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 95 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>125</td><td>13</td><td class="wrap">Swanson</td>
         <td class="wrap">Makai Lemon</td><td>WR</td>
@@ -1789,7 +1719,8 @@
     <tr><td>126</td><td>13</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Cameron Dicker</td><td>K</td>
         <td>206.0</td>
-        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>127</td><td>13</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Deebo Samuel</td><td>WR</td>
@@ -1814,7 +1745,8 @@
     <tr><td>131</td><td>14</td><td class="wrap">Los Bandidos (Bandit)</td>
         <td class="wrap">Ka&#39;imi Fairbairn</td><td>K</td>
         <td>211.0</td>
-        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>132</td><td>14</td><td class="wrap">Dave</td>
         <td class="wrap">Xavier Worthy</td><td>WR</td>
@@ -1824,7 +1756,8 @@
     <tr><td>133</td><td>14</td><td class="wrap">MJ</td>
         <td class="wrap">Jake Bates</td><td>K</td>
         <td>224.0</td>
-        <td data-sort-value="-91.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 91 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>134</td><td>14</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Matthew Stafford</td><td>QB</td>
@@ -1854,72 +1787,89 @@
     <tr><td>139</td><td>14</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Brian Robinson</td><td>RB</td>
         <td>160.0</td>
-        <td data-sort-value="-21.0"><span class="dv dv-strong dv-reach" style="--dvi:0.7">REACH · 21 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>140</td><td>14</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Philadelphia Eagles</td><td>DEF</td>
         <td>197.0</td>
-        <td data-sort-value="-57.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 57 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>141</td><td>15</td><td class="wrap">Wild SeeKats (Seabass/Kats)</td>
         <td class="wrap">Cam Little</td><td>K</td>
         <td>214.0</td>
-        <td data-sort-value="-73.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 73 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>142</td><td>15</td><td class="wrap">SHACtin&#39; a Fool 🐻 (SHAC)</td>
         <td class="wrap">Houston Texans</td><td>DEF</td>
         <td>186.0</td>
-        <td data-sort-value="-44.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 44 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>143</td><td>15</td><td class="wrap">L’entente Discordiale (Borat/Jack)</td>
         <td class="wrap">New England Patriots</td><td>DEF</td>
         <td>198.0</td>
-        <td data-sort-value="-55.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 55 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>144</td><td>15</td><td class="wrap">Gary</td>
         <td class="wrap">Baltimore Ravens</td><td>DEF</td>
         <td>218.0</td>
-        <td data-sort-value="-74.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 74 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>145</td><td>15</td><td class="wrap">Swanson</td>
         <td class="wrap">Alvin Kamara</td><td>RB</td>
         <td>152.0</td>
-        <td data-sort-value="-7.0"><span class="dv dv-reach" style="--dvi:0.23">-7</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>146</td><td>15</td><td class="wrap">Statistical Anomalies (McLovin)</td>
         <td class="wrap">Jacksonville Jaguars</td><td>DEF</td>
         <td>195.0</td>
-        <td data-sort-value="-49.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 49 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>147</td><td>15</td><td class="wrap">Swifty Mahomey (Pappie)</td>
         <td class="wrap">Harrison Mevis</td><td>K</td>
         <td>229.0</td>
-        <td data-sort-value="-82.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 82 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>148</td><td>15</td><td class="wrap">MJ</td>
         <td class="wrap">Pittsburgh Steelers</td><td>DEF</td>
         <td>199.0</td>
-        <td data-sort-value="-51.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 51 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>149</td><td>15</td><td class="wrap">Dave</td>
         <td class="wrap">Eddy Pineiro</td><td>K</td>
         <td>225.0</td>
-        <td data-sort-value="-76.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 76 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
     <tr><td>150</td><td>15</td><td class="wrap">Los Bandidos (Bandit)</td>
         <td class="wrap">Detroit Lions</td><td>DEF</td>
         <td>230.0</td>
-        <td data-sort-value="-80.0"><span class="dv dv-strong dv-reach" style="--dvi:1.0">REACH · 80 picks early</span></td></tr>
+        <td data-sort-value="0.0">
+<span class="meta">outside the reference board&#39;s range</span></td></tr>
     
   </table>
   </div>
 </section>
-<p class="meta">Reach/Steal compares each pick with the league's stored reference
-board (FantasyPros Expert Consensus Rank (redraft, half PPR) (retrieved 2026-08-29)). REACH means the player
-went at least one full league round (10 picks here) earlier than
-reference; STEAL means at least one full round later. Color deepens with the
-size of the deviation and saturates at three rounds. This measures draft-market
-value against a reference board — not whether the pick ultimately succeeds.</p>
+<p class="meta" id="how">Reach/Steal compares each pick with the league's stored
+reference board (FantasyPros Expert Consensus Rank (redraft, half PPR) (retrieved 2026-08-29)). REACH means the
+player went at least one full league round (10 picks here)
+earlier than reference; STEAL means at least one full round later. Color deepens
+with the size of the deviation and saturates at three rounds. This measures
+draft-market value against a reference board — not whether the pick ultimately
+succeeds. Headline Reach and Steal cover QB, RB, WR and TE only: kickers and
+defenses sit below the draftable range on that board while lineups force
+everyone to draft one, so their deviations measure the board's shape rather
+than anybody's judgment, and a pick whose reference rank falls past the end of
+the draft carries no deviation at all.</p>
 
 
 </main>
@@ -1928,5 +1878,6 @@ value against a reference board — not whether the pick ultimately succeeds.</p
   THE SURFEIT · 2026 · <a href="../../index.html">League select</a>
 </footer>
 <script src="../../assets/sortable.js" defer></script>
+<script src="../../assets/myteam.js" defer></script>
 </body>
 </html>
