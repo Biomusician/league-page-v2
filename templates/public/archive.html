@@ -25,6 +25,56 @@
 </section>
 {% endif %}
 
+{% for r in reconstructed %}
+<section class="module" aria-labelledby="rebuilt-{{ r.season }}-h">
+  <h2 class="section-label" id="rebuilt-{{ r.season }}-h">{{ r.season }}, reconstructed</h2>
+  {#  Every one of these games is inferred, and the page says so before it
+      shows a single number. The archive states almost no results as
+      results: the matchup blocks are previews, written before kickoff. But
+      a preview prints each team's record, and so does the next week's, so
+      the week in between is recoverable from the difference. #}
+  <p class="meta"><b>Reconstructed, not recorded.</b> Nobody wrote these
+  results down. Each one is worked out from the records printed in the
+  weekly previews: a team that was 3-1 going into week 5 and 4-1 going into
+  week 6 won in week 5. A game only appears here when exactly one side
+  gained a win and the other gained a loss, so a week the newsletters
+  disagree about produces nothing rather than a guess.</p>
+  {% if r.tension %}<p class="detail">{{ r.tension }}</p>{% endif %}
+  <p class="meta">{{ r.note }}</p>
+
+  <div class="tablewrap" tabindex="0" role="region" aria-label="{{ r.season }} reconstructed standings">
+  <table>
+    <caption class="meta">{{ r.season }} standings as reconstructed, over the recovered weeks only.</caption>
+    <tr><th scope="col">Team</th><th scope="col">Record</th><th scope="col">Games</th></tr>
+    {% for t in r.standings %}
+    <tr>
+      <th scope="row" class="wrap">{% set sl = r.slugs.get(t.key) %}
+        {%- if sl %}<a href="{{ lroot }}team/{{ sl }}/index.html">{{ t.name }}</a>
+        {%- else %}{{ t.name }}{% endif %}</th>
+      <td>{{ t.wins }}-{{ t.losses }}</td>
+      <td>{{ t.games }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+
+  <details>
+    <summary>Every recovered game, week by week</summary>
+    <ul class="lists">
+      {% for w in r.weeks %}
+      <li><b>Week {{ w.week }}</b>
+        <ul>{% for g in w.games %}
+          <li>{{ g.winner_name }} beat {{ g.loser_name }}</li>
+        {% endfor %}</ul>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="meta">Winners only: the previews carry records, never scores,
+    so the margin is not recoverable and is not invented.</p>
+  </details>
+</section>
+{% endfor %}
+
 {% if published %}
 <section class="module">
   <h2 class="section-label">{{ season }} Issues</h2>

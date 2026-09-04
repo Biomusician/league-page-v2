@@ -1227,11 +1227,41 @@ def build_league(
           "manager_keys": manager_for_roster(_managers, league.slug, rid)}
          for rid in names],
         _managers)
+    # Seasons Sleeper cannot reach, recovered from the records printed in
+    # the previews rather than from any stated result. Inference, labelled
+    # as inference; a season whose names are not all publishable does not
+    # ship at all, because publishing half of it misstates every record.
+    from leaguepage.archive_results import (coverage_note, drop_private_results,
+                                            resolve_result_teams, season_results,
+                                            standings_rows, title_tension,
+                                            weeks_rows)
+
+    _result_teams = [{"roster_id": rid, "team_slug": slugs.get(rid),
+                      "manager_keys": manager_for_roster(_managers, league.slug, rid)}
+                     for rid in names]
+    reconstructed = []
+    for _rec in drop_private_results(
+            season_results(storage, league),
+            _private_handles(sorted(public_names.values()))):
+        _slugs = resolve_result_teams(_rec, _result_teams, _managers)
+        _rows = standings_rows(_rec)
+        reconstructed.append({
+            "season": _rec["season"],
+            "note": coverage_note(_rec),
+            # Two independent readings of the same archive. Where they
+            # disagree about who had the season, that is the story.
+            "tension": title_tension(_rows, _rec["season"], ledger),
+            "standings": _rows,
+            "weeks": weeks_rows(_rec),
+            "slugs": _slugs,
+            "sources": sorted({i for r in _rec["results"] for i in r["from_issues"]}),
+        })
     render("archive/index.html", "public/archive.html", 2,
            description=(f"Every issue of {league.display_name} on the record, "
                         f"newest first."),
            published=snaps, historical_groups=historical_groups,
            ledger=ledger, ledger_note=ledger_note(ledger),
+           reconstructed=reconstructed,
            current_nav="Archive")
 
     # league home (front page) — season-state aware editorial hierarchy
