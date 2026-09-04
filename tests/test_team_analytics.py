@@ -266,19 +266,35 @@ def test_snapshots_persist_and_deltas_are_historical(db):
     record_snapshot(db, LG, "2026", 0, adp=adp)
     assert get_snapshot(db, LG, "2026", 0)["stage"].startswith("preseason")
     # deltas compare stored history, never recomputed: plant two snapshots
-    db.set_meta("analytics_snapshot:tl:2026:0", json.dumps({
-        "week": 0, "stage": "preseason",
-        "positional_ranks": {"WR": {"1": 9, "2": 1}},
-        "standings": {"1": 6, "2": 1}, "playoff": {"1": 0.10, "2": 0.80}}))
-    db.set_meta("analytics_snapshot:tl:2026:2", json.dumps({
-        "week": 2, "stage": "preseason",
-        "positional_ranks": {"WR": {"1": 3, "2": 1}},
-        "standings": {"1": 2, "2": 1}, "playoff": {"1": 0.45, "2": 0.80}}))
+    def _plant(week, wr, standing, odds, stage="preseason",
+               playoff_stage="percentages"):
+        db.set_meta(f"analytics_snapshot:tl:2026:{week}", json.dumps({
+            "week": week, "stage": stage, "playoff_stage": playoff_stage,
+            "positional_ranks": {"WR": wr}, "standings": standing,
+            "playoff": odds}))
+
+    _plant(0, {"1": 9, "2": 1}, {"1": 6, "2": 1}, {"1": 0.10, "2": 0.80})
+    _plant(2, {"1": 3, "2": 1}, {"1": 2, "2": 1}, {"1": 0.45, "2": 0.80})
     deltas = snapshot_deltas(db, LG, "2026", 2)
     assert any("WR room #9 → #3" in n for n in deltas[1])
     assert any(n.startswith("standings 6 → 2") for n in deltas[1])
     assert any("playoff odds" in n for n in deltas[1])
     assert 2 not in deltas                     # nothing changed for team 2
+
+    # A room delta across the valuation-stage boundary is the method
+    # changing, not the roster. Nobody touched either of these rosters.
+    _plant(2, {"1": 3, "2": 1}, {"1": 2, "2": 1}, {"1": 0.45, "2": 0.80},
+           stage="in-season blend")
+    crossed = snapshot_deltas(db, LG, "2026", 2)
+    assert not any("WR room" in n for n in crossed.get(1, []))
+    assert any(n.startswith("standings") for n in crossed[1])
+
+    # And the odds delta stays quiet while the outlook is still in bands,
+    # because the standings page itself refuses to print the number.
+    _plant(2, {"1": 3, "2": 1}, {"1": 2, "2": 1}, {"1": 0.45, "2": 0.80},
+           playoff_stage="bands")
+    banded = snapshot_deltas(db, LG, "2026", 2)
+    assert not any("playoff odds" in n for n in banded.get(1, []))
 
 
 def test_analytics_story_candidates_gated_and_shaped(db):

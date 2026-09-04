@@ -53,7 +53,7 @@ record; records need games.</p>
   {% for s in editorial_sections %}
   <div class="card">
     <p class="meta">{{ s.issue_label }}</p>
-    <div>{{ s.html | safe }}</div>
+    <div class="prose">{{ s.html | safe }}</div>
   </div>
   {% endfor %}
 </section>

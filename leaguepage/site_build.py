@@ -396,6 +396,12 @@ def build_league(
                       for rid, nm in public_by_rid.items()}
         html = env.get_template(template).render(
             league=league, season=season, lroot=lroot, team_links=team_links,
+            css_name=league.slug,
+            # Every page carries the league's team slugs so the My Team nav
+            # shortcut can tell a live choice from a stale one. It used to
+            # look for a card with that slug, and the cards only exist on
+            # the home page, so the shortcut was hidden on the other 96.
+            team_slugs=" ".join(sorted(slugs[rid] for rid in public_by_rid)),
             page_description=description,
             canonical=f"{SITE_URL}/{league.slug}/{rel}",
             og_image=f"{SITE_URL}/assets/{og[0]}" if og else None,
@@ -1314,6 +1320,20 @@ def build_site(
                      preview_issue=(preview_issues or {}).get(league.slug))
     _write(out, "index.html",
            env.get_template("public/root.html").render(site_url=SITE_URL), pages)
+    # One stylesheet per theme, written once and cached, instead of the whole
+    # thing inlined into all 98 documents. It was 728KB of the build's 1.9MB
+    # of HTML, and 74% of the bytes on the smallest pages, re-sent on every
+    # click through a fifty-five issue archive.
+    assets_dir = out / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    css_tpl = env.get_template("public/_site_css.html")
+    for league in leagues or LEAGUES:
+        (assets_dir / f"{league.slug}.css").write_text(
+            css_tpl.render(league=league), encoding="utf-8")
+        pages.append(f"assets/{league.slug}.css")
+    # The league-select page does not extend base.html and carries its own
+    # twenty-five lines; a third stylesheet for one page nothing else shares
+    # would cost a request to save a kilobyte.
     if STATIC_DIR.is_dir():
         assets = out / "assets"
         assets.mkdir(parents=True, exist_ok=True)
@@ -1426,7 +1446,11 @@ def audit_output(out_dir: Path, *, extra_forbidden: list[str] | None = None,
                 # value: an audit report that quotes the secret has
                 # published it again.
                 violations.append(f"{rel}: {label} at offset {m.start()}")
-        if "/archive/a" not in f"/{rel}":
+        # Now that the stylesheet is a real file, the whole of it would be
+        # scanned as prose, and a stylesheet is where `border:3px double`
+        # lives. Names are looked for where a reader reads them. Credential
+        # shapes above still scan every audited file including this one.
+        if "/archive/a" not in f"/{rel}" and path.suffix.lower() != ".css":
             # Names are looked for in what a reader can read. A stylesheet
             # keyword is not a person: matching case-insensitively made
             # `border:3px double` a hit for a manager whose alias is

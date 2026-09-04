@@ -174,7 +174,10 @@ def test_historical_archive_issue_renders_verbatim_without_metadata(site_env):
     db, tmp = site_env
     _build(db, tmp)
     archive = (tmp / "dist" / "disco" / "archive" / "index.html").read_text(encoding="utf-8")
-    assert "2021 Disco Week 4" in archive
+    # The index groups by season and labels each issue by its week; the
+    # filed title only shows when it says something the label does not.
+    assert "2021" in archive and "Week 4" in archive
+    assert re.search(r'href="[^"]*archive/a\d+/index\.html"', archive)
     issue_pages = list((tmp / "dist" / "disco" / "archive").rglob("a*/index.html"))
     assert issue_pages
     page = issue_pages[0].read_text(encoding="utf-8")
@@ -211,9 +214,13 @@ def test_mobile_and_a11y_basics_in_markup(site_env):
     _build(db, tmp)
     home = (tmp / "dist" / "surfeit" / "index.html").read_text(encoding="utf-8")
     assert 'name="viewport"' in home
-    assert "max-width" in home and "@media" in home
+    # The stylesheet is one cached file per theme rather than 98 inline
+    # copies, so the responsive rules are asserted where they now live.
+    assert 'rel="stylesheet"' in home
+    css = (tmp / "dist" / "assets" / "surfeit.css").read_text(encoding="utf-8")
+    assert "max-width" in css and "@media" in css
     assert 'class="skip"' in home                       # keyboard skip link
-    assert "prefers-reduced-motion" in home
+    assert "prefers-reduced-motion" in css
     assert 'aria-label="League navigation"' in home
     standings = (tmp / "dist" / "surfeit" / "standings" / "index.html").read_text(encoding="utf-8")
     assert 'class="tablewrap"' in standings             # tables scroll in their own viewport

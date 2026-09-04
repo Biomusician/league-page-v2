@@ -19,7 +19,7 @@
 <section class="module" id="{{ s.anchor }}">
   <h2 class="section-label">{{ s.title }}</h2>
   {% if s.credit %}<div class="credit">{{ s.credit }}</div>{% endif %}
-  <div>{{ s.html | safe }}</div>
+  <div class="prose">{{ s.html | safe }}</div>
 </section>
 {% endfor %}
 <nav class="exits" aria-label="Where to next">

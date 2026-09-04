@@ -1,11 +1,7 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Force Flow{% endblock %}
 {% from "public/_links.html" import team_list %}
-{% block extra_css %}
-  .aged { font-size:.92rem; margin:.4rem 0 0; padding-top:.35rem;
-          border-top:1px dotted; }
-  .aged b { font-variant:small-caps; letter-spacing:.05em; font-weight:normal; }
-{% endblock %}
+
 {% block content %}
 <h2 class="section-label">Force Flow</h2>
 
@@ -27,7 +23,7 @@ reading get labelled, not hidden.</p>
   {% for s in editorial_sections %}
   <div class="card">
     <p class="meta">{{ s.issue_label }}</p>
-    <div>{{ s.html | safe }}</div>
+    <div class="prose">{{ s.html | safe }}</div>
   </div>
   {% endfor %}
 </section>

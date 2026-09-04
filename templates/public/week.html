@@ -40,7 +40,7 @@
   <div>{% for t in c.tags %}<span class="tag">{{ t }}</span>{% endfor %}
        <span class="tag" style="background:var(--accent)">{{ c.prominence }}</span></div>
   {% if c.preview_html %}
-  <div class="preview">{{ c.preview_html | safe }}</div>
+  <div class="preview prose">{{ c.preview_html | safe }}</div>
   {% else %}
   <p class="pending">Preview pending.</p>
   {% endif %}

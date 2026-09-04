@@ -34,10 +34,19 @@
 
   /* A team slug from the build, or null. Never trust the stored value: a
    * team can be renamed between visits, which changes its slug, and a stale
-   * one must fall back to the unpersonalised page rather than to nothing. */
+   * one must fall back to the unpersonalised page rather than to nothing.
+   *
+   * The cards only exist on the home page, so checking for one meant the
+   * nav shortcut worked there and nowhere else. Every page ships the
+   * league's slug list on the shortcut itself; the cards are the check only
+   * on the page that has them. */
   function known(slug) {
     if (!slug) return null;
-    return document.querySelector('[data-team="' + CSS.escape(slug) + '"]') ? slug : null;
+    if (document.querySelector('[data-team="' + CSS.escape(slug) + '"]')) return slug;
+    var nav = document.querySelector("[data-myteam-nav][data-teams]");
+    if (!nav) return null;
+    var all = (nav.getAttribute("data-teams") || "").split(/\s+/);
+    return all.indexOf(slug) >= 0 ? slug : null;
   }
 
   function apply(slug) {

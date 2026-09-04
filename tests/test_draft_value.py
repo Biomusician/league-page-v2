@@ -66,8 +66,9 @@ def test_intensity_normalizes_by_league_rounds():
 
 
 def test_team_profile_counts_and_style():
-    def team(deltas):
-        return {"picks_by_round": [{"delta": d} for d in deltas],
+    def team(deltas, position="RB"):
+        return {"picks_by_round": [{"delta": d, "position": position}
+                                   for d in deltas],
                 "biggest_reach": None, "biggest_value": None}
     profs = {
         1: team_draft_profile(team([-15, -12, -14, 20]), 12),   # defier
@@ -79,3 +80,20 @@ def test_team_profile_counts_and_style():
     styles = consensus_style(profs)
     assert styles[1] == "consensus-defying"
     assert styles[2] == "consensus-following"
+
+
+def test_draft_style_ignores_the_kicker_tax():
+    """How a manager drafts is a claim about judgment. Every reference board
+    ranks kickers and defenses below the draftable range while the lineup
+    forces everybody to draft them, so folding those deltas in measures the
+    board's shape and calls it a personality."""
+    from leaguepage.draft_value import team_draft_profile
+
+    picks = ([{"delta": 0, "position": "RB"}] * 4
+             + [{"delta": -95, "position": "K"},
+                {"delta": -130, "position": "DEF"}])
+    prof = team_draft_profile(
+        {"picks_by_round": picks, "biggest_reach": None, "biggest_value": None}, 12)
+    assert prof["rated_picks"] == 4
+    assert prof["reach_picks"] == 0
+    assert prof["mean_abs_rounds"] == 0.0

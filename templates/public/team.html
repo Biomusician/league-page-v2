@@ -1,34 +1,7 @@
 {% extends "public/base.html" %}
 {% from "public/_dv.html" import dv %}
 {% block title %}{{ team.name }} — {{ league.display_name }}{% endblock %}
-{% block extra_css %}
-  .brief { padding:1rem 1.15rem; }
-  .brief .storyline { font-size:1.12rem; line-height:1.4; margin:.1rem 0 .8rem; }
-  .brief dl { display:grid; grid-template-columns:repeat(auto-fit, minmax(12rem, 1fr));
-              gap:.75rem 1.4rem; margin:.5rem 0 0; }
-  .brief dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
-              margin-bottom:.12rem; }
-  .brief dd { margin:0; font-size:1.02rem; }
-  .brief dd .sub { display:block; font-size:.84rem; margin-top:.1rem; }
-  .brief .lists { margin-top:.9rem; padding-top:.7rem; border-top:1px dotted; }
-  .brief .lists h4 { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
-                     margin:.6rem 0 .2rem; }
-  .brief ul { margin:.1rem 0; padding-left:1.1rem; font-size:.93rem; }
-  .receipt { font-size:.92rem; margin:.5rem 0 0; }
-  .receipt blockquote { margin:.2rem 0; font-style:italic; }
-  .mention blockquote { margin:.25rem 0 .1rem; font-style:italic; }
-  /* No mobile override. The base auto-fit already collapses to one column;
-     forcing two put a 205px label into a 143px box on every team page. */
-{% if league and league.theme == "disco" %}
-  .brief { border:2px solid #e8a33d; background:#1a2027; }
-  .brief dt { color:#8fa8b8; }
-  .brief .lists { border-color:#2c343d; }
-{% else %}
-  .brief { border:2px solid #facd00; background:#0e2743; box-shadow:3px 3px 0 #04101d; }
-  .brief dt { color:#9fb6cc; }
-  .brief .lists { border-color:#1d3d63; }
-{% endif %}
-{% endblock %}
+
 {% block content %}
 <h2 class="section-label">{{ team.name }}</h2>
 {% if team.coalition %}

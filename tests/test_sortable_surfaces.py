@@ -69,10 +69,13 @@ def test_draft_value_treatment_and_methodology(site_env):
     _build(db, tmp)
     html = _read(tmp, "disco/draft/index.html")
     # league-size threshold is stated dynamically (12-team disco)
-    assert "one full league round (12 picks here)" in html
-    assert "not whether the pick ultimately succeeds" in html
+    # Collapse whitespace: the methodology paragraph is wrapped for reading
+    # in the template, so a line break lands inside these phrases.
+    flat = " ".join(html.split())
+    assert "one full league round (12 picks here)" in flat
+    assert "not whether the pick ultimately succeeds" in flat
     surf = _read(tmp, "surfeit/draft/index.html")
-    assert "one full league round (10 picks here)" in surf
+    assert "one full league round (10 picks here)" in " ".join(surf.split())
 
 
 def test_no_confidence_or_debug_fields_in_public_output(site_env):

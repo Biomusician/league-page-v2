@@ -76,12 +76,38 @@ def test_the_nav_shortcut_ships_hidden(built):
     assert "__SLUG__" in shortcut
 
 
+def test_the_nav_shortcut_works_on_every_page_not_just_the_one_with_cards(built):
+    """The cards live on the home page. Validating the stored slug by looking
+    for a card meant the shortcut resolved there and was hidden on the other
+    96 pages, which is the opposite of what a nav shortcut is for."""
+    slugs = {p.parent.name for p in built.glob("disco/team/*/index.html")}
+    assert slugs
+    for rel in ("disco/index.html", "disco/standings/index.html",
+                "disco/teams/index.html", "disco/draft/index.html"):
+        page = (built / rel).read_text(encoding="utf-8")
+        m = re.search(r'data-myteam-nav[^>]*data-teams="([^"]*)"', page)
+        assert m, rel
+        assert set(m.group(1).split()) == slugs, rel
+
+
+def test_each_league_ships_exactly_its_own_roster_of_slugs(built):
+    """Cross-league contamination would let a Surfeit reader's stored Disco
+    choice resolve, and point the shortcut at a page in the other league."""
+    for slug, n in (("disco", 12), ("surfeit", 10)):
+        own = {p.parent.name for p in built.glob(f"{slug}/team/*/index.html")}
+        page = (built / slug / "index.html").read_text(encoding="utf-8")
+        shipped = set(re.search(r'data-teams="([^"]*)"', page).group(1).split())
+        assert len(shipped) == n, slug
+        assert shipped == own, slug
+
+
 def test_a_stale_slug_falls_back_rather_than_breaking():
     """A team renamed between visits changes its slug. The stored value is
     never trusted."""
     js = (STATIC_DIR / "myteam.js").read_text(encoding="utf-8")
     assert "function known(slug)" in js
     assert "known(slug)" in js
+    assert "data-teams" in js          # validated against the shipped roster
 
 
 def test_blocked_storage_never_throws():
@@ -112,8 +138,12 @@ def test_the_card_carries_the_team_briefing_not_a_stub(built):
     start = home.find('<div class="card" data-team=')
     assert start >= 0, "no team card rendered"
     body = home[start:home.find('<div class="card" data-team=', start + 10)]
-    for label in ("Next", "Where they stand", "Strength", "Concern"):
+    # "Concern" is deliberately absent here: in this fixture no team has a
+    # reference rank, so every skill room scores the same and the briefing
+    # now refuses to name one room as both the strength and the concern.
+    for label in ("Next", "Where they stand", "Strength"):
         assert f"<dt>{label}</dt>" in body, label
+    assert body.count("<dt>") >= 3
 
 
 def test_personalisation_does_not_displace_the_league_wide_hierarchy(built):

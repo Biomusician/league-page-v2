@@ -192,10 +192,12 @@ def _rationale(storage: Storage, league: League, tx: dict, ctx: dict | None,
 
         if _bottom(rank_for_need, n, 0.34):
             kind = "weakness"
-            # A rank measured after the fact is weaker evidence for a motive
-            # than one measured at the time.
+            # A rank measured after the fact is real evidence but weaker
+            # evidence, so it can reach the hedged wording and never the
+            # confident one. "low" would throw the story away entirely,
+            # which is too far: the room really is thin.
             confidence = ("high" if historical and _bottom(rank_for_need, n, 0.25)
-                          else "medium" if historical else "low")
+                          else "medium")
             when = "before the move" if historical else "today, after the move"
             s = (f"This appears aimed at {add['position']}: the room ranked "
                  f"#{rank_for_need} of {n} {when}")

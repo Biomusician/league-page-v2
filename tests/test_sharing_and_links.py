@@ -153,13 +153,19 @@ def test_the_front_door_has_one_h1_and_real_landmarks(built):
 def test_editorial_tables_scroll_inside_themselves(built):
     """Tables arrive as raw HTML from published prose and were the only
     thing on the site that scrolled the whole page sideways."""
-    css = (built / "disco" / "index.html").read_text(encoding="utf-8")
-    assert "section.module > div table { display:block; overflow-x:auto" in css
+    css = (built / "assets" / "disco.css").read_text(encoding="utf-8")
+    # Scoped to .prose. The old selector also caught every table the site
+    # builds itself, took the scrolling away from the .tablewrap wrapper
+    # that was supposed to do it, and made those tables display:block --
+    # which stops a table being a table for assistive technology.
+    assert ".prose table { display:block; overflow-x:auto" in css
+    page = (built / "disco" / "standings" / "index.html").read_text(encoding="utf-8")
+    assert 'class="tablewrap" tabindex="0" role="region" aria-label=' in page
 
 
 def test_there_is_a_print_stylesheet(built):
     """This is an archive of a newspaper; printing one produced blank
     paper, because browsers drop background colours."""
-    css = (built / "disco" / "standings" / "index.html").read_text(encoding="utf-8")
+    css = (built / "assets" / "disco.css").read_text(encoding="utf-8")
     assert "@media print" in css
     assert "background:#fff" in css

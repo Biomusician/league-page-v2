@@ -70,7 +70,10 @@ def test_a_formality_is_not_a_stake():
 
 def test_elimination_is_always_worth_saying():
     assert is_material(0.05, 0.00)
-    assert describe_stake(0.05, 0.00) == "a loss ends it"
+    # Zero of two thousand simulated seasons is not zero, and a 0-5 team in
+    # week 6 with nine games left is alive by arithmetic however unlikely the
+    # model thinks it. The verdict says "all but".
+    assert describe_stake(0.05, 0.00) == "a loss all but ends it"
 
 
 def test_a_team_already_in_is_not_told_a_win_settles_it():
