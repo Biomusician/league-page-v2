@@ -25,6 +25,12 @@
 stands in: roster construction, league history and transactions, computed from
 synced data. It is not a prediction, and it is not his copy.</p>
 {% endif %}
+{% if cards | selectattr("stakes") | first %}
+<p class="meta">Where a game is worth something, "what this is worth" is
+simulated from each team's own scoring against the actual remaining schedule.
+It says what is at stake, not who wins.</p>
+{% endif %}
+
 {% for c in cards %}
 <section class="card {{ 'feature' if c.prominence == 'FEATURE' else '' }}" id="{{ c.anchor }}">
   <h3 class="matchup-title{{ ' feature' if c.prominence == 'FEATURE' else '' }}">{{ team_list(c.names, team_links, " vs ") }}</h3>
@@ -37,7 +43,6 @@ synced data. It is not a prediction, and it is not his copy.</p>
   <div>{{ c.preview_html | safe }}</div>
   {% elif c.scout %}
   <div class="scout">
-    <h3>Scout view · computed, not the Commissioner</h3>
     {% if c.scout.why %}
     <h4>Why this matchup is interesting</h4>
     <ul>{% for line in c.scout.why %}<li>{{ line }}</li>{% endfor %}</ul>
@@ -60,9 +65,6 @@ synced data. It is not a prediction, and it is not his copy.</p>
         {{ s.line }} — it {{ s.verdict }}.</li>
       {% endfor %}
     </ul>
-    <p class="meta">Simulated from each team's own scoring against the actual
-    remaining schedule. It is a statement about what is at stake, not a
-    prediction about who wins.</p>
   </div>
   {% endif %}
   {% if c.past_statement %}{% set ps = c.past_statement %}

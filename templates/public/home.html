@@ -158,8 +158,11 @@
     <p style="margin:.1rem 0"><strong>{{ t.name }}</strong></p>
     {% if t.storyline %}<p class="detail">{{ t.storyline }}</p>{% endif %}
     <dl>
-      {% if t.next %}<div><dt>Next</dt><dd><a href="{{ lroot }}matchups/index.html#{{ t.next.anchor }}">{{ t.next.names }}</a>
-        <span class="meta">{{ t.next.note }}</span></dd></div>{% endif %}
+      {% if t.next %}<div><dt>Next</dt><dd>
+        {%- if t.next.opponent and t.next.opponent.slug %}vs <a href="{{ lroot }}team/{{ t.next.opponent.slug }}/index.html">{{ t.next.opponent.name }}</a>
+        {%- else %}{{ t.next.names }}{% endif %}
+        <span class="meta">{{ t.next.note }} ·
+          <a href="{{ lroot }}matchups/index.html#{{ t.next.anchor }}">on the board &rarr;</a></span></dd></div>{% endif %}
       {% if t.position %}<div><dt>Where they stand</dt><dd>{{ t.position }}</dd></div>{% endif %}
       {% if t.playoff %}<div><dt>Playoff outlook</dt><dd>{{ t.playoff }}</dd></div>{% endif %}
       {% if t.strength %}<div><dt>Strength</dt><dd>{{ t.strength }}</dd></div>{% endif %}

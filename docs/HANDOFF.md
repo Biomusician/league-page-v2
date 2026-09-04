@@ -1,10 +1,194 @@
 # HANDOFF
 
-Updated 2026-08-29, end of the MVP-to-Vercel tranche. Companions:
+Updated 2026-09-03, end of the product evolution tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Product evolution run (2026-09-03)
+
+**Status: real build clean, repo audit clean, 98 pages, all tests green.**
+
+Ten read-only recon agents audited the Commissioner workflow, the reader
+product, editing, entertainment, fantasy analytics, the archive corpus,
+mobile, accessibility, security and product strategy. Everything below was
+verified against the code or the real database before it was acted on.
+
+### BLOCKED — REMOTE AUTHORING
+
+One item on the path was fixable without a secret and is now fixed: **CSRF
+had no UI surface**, so `LEAGUEPAGE_AUTH_MODE=required` returned 403 on every
+button in the Desk. The token now ships in a `<meta>` tag and
+`static/desk.js` attaches it to every form submit and every same-origin
+mutating fetch, centrally, so a new form or fetch cannot forget.
+`tests/test_csrf_wiring.py` pins both halves. `/openapi.json` was also still
+publishing the full private route map with the docs viewers off; it is off.
+
+What still blocks remote authoring, in order, none of it doable from here:
+
+1. **BLOCKED — REMOTE AUTHORING: seed `app_commissioners` in Supabase.**
+   Run `.venv/Scripts/python.exe scripts/make_commissioner_seed.py` and apply
+   the emitted SQL in the Supabase SQL Editor (or set `DATABASE_URL` in
+   `.env` first and it applies itself). Verified 2026-08-31 as a hard
+   boundary: `select` on that table with the publishable key returns 401, so
+   no automation on this machine can do it.
+2. **BLOCKED — REMOTE AUTHORING: create the private Vercel project** for the
+   Desk and set its environment variables.
+3. Code work that needs no secret and did not fit this tranche: prose
+   repository cutover (a sections table replacing `editorial/**/*.md`),
+   durable jobs (a `jobs` table replacing the `_JOB`/`_JOBS` process
+   globals), and the 47 filesystem write sites a read-only serverless
+   runtime rejects.
+
+### Numbers the site published that its own models contradicted
+
+- **The valuation stage switch was published as roster movement.** Player
+  values change method at three played weeks; nothing compared stages, so
+  seven of ten teams "moved" three or more places in a room on rosters
+  nobody touched. Positional deltas now require both snapshots to have been
+  measured the same way.
+- **Playoff odds were printed as 0% and 100%** from a 2000-draw simulation,
+  and rounded to a tenth of a point on a figure whose Monte Carlo error alone
+  is a couple of points. `format_odds` says `<1%` and `>99%`.
+- **The odds delta printed a percentage on the same page that refuses to show
+  one** in the bands stage, because the snapshot never recorded the outlook's
+  stage. It does now.
+- **"The result moves a playoff berth"** fired on standings position and
+  rendered beside a leverage model reporting a zero swing for two teams
+  already in. Split into `Playoff Leverage` (a cutline) and `Seeding at
+  Stake`.
+- **One room was printed as both a team's strength and its concern.** `min`
+  and `max` both return the first extreme element, so a team whose skill
+  rooms rank alike got the same room twice. The board now says no room
+  separates the roster, which is the honest version of the same fact.
+- **"REACH, 244 picks early" in a 228-pick draft.** A reference rank past the
+  end of the draft is `off_board` and carries no magnitude. The league's
+  boldest picks and the consensus-style label are skill positions only, which
+  flips one real team's label.
+- **`weeks_played` is a count, not a week number.** One unsynced week put an
+  already-played week inside "remaining" and re-simulated it against random
+  opponents.
+- "a loss ends it" for a team alive by arithmetic; "matters" for a swing of
+  exactly zero; a rank measured after the fact described as "before the
+  move"; a kicker add with no drop called routine churn by checking the adds
+  against themselves; `recent_form` labelling every team with the league's
+  window including one that played fewer weeks of it.
+- Benchwarmer Memorial and Galaxy Brain nominated kickers, twenty lines from
+  the bench-swap code that refuses to. Four awards were "strong" whenever
+  they had any nominee at all.
+- The Change Inbox read FAAB from `waiver_budget` only, so a 45%-of-budget
+  claim was filtered out as a routine add/drop.
+
+### Privacy
+
+- **The publish gate and the build audit disagreed, with an irreversible step
+  between them.** `pubqa` scanned handles and display names; the build audit
+  scanned aliases too, and runs after the snapshot is frozen. A private first
+  name in issue prose passed QA, became immutable, and only then failed the
+  build. Both now scan the same set.
+- Matching is case-insensitive and boundary-anchored, and reads page prose
+  rather than stylesheets. That immediately caught **a real 2019 archive
+  quote naming a manager by an alias, live on the Disco matchups page**;
+  `history.py` now drops such a candidate and takes the next one instead of
+  poisoning the build two stages later.
+- The published-name subtraction tested containment against every team name
+  joined together, so an alias sitting inside some *other* team's name was
+  dropped from the scan everywhere. Measured at eleven candidates on live
+  data, six of them first-name shaped.
+- **`leaguepage/privacy.py` is one list for both audits.** They disagreed: a
+  Supabase or `postgres://` URL was blocked from `dist/` but committable to
+  `main`, and an AWS key was the other way round. The repo audit now reads
+  aliases and display names, subtracts published nicknames from the local DB,
+  and covers `data/`, `backups/`, `dist/`, `PREP.md`,
+  `commissioner_notes.md`, `.pem`, `.key` and the rest it was missing.
+- The build copies only assets a page references, in shapes a public site can
+  serve. That drops 176KB nothing asked for and closes the hole where a
+  `.csv`, `.pdf` or `.db` dropped into `static/` shipped unexamined, since
+  the audit skips file types it cannot read.
+
+### New public surfaces
+
+- **Seasons Past** — six seasons of Disco champions and last place, 2019 to
+  2024, read out of the mastheads that recorded them. Sleeper reaches back
+  one season; 2024 has no archived issue at all and survives only because the
+  2025 mastheads carried it forward. Names link to team pages through
+  CONFIRMED aliases only. Big Daddy AF stays out of both leagues, and The
+  Surfeit correctly has no ledger.
+- **Week N in numbers** — the five superlatives from the last completed week,
+  with evidence. `weekly_awards.py` is 387 lines that reached no reader,
+  because publishing an award means picking a winner and that is the
+  Commissioner's job. These are facts, not verdicts; a test asserts no row
+  ever declares a winner of anything, and the private nomination slate is
+  untouched.
+- **Reality Check** — the gap between a team's record and the record its
+  scoring earned, in games, with the denominator named. Careful about the
+  arithmetic trap: an unbeaten team cannot sit below its own all-play, so
+  those rows get their own sentence rather than being called lucky.
+- **My Team** — a reader picks a team once, in their own browser.
+  localStorage only, no account, no network, clearable from the page that set
+  it.
+
+### Editing and reading
+
+- 22 team pages each reprinted 95 words of methodology. The explanation now
+  lives once on the page that owns the measurement, and the team page links
+  to it: roughly 1,200 words removed with the provenance intact.
+- The archive listed "2023 Disco Week 1" under a 2023 heading that was really
+  2022, on 14 of 42 Disco issues. The masthead volume line agrees with the
+  frontmatter, not the title, and the archive is source data nobody should be
+  silently rewriting, so listings are labelled by the indexed season and week
+  with the filed title beside them when it disagrees.
+- Eleven matchup cards carried a "Scout view, computed, not the Commissioner"
+  heading for one fact the page already states once above them.
+- A team page told a reader who they play next and gave them no way to go and
+  look at them. The opponent's name is now the link.
+- The Commissioner's own capsule prose reaches the Peer and Near-Peer page.
+  It was parsed, discarded, and the page rendered `None` into a slot that had
+  been waiting for it, so a page whose entire subject is his judgment carried
+  zero words he wrote.
+
+### Mobile and accessibility
+
+- `tabindex` appeared **zero times in the whole build**, so the columns past
+  the fold of a 229-row draft board were unreachable without a pointer. Every
+  scroll container is now focusable, labelled, and a real region.
+- A rule written for editorial prose tables was also catching the site's own,
+  making them `display:block` and voiding `scope` and `<caption>` on twenty
+  of twenty-four while the wrapper meant to scroll sat inert.
+- The team brief skipped h2 to h4 on 21 pages. Around 130 links stood between
+  15 and 20 pixels tall. The team-strip border was 1.30:1 on a background
+  1.09:1 from the page. Sorting reordered up to 229 rows and announced
+  nothing.
+- **The My Team shortcut rendered for everyone**, because every `display`
+  rule on the page outranks the browser's own `[hidden]`.
+- The Desk had no focus styles at all, no responsive rule on seventeen of
+  twenty-one templates, a writing textarea at 14.7px that makes iOS Safari
+  zoom on every focus and never zoom back, character-sized inputs pushing the
+  ranking screen to 2.20x the width of a phone, and `<a><button>` nesting on
+  Preview and Publish. The ranking screen and the editor are both 1.0x now.
+
+### Commissioner's Desk
+
+**Mission Control.** The Desk home answered nothing: a SYNC button and two
+status words per league. It now computes the answer — how stale the data is,
+how much is undecided and how much of that is above the noise floor, sections
+approved out of included, what would refuse to publish, and one next action
+naming the earliest step that is actually blocked. Suggesting "publish" while
+four sections are empty is a button, not guidance. It reads and never
+decides; a test enforces that.
+
+### A class of bug nothing was looking for
+
+A patch script written as a shell heredoc silently turned a regex word-boundary
+escape into a literal backspace (0x08), three times in one session. The pattern
+compiled, ran, matched nothing, and produced pages that looked plausible.
+`tests/test_source_hygiene.py` now scans the tree for control characters — and
+immediately found a **fourth**, in `pubqa.py`, from an earlier tranche: the
+placeholder gate could not match a bare XXX marker and had not been able to for
+some time. A regex that quietly matches nothing is the worst failure mode
+available to a codebase whose entire discipline is refusing to publish claims
+the data does not support.
 
 ## Overnight product run (2026-09-03)
 

@@ -75,6 +75,7 @@ corrected in that issue{% endif %}.{% endif %}</p>
     {% if r.tied %}<span class="tag">tied on the number</span>{% endif %}
   </div>
   <p class="facts">
+    {% if r.rooms_tied %}<span class="meta">no room separates this roster from any other</span>{% endif %}
     {% if r.strongest %}<b>strongest room</b> {{ r.strongest }}{% endif %}
     {% if r.weakest %} · <b>weakest</b> {{ r.weakest }}{% endif %}
   </p>
@@ -105,6 +106,7 @@ is arbitrary, and the row says so.</p>
     {% if r.record %}<span class="meta">{{ r.record }}</span>{% endif %}
   </div>
   <p class="facts">
+    {% if r.rooms_tied %}<span class="meta">no room separates this roster from any other</span>{% endif %}
     {% if r.strongest %}<b>strongest room</b> {{ r.strongest }}{% endif %}
     {% if r.weakest %} · <b>weakest</b> {{ r.weakest }}{% endif %}
   </p>

@@ -372,9 +372,13 @@ def test_matchups_show_scout_view_when_no_preview_is_approved(site_env):
     db, tmp = site_env
     _build(db, tmp)
     page = (tmp / "dist" / "surfeit" / "matchups" / "index.html").read_text(encoding="utf-8")
-    assert "Scout view" in page
-    assert "computed, not the Commissioner" in page
+    # The disclosure moved from a heading on every card to one line above
+    # them all; eleven copies of "computed, not the Commissioner" is eleven
+    # headings for one fact.
+    assert "Scout View" in page
+    assert "it is not his copy" in page
     assert "Why this matchup is interesting" in page
+    assert page.count("Scout View") == 1
 
 
 def test_power_page_shows_the_model_board_with_its_disclosure(site_env):
@@ -384,7 +388,11 @@ def test_power_page_shows_the_model_board_with_its_disclosure(site_env):
     assert "Model view · Commissioner rankings not yet published" in page
     assert "Model Board" in page
     assert "makes no claim to be" in page
-    assert "strongest room" in page
+    # In this fixture no team has a reference rank, so every skill room
+    # scores zero and the ranks are roster order wearing a rank. The board
+    # now says that instead of naming a strongest room it cannot tell apart.
+    assert ("strongest room" in page
+            or "no room separates this roster" in page)
     # The board's only input is a stored consensus ranking, and the page used
     # to claim it was "roster construction and nothing else" without ever
     # naming it. A stat with no provenance is not publishable here.

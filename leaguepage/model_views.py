@@ -192,8 +192,14 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
         worst = max(skill, key=lambda p: profile["ranks"][p][rid]) if skill else None
         # A team whose skill rooms all rank alike had one room printed as
         # both what carries it and what exposes it. Nothing separates them,
-        # so name neither.
-        if best and profile["ranks"][best][rid] == profile["ranks"][worst][rid]:
+        # so name neither -- and say that is why, rather than leaving two
+        # empty cells for a reader to interpret. This is the visible face of
+        # a real limit: a room whose players are all past the end of the
+        # reference board scores zero, and zero-scored rooms sort by roster
+        # id, which is not a ranking.
+        rooms_tied = bool(best) and (profile["ranks"][best][rid]
+                                     == profile["ranks"][worst][rid])
+        if rooms_tied:
             best = worst = None
         factor = None
         if weeks_played and rid in (form or {}):
@@ -215,6 +221,7 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
                         if worst else None),
             "factor": factor,
             "tied": score in tied,
+            "rooms_tied": rooms_tied,
             "record": (f"{rec.get('wins', 0)}-{rec.get('losses', 0)}"
                        if weeks_played else None),
         })

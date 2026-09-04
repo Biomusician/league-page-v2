@@ -434,9 +434,15 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                     "issue_status": issue["status"] if issue else "not started",
                 })
             last_sync = s.get_meta(sync_jobs.LAST_SYNC_KEY)
+            # What to do next, computed rather than left to be inferred from
+            # two status words and a pick count.
+            from leaguepage.mission_control import mission_control
+
+            control = mission_control(s, LEAGUES)
         job = sync_jobs.get_sync_job()
         return templates.TemplateResponse(request, "desk/home.html", {
-            "cards": cards, "last_sync": last_sync, "sync_job": job})
+            "cards": cards, "last_sync": last_sync, "sync_job": job,
+            "control": control})
 
     # ---------------------------------------------------------- Change Inbox
 

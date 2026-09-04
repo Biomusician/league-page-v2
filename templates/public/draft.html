@@ -101,11 +101,16 @@
   </table>
   </div>
 </section>
-<p class="meta">Reach/Steal compares each pick with the league's stored reference
-board ({{ adp_provenance or "no reference source" }}). REACH means the player
-went at least one full league round ({{ league_size }} picks here) earlier than
-reference; STEAL means at least one full round later. Color deepens with the
-size of the deviation and saturates at three rounds. This measures draft-market
-value against a reference board — not whether the pick ultimately succeeds.</p>
+<p class="meta" id="how">Reach/Steal compares each pick with the league's stored
+reference board ({{ adp_provenance or "no reference source" }}). REACH means the
+player went at least one full league round ({{ league_size }} picks here)
+earlier than reference; STEAL means at least one full round later. Color deepens
+with the size of the deviation and saturates at three rounds. This measures
+draft-market value against a reference board — not whether the pick ultimately
+succeeds. Headline Reach and Steal cover QB, RB, WR and TE only: kickers and
+defenses sit below the draftable range on that board while lineups force
+everyone to draft one, so their deviations measure the board's shape rather
+than anybody's judgment, and a pick whose reference rank falls past the end of
+the draft carries no deviation at all.</p>
 {% endif %}
 {% endblock %}

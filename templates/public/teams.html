@@ -14,11 +14,15 @@
   {% endfor %}
 </table>
 </div>
-<p class="meta">Rank 1 = strongest room in this league at that position.
+<p class="meta" id="how">Rank 1 = strongest room in this league at that position.
 Rooms are scored against this league's actual lineup requirements (starters
 weighted over depth, flex and superflex demand included), currently using
 {{ stage }}. Positional strength measures the roster, and the standings
-measure results; the gap between the two is usually where the story is.</p>
+measure results; the gap between the two is usually where the story is.
+Starters weigh more than depth, and a room can rank well while being carried
+by one player; a team's own page says so when it is. Every room is ranked,
+including K and DEF where the league drafts them, but the briefings lead with
+skill-position construction because that is what decides a season.</p>
 
 <h2 class="section-label">Every team</h2>
 <div class="teamgrid">

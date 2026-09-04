@@ -39,7 +39,8 @@
   {% for season_label, items in group.seasons %}
   <h3>{{ season_label }}</h3>
   <ul>
-    {% for it in items %}<li><a href="{{ lroot }}archive/a{{ it.issue_id }}/index.html">{{ it.title }}</a></li>{% endfor %}
+    {% for it in items %}<li><a href="{{ lroot }}archive/a{{ it.issue_id }}/index.html">{{ it.label }}</a>{% if it.title_differs %}
+      <span class="meta">filed as &ldquo;{{ it.title }}&rdquo;</span>{% endif %}</li>{% endfor %}
   </ul>
   {% endfor %}
 </section>

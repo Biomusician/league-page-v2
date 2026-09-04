@@ -106,7 +106,7 @@ function render(data) {
   if (job.state === "succeeded") {
     title.textContent = "Published successfully";
     res.innerHTML = job.mode === "deploy"
-      ? `<p><a href="${ISSUE_URL}" target="_blank"><button class="primary" type="button">Open Published Issue</button></a>
+      ? `<p><a class="btn primary" href="${ISSUE_URL}" target="_blank" rel="noopener">Open Published Issue</a>
          <span class="meta">${job.ended_at || ""}${job.deployment_id ? " · " + job.deployment_id : ""}</span></p>`
       : `<p class="meta">Snapshot frozen and public build ready. Deploy any time below.</p>`;
   } else if (job.state === "failed") {

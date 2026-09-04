@@ -25,7 +25,9 @@
   .chip.approved { background:#e2f0e2; border-color:#8fbc8f; color:#2f6b2f; }
   .chip.edited { background:#fff3cd; border-color:#e0c96a; }
   .chip.excluded { background:#eee; color:var(--muted); text-decoration:line-through; }
-  textarea.prose { width:100%; font-family:Consolas, monospace; font-size:.92rem; line-height:1.45; }
+  /* 1rem, not .92: below 16px iOS Safari zooms on focus and never zooms
+     back, on the surface he actually writes in. */
+  textarea.prose { width:100%; font-family:Consolas, monospace; font-size:1rem; line-height:1.45; }
   .editwrap { position:relative; }
   .editwrap .ghost { position:absolute; inset:2px; padding:.35rem .55rem; overflow:hidden;
                      pointer-events:none; white-space:pre-wrap; color:#98948a; font-size:.84rem;
@@ -55,8 +57,8 @@
 
 <div class="topbar">
   <button class="primary" onclick="saveAll()">Save All</button>
-  <a href="{{ edit_base }}/full-preview"><button type="button">Preview Full Issue</button></a>
-  <a href="{{ edit_base }}/publish"><button type="button">Publish…</button></a>
+  <a class="btn" href="{{ edit_base }}/full-preview">Preview Full Issue</a>
+  <a class="btn" href="{{ edit_base }}/publish">Publish…</a>
   <button type="button" onclick="expandAll(true)">Expand All</button>
   <button type="button" onclick="collapseApproved()">Collapse Approved</button>
   <span id="savestate">All changes saved</span>
@@ -75,7 +77,7 @@
   <ul>
     {% for b in blockers %}<li><a href="#{{ b.anchor }}">{{ b.text }}</a>
       {% if b.kind == "empty-section" %}
-        <a href="#{{ b.anchor }}"><button type="button">Write section</button></a>
+        <a class="btn" href="#{{ b.anchor }}">Write section</a>
         <form method="post" action="{{ edit_base }}/module" class="inline">
           <input type="hidden" name="module_key" value="{{ b.module_key }}">
           <input type="hidden" name="position" value="">

@@ -13,6 +13,37 @@
 (function () {
   "use strict";
 
+  /* Wide tables scroll inside their own box rather than dragging the page
+   * sideways. The Desk has twenty-one templates and no wrapper in any of
+   * them, so this is done once here instead of twenty-one times there. The
+   * container is focusable and named, because a box that scrolls and cannot
+   * be focused hides its own columns from a keyboard. */
+  function wrapWideTables() {
+    Array.prototype.forEach.call(document.querySelectorAll("table"), function (table) {
+      if (table.parentNode.classList.contains("tablewrap")) return;
+      var wrap = document.createElement("div");
+      wrap.className = "tablewrap";
+      wrap.tabIndex = 0;
+      wrap.setAttribute("role", "region");
+      /* Name it after its caption, or failing that the nearest heading
+       * above it. "table, scrolls sideways" tells a screen-reader user
+       * nothing about which table they just landed in. */
+      var name = table.querySelector("caption");
+      var node = table;
+      while (!name && node) {
+        node = node.previousElementSibling || node.parentElement;
+        if (node && /^H[1-4]$/.test(node.tagName)) name = node;
+      }
+      wrap.setAttribute("aria-label",
+        (name && name.textContent.trim().slice(0, 80)) || "table");
+      table.parentNode.insertBefore(wrap, table);
+      wrap.appendChild(table);
+    });
+  }
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", wrapWideTables);
+  else wrapWideTables();
+
   var meta = document.querySelector('meta[name="csrf-token"]');
   var token = meta ? meta.getAttribute("content") || "" : "";
   if (!token) return;

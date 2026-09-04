@@ -366,7 +366,7 @@ PLACEHOLDER_PATTERNS: list[tuple[str, str]] = [
     # This newsletter numbers its volumes in Roman numerals, so a bare XXX
     # in prose is far more likely to be thirty than a placeholder. It counts
     # only where a marker actually sits: alone on a line, or bracketed.
-    (r"(?m)^[\s>*_-]*X{3,}[\s.!]*$|\[\s*X{3,}\s*\]", "an XXX marker"),
+    (r"(?m)^[\s>*_-]*X{3,}[\s.!]*$|\[\s*X{3,}\s*\]", "an XXX marker"),
     (r"\bLorem ipsum\b", "placeholder latin"),
     (r"<\s*placeholder\s*>", "a placeholder tag"),
     (r"\[\s*(?:insert|fill in|add)[^\]]*\]", "an authoring instruction"),

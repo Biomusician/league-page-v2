@@ -5,8 +5,55 @@
             border-radius:4px; text-decoration:none; font-weight:bold; letter-spacing:.03em; }
   .bigcta.secondary { background:var(--card); color:var(--ink); border:1px solid var(--ink); }
   .ctarow { display:flex; gap:.7rem; flex-wrap:wrap; margin:.7rem 0 .3rem; }
+  .mission { display:grid; grid-template-columns:repeat(auto-fit, minmax(19rem, 1fr));
+             gap:.7rem; }
+  .card.mc { margin:0; border-left:4px solid var(--accent); }
+  .nextline { margin:.5rem 0 .1rem; }
+  .nextlabel { font-size:.68rem; letter-spacing:.14em; text-transform:uppercase;
+               color:var(--muted); margin-right:.4rem; }
+  a.next { font-size:1.05rem; font-weight:bold; color:var(--accent); }
+  .mcstats { list-style:none; margin:.7rem 0 0; padding:0; display:grid;
+             grid-template-columns:repeat(auto-fit, minmax(7rem, 1fr)); gap:.4rem; }
+  .mcstats li { display:grid; gap:.05rem; padding:.35rem .5rem; border-radius:3px;
+                background:#f0eee8; }
+  .mcstats li.flag { background:#fff3cd; }
+  .mcstats b { font-size:1.15rem; }
 </style>
 <h2>Commissioner's Desk</h2>
+
+{% if control %}
+<div class="mission">
+  {% for c in control %}
+  <div class="card mc">
+    <h3 style="margin:.1rem 0">{{ c.league.display_name }}
+      <span class="meta">week {{ c.week }} · synced {{ c.sync_age }}</span></h3>
+    {% if c.next_action %}
+    <p class="nextline"><span class="nextlabel">Next</span>
+      <a class="next" href="{{ c.next_action.href }}">{{ c.next_action.text }}</a></p>
+    <p class="meta">{{ c.next_action.why }}</p>
+    {% endif %}
+    <ul class="mcstats">
+      <li{% if c.sync_stale %} class="flag"{% endif %}>
+        <b>{{ c.sync_age }}</b><span class="meta">last sync</span></li>
+      <li{% if c.worth_a_look %} class="flag"{% endif %}>
+        <b>{{ c.undecided }}</b><span class="meta">undecided
+          {%- if c.worth_a_look %} · {{ c.worth_a_look }} above the floor{% endif %}</span></li>
+      <li{% if c.sections.empty %} class="flag"{% endif %}>
+        <b>{{ c.sections.approved }}/{{ c.sections.total }}</b>
+        <span class="meta">approved
+          {%- if c.sections.empty %} · {{ c.sections.empty }} empty{% endif %}</span></li>
+      <li{% if c.blockers %} class="flag"{% endif %}>
+        <b>{{ c.blockers|length }}</b><span class="meta">would block publish</span></li>
+    </ul>
+    {% if c.blockers %}
+    <details><summary class="meta">What would refuse to publish</summary>
+      <ul class="facts">{% for b in c.blockers %}<li>{{ b }}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 <div class="card" id="syncpanel">
   <form method="post" action="/commissioner/sync-start" id="syncform" style="display:inline">

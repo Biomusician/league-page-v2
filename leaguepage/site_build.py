@@ -92,6 +92,21 @@ def _own_stake(lv: dict | None, names: dict[int, str], next_card) -> dict | None
             "anchor": (next_card or {}).get("anchor")}
 
 
+def _archive_label(item: dict) -> str:
+    """What to call an archived issue on a listing.
+
+    The indexed season and week, because they are what the file declares and
+    what the listing is sorted and grouped by. A title that says a different
+    year is preserved next to this, never in place of it.
+    """
+    season, week = item.get("season"), item.get("week")
+    if season and week:
+        return f"{season} · Week {week}"
+    if season:
+        return f"{season} · {item.get('title') or 'issue'}"
+    return item.get("title") or "archive issue"
+
+
 def _archive_depth(storage: Storage, league: League) -> dict | None:
     """How much league history is on file, and a door into it.
 
@@ -506,11 +521,18 @@ def build_league(
                                else None)}
                      for rid, t_ in rows_],
             "note": _outlook.get("note")}
+    # The table already carried all-play. The gap between a record and the
+    # record its scoring earned is the number the league argues about, and
+    # nobody computes it in their head from two columns.
+    from leaguepage.reality_check import reality_check
+
+    _pub = {rid: v["name"] or f"Roster {rid}" for rid, v in names.items()}
+    reality = reality_check(storage, league, week, _pub, slugs)
     render("standings/index.html", "public/standings.html", 2,
            description=(f"Records, points for and against, all-play and lineup "
                         f"efficiency for every {league.display_name} team, "
                         f"{_through(weeks_played)}."),
-           standings=standings, weeks_played=weeks_played,
+           standings=standings, weeks_played=weeks_played, reality=reality,
            analysis=st_analysis, current_nav="Standings")
 
     # power (commissioner ranking; published-safe only)
@@ -893,10 +915,25 @@ def build_league(
                            if row["roster_id"] == rid), None)
         # exact side match, never a substring: "Dave" lives inside plenty of
         # other strings
+        def _opponent(card_names: str) -> dict:
+            """The other side of this week's game, as a link.
+
+            A team page told a reader who they play and gave them no way to
+            go and look at them; the only link on the row went to the matchup
+            board they had probably just come from.
+            """
+            other = next((x for x in card_names.split(" vs ") if x != nm), "")
+            other_rid = next((r for r, n2 in public_names.items() if n2 == other),
+                             None)
+            return {"name": other, "slug": slugs.get(other_rid) if other_rid else None}
+
         next_card = next(({"names": c["names"], "anchor": c["anchor"],
+                           "opponent": _opponent(c["names"]),
+                           # The link beside this now says "on the board",
+                           # so the note saying it too read "week 1 on the
+                           # board, on the board".
                            "note": (", ".join(c["tags"]) if c["tags"] else
-                                    ("the result is on the board" if c["score"]
-                                     else f"week {week} on the board"))}
+                                    ("final" if c["score"] else f"week {week}"))}
                           for c in cards if nm in c["names"].split(" vs ")), None)
         briefing = build_briefing(
             # Preseason standings position is an arbitrary tiebreak among 0-0
@@ -1123,6 +1160,22 @@ def build_league(
         by_season: dict[str, list[dict]] = defaultdict(list)
         for it in items:
             by_season[it["season"] or "Undated"].append(it)
+        # Fourteen of forty-two Disco issues carry a title whose year is one
+        # ahead of the season the file itself declares, so the archive listed
+        # "2023 Disco Week 1" under a 2023 heading that was really 2022. The
+        # masthead volume line agrees with the frontmatter, not the title, and
+        # the archive is source data nobody should be silently rewriting -- so
+        # the LABEL is the indexed season and week, and the original title
+        # stays beside it when it disagrees.
+        for rows_ in by_season.values():
+            for it in rows_:
+                it["label"] = _archive_label(it)
+                # Only a title claiming a DIFFERENT year is worth showing.
+                # A title with no year in it ("Disco 12") disagrees with
+                # nothing, and printing it as a discrepancy is noise.
+                years = re.findall(r"\b(20\d\d)\b", it.get("title") or "")
+                it["title_differs"] = bool(
+                    it.get("season") and years and it["season"] not in years)
         seasons = sorted(by_season.items(), key=lambda kv: kv[0], reverse=True)
         historical_groups.append({"title": title, "seasons": seasons})
         # Chronological, so previous and next mean what a reader expects.

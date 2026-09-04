@@ -65,8 +65,12 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
       {% if b.key_move %}<div><dt>Key move</dt><dd>{{ b.key_move.line }}
         {% if b.key_move.questionable %}<span class="tag warn">QUESTIONABLE</span>{% endif %}
         {% if b.key_move.shift %}<span class="sub">{{ b.key_move.shift }}</span>{% endif %}</dd></div>{% endif %}
-      {% if b.next %}<div><dt>Next</dt><dd><a href="{{ lroot }}matchups/index.html#{{ b.next.anchor }}">{{ b.next.names }}</a>
-        <span class="sub">{{ b.next.note }}</span></dd></div>{% endif %}
+      {% if b.next %}<div><dt>Next</dt><dd>
+        {%- if b.next.opponent and b.next.opponent.slug %}vs <a href="{{ lroot }}team/{{ b.next.opponent.slug }}/index.html">{{ b.next.opponent.name }}</a>
+        {%- elif b.next.opponent and b.next.opponent.name %}vs {{ b.next.opponent.name }}
+        {%- else %}{{ b.next.names }}{% endif %}
+        <span class="sub">{{ b.next.note }} ·
+          <a href="{{ lroot }}matchups/index.html#{{ b.next.anchor }}">on the board &rarr;</a></span></dd></div>{% endif %}
     </dl>
     {% if b.changed or b.watch %}
     <div class="lists">
@@ -128,12 +132,9 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
      {% if team.weaknesses %}<b>Weaknesses:</b> {{ team.weaknesses | join("; ") }}
      {% else %}<b>Weaknesses:</b> no room is far enough back to name.{% endif %}</p>
   {% endif %}
-  <p class="meta">Rooms are ranked against this league's actual lineup demand
-  using {{ team.stage }}; starters weigh more than depth, and a room can rank
-  well while being carried by one player; the assessment says so when it is.
-  {%- if team.has_special_teams %} Every room is ranked here, including K and
-  DEF; the briefing above leads with skill-position construction, because that
-  is what decides a season.{% endif %}</p>
+  <p class="meta">Ranked against this league's lineup demand using
+  {{ team.stage }}.
+  <a href="{{ lroot }}teams/index.html#how">How this is measured &rarr;</a></p>
   {% if team.trend %}
   <p><b>Trend:</b> {{ team.trend | join("; ") }}</p>
   {% endif %}
@@ -172,9 +173,8 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
     <b>Best Steal:</b> {{ bs.name }} <span class="meta">(pick {{ bs.pick_no }} · ref {{ bs.adp }})</span> — {{ dv(bs.dv) }}
     {% endif %}
   </p>
-  <p class="meta">Headline Reach and Steal cover QB/RB/WR/TE. Kickers and
-  defenses sit below the draftable range on the reference board while lineups
-  force everyone to draft one, so their deviations are reported separately.</p>
+  <p class="meta">Skill positions only.
+  <a href="{{ lroot }}draft/index.html#how">Why &rarr;</a></p>
   {% endif %}
   {% if team.draft_recap.aging %}{% set ag = team.draft_recap.aging %}
   <p class="meta">Of {{ ag.picks }} picks, {{ ag.held }} are still here{% if ag.traded %};
@@ -224,9 +224,8 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
     {% endfor %}
   </table>
   </div>
-  <p class="meta">Reach/Steal compares selection slot with the league's stored
-  reference board; one full round here is {{ team.league_size }} picks. It
-  measures draft-market value, not whether the pick works out.</p>
+  <p class="meta">One full round here is {{ team.league_size }} picks.
+  <a href="{{ lroot }}draft/index.html#how">How this is measured &rarr;</a></p>
 </section>
 {% endif %}
 

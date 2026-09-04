@@ -55,6 +55,46 @@ season many times from each team's observed scoring only; preseason rankings pla
 {% endif %}
 {% endif %}
 
+{% if reality and reality.luckiest %}
+<section class="module" aria-labelledby="reality-h">
+  <h2 class="section-label" id="reality-h">Reality Check</h2>
+  <p class="meta">{{ reality.note }}</p>
+  <div class="grid">
+    <div class="card">
+      <span class="label">Running hot</span>
+      <span class="headline">{% if reality.luckiest.slug %}<a href="{{ lroot }}team/{{ reality.luckiest.slug }}/index.html">{{ reality.luckiest.name }}</a>{% else %}{{ reality.luckiest.name }}{% endif %}</span>
+      <p class="detail">{{ reality.luckiest.line }}</p>
+      {% if reality.luckiest.short_sample %}<p class="meta">Fewer weeks in the window than the rest of the league.</p>{% endif %}
+    </div>
+    {% if reality.unluckiest %}
+    <div class="card">
+      <span class="label">Running cold</span>
+      <span class="headline">{% if reality.unluckiest.slug %}<a href="{{ lroot }}team/{{ reality.unluckiest.slug }}/index.html">{{ reality.unluckiest.name }}</a>{% else %}{{ reality.unluckiest.name }}{% endif %}</span>
+      <p class="detail">{{ reality.unluckiest.line }}</p>
+      {% if reality.unluckiest.short_sample %}<p class="meta">Fewer weeks in the window than the rest of the league.</p>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <details>
+    <summary class="meta">Every team, record against scoring</summary>
+    <div class="tablewrap" tabindex="0" role="region" aria-label="Record against scoring, every team">
+    <table data-sortable>
+      <caption class="meta">Record against all-play, through week {{ reality.weeks }}.</caption>
+      <tr><th scope="col" data-sort-type="text">Team</th>
+          <th scope="col">Record</th><th scope="col">All-play</th>
+          <th scope="col" data-sort-type="number" data-sort-dir="desc">Games ahead</th></tr>
+      {% for r in reality.rows %}
+      <tr><th scope="row" class="wrap">{% if r.slug %}<a href="{{ lroot }}team/{{ r.slug }}/index.html">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</th>
+          <td>{{ r.record }}</td>
+          <td>{{ r.all_play }}{% if r.short_sample %} <span class="meta">({{ r.weeks }} wks)</span>{% endif %}</td>
+          <td data-sort-value="{{ r.gap }}">{{ "%+.1f"|format(r.gap) }}</td></tr>
+      {% endfor %}
+    </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
 {% if weeks_played %}
 <h2 class="section-label">Under the Hood</h2>
 <p class="meta">Deterministic context through week {{ weeks_played }}: all-play treats every team as
