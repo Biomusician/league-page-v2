@@ -29,9 +29,10 @@ from leaguepage import pubqa
 from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
 from leaguepage.issue_builder import (
-    BLOCKED_MARKERS, assemble_issue, issue_dir, module_states,
+    BLOCKED_MARKERS, assemble_issue, issue_dir, matchup_children,
+    module_defs_for, module_states,
 )
-from leaguepage.matchup_packet import compute_week, matchup_status, week_dir
+from leaguepage.matchup_packet import week_dir
 from leaguepage.team_names import resolve_public_names
 
 PRODUCTION_URL = "https://league-page-ten-sandy.vercel.app"
@@ -179,28 +180,29 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                         s.set_meta(key, digest)
                 return b
 
-            matchup_cards = []
+            # The editing payload for each matchup preview. It hangs off the
+            # Common Tactical Picture card below rather than living in a
+            # second top-level list, because a preview is a piece of that
+            # section and never a section of its own.
+            matchup_editing = {}
             if week is not None:
-                computed = compute_week(s, league, week)
-                states = s.list_matchup_states(league_slug, season, week)
-                for sm in (computed or {}).get("scored", []):
-                    slug = sm["matchup"]["matchup_slug"]
-                    dpath = week_dir(league, season, week) / "matchups" / slug / "draft.md"
+                for child in next((m["children"] for m in modules
+                                   if m["kind"] == "ctp"), []):
+                    dpath = (week_dir(league, season, week) / "matchups"
+                             / child["slug"] / "draft.md")
                     text = _read(dpath) or ""
-                    st = states.get(slug) or {}
-                    section = f"matchup:{slug}"
-                    matchup_cards.append({
-                        "slug": slug, "section": section,
-                        "title": " vs ".join(
-                            resolved.get(t["roster_id"], {}).get("name") or f"Roster {t['roster_id']}"
-                            for t in sm["matchup"]["teams"]),
+                    st = s.get_matchup_state(league_slug=league_slug, season=season,
+                                             week=week, matchup_slug=child["slug"]) or {}
+                    section = child["section"]
+                    matchup_editing[section] = {
+                        **child,
                         "text": text, "sha": _sha(text),
-                        "status": matchup_status(st, bool(text.strip())),
-                        "prominence": st.get("prominence_override") or sm.get("prominence"),
                         "angle": st.get("custom_angle") or st.get("selected_angle_id") or "(no angle)",
                         "brief": _brief(section),
                         "proposal": _read(_proposal_path(idir, section)),
-                    })
+                        "revisions": len(s.get_prose_revisions(
+                            league_slug, season, issue_key, section, limit=50)),
+                    }
             briefs = {m["module_key"]: _brief(m["module_key"])
                       for m in modules if m["kind"] in ("lowdown", "section", "power")}
         requests_by_section: dict[str, list[dict]] = {}
@@ -211,6 +213,9 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         for m in modules:
             key, kind = m["module_key"], m["kind"]
             card = {**m, "anchor": f"sec-{key}", "editable": False,
+                    "children": [{**matchup_editing[c["section"]],
+                                   "requests": requests_by_section.get(c["section"], [])}
+                                  for c in m["children"] if c["section"] in matchup_editing],
                     "prose_state": prose_states.get(key, "generated"),
                     "requests": requests_by_section.get(key, []),
                     "revisions": rev_counts.get(key, 0), "proposal": None,
@@ -247,7 +252,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         base = f"/commissioner/{league_slug}/{season}/issue/{issue_key}"
         return {
             "league": league, "season": season, "issue_key": issue_key, "week": week,
-            "cards": cards, "matchup_cards": matchup_cards, "blockers": blockers,
+            "cards": cards, "blockers": blockers,
             "qa": qa,
             "takes_rows": _takes_rows(league_slug, season),
             "take_topics": takes_mod.TOPICS,
@@ -393,15 +398,41 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                     status="approved" if action == "approve" else "edited")
                 return JSONResponse({"ok": True, "approved": action == "approve"})
             if action == "approve":
-                text = _read(_section_path(league, season, issue_key, section)) or ""
-                bad = [mk for mk in BLOCKED_MARKERS if mk in text]
-                if not text.strip():
-                    return JSONResponse({"ok": False, "error": "section is empty"},
-                                        status_code=400)
-                if bad:
-                    return JSONResponse(
-                        {"ok": False, "error": f"blocked marker present: {bad[0]}"},
-                        status_code=400)
+                kind = dict((k, kd) for k, _t, kd
+                            in module_defs_for(league, issue_key)).get(section)
+                if kind is None:
+                    return JSONResponse({"ok": False, "error": "unknown section"},
+                                        status_code=404)
+                # Common Tactical Picture holds no prose of its own: it is
+                # made of the week's matchup previews, so the gate is that
+                # they are all signed off. Checking it for a `ctp.md` that
+                # never existed refused every click on it.
+                if kind == "ctp":
+                    week = _week_of(issue_key)
+                    kids = (matchup_children(s, league, season, issue_key, week)
+                            if week is not None else [])
+                    left = [c for c in kids if not c["approved"]]
+                    if not kids:
+                        return JSONResponse(
+                            {"ok": False, "error": "no matchups computed for this week"},
+                            status_code=400)
+                    if left:
+                        return JSONResponse(
+                            {"ok": False,
+                             "error": f"{len(left)} matchup preview(s) still unapproved: "
+                                      + ", ".join(c["title"] for c in left[:3])
+                                      + ("…" if len(left) > 3 else "")},
+                            status_code=400)
+                elif kind in ("lowdown", "section", "all-city"):
+                    text = _read(_section_path(league, season, issue_key, section)) or ""
+                    bad = [mk for mk in BLOCKED_MARKERS if mk in text]
+                    if not text.strip():
+                        return JSONResponse({"ok": False, "error": "section is empty"},
+                                            status_code=400)
+                    if bad:
+                        return JSONResponse(
+                            {"ok": False, "error": f"blocked marker present: {bad[0]}"},
+                            status_code=400)
             s.set_issue_module(league_slug=league_slug, season=season, issue_key=issue_key,
                                module_key=section, approved=1 if action == "approve" else 0)
         return JSONResponse({"ok": True, "approved": action == "approve"})

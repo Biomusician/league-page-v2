@@ -28,7 +28,7 @@ judgment, not an objective ranking; set yours on the rankings screen.
 
 ## STORY BOARD
 
-- 7 candidates surfaced; 0 currently included.
+- 7 candidates surfaced; 7 currently included.
 - [—] Matchup: Corn-Fed Fatties (Babe) vs Double TDs (Double) (CI 25, SV 40)
 - [—] Matchup: Statistical Anomalies (McLovin) vs Secret Asian Man (POP) (CI 25, SV 25)
 - [—] Matchup: Tua Girls One Kupp (HOP) vs VHS Cowboys (Juan) (CI 25, SV 25)

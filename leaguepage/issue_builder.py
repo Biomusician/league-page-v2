@@ -136,6 +136,59 @@ def all_city_state(league: League, season: str, issue_key: str, idir: Path,
     return "edited", f"edition '{edition['edition']}' validates; copy edited"
 
 
+def matchup_children(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    week: int,
+    *,
+    base_dir: Path | None = None,
+) -> list[dict]:
+    """The week's matchup previews, as children of Common Tactical Picture.
+
+    They are not peers of it. A preview has no standing on its own: it is
+    one of the pieces CTP is made of, it publishes inside CTP, and CTP is
+    finished exactly when they are. Returning them from here rather than
+    from a second flat list is what makes that true of readiness and
+    approval and not only of the rendered page.
+
+    Ordered the way the section publishes: FEATURE first, CAPSULE last.
+    """
+    from leaguepage.matchup_interest import PROMINENCE_LEVELS
+    from leaguepage.matchup_packet import compute_week, matchup_status
+
+    computed = compute_week(storage, league, week)
+    if not computed:
+        return []
+    idir = issue_dir(league, season, issue_key, base_dir)
+    names = resolve_public_names(storage, league)
+    out = []
+    for sm in computed["scored"]:
+        m = sm["matchup"]
+        slug = m["matchup_slug"]
+        draft = idir / "matchups" / slug / "draft.md"
+        prominence = ((sm["state"] or {}).get("prominence_override")
+                      or sm["recommended_prominence"])
+        status = matchup_status(sm["state"], draft.exists())
+        out.append({
+            "slug": slug,
+            "section": f"matchup:{slug}",
+            "anchor": f"sec-matchup-{slug}",
+            "title": " vs ".join(
+                (names.get(t["roster_id"]) or {}).get("name") or f"Roster {t['roster_id']}"
+                for t in m["teams"]),
+            "status": status,
+            "approved": status in ("approved", "locked"),
+            "prominence": prominence,
+            "written": draft.exists(),
+        })
+    out.sort(key=lambda c: (PROMINENCE_LEVELS.index(c["prominence"])
+                            if c["prominence"] in PROMINENCE_LEVELS
+                            else len(PROMINENCE_LEVELS), c["title"]))
+    return out
+
+
 def module_states(
     storage: Storage,
     league: League,
@@ -150,24 +203,20 @@ def module_states(
     idir = issue_dir(league, season, issue_key, base_dir)
     saved = storage.get_issue_modules(league.slug, season, issue_key)
     weeks_played = 0
-    matchup_counts = (0, 0)
+    children: list[dict] = []
     if week is not None:
-        from leaguepage.matchup_packet import compute_week, matchup_status
+        from leaguepage.matchup_packet import compute_week
 
         computed = compute_week(storage, league, week)
         if computed:
             weeks_played = computed["analysis"]["weeks_played"]
-            total = len(computed["scored"])
-            approved = 0
-            for sm in computed["scored"]:
-                draft = idir / "matchups" / sm["matchup"]["matchup_slug"] / "draft.md"
-                if matchup_status(sm["state"], draft.exists()) in ("approved", "locked"):
-                    approved += 1
-            matchup_counts = (approved, total)
+        children = matchup_children(storage, league, season, issue_key, week,
+                                    base_dir=base_dir)
 
     out = []
     for position, (key, title, kind) in enumerate(module_defs_for(league, issue_key)):
         row = saved.get(key) or {}
+        kids = children if kind == "ctp" else []
         default_included = 0 if (key in OPT_IN_MODULES and not row) else 1
         included = bool(row.get("included", default_included))
         approved = bool(row.get("approved", 0))
@@ -180,13 +229,17 @@ def module_states(
             if approved and status == "edited":
                 status = "approved"
         elif kind == "ctp":
-            a, t = matchup_counts
+            # The parent is exactly its children. It has no prose of its
+            # own, so its readiness is theirs and there is nothing to sign
+            # off until every preview under it is signed off.
+            t = len(kids)
+            a = sum(1 for c in kids if c["approved"])
             if t == 0:
                 status, detail = "not_ready", "no matchups"
             elif a < t:
-                status, detail = "needs_review", f"{a}/{t} matchup previews approved"
+                status, detail = "needs_review", f"{a} / {t} approved"
             else:
-                status, detail = "approved" if approved else "edited", f"{a}/{t} approved"
+                status, detail = "approved" if approved else "edited", f"{a} / {t} approved"
         elif kind == "power":
             label = "preseason" if issue_key == "draft" else issue_key
             entries = storage.get_power_rankings(league.slug, season, label)
@@ -217,6 +270,9 @@ def module_states(
         saved_pos = row.get("position")
         out.append({
             "module_key": key, "kind": kind,
+            "children": kids,
+            "children_approved": sum(1 for c in kids if c["approved"]),
+            "children_total": len(kids),
             "title": row.get("custom_title") or title,
             "position": saved_pos if saved_pos is not None else position,
             "_explicit_pos": saved_pos is not None,
@@ -229,7 +285,8 @@ def module_states(
             # call to make, not the system's. Dropping it for him hides the
             # decision; leaving it silent makes him work out for himself
             # why the issue will not assemble. Say it instead.
-            "empty": bool(included and kind != "auto" and status == "not_ready"),
+            "empty": bool(included and kind not in ("auto", "ctp")
+                          and status == "not_ready"),
         })
     # explicit commissioner positions win ties against defaults
     out.sort(key=lambda m: (m["position"], not m["_explicit_pos"], m["_registry_index"]))
@@ -245,6 +302,7 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
     if kind == "lowdown":
         return _read(idir / "lowdown" / "lowdown.md")
     if kind == "ctp":
+        from leaguepage.matchup_interest import PROMINENCE_LEVELS
         from leaguepage.matchup_packet import compute_week, matchup_status
 
         week = int(issue_key.removeprefix("week-")) if issue_key.startswith("week-") else None
@@ -255,7 +313,7 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
             return None
         parts = []
         for sm in sorted(computed["scored"],
-                         key=lambda s: ("FEATURE", "MAJOR", "STANDARD", "CAPSULE").index(
+                         key=lambda s: PROMINENCE_LEVELS.index(
                              (s["state"] or {}).get("prominence_override") or s["recommended_prominence"])):
             m = sm["matchup"]
             draft = _read(idir / "matchups" / m["matchup_slug"] / "draft.md")

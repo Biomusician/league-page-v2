@@ -13,5 +13,8 @@ rough draft for the commissioner; nothing you write publishes directly.
 - matchups/stafford-son-vs-george-friends/generated/AUTHORING.md
 - matchups/statistical-anomalies-vs-secret-asian-man/generated/AUTHORING.md
 - matchups/tua-girls-one-kupp-vs-vhs-cowboys/generated/AUTHORING.md
+- sections/AUTHORING-forceflow.md
+- sections/AUTHORING-lowdown.md
+- sections/AUTHORING-tracks.md
 
 Matchup previews (if any pending) are under matchups/*/generated/AUTHORING.md.

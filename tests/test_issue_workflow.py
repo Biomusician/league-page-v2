@@ -229,7 +229,9 @@ def test_twelve_team_issue_flow(tmp_path, monkeypatch):
     # surfeit-only modules stay out of Disco's registry
     assert "branches" not in keys and "false-assumptions" not in keys
     ctp = next(m for m in modules if m["module_key"] == "ctp")
-    assert "0/6" in ctp["detail"]  # six matchups in a 12-team league
+    # six matchups in a 12-team league, and they are its children
+    assert ctp["children_total"] == 6 and ctp["children_approved"] == 0
+    assert ctp["detail"] == "0 / 6 approved"
 
 
 # ---------------------------------------------------------------- signals
