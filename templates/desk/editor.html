@@ -52,7 +52,11 @@
   @media (max-width:56rem) { .compare { grid-template-columns:1fr; } }
   .revlist { font-size:.85rem; }
   .revlist li { margin:.25rem 0; }
-  .namegrid td input[type=text] { width:14rem; }
+  /* A fixed 14rem beats the base rule's `td input { width:100% }` on
+     specificity, so this grid alone kept forcing the page sideways on a
+     phone. Ask for the width; do not insist on it. */
+  .namegrid td input[type=text] { width:100%; min-width:9rem; }
+  @media (min-width:56rem) { .namegrid td input[type=text] { width:14rem; } }
 </style>
 
 <div class="topbar">
