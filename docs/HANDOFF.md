@@ -8,7 +8,7 @@ This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
 ## Product evolution run (2026-09-03)
 
-**Status: real build clean, repo audit clean, 100 pages, 852 tests green,
+**Status: real build clean, repo audit clean, 100 pages, 872 tests green,
 deployed and verified in production.**
 
 Ten read-only recon agents audited the Commissioner workflow, the reader
@@ -272,6 +272,55 @@ the data does not support.
   seeds its ranks and tiers from it (marked unsaved until submitted, notes
   never carried forward), and "Approve all ready" calls the same per-section
   approve once per section rather than adding a second path to approval.
+
+### 2021, reconstructed (2026-09-04)
+
+`leaguepage/archive_results.py`. The archive states almost no results as
+results — every Matchup Roundup block is a PREVIEW, written before kickoff,
+and there are exactly two sentences of head-to-head prose in fifty-five
+issues. But a preview prints each team's record and so does the next
+week's, so the week between them is recoverable from the difference. That
+gives **52 Disco games across weeks 1 to 13 of 2021**, a season Sleeper
+cannot reach: the API goes back one prior season.
+
+All 52 were re-derived by a separately written parser reading the raw
+markdown. 52 agree, 0 disagree.
+
+The design bet is that the failure mode is a **miss, never a wrong result**.
+A game appears only when exactly one side gained a win and the other gained
+a loss, and a week whose own headers contradict themselves is not used at
+all — including the weeks either side, since they resolve through it. Each
+known corpus defect is caught by a check that does not depend on noticing
+that particular defect:
+
+| defect (all live in the corpus) | what catches it |
+|---|---|
+| week 8 puts EMCO in two matchups | no team may appear twice in a week |
+| week 13 types a record `(63-9)` | every record in week N covers N-1 games |
+| week 8 writes odds `52-48` not `52/48` | records only come from inside parens |
+| `PITCH` vs `Pitch` | case-folded canonical names |
+| a proxy drafter appears as a team | week 1's `The Dude/Glory` header teaches the alias; the parser learns it from the corpus rather than being told who somebody is |
+
+Weeks 7 and 8 are therefore absent, and the page names them and says why.
+Standings rank on percentage because a dropped week leaves teams on
+different game counts. **Winners only** — the previews carry records, never
+scores, so the margin is not recoverable and is not invented.
+
+`title_tension` compares the two independent readings of the same archive:
+McLovin led the recovered weeks at 9-2 and the masthead's Seasons Past
+ledger records Babe as the 2021 champion, so the page says that rather than
+leaving a reader to notice two tables disagreeing.
+
+Scoped like every other archive surface via `ARCHIVE_SCOPE`: Surfeit has no
+corpus and its page carries nothing rather than borrowing Disco's. A season
+is dropped **whole** if any one of its names is not already published inside
+a current team name, because publishing half a season misstates every record
+in it — verified to have teeth by forcing a name private and watching the
+season vanish. Team names link to current team pages only through CONFIRMED
+aliases; a name that does not resolve still prints, it just is not a link.
+
+`MIN_WEEKS = 6` keeps a thin season out: three scattered weeks is a
+curiosity, not a record. 2019, 2020, 2022, 2023 and 2025 do not reach it.
 
 ## Overnight product run (2026-09-03)
 
