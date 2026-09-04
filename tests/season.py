@@ -58,9 +58,81 @@ def round_robin_pairs(teams: int, week: int) -> list[tuple[int, int]]:
     return pairs
 
 
+# The lineup this league starts, followed by bench. A synthetic roster with
+# no positions on it makes every positional room empty, which meant most of
+# the analytics ran down their "nothing to say" branch in tests while
+# production ran the real one.
+SLOT_POSITIONS = ["QB", "RB", "RB", "WR", "WR", "TE", "RB"]
+BENCH_POSITIONS = ["WR", "QB", "TE", "RB"]
+
+
 def _team_players(rid: int) -> list[str]:
     base = (rid - 1) * (STARTER_SLOTS + BENCH_SLOTS)
     return [f"sp{base + i}" for i in range(STARTER_SLOTS + BENCH_SLOTS)]
+
+
+def _player_position(pid: str) -> str:
+    i = int(pid[2:]) % (STARTER_SLOTS + BENCH_SLOTS)
+    shape = SLOT_POSITIONS + BENCH_POSITIONS
+    return shape[i]
+
+
+def save_players(storage, teams: int) -> None:
+    """Player records for every synthetic roster, with positions.
+
+    Never overwrites a player a test set up itself: several tests call
+    `add_players` first to give the whole pool one position so a
+    single-position lineup can be reasoned about, and silently replacing
+    those would change what they are testing.
+    """
+    out = {}
+    for rid in range(1, teams + 1):
+        for pid in _team_players(rid):
+            if storage.get_player(pid):
+                continue
+            out[pid] = {"player_id": pid, "full_name": f"Synth {pid}",
+                        "position": _player_position(pid), "team": "FA",
+                        "search_rank": int(pid[2:]) + 1}
+    if out:
+        storage.save_players(out)
+
+
+def stock_rosters(storage, league: League, teams: int) -> None:
+    """Put players on the rosters and their records in the players table.
+
+    `populate_league` builds a league that has drafted and leaves the
+    rosters empty, so every positional room is empty and the analytics run
+    their "nothing to say" branch. Pair this with `synthetic_adp` for a
+    fixture that takes the same path production does.
+    """
+    rosters = storage.get_rosters(league.league_id)
+    for r in rosters:
+        r["players"] = _team_players(r["roster_id"])
+    storage.save_rosters(league.league_id, rosters)
+    save_players(storage, teams)
+
+
+def synthetic_adp(teams: int):
+    """A reference board that ranks the synthetic players.
+
+    Real leagues carry an `adp_source`, so the site build loads the real
+    reference file — whose names never match `sp0`. Every room then scores
+    zero, every rank is roster order, and the tests exercise the branch that
+    says so instead of the one production takes.
+    """
+    from leaguepage.adp import ADPSource
+
+    players = []
+    for rid in range(1, teams + 1):
+        for n, pid in enumerate(_team_players(rid)):
+            # spread the ranks so rooms differ team to team
+            rank = 1 + ((rid * 13 + n * 7) % 200)
+            players.append({"name": f"Synth {pid}",
+                            "position": _player_position(pid), "rank": rank})
+    return ADPSource(source_key="synthetic", source_name="Synthetic board",
+                     kind="mock", scoring_format="half_ppr",
+                     retrieved_at="2026-01-01", note="test fixture",
+                     players=players)
 
 
 def _week_scores(rng: random.Random, rid: int, base: float) -> tuple[float, dict, list]:
@@ -111,6 +183,7 @@ def populate_season(
     for r in rosters:
         r["players"] = _team_players(r["roster_id"])
     storage.save_rosters(league.league_id, rosters)
+    save_players(storage, teams)
 
     rng = random.Random(seed)
     # a stable per-team strength, so standings mean something across weeks

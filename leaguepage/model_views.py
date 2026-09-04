@@ -24,6 +24,7 @@ human.
 from __future__ import annotations
 
 from leaguepage.draft_value import SKILL_POSITIONS
+from leaguepage.team_analytics import is_rated
 
 MIN_ROOM_GAP = 3            # rooms closer than this are not a contrast
 MAX_SCOUT_POINTS = 4
@@ -46,6 +47,12 @@ def _room_contrasts(profile: dict, rid_a: int, rid_b: int,
     for pos in profile["positions"]:
         if pos not in SKILL_POSITIONS:
             continue        # a kicker gap is not why anyone watches a game
+        # A gap between two rooms NEITHER of which has a score is an
+        # artefact of roster_id order among tied zeros, not a contrast. One
+        # rated room against an unrated one is a real contrast: a zero-score
+        # room genuinely sorts below every scored one.
+        if not (is_rated(profile, pos, rid_a) or is_rated(profile, pos, rid_b)):
+            continue
         ra, rb = profile["ranks"][pos][rid_a], profile["ranks"][pos][rid_b]
         gaps.append((abs(ra - rb), pos, ra, rb))
     gaps.sort(reverse=True)
@@ -78,7 +85,8 @@ def scout_view(matchup: dict, *, profile: dict | None, names: dict[int, str],
         why.append(line)
     if profile:
         for rid, nm in ((rid_a, name_a), (rid_b, name_b)):
-            skill = [p for p in profile["positions"] if p in SKILL_POSITIONS]
+            skill = [p for p in profile["positions"]
+                     if p in SKILL_POSITIONS and is_rated(profile, p, rid)]
             if not skill:
                 continue
             best = min(skill, key=lambda p: profile["ranks"][p][rid])
@@ -188,8 +196,10 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
 
     rows = []
     for i, (score, rid, construction, results) in enumerate(scored):
-        best = min(skill, key=lambda p: profile["ranks"][p][rid]) if skill else None
-        worst = max(skill, key=lambda p: profile["ranks"][p][rid]) if skill else None
+        # Only rooms with a score behind the rank; see is_rated.
+        rated = [p for p in skill if is_rated(profile, p, rid)]
+        best = min(rated, key=lambda p: profile["ranks"][p][rid]) if rated else None
+        worst = max(rated, key=lambda p: profile["ranks"][p][rid]) if rated else None
         # A team whose skill rooms all rank alike had one room printed as
         # both what carries it and what exposes it. Nothing separates them,
         # so name neither -- and say that is why, rather than leaving two
@@ -208,6 +218,14 @@ def model_board(*, profile: dict, names: dict[int, str], slugs: dict[int, str],
         elif best and worst:
             factor = (f"average skill-room rank {construction:.1f} of {n}; "
                       f"{best} carries it, {worst} is the exposure")
+        else:
+            # Two empty cells and no explanation reads as missing data. It
+            # is not missing: the rooms are genuinely indistinguishable, or
+            # their players sit past the end of the reference board, and
+            # either way there is no room to name.
+            factor = ("no room separates this roster on the reference board"
+                      if not rated else
+                      "no room separates this roster: its skill rooms rank alike")
         rec = next((s for s in standings if s["roster_id"] == rid), {})
         rows.append({
             "rank": i + 1,

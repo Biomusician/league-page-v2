@@ -165,7 +165,11 @@ def summarize_team(
     picks_by_round = [
         {"round": p["round"], "pick_no": p["pick_no"], "name": p["name"],
          "position": p["position"], "nfl_team": p["nfl_team"], "adp": p["adp"],
-         "delta": p["delta"]}
+         "delta": p["delta"],
+         # Whether the reference rank falls past the end of the draft. This
+         # whitelist dropped it, so the label downstream still quoted a
+         # magnitude the board cannot support.
+         "off_board": p.get("off_board", False)}
         for p in picks
     ]
 

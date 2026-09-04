@@ -9,6 +9,10 @@
 <span class="dv dv-strong dv-reach" style="--dvi:{{ d.intensity }}">{{ d.label }}</span>
 {%- elif d.draft_value_class == "STEAL" -%}
 <span class="dv dv-strong dv-steal" style="--dvi:{{ d.intensity }}">{{ d.label }}</span>
+{%- elif d.draft_value_class == "off-board" -%}
+{#  The reference rank falls past the end of the draft, so there is no slot
+    it could have been taken from and no magnitude to quote. #}
+<span class="meta">{{ d.label }}</span>
 {%- elif d.draft_value_class == "ON BOARD" -%}
 <span class="meta">on board</span>
 {%- elif d.picks_early -%}

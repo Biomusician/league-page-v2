@@ -279,12 +279,15 @@ def test_tracks_and_fades_selection(storage):
 
     populate_league(storage, teams=10, rounds=3, picks="complete")
     # team 2 scores huge every week but loses each time to team 1 (paired 1v2):
-    # strong all-play, bad record -> Track. team 9 wins vs team 10 with weak
-    # scores -> record outruns all-play -> Fade.
+    # strong all-play, bad record -> Track. team 9 wins vs team 10 while
+    # scoring worse than almost everybody -> record outruns all-play -> Fade.
+    # Team 9 used to score 89.5, which beat seven of the ten: a .778 all-play
+    # and a 3-0 record is a good team, and nominating it as a Fade was an
+    # artefact of subtracting .778 from 1.000, not a story.
     for wk in range(1, 4):
         scores = {rid: 80.0 + rid for rid in range(1, 11)}
         scores[1], scores[2] = 160.0, 150.0
-        scores[9], scores[10] = 89.5, 60.0
+        scores[9], scores[10] = 70.0, 60.0
         populate_matchups(storage, week=wk, teams=10, scores=scores)
     populate_matchups(storage, week=4, teams=10)  # upcoming, unplayed
     from fixtures import set_records

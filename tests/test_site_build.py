@@ -14,6 +14,7 @@ from leaguepage.site_build import audit_output, build_site
 from leaguepage.storage import Storage
 
 from fixtures import add_players, populate_league, populate_matchups
+from season import stock_rosters, synthetic_adp
 
 SEASON = "2027"  # deliberately not 2026: proves nothing hardcodes the season
 
@@ -28,10 +29,23 @@ def site_env(tmp_path, monkeypatch):
     monkeypatch.setattr(mp, "load_managers", lambda: {})
     monkeypatch.setattr(mp, "load_coalitions",
                         lambda: {"identities": {}, "coalitions": [], "relationships": []})
+    # A reference board that ranks the synthetic players. Real leagues carry
+    # an adp_source, so without this the build loads the real board, nothing
+    # matches "sp0", every room scores zero and the whole positional layer
+    # runs the branch that reports it has nothing to say -- while production
+    # runs the other one.
+    import leaguepage.adp as adp_mod
+    import leaguepage.team_analytics as ta_mod
+    board = synthetic_adp(12)
+    # team_analytics binds the name at import, so both have to be patched.
+    monkeypatch.setattr(adp_mod, "load_adp_for_league", lambda league, *a, **k: board)
+    monkeypatch.setattr(ta_mod, "load_adp_for_league", lambda league, *a, **k: board)
     db = tmp_path / "t.sqlite3"
     with Storage(db) as s:
         populate_league(s, TEST_SURFEIT, teams=10, rounds=3, picks="complete", season=SEASON)
         populate_league(s, TEST_DISCO, teams=12, rounds=3, picks="complete", season=SEASON)
+        stock_rosters(s, TEST_SURFEIT, 10)
+        stock_rosters(s, TEST_DISCO, 12)
         s.set_meta("current_week", "1")
         for lg, teams in ((TEST_SURFEIT, 10), (TEST_DISCO, 12)):
             for wk in (1, 2, 3):

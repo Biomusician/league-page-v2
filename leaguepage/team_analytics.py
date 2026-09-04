@@ -114,7 +114,10 @@ def player_values(storage: Storage, league: League, *, adp=None,
 # --------------------------------------------------- positional engine
 
 def _fill_lineup(slots: list[str], pool: dict[str, list[dict]]) -> dict[str, list[dict]]:
-    """Greedy optimal lineup. pool: position -> players sorted by value desc
+    """Greedy lineup fill, a lower bound on the optimum rather than the
+    optimum itself: flex slots are taken in roster_positions order, which is
+    only correct when the narrower slot comes first. See the same caveat on
+    matchup_analysis.optimal_points. pool: position -> players sorted by value desc
     (consumed). Returns position -> players used in the lineup."""
     used: dict[str, list[dict]] = {}
     dedicated = [s for s in slots if s not in FLEX_ELIGIBLE]
@@ -194,9 +197,33 @@ def positional_profile(storage: Storage, league: League, *, adp=None,
             t = teams[rid][pos]
             # count from room_score inputs: approximate via count of players
             t["surplus"] = max(0, t["count"] - t["starters_used"] - (0 if t["depth_value"] > floor else 1))
+    # A room whose every player sits past the end of the reference board
+    # scores exactly 0.0 -- the same as a room with nobody in it -- and the
+    # stable sort then orders those rooms by roster_id. Two teams that are
+    # indistinguishable on every measurable input came out ranked 9th and
+    # 10th, and the site printed "#9 of 10" as a fact about the roster. This
+    # says which rooms the ranking actually measured. 16% of The Surfeit's
+    # drafted picks sit off that board, most of them K and DEF.
+    rated: dict[str, set[int]] = {
+        pos: {rid for rid in teams
+              if teams[rid][pos]["count"] and teams[rid][pos]["room_score"] > 0}
+        for pos in positions
+    }
     return {"stage": stage, "positions": positions, "teams": teams, "ranks": ranks,
             "starter_ranks": starter_ranks, "depth_ranks": depth_ranks,
-            "n": len(teams)}
+            "rated": rated, "n": len(teams)}
+
+
+def is_rated(profile: dict, pos: str, rid: int) -> bool:
+    """Whether this team's room at this position has a score behind its rank.
+
+    Older callers that never asked are unchanged; a profile built before
+    `rated` existed answers True, which is the previous behaviour.
+    """
+    rated = (profile or {}).get("rated")
+    if rated is None:
+        return True
+    return rid in rated.get(pos, set())
 
 
 def label_for_rank(rank: int, n: int) -> str:

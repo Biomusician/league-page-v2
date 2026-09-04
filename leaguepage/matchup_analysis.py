@@ -96,8 +96,16 @@ def all_play(scores: dict[int, list[tuple[int, float]]]) -> dict[int, dict]:
 
 def optimal_points(roster_positions: list[str], players: list[dict]) -> float | None:
     """Best achievable starter total given slots and per-player points.
-    players: [{position, points}]. Greedy: fixed slots take their best,
-    then flex slots take the best remaining eligible. None if no data."""
+    players: [{position, points}]. None if no data.
+
+    Greedy, and greedy is not always optimal: flex slots are filled in
+    `roster_positions` order, which is only correct when the narrower slot
+    comes first. Given FLEX then REC_FLEX, the FLEX can take a receiver the
+    REC_FLEX needed and leave a running back on the bench -- about 10% low
+    on a constructed case. Both live leagues order their slots safely
+    (Disco FLEX x4 then SUPER_FLEX, Surfeit FLEX, FLEX, K, DEF), but that
+    is a property of what Sleeper returns, not of this function, so the
+    result is a lower bound rather than a guaranteed maximum."""
     if not players:
         return None
     pool = sorted(players, key=lambda p: -p["points"])
@@ -128,19 +136,30 @@ def lineup_efficiency(storage: Storage, roster_positions: list[str], row: dict) 
     if not players_points or not any(v > 0 for v in players_points.values()):
         return None
     players = []
+    unresolved = 0
     for pid, pts in players_points.items():
         p = storage.get_player(pid) or {}
-        players.append({"position": p.get("position") or "?", "points": float(pts)})
+        pos = p.get("position") or "?"
+        if pos == "?":
+            unresolved += 1
+        players.append({"position": pos, "points": float(pts)})
+    if unresolved:
+        # A rostered player missing from the cached players dict has no
+        # position, so no slot will take him and he is left out of the
+        # optimal lineup. The `actual > optimal` guard below only catches
+        # this when he was STARTED. If he sat, `optimal` is quietly short by
+        # whatever he scored and the efficiency inflates toward 100% -- a
+        # 25-point ghost on the bench turned a real 84% into a reported
+        # 100%. There is no lineup to compare against; say so.
+        return None
     optimal = optimal_points(roster_positions, players)
     actual = float(row.get("points") or 0)
     if not optimal:
         return None
     if actual > optimal + 0.01:
         # The best legal lineup cannot score less than the one that was
-        # actually started. When it does, our reconstruction is wrong --
-        # usually a rostered player missing from the cached players dict,
-        # so his position reads "?" and no slot will take him. An
-        # efficiency of 214% is worse than no efficiency at all.
+        # actually started. When it does, our reconstruction is wrong.
+        # An efficiency of 214% is worse than no efficiency at all.
         return None
     return {"actual": actual, "optimal": optimal,
             "efficiency": round(actual / optimal, 3) if optimal else None}

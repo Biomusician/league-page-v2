@@ -687,7 +687,8 @@ def build_league(
     recap_by_rid: dict[int, dict] = {}
     if draft_analysis:
         for t in draft_analysis["teams"]:
-            _picks = [dict(p, dv=classify_pick(p.get("delta"), league_size))
+            _picks = [dict(p, dv=classify_pick(p.get("delta"), league_size,
+                                             off_board=p.get("off_board", False)))
                       for p in t["picks_by_round"]]
             # Headline Reach/Steal are skill positions only, matching the
             # Draft page: overall ECR ranks every K and DST below the
@@ -696,7 +697,8 @@ def build_league(
             # shape, not a roster decision. It was headlining team pages as
             # the Biggest Reach, which is the calibration decision leaking.
             _hd = headline_deviations(t["picks_by_round"], league_size, top=1)
-            _st = [dict(p, dv=classify_pick(p["delta"], league_size),
+            _st = [dict(p, dv=classify_pick(p["delta"], league_size,
+                                        off_board=p.get("off_board", False)),
                         context=position_order_context(_adp, analysis_picks, p))
                    for p in _hd["special_teams"][:2]]
             _aged = aging_by_rid.get(t["roster_id"]) or []
@@ -1049,7 +1051,8 @@ def build_league(
                                                "nfl_team", "adp", "delta")},
                           "team": public_of.get(p["team_slug"], p["team_slug"]),
                           "team_slug": p["team_slug"],
-                          "dv": classify_pick(p["delta"], league_size)})
+                          "dv": classify_pick(p["delta"], league_size,
+                                              off_board=p.get("off_board", False))})
         for t in analysis["teams"]:
             team_sections.append({
                 # Two different slugs, on purpose. `slug` is the draft
@@ -1068,7 +1071,8 @@ def build_league(
             return {"name": p["name"], "pick_no": p["pick_no"], "adp": p["adp"],
                     "team": public_of.get(p["team_slug"], p["team_slug"]),
                     "team_slug": p["team_slug"],
-                    "dv": classify_pick(p["delta"], league_size),
+                    "dv": classify_pick(p["delta"], league_size,
+                                        off_board=p.get("off_board", False)),
                     "context": (position_order_context(
                         load_adp_for_league(league), analysis["picks"], p)
                         if st_context else None)}

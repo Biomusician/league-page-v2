@@ -32,21 +32,36 @@ SPECIAL_TEAMS = ("K", "DEF", "DST")
 
 CLASS_REACH = "REACH"
 CLASS_EARLY = "EARLY"
+CLASS_OFF_BOARD = "off-board"
 CLASS_ON_BOARD = "ON BOARD"
 CLASS_VALUE = "VALUE"
 CLASS_STEAL = "STEAL"
 
 
-def classify_pick(delta: float | None, league_size: int) -> dict | None:
+def classify_pick(delta: float | None, league_size: int,
+                  *, off_board: bool = False) -> dict | None:
     """Semantic view of one pick's delta. None when no reference rank.
 
     Returns picks_early/picks_late (one of them 0), rounds_early/late,
     draft_value_class, label (worded, for REACH/STEAL), short (signed
     number for table cells), intensity 0..1 for the color gradient, and
     sort_value (positive = later than reference = value/steal side).
+
+    `off_board` means the reference rank falls past the end of the draft.
+    "REACH · 244 picks early" in a 228-pick draft is not a fact about the
+    manager; it is a fact about where the board stops. Those picks are
+    labelled as outside its range and carry no magnitude.
     """
     if delta is None or not league_size:
         return None
+    if off_board:
+        return {
+            "picks_early": 0.0, "picks_late": 0.0,
+            "rounds_early": 0.0, "rounds_late": 0.0,
+            "draft_value_class": CLASS_OFF_BOARD,
+            "label": "outside the reference board's range",
+            "short": "—", "intensity": 0.0, "sort_value": 0.0,
+        }
     early = max(0.0, -delta)
     late = max(0.0, delta)
     if delta <= -league_size:

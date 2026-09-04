@@ -26,6 +26,7 @@ from leaguepage.draft_value import SKILL_POSITIONS, SPECIAL_TEAMS
 from leaguepage.front_page import (
     MIDSEASON, OPENING, PLAYOFF_RACE, POSTSEASON, PRESEASON,
 )
+from leaguepage.team_analytics import is_rated
 
 # Where a special-teams room may still earn a headline slot.
 ST_HEADLINE_RANK = 1        # league-best, and even then only as a footnote
@@ -57,7 +58,11 @@ def editorial_strengths(profile: dict, rid: int, sw: dict) -> tuple[list[str], l
 def _best_and_worst(profile: dict, rid: int) -> tuple[dict | None, dict | None]:
     if not profile:
         return None, None
-    skill = [p for p in profile["positions"] if p in SKILL_POSITIONS]
+    # Only rooms the ranking actually measured. A room scoring zero ties
+    # every other zero and is ordered by roster_id, so naming it as this
+    # team's strength or exposure states a fact the data does not hold.
+    skill = [p for p in profile["positions"]
+             if p in SKILL_POSITIONS and is_rated(profile, p, rid)]
     if not skill:
         return None, None
     best = min(skill, key=lambda p: profile["ranks"][p][rid])

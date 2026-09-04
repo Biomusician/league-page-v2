@@ -105,17 +105,41 @@ def tracks_and_fades(storage: Storage, league: League, week: int,
         ev = [evidence.roster_ref(league.league_id, t["roster_id"]),
               evidence.computed_ref("trend", league.slug, analysis["season"], slug)]
         hooks_up, hooks_down = [], []
-        if ap_pct is not None and games:
-            if ap_pct - win_pct >= 0.2:
-                hooks_up.append(f"all-play {ap['wins']}-{ap['losses']} ({ap_pct:.0%}) runs "
-                                f"well ahead of the {rec['wins']}-{rec['losses']} record")
-            if win_pct - ap_pct >= 0.2:
+        # A gap alone is structural, not a story. An undefeated team has a
+        # win_pct of 1.000, so ANY all-play under .800 clears a 0.2 gap --
+        # a 70% all-play is elite and was being nominated as a Fade for it.
+        # The same arithmetic auto-nominated every winless team as a Track.
+        # What the signal is for is a record that misrepresents the team, so
+        # the all-play has to sit on the wrong side of average too.
+        #
+        # The two numbers also have to cover the same games: `record` is
+        # season-to-date and all-play here runs through the previous week,
+        # so a mid-week comparison cites a 4-game record against 3 weeks of
+        # all-play and calls the difference a divergence.
+        ap_weeks = ap.get("weeks") or 0
+        comparable = ap_pct is not None and games and ap_weeks >= games - 1
+        if comparable:
+            window = f"over {ap_weeks} week{'' if ap_weeks == 1 else 's'}"
+            if ap_pct - win_pct >= 0.2 and ap_pct >= 0.5:
+                hooks_up.append(f"all-play {ap['wins']}-{ap['losses']} ({ap_pct:.0%} "
+                                f"{window}) runs well ahead of the "
+                                f"{rec['wins']}-{rec['losses']} record")
+            if win_pct - ap_pct >= 0.2 and ap_pct <= 0.5:
                 hooks_down.append(f"record {rec['wins']}-{rec['losses']} outruns all-play "
-                                  f"{ap['wins']}-{ap['losses']} ({ap_pct:.0%})")
-        if len(recent) >= 2 and recent[-1] > recent[0] * 1.15:
-            hooks_up.append(f"scoring rising across the window ({recent[0]:g} → {recent[-1]:g})")
-        if len(recent) >= 2 and recent[-1] < recent[0] * 0.85:
-            hooks_down.append(f"scoring falling across the window ({recent[0]:g} → {recent[-1]:g})")
+                                  f"{ap['wins']}-{ap['losses']} ({ap_pct:.0%} {window})")
+        # "Across the window" was the first score against the last one, with
+        # every week between them thrown away, so one big Sunday at either
+        # end decided the verdict. Compare the halves.
+        if len(recent) >= 2:
+            half = max(1, len(recent) // 2)
+            early = sum(recent[:half]) / half
+            late = sum(recent[-half:]) / half
+            if late > early * 1.15:
+                hooks_up.append(f"scoring rising across the window "
+                                f"({early:.0f} → {late:.0f} average)")
+            if late < early * 0.85:
+                hooks_down.append(f"scoring falling across the window "
+                                  f"({early:.0f} → {late:.0f} average)")
         streak = t.get("streak")
         if streak and streak.startswith("W") and int(streak[1:]) >= 3:
             hooks_up.append(f"{streak} streak")
