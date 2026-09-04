@@ -1203,3 +1203,39 @@ the skill-level sweep is authoritative.
 See POST_MVP.md. Short version: real names for the 8 neutral rosters,
 finish the Draft Issues, preseason Peer and Near-Peer, preseason Takes,
 custom domain + one-command deploy.
+
+## Week 1 authoring tranche (2026-09-04)
+
+Shipped, tested and deployed. `main` is at cba4054, the `site` branch at
+91eefdf, and the live pages are byte-identical to the local build.
+
+**Authoring.** Weekly sections start INCLUDED; only the three opt-in
+sidebar features (`OPT_IN_MODULES`) start out. An included section with
+nothing in it carries an amber "No meaningful material this week" chip
+instead of disappearing. Matchup previews are real children of Common
+Tactical Picture — in `module_states`, in readiness, in the approval gate,
+in research routing, and in the editor DOM — and the parent summary reads
+`3 / 5 approved`. Bold/Italic are buttons and Ctrl/Cmd+B/I on every prose
+box, wrapping the selection in asterisks and unwrapping it on a second
+press; the source stays Markdown and no editor library is loaded. "Request
+Claude draft" is now "Copy prompt for Claude": it calls no API, opens no
+rewrite request, and the prompt names the brief, the proposal path and the
+writing skill rather than pasting any of them.
+
+**Matchup research** (`leaguepage/matchup_research.py`) answers what a
+preview is made of, per team, both sides: who decides it, who might not
+play, what each has to get past, what they just did, what they could still
+do, what is on the record against them. Byes and projections are declared
+unavailable rather than inferred — the synced player payload has no bye
+week and Sleeper publishes no projections. Roast ammunition uses the
+project's own reach classifier (a full round or more early) on skill
+positions only. History appears only when the last meeting was notable.
+All of it is private: it is computed live, ships in the packet as
+`research.md`, and reaches a reader only where he writes it himself.
+
+**Known limits.** No bye weeks and no projections, for the reason above.
+`_matchup_brief` is the only consumer of the research module; the AUTHORING
+packet embeds its output rather than calling the functions directly.
+
+**Next.** Week 1 is drafted and approved section by section on the Desk;
+publication is the Commissioner's act and was deliberately not performed.

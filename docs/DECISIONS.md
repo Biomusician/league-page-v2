@@ -555,3 +555,51 @@ the reader's own vocabulary: is the player still here, does he start, what
 has he scored, did the room move. Two thirds of that is answerable before a
 game is played, which is why the draft version ships in August rather than
 waiting for week 3.
+
+## A line break he typed is a line break he gets (2026-09-04)
+
+Markdown folds a single newline into a space. That is right for prose
+composed in a text file and wrong for prose composed in a box on a screen,
+which is where this newspaper is written. Stanzas, one-line verdicts and
+lists of names that are not bullet lists all arrived on the page as a wall.
+
+So `nl2br` is on, in one renderer (`leaguepage/prose.py`) that the Desk
+preview, the full-issue preview, publication QA and the site build all
+call. A preview that disagrees with the page is worse than no preview.
+The generated review packet is the deliberate exception: it is hard-wrapped
+for reading in a diff, and honoring its breaks would only make it ragged.
+
+The cost is paid once and it is why `scripts/reflow_prose.py` exists.
+Prose already on disk had been hard-wrapped near 78 columns, and those
+wraps would have rendered as ragged lines. The migration joins a break only
+where the sentence runs straight through it, then infers the rest of a
+paragraph from one certain wrap, because a paragraph is wrapped or it is
+not. It leaves bullets, headings, tables, code, and any paragraph
+containing a short line, and it refuses any file whose rendered page would
+move. **Editorial prose is now stored one line per paragraph.** Anything
+writing a section file should soft-wrap, not hard-wrap.
+
+## The parent of a section is the section it publishes inside (2026-09-04)
+
+Matchup previews were peers of Common Tactical Picture in the authoring UX
+and children of it on the page. They are children. A preview has no
+standing alone, it publishes inside CTP, and CTP is finished exactly when
+its previews are.
+
+The relationship therefore lives in `module_states`, not in a stylesheet:
+`matchup_children()` returns them, readiness reads them, the approval gate
+is that they are all approved, and the editor nests the cards inside the
+parent's `<details>`. Two bugs fell out of stating it that way. Approving
+CTP was impossible, because the gate read `sections/ctp.md` for emptiness —
+a file the module has never had; the prose gate now applies only to modules
+that own prose. And bulk approve had to run deepest-first, or a parent is
+asked before the children its gate depends on.
+
+## An empty section is his call, not the system's (2026-09-04)
+
+Modules used to remove themselves: Intel Prep and Branches & Sequels both
+excluded themselves before week 5, on the reasoning that playoff leverage
+computed off four games is fake precision. The reasoning is right and the
+silence was not, because he never learned the section had been considered.
+The module stays in, prints the reason, and dropping it stays a click he
+makes. Explicit decisions are preserved in both directions through Sync.

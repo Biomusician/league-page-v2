@@ -3,19 +3,3 @@ Your teams are like newborn babies at this point - full of potential, can do no 
 This league page was built using ChatGPT paired with Claude Code, which pushes to GitHub and then to Vercel to host the page. While some of the tabs are populated with AI-generated content, and I use AI to help research each section, the Lowdown and the matchups will always be typed up by yours-truly. A newsletter with no soul doesn't rate a read as far as I'm concerned.
 
 Come back with any BGCs!
-
-**Worth Mentioning from the Draft:**
-• Jahdae Walker taken 244 picks ahead of reference rank by Stafford and Sons (Fingers) (Pick #145, reference rank 389 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -244.)
-• James Conner taken 141 picks ahead of reference rank by Double TDs (Double) (Pick #63, reference rank 204 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -141.)
-• Ty Simpson taken 130 picks ahead of reference rank by Double TDs (Double) (Pick #226, reference rank 356 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -130.)
-• Cole Kmet taken 122 picks ahead of reference rank by Stafford and Sons (Fingers) (Pick #169, reference rank 291 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -122.)
-• Troy Franklin taken 92 picks ahead of reference rank by Stafford and Sons (Fingers) (Pick #120, reference rank 212 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -92.)
-• George & Friends (DIP) drafted a TEN stack: Cam Ward + Carnell Tate, Gunnar Helm (All drafted by George & Friends (DIP); NFL team TEN.)
-• Hand me a White Claw (PITCH) drafted a TB stack: Baker Mayfield + Emeka Egbuka, Jalen McMillan (All drafted by Hand me a White Claw (PITCH); NFL team TB.)
-
-Standout Picks:
-• Boldest pick: James Conner pick 63 vs rank 204 (-141) (Double TDs (Double))
-• Boldest pick: Troy Franklin pick 120 vs rank 212 (-92) (Stafford and Sons (Fingers))
-• Best value: Daniel Jones pick 136 vs rank 68 (+68) (The Dude Abides (The Dude))
-• Best value: Jacoby Brissett pick 150 vs rank 87 (+63) (George & Friends (DIP))
-• 228 picks, 10 QB stacks league-wide
