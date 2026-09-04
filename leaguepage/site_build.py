@@ -26,6 +26,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from leaguepage.config import (DIST_DIR, LEAGUES, PUBLISHED_DIR, SITE_URL, STATIC_DIR,
+                               SUPPORT_LABEL, SUPPORT_URL,
                                TEMPLATES_DIR, League)
 from leaguepage.privacy import (ALWAYS_FORBIDDEN, MIN_HANDLE_LEN, PRIVATE_PATTERNS,
                                 handle_re, published_matcher)
@@ -1354,6 +1355,10 @@ def build_site(
                      preview_issue=(preview_issues or {}).get(league.slug))
     _write(out, "index.html",
            env.get_template("public/root.html").render(site_url=SITE_URL), pages)
+    _write(out, "about/index.html",
+           env.get_template("public/about.html").render(
+               site_url=SITE_URL, support_url=SUPPORT_URL,
+               support_label=SUPPORT_LABEL), pages)
     # One stylesheet per theme, written once and cached, instead of the whole
     # thing inlined into all 98 documents. It was 728KB of the build's 1.9MB
     # of HTML, and 74% of the bytes on the smallest pages, re-sent on every

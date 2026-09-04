@@ -79,13 +79,20 @@ def test_the_link_resolves_from_every_depth(built):
     assert missing == [], missing[:10]
 
 
+# The two pages that belong to the site rather than to either league. They
+# carry their own styles on purpose: neither has a theme to link, and
+# scoping them to themselves is what stops a change to the entrance from
+# reaching a masthead or a standings table.
+SITE_PAGES = {"index.html", "about/index.html"}
+
+
 def test_every_league_page_links_a_stylesheet(built):
     """A page that links none is a page that renders as raw markup."""
     unstyled = []
     for page in sorted(built.rglob("*.html")):
         rel = page.relative_to(built).as_posix()
-        if rel == "index.html":
-            continue        # the league-select page carries its own 25 lines
+        if rel in SITE_PAGES:
+            continue
         body = page.read_text(encoding="utf-8")
         if '<link rel="stylesheet"' not in body:
             unstyled.append(rel)

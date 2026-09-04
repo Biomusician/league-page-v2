@@ -13,52 +13,170 @@
 <meta name="twitter:card" content="summary">
 <title>League Select</title>
 <style>
+  /*  The league selector, and nothing else.
+   *
+   *  This page answers one question — which league do you want to enter —
+   *  so it carries two doors and a way back to the About page. It styles
+   *  itself and shares no rules with the league sites: a class name here
+   *  cannot reach a masthead or a standings table there.
+   *
+   *  What was wrong before: the standfirst paragraph was a flex sibling of
+   *  the card grid on a centred row, so it sat in the left margin as a
+   *  floating column of text; and the grid had `gap:0`, which made the two
+   *  leagues one rectangle with a seam rather than two destinations.
+   */
   * { box-sizing:border-box; }
-  body { margin:0; font-family: Georgia, 'Times New Roman', serif; background:#0c0c16; color:#e8e4d8;
-         min-height:100vh; display:flex; align-items:center; justify-content:center; }
-  .wrap { display:grid; grid-template-columns:1fr 1fr; gap:0; width:min(64rem, 100%); min-height:70vh; }
-  a.league { display:flex; flex-direction:column; align-items:center; justify-content:center;
-             text-decoration:none; padding:3rem 2rem; text-align:center; }
-  a.league:focus-visible { outline:4px solid #f0c419; outline-offset:-4px; }
-  a.disco { background:#15142c; color:#f0d848; border-right:1px solid #33325f; }
-  a.disco .sub { color:#a9a6c8; }
-  a.surfeit { background:#0a0b0e; color:#f0c419; }
-  a.surfeit .sub { color:#a3adba; }
-  h2 { margin:.2rem 0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.4rem, 4vw, 2.4rem); }
-  .standfirst { text-align:center; margin:1.4rem 1rem .2rem; font-size:1rem;
-                color:#a9a6c8; }
-  .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden;
-                     clip:rect(0 0 0 0); white-space:nowrap; }
+  :root {
+    --page:#07070b;
+    --ink:#e8e4d8;
+    --quiet:#8d8a9c;
+    --disco-field:#15142c;
+    /*  The card edge is the only thing separating the card from the page:
+     *  the two fields differ by 1.1:1, which is nothing. So the border
+     *  carries the boundary and has to clear 3:1 against the ground, the
+     *  way any control's own outline does. The inner logo frame is
+     *  decorative and stays quiet. */
+    --disco-edge:#615ea3;
+    --disco-frame:#2b2a4f;
+    --disco-gold:#f0d848;
+    --disco-quiet:#b6b2d2;
+    --surfeit-field:#0a0d14;
+    --surfeit-edge:#52708f;
+    --surfeit-frame:#232d3a;
+    --surfeit-gold:#f0c419;
+    --surfeit-blue:#4da3e8;
+    --surfeit-quiet:#adb7c4;
+  }
+  html, body { height:100%; }
+  body { margin:0; background:var(--page); color:var(--ink);
+         font-family: Georgia, 'Times New Roman', serif; line-height:1.5;
+         display:flex; flex-direction:column; align-items:center;
+         justify-content:center; gap:clamp(1.5rem, 4vh, 2.75rem);
+         padding:clamp(1.5rem, 5vh, 3rem) clamp(1.25rem, 4vw, 2.5rem); }
+
+  /*  A site mark, not a hero. It names the place at a glance and then gets
+   *  out of the way of the choice, which is the only thing on this page. */
+  h1.mark { margin:0; font-size:.82rem; font-weight:normal; text-align:center;
+            text-transform:uppercase; letter-spacing:.34em; color:var(--quiet); }
+
+  .leagues { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
+             gap:clamp(1.25rem, 3.5vw, 2.5rem);
+             width:100%; max-width:58rem; }
+
+  /*  The whole card is one link. One element, so there is nothing nested
+   *  inside it to trap a keyboard or split the accessible name; the button
+   *  below is a span that looks like the action it already is. */
+  a.card { display:flex; flex-direction:column; height:100%; text-decoration:none;
+           padding:clamp(1.25rem, 3vw, 1.9rem);
+           border:1px solid; border-radius:4px; text-align:center;
+           transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+
+  /*  One media area, two very different logos: a wide banner and a round
+   *  badge. Fixing the frame and containing the image inside it is what
+   *  keeps the titles, the format lines and the two buttons on the same
+   *  baselines instead of one card riding higher than the other. */
+  .media { height:clamp(6rem, 15vh, 9.5rem); display:flex; align-items:center;
+           justify-content:center; padding:.75rem;
+           border:1px solid; border-radius:3px; }
+  .media img { max-width:100%; max-height:100%; width:auto; height:auto;
+               object-fit:contain; }
+
+  h2 { margin:1.15rem 0 .3rem; font-size:clamp(1.35rem, 3.2vw, 1.9rem);
+       letter-spacing:.1em; text-transform:uppercase; }
+  /*  Disco's identity line runs to two lines and Surfeit's to one. Holding
+   *  two lines of space in both keeps everything under it aligned. */
+  .identity { font-variant:small-caps; letter-spacing:.13em; font-size:.83rem;
+              line-height:1.35; min-height:2.7em; margin:0; }
+  .rule { width:4rem; margin:.9rem auto; border:0; border-top:3px double; }
+  .format { margin:0; font-size:.9rem; letter-spacing:.04em; }
+
+  /*  `margin-top:auto` pins both buttons to the bottom of their cards, so
+   *  they line up whatever happens above them. */
+  .enter { margin-top:auto; padding-top:1.5rem; }
+  /*  2.75rem is 44px, the floor for something a thumb has to hit. */
+  .enter span { display:inline-flex; align-items:center; justify-content:center;
+                min-height:2.75rem; padding:.5rem 1.6rem; border:1px solid;
+                border-radius:3px; font-variant:small-caps; letter-spacing:.16em;
+                font-size:.92rem; white-space:nowrap;
+                transition:background-color .18s ease, color .18s ease; }
+
+  a.disco { background:var(--disco-field); border-color:var(--disco-edge); color:var(--disco-gold); }
+  a.disco .media { background:#0f0e21; border-color:var(--disco-frame); }
+  a.disco .identity, a.disco .format { color:var(--disco-quiet); }
+  a.disco .rule { border-color:var(--disco-gold); }
+  a.disco .enter span { border-color:var(--disco-gold); color:var(--disco-gold); }
+
+  a.surfeit { background:var(--surfeit-field); border-color:var(--surfeit-edge); color:var(--surfeit-gold); }
+  a.surfeit .media { background:#070a0f; border-color:var(--surfeit-frame); }
+  a.surfeit .identity, a.surfeit .format { color:var(--surfeit-quiet); }
+  a.surfeit .rule { border-color:var(--surfeit-gold); }
+  a.surfeit .enter span { border-color:var(--surfeit-blue); color:var(--surfeit-blue); }
+
+  /*  `:focus` as well as `:focus-visible`. Every link on this page navigates
+   *  away the moment it is activated, so there is no lingering ring after a
+   *  mouse click to design around — and a keyboard user is guaranteed an
+   *  indicator even where the focus-visible heuristic declines to fire. */
+  a.card:hover, a.card:focus { transform:translateY(-2px);
+                               box-shadow:0 6px 22px rgba(0,0,0,.5); }
+  a.disco:hover, a.disco:focus { border-color:var(--disco-gold); }
+  a.surfeit:hover, a.surfeit:focus { border-color:var(--surfeit-blue); }
+  a.disco:hover .enter span, a.disco:focus .enter span {
+    background:var(--disco-gold); color:#15142c; }
+  a.surfeit:hover .enter span, a.surfeit:focus .enter span {
+    background:var(--surfeit-blue); color:#06080c; }
+  a.card:focus { outline:3px solid #fff; outline-offset:3px; }
+
+  footer { text-align:center; }
+  footer a { color:var(--quiet); text-decoration:none; border-bottom:1px solid #35333f;
+             font-variant:small-caps; letter-spacing:.16em; font-size:.85rem;
+             padding-bottom:.1rem; }
+  footer a:hover, footer a:focus { color:var(--ink); border-bottom-color:var(--ink); }
+  footer a:focus { outline:2px solid #fff; outline-offset:3px; }
+
   .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000;
           padding:.4rem .8rem; z-index:10; }
   .skip:focus { left:.5rem; }
-  .sub { font-variant:small-caps; letter-spacing:.2em; font-size:.95rem; }
-  .rule { width:5rem; border-top:3px double currentColor; margin:1rem 0; }
-  a.disco img.logo { width:min(19rem, 88%); height:auto; margin-bottom:1rem; }
-  a.surfeit img.logo { width:min(13rem, 60%); height:auto; margin-bottom:1rem; }
-  @media (max-width: 640px) { .wrap { grid-template-columns:1fr; } a.disco { border-right:0; border-bottom:1px solid #33325f; } }
+
+  /*  Stack at the point the two cards stop having room to sit side by side,
+   *  not at a phone width: a narrow tablet reads better stacked than as two
+   *  squeezed columns. */
+  @media (max-width: 46rem) {
+    body { justify-content:flex-start; }
+    .leagues { grid-template-columns:1fr; gap:1.25rem; max-width:30rem; }
+    .media { height:clamp(5.5rem, 20vw, 7.5rem); }
+    .enter { padding-top:1.15rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    a.card, .enter span { transition:none; }
+    a.card:hover, a.card:focus { transform:none; }
+  }
 </style>
 </head>
 <body>
 <a class="skip" href="#leagues">Skip to content</a>
-<h1 class="visually-hidden">League Page</h1>
-<p class="standfirst">A weekly paper for two fantasy football leagues.
-Rankings, matchups, moves and the argument about all three.</p>
-<main id="leagues" class="wrap">
-  <a class="league disco" href="disco/index.html">
-    <img class="logo" src="assets/disco-logo-banner.jpg" alt="" width="800" height="300">
-    <div class="sub">Operational / League Control and Reporting Center</div>
+<h1 class="mark">League Page</h1>
+<main id="leagues" class="leagues">
+  <a class="card disco" href="disco/index.html">
+    <span class="media">
+      <img src="assets/disco-logo-banner.jpg" alt="" width="800" height="300">
+    </span>
     <h2>Disco Chat</h2>
-    <div class="rule" role="presentation"></div>
-    <div class="sub">Twelve teams, superflex. Read the current issue</div>
+    <p class="identity">Operational / League Control and Reporting Center</p>
+    <hr class="rule">
+    <p class="format">12 Teams &middot; Superflex</p>
+    <span class="enter"><span>Enter League</span></span>
   </a>
-  <a class="league surfeit" href="surfeit/index.html">
-    <img class="logo" src="assets/surfeit-badge.png" alt="" width="560" height="528">
-    <div class="sub">Future Fantasy Force Design</div>
+  <a class="card surfeit" href="surfeit/index.html">
+    <span class="media">
+      <img src="assets/surfeit-badge.png" alt="" width="560" height="528">
+    </span>
     <h2>The Surfeit</h2>
-    <div class="rule" role="presentation"></div>
-    <div class="sub">Ten teams, half PPR. Read the current issue</div>
+    <p class="identity">Future Fantasy Force Design</p>
+    <hr class="rule">
+    <p class="format">10 Teams &middot; Half PPR</p>
+    <span class="enter"><span>Enter League</span></span>
   </a>
 </main>
+<footer><a href="about/index.html">About</a></footer>
 </body>
 </html>

@@ -34,6 +34,13 @@ SITE_URL = os.environ.get("LEAGUEPAGE_SITE_URL",
 
 SEASON = "2026"
 
+# Support link on the About page. EMPTY BY DESIGN: the section renders only
+# when a real destination is set here, so no invented or dead donation
+# button can ever ship. Paste the actual URL (and what to call it) when the
+# Commissioner has chosen one; nothing else in the build reads these.
+SUPPORT_URL = ""
+SUPPORT_LABEL = "Support the project"
+
 
 @dataclass(frozen=True)
 class League:
