@@ -8,7 +8,8 @@ This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
 ## Product evolution run (2026-09-03)
 
-**Status: real build clean, repo audit clean, 98 pages, all tests green.**
+**Status: real build clean, repo audit clean, 100 pages, 852 tests green,
+deployed and verified in production.**
 
 Ten read-only recon agents audited the Commissioner workflow, the reader
 product, editing, entertainment, fantasy analytics, the archive corpus,
@@ -190,6 +191,87 @@ placeholder gate could not match a bare XXX marker and had not been able to for
 some time. A regex that quietly matches nothing is the worst failure mode
 available to a codebase whose entire discipline is refusing to publish claims
 the data does not support.
+
+### Closing the tranche (2026-09-04)
+
+- **One stylesheet instead of ninety-eight copies of it.** The CSS was
+  inlined into every document: 728KB of the build's 1.9MB of HTML, 74% of
+  the bytes on the smallest pages, re-sent on every click through a
+  fifty-five issue archive. It is one cached file per theme now
+  (`templates/public/_site_css.html`, emitted as `assets/{slug}.css`).
+  Total HTML fell from 1,916KB to 1,276KB; the Surfeit archive index went
+  from 9,939 bytes to 2,951. The failure mode is silent and total, so
+  `tests/test_stylesheet.py` checks the link resolves from every depth and
+  a sweep of the real build confirmed all 97 league pages resolve theirs.
+  The root league-select page keeps its own 25 lines: a third stylesheet
+  for one page nothing else shares costs a request to save a kilobyte.
+
+- **The prose-table rule was scoped to `.prose`.** It had been
+  `section.module > div table`, which caught every table the site builds
+  itself. Two invisible consequences: `display:block` stops a table being a
+  table for assistive technology, so `scope="col"` and `<caption>` quietly
+  stopped counting; and the table took the scrolling from the `.tablewrap`
+  wrapper, which sat inert while carrying the focusable region. Verified in
+  a browser: all 13 wrappers on the draft page scroll, all 13 tables are
+  real tables, and the two editorial prose tables still get the treatment
+  the rule was written for.
+
+- **Static assets are copied only if a built page references them**, and
+  only in shapes a public site serves. That kept `static/desk.js` out of the
+  public build — it had been copied to `dist/assets/` on every deploy — and
+  a 176KB logo nothing points at. The build warns about each skip rather
+  than dropping it silently.
+
+- **The My Team nav shortcut worked on one page.** It validated the stored
+  slug by looking for a card, and the cards only exist on the home page, so
+  it resolved there and was hidden on the other 96. Every page now ships its
+  own league's slug list on the shortcut. Verified in production at three
+  depths, in both leagues, with a stale slug and a live one.
+
+- **Off-board picks carry no magnitude.** `off_board` was set in
+  `enrich_picks` but `summarize_team`'s field whitelist dropped it and the
+  `_dv.html` macro had no branch for it, so the label still quoted the
+  number. Live now: Disco's biggest printed reach fell from 244 picks to
+  141 in a 228-pick draft, Surfeit's from 131 to 48 in a 150-pick draft, and
+  Surfeit's five "boldest picks" went from four kickers and defenses to five
+  genuine skill-position reaches.
+
+- **Tracks and Fades needed a real divergence.** `win_pct - ap_pct >= 0.2`
+  is a property of the extremes: an undefeated team has a win percentage of
+  1.000, so any all-play under .800 cleared it and a 70% all-play — elite —
+  was nominated as a Fade for being elite. The same arithmetic made every
+  winless team a Track. The all-play now has to sit on the wrong side of
+  average, and the two numbers have to cover the same games; `record` is
+  season-to-date while all-play runs through the previous week.
+
+- **A rank with no score behind it.** `max(0, 250 - rank)` clips every
+  player past the end of the reference board to exactly 0.0 — the same as no
+  player at all. A room of those ties every other zero room and the stable
+  sort orders them by roster_id. `positional_profile` now reports which
+  rooms it actually measured (`rated`, read through `is_rated`), and the
+  briefing, the scout view and the model board decline to name a room they
+  cannot tell apart. Inert on real data; it fires where the board genuinely
+  stops.
+
+- **Lineup efficiency was inflated by ghosts.** A rostered player missing
+  from the cached players dict has no position, so no slot takes him and he
+  is left out of the optimal lineup. The `actual > optimal` guard caught it
+  only when he was started; if he sat, a 25-point ghost turned a real 84%
+  into a reported 100%. Both optimal-lineup docstrings also claimed an
+  optimum that greedy flex filling does not guarantee — safe for both live
+  leagues' slot orders, but that is a property of what Sleeper returns.
+
+- **Test fixtures gained positions and a reference board.** `populate_league`
+  left rosters empty and no synthetic player had a position, so most of the
+  analytics ran their "nothing to say" branch under test while production ran
+  the other one. `season.stock_rosters` and `season.synthetic_adp` fix that;
+  `save_players` never overwrites a player a test set up itself.
+
+- **The Desk rankings screen compared week 5 against August.** "Prev" was
+  hardcoded to the preseason board. It is the previous board now, a new week
+  seeds its ranks and tiers from it (marked unsaved until submitted, notes
+  never carried forward), and "Approve all ready" calls the same per-section
+  approve once per section rather than adding a second path to approval.
 
 ## Overnight product run (2026-09-03)
 
