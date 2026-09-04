@@ -97,7 +97,8 @@ What still blocks remote authoring, in order, none of it doable from here:
   dropped from the scan everywhere. Measured at eleven candidates on live
   data, six of them first-name shaped.
 - **`leaguepage/privacy.py` is one list for both audits.** They disagreed: a
-  Supabase or `postgres://` URL was blocked from `dist/` but committable to
+  Supabase project URL or a Postgres connection string was blocked from
+  `dist/` but committable to
   `main`, and an AWS key was the other way round. The repo audit now reads
   aliases and display names, subtracts published nicknames from the local DB,
   and covers `data/`, `backups/`, `dist/`, `PREP.md`,
