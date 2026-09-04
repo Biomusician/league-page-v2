@@ -32,6 +32,19 @@ from leaguepage.weekly_awards import weekly_award_nominations
 from leaguepage.weekly_signals import weekly_story_candidates
 
 
+def _previous_ranking_label(label: str) -> str | None:
+    """The board this one should be compared against.
+
+    Week 5 is measured against week 4, not against August. Labels are issue
+    keys, so week-01's predecessor is the preseason board and the preseason
+    board has none.
+    """
+    week = _week_of(label)
+    if week is None or week < 1:
+        return None
+    return "preseason" if week == 1 else f"week-{week - 1:02d}"
+
+
 def _week_of(issue_key: str) -> int | None:
     return int(issue_key.removeprefix("week-")) if issue_key.startswith("week-") else None
 
@@ -996,10 +1009,20 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             resolved = resolve_public_names(s, league)
             rosters = s.get_rosters(league.league_id)
             current = {p["roster_id"]: p for p in s.get_power_rankings(league_slug, season, label)}
-            previous_label = "preseason" if label != "preseason" else None
+            # "Prev" was always the PRESEASON board, so week 5's screen
+            # compared against August instead of against week 4, and the
+            # movement arrows on the public page were measuring the wrong
+            # gap. The previous label is the previous one.
+            previous_label = _previous_ranking_label(label)
             previous = ({p["roster_id"]: p for p in
                          s.get_power_rankings(league_slug, season, previous_label)}
                         if previous_label else {})
+        # A new week opened with two dozen empty boxes and last week's board
+        # one page away. Seed the numbers from it so the work is editing an
+        # order rather than retyping one. Notes are NOT carried forward: a
+        # note is prose he wrote about that week, and duplicating it into the
+        # next issue under his name is the thing this system does not do.
+        seeded = bool(previous) and not current
         teams = []
         for r in rosters:
             st = r.get("settings") or {}
@@ -1010,10 +1033,14 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 "fpts": round(float(st.get("fpts", 0)) + float(st.get("fpts_decimal", 0)) / 100, 1),
                 "current": current.get(r["roster_id"]),
                 "previous": previous.get(r["roster_id"]),
+                "seed": (previous.get(r["roster_id"]) if seeded else None),
             })
-        teams.sort(key=lambda t: (t["current"] or {}).get("rank") or 99)
+        teams.sort(key=lambda t: ((t["current"] or t["seed"] or {}).get("rank")
+                                  or 99))
         return templates.TemplateResponse(request, "desk/rankings.html", {
             "league": league, "season": season, "label": label, "teams": teams,
+            "seeded_from": previous_label if seeded else None,
+            "previous_label": previous_label,
         })
 
     @app.post("/commissioner/{league_slug}/{season}/rankings/{label}")

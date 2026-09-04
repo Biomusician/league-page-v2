@@ -61,6 +61,7 @@
   <a class="btn" href="{{ edit_base }}/publish">Publish…</a>
   <button type="button" onclick="expandAll(true)">Expand All</button>
   <button type="button" onclick="collapseApproved()">Collapse Approved</button>
+  <button type="button" onclick="approveAllReady()">Approve all ready</button>
   <span id="savestate">All changes saved</span>
 </div>
 
@@ -468,6 +469,45 @@ async function resetGenerated() {
 function expandAll(open) {
   document.querySelectorAll("details.sec").forEach(d => d.open = open);
 }
+/* Twenty-six clicks a week to approve an issue section by section.
+ *
+ * This does NOT get its own endpoint. It calls the same per-section approve
+ * the individual buttons call, once each, so every section passes exactly
+ * the gate it would have passed on its own -- empty sections and blocked
+ * markers are still refused, and the refusals are reported rather than
+ * swallowed. A bulk endpoint that approved in one shot would be a second
+ * path to approval, and approval is the one thing on this Desk that must
+ * have only one.
+ */
+async function approveAllReady() {
+  const chips = [...document.querySelectorAll('[data-role="approve-chip"]')]
+    .filter(c => !c.classList.contains("approved"));
+  if (!chips.length) { alert("Everything included is already approved."); return; }
+  if (!confirm(`Approve ${chips.length} section(s)? Each is checked the same `
+             + `way as approving it on its own, and anything that fails is `
+             + `left alone.`)) return;
+  await saveAll();
+  const done = [], refused = [];
+  for (const chip of chips) {
+    const section = chip.dataset.section;
+    const r = await fetch(EDIT + "/approve", {method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({section, action: "approve"})});
+    let data = {};
+    try { data = await r.json(); } catch (e) { /* keep the status */ }
+    if (r.ok && data.approved) {
+      chip.textContent = "approved";
+      chip.classList.add("approved");
+      done.push(section);
+    } else {
+      refused.push(`${section}: ${data.error || r.status}`);
+    }
+  }
+  alert(`Approved ${done.length}.`
+        + (refused.length ? "\n\nLeft alone (" + refused.length + "):\n" + refused.join("\n")
+                          : ""));
+}
+
 function collapseApproved() {
   document.querySelectorAll("details.sec").forEach(d => {
     const chip = d.querySelector('[data-role="approve-chip"]');

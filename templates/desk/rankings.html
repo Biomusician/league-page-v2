@@ -3,18 +3,30 @@
 {% block masthead_right %}{{ league.display_name }} · {{ season }} · {{ label }}{% endblock %}
 {% block content %}
 <h2>Peer and Near-Peer Competition <span class="meta">({{ label }}) — commissioner-owned; the table below is evidence, never the ranking</span></h2>
+{% if seeded_from %}
+<p class="warn">Nothing saved for {{ label }} yet. The ranks and tiers below are
+carried over from <b>{{ seeded_from }}</b> as a starting point, and are not
+saved until you press the button. Notes are not carried over.</p>
+{% endif %}
 <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/rankings/{{ label }}">
 <table>
-  <tr><th>Team</th><th>Record</th><th>PF</th><th>Prev</th><th>Rank</th><th>Tier</th><th>Editorial note</th></tr>
+  <caption class="meta">{{ league.display_name }} rankings, {{ label }}.</caption>
+  <tr><th scope="col">Team</th><th scope="col">Record</th><th scope="col">PF</th>
+      <th scope="col">{{ previous_label or "Prev" }}</th>
+      <th scope="col">Rank</th><th scope="col">Tier</th>
+      <th scope="col">Editorial note</th></tr>
   {% for t in teams %}
   <tr>
     <td><b>{{ t.name }}</b></td>
     <td class="meta">{{ t.record }}</td>
     <td class="meta">{{ t.fpts }}</td>
     <td class="meta">{{ t.previous.rank if t.previous else "—" }}</td>
-    <td><input type="text" name="rank_{{ t.roster_id }}" size="2" value="{{ t.current.rank if t.current and t.current.rank is not none else '' }}"></td>
-    <td><input type="text" name="tier_{{ t.roster_id }}" size="2" value="{{ t.current.tier if t.current and t.current.tier is not none else '' }}"></td>
-    <td><input type="text" name="note_{{ t.roster_id }}" size="46" value="{{ t.current.note if t.current and t.current.note else '' }}"></td>
+    {% set cur = t.current or t.seed %}
+    <td><input type="text" name="rank_{{ t.roster_id }}" size="2" aria-label="rank for {{ t.name }}" value="{{ cur.rank if cur and cur.rank is not none else '' }}"></td>
+    <td><input type="text" name="tier_{{ t.roster_id }}" size="2" aria-label="tier for {{ t.name }}" value="{{ cur.tier if cur and cur.tier is not none else '' }}"></td>
+    {#  A note is prose he wrote about a specific week. Carrying it into the
+        next one under his name is not a convenience. #}
+    <td><input type="text" name="note_{{ t.roster_id }}" size="46" aria-label="editorial note for {{ t.name }}" value="{{ t.current.note if t.current and t.current.note else '' }}"></td>
   </tr>
   {% endfor %}
 </table>
