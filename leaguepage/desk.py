@@ -16,6 +16,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from leaguepage.adp import load_adp_for_league
+from leaguepage import prose
 from leaguepage.config import DB_PATH, LEAGUES, TEMPLATES_DIR, get_league
 from leaguepage.draft_analysis import analyze_league_draft
 from leaguepage.draft_awards import draft_award_nominations
@@ -853,6 +854,8 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             awards = _awards_for(s, league, season, issue_key)
             path = build_review_packet(s, league, season, issue_key,
                                        awards=awards, candidates=candidates)
+        # Not prose.render: this is a generated report, hard-wrapped for a
+        # diff, and honoring its line breaks would only make it ragged.
         html = md.markdown(path.read_text(encoding="utf-8"), extensions=["tables"])
         return templates.TemplateResponse(request, "desk/review.html", {
             "league": league, "season": season, "issue_key": issue_key,
@@ -970,14 +973,12 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/preview")
     def issue_preview(request: Request, league_slug: str, season: str, issue_key: str):
-        import markdown as md
-
         league = get_league(league_slug)
         with storage() as s:
             assembled = assemble_issue(s, league, season, issue_key, week=_week_of(issue_key))
         sections = [
             {"title": x["title"],
-             "html": md.markdown(x["content_md"], extensions=["tables", "smarty"])
+             "html": prose.render(x["content_md"])
              if x.get("content_md") else "<p><i>(no content)</i></p>",
              "approved": x["approved"]}
             for x in assembled["sections"] if x["kind"] != "auto"

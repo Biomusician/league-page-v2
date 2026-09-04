@@ -18,9 +18,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import markdown
 from jinja2 import Environment, FileSystemLoader
 
+from leaguepage import prose
 from leaguepage.config import EDITORIAL_DIR, SITE_DIR, TEMPLATES_DIR, League
 from leaguepage.storage import Storage
 
@@ -91,7 +91,7 @@ def publish_issue(
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
     template = env.get_template("public/issue.html")
-    body_html = markdown.markdown(text, extensions=["tables", "smarty"])
+    body_html = prose.render(text)
     html = template.render(league=league, season=season, issue_key=issue_key, body=body_html)
 
     out = (site_dir or SITE_DIR) / league.slug / season / f"{issue_key}.html"
@@ -385,8 +385,7 @@ def render_week(
             "matchup": m,
             "tags": sm["tags"],
             "prominence": (sm["state"] or {}).get("prominence_override") or sm["recommended_prominence"],
-            "preview_html": markdown.markdown(strip_editorial_comments(text),
-                                              extensions=["smarty"]) if approved else None,
+            "preview_html": prose.render(strip_editorial_comments(text)) if approved else None,
         })
     cards.sort(key=lambda c: ("FEATURE", "MAJOR", "STANDARD", "CAPSULE").index(c["prominence"]))
 

@@ -1,38 +1,11 @@
 <!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->
 
-Three things surprised me here, and the first is that this lineup would beat
-most of yours. The qualifying pool coughed up the number two overall player,
-the number three, the number eight, the consensus QB1, and the best kicker in
-football. The weakest starter on the sheet is TE3. I went in expecting to
-scrape together seven names that technically worked, and instead I've got a
-first-round board with a residency requirement.
+Three things surprised me here, and the first is that this lineup would beat most of yours. The qualifying pool coughed up the number two overall player, the number three, the number eight, the consensus QB1, and the best kicker in football. The weakest starter on the sheet is TE3. I went in expecting to scrape together seven names that technically worked, and instead I've got a first-round board with a residency requirement.
 
-The second surprise is that optimizing for points takes every famous city off
-the roster. Dallas Goedert is TE12 and a bench slot. Denzel Boston owns the
-most recognizable name in the whole exercise and sits at WR59, third on
-Cleveland's depth chart. Montgomery is a state capital, Hampton is 137,148
-people, and both of them are backups behind a receiver from a Kansas town of
-396 and a running back from a Crawford County seat of 7,150. Exactly one
-starter clears 100,000 residents, and it's Allen, Texas.
+The second surprise is that optimizing for points takes every famous city off the roster. Dallas Goedert is TE12 and a bench slot. Denzel Boston owns the most recognizable name in the whole exercise and sits at WR59, third on Cleveland's depth chart. Montgomery is a state capital, Hampton is 137,148 people, and both of them are backups behind a receiver from a Kansas town of 396 and a running back from a Crawford County seat of 7,150. Exactly one starter clears 100,000 residents, and it's Allen, Texas.
 
-The third is that this whole thing turned into an adjudication. Every name
-goes into the package, somebody pulls the charter, and the charter decides.
-Chase, Kansas has 396 residents and files as a city, so the consensus WR1
-starts. Bowers, Delaware has 278 residents and files as a town, so TE1
-watches. That's a 118-person gap doing the work of a scouting report. Aubrey,
-Texas cleared the Technical Qualifier line by six people, which is the most
-Denton County sentence I've ever typed. And Jahmyr Gibbs, the number one
-overall pick in fantasy football, is standing outside the fence because 70
-people in Adair County, Missouri incorporated as a village.
+The third is that this whole thing turned into an adjudication. Every name goes into the package, somebody pulls the charter, and the charter decides. Chase, Kansas has 396 residents and files as a city, so the consensus WR1 starts. Bowers, Delaware has 278 residents and files as a town, so TE1 watches. That's a 118-person gap doing the work of a scouting report. Aubrey, Texas cleared the Technical Qualifier line by six people, which is the most Denton County sentence I've ever typed. And Jahmyr Gibbs, the number one overall pick in fantasy football, is standing outside the fence because 70 people in Adair County, Missouri incorporated as a village.
 
-Two honest caveats. Loveland is the weak link, and "weak link" is doing
-charity work there; he's TE3 in football, age 22, first on Chicago's depth
-chart, with one season of tape behind him. One schedule study has the Bears
-with the seventh-hardest tight end slate in the league, for whatever a
-preseason schedule study is worth. And Ja'Marr Chase hyperextended his left
-knee at practice on the 25th, carried a Questionable tag through the week, and
-told reporters he'd have played the next day. I'm choosing to believe a
-26-year-old about his own knee, which has always worked out great for me.
+Two honest caveats. Loveland is the weak link, and "weak link" is doing charity work there; he's TE3 in football, age 22, first on Chicago's depth chart, with one season of tape behind him. One schedule study has the Bears with the seventh-hardest tight end slate in the league, for whatever a preseason schedule study is worth. And Ja'Marr Chase hyperextended his left knee at practice on the 25th, carried a Questionable tag through the week, and told reporters he'd have played the next day. I'm choosing to believe a 26-year-old about his own knee, which has always worked out great for me.
 
-Good luck to everyone whose surname is a municipality. The rest of you can
-always incorporate!
+Good luck to everyone whose surname is a municipality. The rest of you can always incorporate!

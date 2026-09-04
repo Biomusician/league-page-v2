@@ -32,8 +32,8 @@ import hashlib
 import re
 from dataclasses import dataclass, field, asdict
 
-import markdown as md
 
+from leaguepage import prose
 from leaguepage.config import League
 from leaguepage.publish import BLOCKED_MARKERS, strip_editorial_comments
 from leaguepage.storage import Storage
@@ -415,8 +415,7 @@ def scrub_code(text: str) -> str:
 
 
 def _rendered_text(content_md: str) -> str:
-    html = md.markdown(strip_editorial_comments(content_md),
-                       extensions=["tables", "smarty"])
+    html = prose.render(strip_editorial_comments(content_md))
     # An inline code span is deliberate, so `a**b` inside one is not a bold
     # marker that failed to render. A <pre> block is deliberately NOT
     # stripped: a heading indented four spaces becomes one, and that is
@@ -431,8 +430,7 @@ def _rendered_text(content_md: str) -> str:
 
 def _check_formatting(content_md: str, module_key: str, ctx: QAContext) -> list[Finding]:
     out: list[Finding] = []
-    html = md.markdown(strip_editorial_comments(content_md),
-                       extensions=["tables", "smarty"])
+    html = prose.render(strip_editorial_comments(content_md))
     rendered = _rendered_text(content_md)
 
     for m in _LEAK_HEADING_RE.finditer(rendered):

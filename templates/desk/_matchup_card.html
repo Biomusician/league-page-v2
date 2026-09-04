@@ -21,7 +21,7 @@
     {% if mc.text.strip() %}
       <button type="button" onclick="askRewrite('{{ mc.section }}')">Request rewrite</button>
     {% else %}
-      <button type="button" onclick="askDraft('{{ mc.section }}')">Request Claude draft</button>
+      <button type="button" onclick="copyPrompt('{{ mc.section }}', this)">Copy prompt for Claude</button>
     {% endif %}
     <a href="{{ base | replace('/issue/' + issue_key, '') }}/week/{{ week }}/matchups/{{ mc.slug }}">Matchup Lab →</a>
   </div>

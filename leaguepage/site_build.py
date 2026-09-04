@@ -23,13 +23,13 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 
-import markdown as md
 from jinja2 import Environment, FileSystemLoader
 
 from leaguepage.config import (DIST_DIR, LEAGUES, PUBLISHED_DIR, SITE_URL, STATIC_DIR,
                                TEMPLATES_DIR, League)
 from leaguepage.privacy import (ALWAYS_FORBIDDEN, MIN_HANDLE_LEN, PRIVATE_PATTERNS,
                                 handle_re, published_matcher)
+from leaguepage import prose
 from leaguepage.draft_value import SKILL_POSITIONS
 from leaguepage.editorial import load_coalitions
 from leaguepage.matchup_analysis import (all_play, analyze_week, season_efficiency,
@@ -153,7 +153,7 @@ AWARD_NAMES = {
 
 
 def _render_md(text: str) -> str:
-    return md.markdown(strip_editorial_comments(text), extensions=["tables", "smarty"])
+    return prose.render(strip_editorial_comments(text))
 
 
 def _env() -> Environment:

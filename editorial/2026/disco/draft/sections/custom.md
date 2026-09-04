@@ -18,61 +18,39 @@ Steady, disciplined accumulation: Adonai Mitchell 49 picks late, a Green Bay tri
 
 ### 4. Tua Girls One Kupp (HOP) (+67)
 
-Tre' Harris at a 42-pick discount and four tight ends, which is either depth
-or a cry for help; the plus-67 says depth. Two quarterbacks in superflex is
-where he's gonna run into issues, but maybe he has a plan that's not Carson Beck off waivers.
+Tre' Harris at a 42-pick discount and four tight ends, which is either depth or a cry for help; the plus-67 says depth. Two quarterbacks in superflex is where he's gonna run into issues, but maybe he has a plan that's not Carson Beck off waivers.
 ### 5. VHS Cowboys (Juan) (+47)
 
-Geno Smith 42 picks late and nine receivers. Dead even with the team below
-at plus-47, and the tiebreaker is simple: VHS Cowboys kept their
-Jacksonville exposure at zero.
+Geno Smith 42 picks late and nine receivers. Dead even with the team below at plus-47, and the tiebreaker is simple: VHS Cowboys kept their Jacksonville exposure at zero.
 
 ### 6. Statistical Anomalies (McLovin) (+47)
 
-My board. The math says plus-47 and fifth-ish; the eyes say I built the only
-four-player NFL stack in the league, out of Jaguars. Tuten, Washington,
-Meyers, Strange. I looked at Jacksonville's offense and said "more, please,
-four times." I did not realize this during the draft, and I completely regret it.
+My board. The math says plus-47 and fifth-ish; the eyes say I built the only four-player NFL stack in the league, out of Jaguars. Tuten, Washington, Meyers, Strange. I looked at Jacksonville's offense and said "more, please, four times." I did not realize this during the draft, and I completely regret it.
 
 ### 7. Hand me a White Claw (PITCH) (+16)
 
-Four quarterbacks and a Tampa triple, held to plus-16 by the Quinshon
-Judkins reach (minus-35). Right side of zero, wrong side of memorable. A
-perfectly fine draft.
+Four quarterbacks and a Tampa triple, held to plus-16 by the Quinshon Judkins reach (minus-35). Right side of zero, wrong side of memorable. A perfectly fine draft.
 
 ### 8. Corn-Fed Fatties (Babe) (-49)
 
-Aaron Rodgers 35 picks late was the good idea. Carson Beck 81 picks early
-was definitely an idea of some kind. Four quarterbacks and two stacks means the plan had
-conviction; minus-49 means the plan had a tab.
+Aaron Rodgers 35 picks late was the good idea. Carson Beck 81 picks early was definitely an idea of some kind. Four quarterbacks and two stacks means the plan had conviction; minus-49 means the plan had a tab.
 
 ### 9. All Barkley No Bite (Sealed) (-133)
 
-Two three-player city bets (New Orleans and Tampa) and an Audric Estime
-pick that beat consensus to the board by 69 spots. The name says Barkley;
-the draft rank says the bit coulda been sharper.
+Two three-player city bets (New Orleans and Tampa) and an Audric Estime pick that beat consensus to the board by 69 spots. The name says Barkley; the draft rank says the bit coulda been sharper.
 ### 10. Secret Asian Man (POP) (-204)
 
-Nine wideouts and an Atlanta triple, financed by paying early on almost
-every window. Terrance Ferguson at plus-34 shows he has a plan for the player; the
-other eighteen picks show he has confidence in his process vs. ECR.
+Nine wideouts and an Atlanta triple, financed by paying early on almost every window. Terrance Ferguson at plus-34 shows he has a plan for the player; the other eighteen picks show he has confidence in his process vs. ECR.
 
 ### 11. Stafford and Sons (Fingers) (-493)
 
-One pick is carrying 244 points of this all by itself: Jahdae Walker at 145
-against a consensus rank of 389. That is the single boldest call any of the
-twelve of us made, and if it hits, this whole column gets read back to me
-in January. The Baltimore triple says there is a real plan here.
+One pick is carrying 244 points of this all by itself: Jahdae Walker at 145 against a consensus rank of 389. That is the single boldest call any of the twelve of us made, and if it hits, this whole column gets read back to me in January. The Baltimore triple says there is a real plan here.
 
 ### 12. Double TDs (Double) (-511)
 
-Jayden Daniels at pick 10 is fine. James Conner 141 early and Ty Simpson
-130 early is how a board bleeds out in the middle rounds, and minus-511 is
-the tourniquet arriving late. Respect for the conviction. Woof for the math.
+Jayden Daniels at pick 10 is fine. James Conner 141 early and Ty Simpson 130 early is how a board bleeds out in the middle rounds, and minus-511 is the tourniquet arriving late. Respect for the conviction. Woof for the math.
 
-The scoreboard settles all of this starting Thursday, and I look forward to
-The Dude printing this out and framing it on his Det 9/CC wall. Full board with every delta is on
-the Draft page. Back next weekend for week 1 matchups!
+The scoreboard settles all of this starting Thursday, and I look forward to The Dude printing this out and framing it on his Det 9/CC wall. Full board with every delta is on the Draft page. Back next weekend for week 1 matchups!
 ### Second Opinions
 
 Two outside gauges for calibration, both pulled 2026-08-30. FantasyPros grades the room on a curve: ten of twelve boards got a B+ or better, and nobody failed. The Fantasy Footballers put my board first at 100, which proves their model is rigorous and unbiased (I am totally objective). Where all three methods agree, believe it; where they argue, that's a season preview.

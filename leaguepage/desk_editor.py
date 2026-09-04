@@ -28,11 +28,12 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from leaguepage import pubqa
 from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
+from leaguepage import prose
 from leaguepage.issue_builder import (
-    BLOCKED_MARKERS, assemble_issue, issue_dir, matchup_children,
+    BLOCKED_MARKERS, WRITING_SKILL, assemble_issue, issue_dir, matchup_children,
     module_defs_for, module_states,
 )
-from leaguepage.matchup_packet import week_dir
+from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER, week_dir
 from leaguepage.team_names import resolve_public_names
 
 PRODUCTION_URL = "https://league-page-ten-sandy.vercel.app"
@@ -300,8 +301,6 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/full-preview")
     def full_preview(request: Request, league_slug: str, season: str, issue_key: str):
-        import markdown as md
-
         league = get_league(league_slug)
         with storage() as s:
             assembled = assemble_issue(s, league, season, issue_key, week=_week_of(issue_key))
@@ -309,7 +308,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         for x in assembled["sections"]:
             if x["kind"] == "auto":
                 continue
-            html = (md.markdown(x["content_md"], extensions=["tables", "smarty"])
+            html = (prose.render(x["content_md"])
                     if x.get("content_md") else "<p><em>(no content yet)</em></p>")
             sections.append({"title": x["title"], "html": html, "approved": x["approved"],
                              "anchor": f"sec-{x['module_key']}"})
@@ -322,15 +321,12 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/preview-section")
     def preview_section(league_slug: str, season: str, issue_key: str, section: str):
-        import markdown as md
-
         league = get_league(league_slug)
         path = _section_path(league, season, issue_key, section)
         text = _read(path)
         if text is None:
             return JSONResponse({"ok": False, "error": "no content"}, status_code=404)
-        return JSONResponse({"ok": True,
-                             "html": md.markdown(text, extensions=["tables", "smarty"])})
+        return JSONResponse({"ok": True, "html": prose.render(text)})
 
     # ------------------------------------------------------------ saving
 
@@ -545,6 +541,69 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             rid = s.add_rewrite_request(league_slug, season, issue_key, section, note)
             _write_requests_file(s, league, season, issue_key)
         return JSONResponse({"ok": True, "request_id": rid})
+
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/claude-prompt")
+    def claude_prompt(league_slug: str, season: str, issue_key: str, section: str):
+        """The text of a prompt to hand a Claude Code session, for the
+        clipboard.
+
+        Paths, not payload. Everything Claude needs to write this section is
+        already on this machine in files it can open, so the prompt names
+        them instead of pasting them. That keeps the research private
+        by construction: nothing here leaves the Desk except instructions and
+        file paths, and no private note, evidence line, ghost brief or
+        manager identity travels in a clipboard.
+
+        It writes to `proposals/`, never to his section file. His text stays
+        authoritative until he accepts a proposal on the Desk.
+        """
+        league = get_league(league_slug)
+        target = _section_path(league, season, issue_key, section)
+        if target is None:
+            return JSONResponse({"ok": False, "error": "unknown section"}, status_code=404)
+        idir = issue_dir(league, season, issue_key)
+        m = _MATCHUP_RE.match(section)
+        with storage() as s:
+            modules = {x["module_key"]: x for x in
+                       module_states(s, league, season, issue_key, week=_week_of(issue_key))}
+            title = None
+            if m:
+                for c in modules.get("ctp", {}).get("children", []):
+                    if c["slug"] == m.group(1):
+                        title = c["title"]
+            elif section in modules:
+                title = modules[section]["title"]
+        # `_section_path` will happily build a path for any lowercase word,
+        # so ask the issue what it actually contains before writing a prompt
+        # to draft something that is not in it.
+        if title is None:
+            return JSONResponse({"ok": False, "error": "unknown section"}, status_code=404)
+        def rel(pth: Path) -> str:
+            try:
+                return pth.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return pth.as_posix()
+        research = (target.parent / "generated" / "AUTHORING.md" if m
+                    else idir / "sections" / f"AUTHORING-{section}.md")
+        lines = [
+            f"Draft the {title} section for {league.display_name} "
+            f"{season} {issue_key}.",
+            "",
+            f"1. Read `{WRITING_SKILL}` first and follow it. It is the voice",
+            "   authority; nothing else overrides it.",
+            f"2. Read `{rel(research)}` for the brief, the evidence and the",
+            "   angles. Every fact in the draft comes from there — find the story,",
+            "   never the numbers.",
+            f"3. Write the full section to `{rel(_proposal_path(idir, section))}`,",
+            f"   starting with `<!-- {ROUGH_DRAFT_MARKER} -->`.",
+            f"4. Do not touch `{rel(target)}`. The Commissioner's text is",
+            "   authoritative until he accepts the proposal on the Desk.",
+            "",
+            "Line breaks are honored on the published page, so break lines where",
+            "you mean to and let paragraphs soft-wrap.",
+        ]
+        return JSONResponse({"ok": True, "section": section, "title": title,
+                             "prompt": "\n".join(lines) + "\n"})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/proposal")
     async def proposal_action(request: Request, league_slug: str, season: str, issue_key: str):
