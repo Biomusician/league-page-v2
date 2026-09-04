@@ -276,7 +276,20 @@ def _rid_of(analysis: dict, team_slug: str) -> int | None:
 
 
 def _matchup_brief(storage, league, season, week, slug) -> dict:
+    """Everything he was looking up by hand, per team, before writing.
+
+    The old brief opened with why the system found this matchup
+    interesting, which is a question that was already answered by the time
+    he clicked into the card. It now opens with who plays, who might not,
+    and what each side has to get past, because that is what a preview is
+    made of. Scoring and angles come after.
+
+    Every line is PRIVATE research. None of it publishes; it reaches a
+    reader only where he writes it into his own prose.
+    """
+    from leaguepage import matchup_research as research
     from leaguepage.matchup_packet import compute_week
+    from leaguepage.team_analytics import player_values, positional_profile
     from leaguepage.team_names import resolve_public_names
 
     computed = compute_week(storage, league, week)
@@ -286,86 +299,91 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
         return {"text": "(no matchup data for this week yet)", "evidence": []}
     resolved = resolve_public_names(storage, league)
     m = sm_entry["matchup"]
+    weeks_played = (computed or {}).get("analysis", {}).get("weeks_played", 0)
     lines, evidence = [], []
+
+    def name_of(t):
+        return (resolved.get(t["roster_id"]) or {}).get("name") or f"Roster {t['roster_id']}"
+
+    a, b = m["teams"]
+    na, nb = name_of(a), name_of(b)
+
+    try:
+        values, stage = player_values(storage, league, weeks_played=weeks_played)
+        profile = positional_profile(storage, league, weeks_played=weeks_played)
+    except Exception:
+        values, stage, profile = {}, "unavailable", {}
+
+    def block(heading, per_team):
+        lines.append(heading)
+        for t, nm in ((a, na), (b, nb)):
+            body = per_team(t, nm)
+            if not body:
+                continue
+            lines.append(f"{nm}:")
+            lines.extend(body)          # `+=` would rebind `lines` in here
+        lines.append("")
+
+    block("WHO DECIDES IT",
+          lambda t, nm: research.key_players(storage, league, t, values, stage))
+    block("WHO MIGHT NOT PLAY",
+          lambda t, nm: research.availability(storage, league, t))
+    lines.insert(len(lines) - 1, research.bye_note())
+    block("WHAT EACH SIDE HAS TO GET PAST",
+          lambda t, nm: research.gap_to_close(
+              profile, t, b if t is a else a, nm, nb if t is a else na,
+              weeks_played=weeks_played) if profile else [])
+    block("WHAT THEY JUST DID (rationale is inferred, never their stated motive)",
+          lambda t, nm: research.recent_moves(storage, league, t["roster_id"],
+                                              weeks_played))
+    block("WHAT THEY COULD STILL DO",
+          lambda t, nm: research.possible_moves(storage, league, profile, t,
+                                                weeks_played=weeks_played)
+          if profile else [])
+    block("ON THE RECORD AGAINST THEM (private; roast ammunition, not a joke)",
+          lambda t, nm: research.self_inflicted(storage, league, t,
+                                                weeks_played=weeks_played))
+
+    reason, cb_lines = research.notable_callback(m, resolved)
+    if reason:
+        lines.append("THESE TWO, LAST TIME")
+        lines.extend(cb_lines)
+        lines.append("")
 
     lines.append("WHY THIS ONE MATTERS")
     comps = (sm_entry["competitive_importance"]["components"]
              + sm_entry["story_value"]["components"])
-    for c in comps[:5]:
-        lines.append(f"• {c['label']} (+{c['points']})")
+    for c in comps[:4]:
+        lines.append(f"  {c['label']} (+{c['points']})")
         evidence += c.get("evidence", [])[:2]
     if sm_entry.get("tags"):
-        lines.append(f"• tags: {', '.join(sm_entry['tags'])}")
-
-    lines.append("")
-    lines.append("KEY NUMBERS")
-    for t in m["teams"]:
-        rec = t.get("record") or {}
-        nm = resolved.get(t["roster_id"], {}).get("name") or f"Roster {t['roster_id']}"
-        bits = [f"{rec.get('wins', 0)}-{rec.get('losses', 0)}",
-                f"#{t.get('standing', '?')}"]
-        if t.get("all_play"):
-            bits.append(f"all-play {t['all_play'].get('wins', '?')}-{t['all_play'].get('losses', '?')}")
-        if t.get("streak"):
-            bits.append(f"streak {t['streak']}")
-        lines.append(f"• {nm}: " + ", ".join(str(b) for b in bits))
+        lines.append(f"  tags: {', '.join(sm_entry['tags'])}")
 
     angles = sm_entry.get("angles") or []
     if angles:
         lines.append("")
         lines.append("POSSIBLE ANGLES (pick one; collisions flagged)")
-        for a in angles[:5]:
-            warn = "  [recently used nearby]" if a.get("collision_warnings") else ""
-            lines.append(f"• [{a.get('family', '?')}] {a.get('title', a.get('angle_id', '?'))}: "
-                         f"{_clip(a.get('premise', ''), 110)}{warn}")
-
-    # roster construction contrast + recent shifts (analytics layer)
-    try:
-        from leaguepage.team_analytics import (league_shift_lines,
-                                               positional_profile,
-                                               roster_contrast_lines)
-
-        weeks_played = (computed or {}).get("analysis", {}).get("weeks_played", 0)
-        profile = positional_profile(storage, league, weeks_played=weeks_played)
-        a, b = m["teams"]
-        na = resolved.get(a["roster_id"], {}).get("name") or f"Roster {a['roster_id']}"
-        nb = resolved.get(b["roster_id"], {}).get("name") or f"Roster {b['roster_id']}"
-        contrast = roster_contrast_lines(profile, a["roster_id"], b["roster_id"], na, nb)
-        if contrast:
-            lines.append("")
-            lines.append("ROSTER CONTRAST (construction, never head-to-head defense)")
-            lines += contrast
-        nm_map = {rid: (resolved.get(rid, {}).get("name") or f"Roster {rid}")
-                  for rid in profile["teams"]}
-        shifts = league_shift_lines(storage, league, season, weeks_played, nm_map)
-        relevant = [s for s in shifts if na in s or nb in s]
-        if relevant:
-            lines.append("")
-            lines.append("RECENT SHIFTS")
-            lines += relevant[:3]
-        moves = _move_lines(storage, league,
-                            rids=[a["roster_id"], b["roster_id"]], limit=2)
-        if moves:
-            lines.append("")
-            lines.append("RECENT MOVES AFFECTING THIS MATCHUP (inferred, not stated intent)")
-            lines += moves
-    except Exception:
-        pass
+        for ang in angles[:4]:
+            warn = "  [recently used nearby]" if ang.get("collision_warnings") else ""
+            lines.append(f"  [{ang.get('family', '?')}] "
+                         f"{ang.get('title', ang.get('angle_id', '?'))}: "
+                         f"{_clip(ang.get('premise', ''), 100)}{warn}")
 
     sm = sm_entry.get("story_memory") or {}
     cbs = (sm.get("callbacks") or [])[:2]
     if cbs:
         lines.append("")
-        lines.append("CALLBACKS (same league only)")
+        lines.append("ARCHIVE CALLBACKS (same league only)")
         for cb in cbs:
             excerpt = _clip(cb.get("excerpt") or cb.get("why") or "", 100)
-            lines.append(f"• {cb.get('title', '?')}"
+            lines.append(f"  {cb.get('title', '?')}"
                          + (f": {excerpt}" if excerpt else ""))
     used = storage.recent_editorial_usage(league.slug, season, kind="joke_family")
     if used:
-        lines.append(f"• avoid repeating: {', '.join(sorted({u['value'] for u in used[:5]}))}")
+        lines.append(f"  avoid repeating: {', '.join(sorted({u['value'] for u in used[:5]}))}")
 
     return {"text": "\n".join(lines).strip(), "evidence": evidence[:12]}
+
 
 def _clip(text: str, limit: int) -> str:
     """Word-boundary truncation — a brief line cut mid-word reads broken."""

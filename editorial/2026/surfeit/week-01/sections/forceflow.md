@@ -1,4 +1,4 @@
-MEANINGFUL MOVES
+**MEANINGFUL MOVES**
 • Claimed Tyler Loop for 1 FAAB (wk 1, 1% of budget)
   Likely rationale: This appears aimed at K: the room ranked #9 of 10 before the move, and the addition moved it to #6.
   Positional shift: K #9 → #6

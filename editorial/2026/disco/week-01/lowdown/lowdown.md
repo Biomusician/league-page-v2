@@ -1,6 +1,10 @@
-Your teams are like newborn babies at this point - full of potential, can do no wrong, and just require a bit of care and feeding to not completely die. They haven't started school, haven't gotten arrested or pregnant, and every single one of them could grow up to be a doctor, lawyer, astronaut, and/or multi-millionaire. Some of your teams (the one with Josh Jacobs, for example - EMCO's)  were born with birth defects, but she's a Jets fan and used to suffering, and probably is still springing with hope eternal, not unlike our Bears fans. Anyway, best of luck everyone, and here are a few more draft stats:
+Your teams are like newborn babies at this point - full of potential, can do no wrong, and just require a bit of care and feeding to not completely die. They haven't started school, haven't gotten arrested or pregnant, and every single one of them could grow up to be a doctor, lawyer, astronaut, and/or multi-millionaire. Some of your teams (the one with Josh Jacobs, for example - EMCO's)  were born with birth defects, but she's a Jets fan and used to suffering, and probably is still springing with hope eternal, not unlike our Bears fans. Anyway, best of luck everyone!
 
-Worth Mentioning:
+This league page was built using ChatGPT paired with Claude Code, which pushes to GitHub and then to Vercel to host the page. While some of the tabs are populated with AI-generated content, and I use AI to help research each section, the Lowdown and the matchups will always be typed up by yours-truly. A newsletter with no soul doesn't rate a read as far as I'm concerned.
+
+Come back with any BGCs!
+
+**Worth Mentioning from the Draft:**
 • Jahdae Walker taken 244 picks ahead of reference rank by Stafford and Sons (Fingers) (Pick #145, reference rank 389 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -244.)
 • James Conner taken 141 picks ahead of reference rank by Double TDs (Double) (Pick #63, reference rank 204 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -141.)
 • Ty Simpson taken 130 picks ahead of reference rank by Double TDs (Double) (Pick #226, reference rank 356 (FantasyPros Expert Consensus Rank (redraft, superflex) (retrieved 2026-08-29)), delta -130.)

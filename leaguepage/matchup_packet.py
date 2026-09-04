@@ -211,6 +211,15 @@ for 80% finished. Newsletter register. League theme: {league.subtitle}.
 
 {notes_text.strip() or '(none)'}
 
+## Where to look
+
+`research.md` is the reporting: who decides it, who might not play, what
+each side has to get past, what they just did and could still do, and what
+is on the record against them. It is PRIVATE — it is his research, and none
+of it reaches a reader except where the prose says it in his own words.
+Byes and projections are not in it because this product does not have them;
+never infer either.
+
 ## Provenance classes in this packet — what each may support
 
 - **FACT** (`data.json`, `history.md`): state freely, phrased with its source.
@@ -246,6 +255,19 @@ at the end of the file as an HTML comment for the usage tracker, e.g.:
 
     <!-- usage: angle={selected_id or 'chosen-angle-id'} frame=<family> callback=<evidence-ref-or-none> joke_family=<lane-or-none> -->
 """
+
+
+def _research_md(storage: Storage, league: League, season: str, week: int,
+                 slug: str) -> str:
+    """The Desk's writing brief for this matchup, as a file in the packet."""
+    from leaguepage.ghost_briefs import brief_for_section
+
+    brief = brief_for_section(storage, league, season, f"week-{week:02d}",
+                              f"matchup:{slug}", week)
+    return (f"# Research — {slug}\n\n"
+            "PRIVATE. Reporting for the Commissioner, not copy. Nothing here\n"
+            "publishes except where he writes it into his own prose.\n\n"
+            "```\n" + (brief.get("text") or "(none)") + "\n```\n")
 
 
 def compute_week(storage: Storage, league: League, week: int) -> dict | None:
@@ -344,6 +366,9 @@ def build_weekly_packet(
                                 "components; they are not objective measurements.",
         }, indent=1, ensure_ascii=False))
         _write(gen / "history.md", _history_md(matchup))
+        # The same research the Desk card shows him, so a Claude Code
+        # session drafting from the packet is working from what he read.
+        _write(gen / "research.md", _research_md(storage, league, season, week, slug))
         _write(gen / "story_memory.md", _story_memory_md(s["story_memory"]))
         _write(gen / "angles.md", _angles_md(s["angles"], state))
         all_refs = sorted({
