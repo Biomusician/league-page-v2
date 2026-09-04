@@ -121,7 +121,7 @@ function render(data) {
 async function poll() {
   const r = await fetch(STATUS);
   if (!r.ok) return;
-  const data = await r.json();
+  const data = await r.json().catch(() => ({}));
   render(data);
   const st = data.job ? data.job.state : "none";
   if (st === "running") {

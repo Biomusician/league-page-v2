@@ -399,8 +399,12 @@ async function approve(section, on) {
   const r = await fetch(EDIT + "/approve", {method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({section, action: on ? "approve" : "unapprove"})});
-  const data = await r.json();
-  if (!r.ok) { alert("Cannot approve: " + (data.error || r.status)); return; }
+  /* Parse before the status check and a non-JSON error body -- which is
+     what a 500 returns -- throws out of the handler, so the alert below
+     never runs and the button silently does nothing. That is how a broken
+     approve endpoint presented to the Commissioner as a dead button. */
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { alert("Cannot approve: " + (data.error || ("server error " + r.status))); return; }
   const chip = document.querySelector(`[data-role="approve-chip"][data-section="${section}"]`);
   if (chip) { chip.textContent = on ? "approved" : "not approved"; chip.classList.toggle("approved", on); }
 }
@@ -409,8 +413,8 @@ async function previewSection(section) {
   await saveAll();
   const box = document.getElementById("preview-" + section);
   const r = await fetch(EDIT + `/preview-section?section=${encodeURIComponent(section)}`);
-  const data = await r.json();
-  box.innerHTML = data.ok ? data.html : "<em>no content</em>";
+  const data = await r.json().catch(() => ({}));
+  box.innerHTML = data.ok ? data.html : "<em>preview unavailable</em>";
   box.hidden = !box.hidden ? true : false;
 }
 
@@ -418,8 +422,8 @@ async function showRevisions(section) {
   const box = document.getElementById("revs-" + section);
   if (!box.hidden) { box.hidden = true; return; }
   const r = await fetch(EDIT + `/revisions?section=${encodeURIComponent(section)}`);
-  const data = await r.json();
-  if (!data.revisions.length) { box.innerHTML = "<em>no saved revisions yet</em>"; }
+  const data = await r.json().catch(() => ({revisions: []}));
+  if (!(data.revisions || []).length) { box.innerHTML = "<em>no saved revisions yet</em>"; }
   else {
     box.innerHTML = "<ul>" + data.revisions.map(rev =>
       `<li><b>${rev.created_at}</b> (${rev.source}, ${rev.chars} chars) ` +

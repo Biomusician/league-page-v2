@@ -383,7 +383,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 week = _week_of(issue_key)
                 if week is None:
                     return JSONResponse({"ok": False, "error": "not a weekly issue"}, status_code=400)
-                s.set_matchup_state(league_slug, season, week, m.group(1),
+                # Keyword-only, like every other call site. Passing these
+                # positionally raised TypeError inside the request and the
+                # editor's Approve chip returned 500 for every matchup it
+                # has ever been clicked on. Nothing to do with angles: the
+                # call died before any angle or readiness logic ran.
+                s.set_matchup_state(league_slug=league_slug, season=season, week=week,
+                                    matchup_slug=m.group(1),
                                     status="approved" if action == "approve" else "edited")
                 return JSONResponse({"ok": True, "approved": action == "approve"})
             if action == "approve":
