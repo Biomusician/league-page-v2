@@ -54,10 +54,17 @@ def test_one_stylesheet_per_theme_is_written(built):
 
 
 def test_the_two_themes_are_actually_different(built):
+    """Each league's page ground comes from its own insignia: the 606th Air
+    Control Squadron patch's indigo field for Disco, the Skunk Works black
+    for The Surfeit. Pinning the ground colour rather than an accent keeps
+    this honest about the one thing a reader cannot miss."""
     a = (built / "assets" / "disco.css").read_text(encoding="utf-8")
     b = (built / "assets" / "surfeit.css").read_text(encoding="utf-8")
     assert a != b
-    assert "#14181d" in a and "#071a2f" in b
+    assert "#15142c" in a, "Disco lost the 606 ACS indigo ground"
+    assert "#0a0b0e" in b, "The Surfeit lost the Skunk Works black ground"
+    # and neither may borrow the other's ground
+    assert "#0a0b0e" not in a and "#15142c" not in b
 
 
 def test_the_link_resolves_from_every_depth(built):

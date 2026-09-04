@@ -14,19 +14,19 @@
 <title>League Select</title>
 <style>
   * { box-sizing:border-box; }
-  body { margin:0; font-family: Georgia, 'Times New Roman', serif; background:#0f1216; color:#e8e4d8;
+  body { margin:0; font-family: Georgia, 'Times New Roman', serif; background:#0c0c16; color:#e8e4d8;
          min-height:100vh; display:flex; align-items:center; justify-content:center; }
   .wrap { display:grid; grid-template-columns:1fr 1fr; gap:0; width:min(64rem, 100%); min-height:70vh; }
   a.league { display:flex; flex-direction:column; align-items:center; justify-content:center;
              text-decoration:none; padding:3rem 2rem; text-align:center; }
-  a.league:focus-visible { outline:4px solid #d97514; outline-offset:-4px; }
-  a.disco { background:#14181d; color:#e8a33d; border-right:1px solid #2c343d; }
-  a.disco .sub { color:#8fa8b8; }
-  a.surfeit { background:#071a2f; color:#facd00; }
-  a.surfeit .sub { color:#9fb6cc; }
+  a.league:focus-visible { outline:4px solid #f0c419; outline-offset:-4px; }
+  a.disco { background:#15142c; color:#f0d848; border-right:1px solid #33325f; }
+  a.disco .sub { color:#a9a6c8; }
+  a.surfeit { background:#0a0b0e; color:#f0c419; }
+  a.surfeit .sub { color:#a3adba; }
   h2 { margin:.2rem 0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.4rem, 4vw, 2.4rem); }
   .standfirst { text-align:center; margin:1.4rem 1rem .2rem; font-size:1rem;
-                color:#8fa8b8; }
+                color:#a9a6c8; }
   .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden;
                      clip:rect(0 0 0 0); white-space:nowrap; }
   .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000;
@@ -36,7 +36,7 @@
   .rule { width:5rem; border-top:3px double currentColor; margin:1rem 0; }
   a.disco img.logo { width:min(19rem, 88%); height:auto; margin-bottom:1rem; }
   a.surfeit img.logo { width:min(13rem, 60%); height:auto; margin-bottom:1rem; }
-  @media (max-width: 640px) { .wrap { grid-template-columns:1fr; } a.disco { border-right:0; border-bottom:1px solid #2c343d; } }
+  @media (max-width: 640px) { .wrap { grid-template-columns:1fr; } a.disco { border-right:0; border-bottom:1px solid #33325f; } }
 </style>
 </head>
 <body>

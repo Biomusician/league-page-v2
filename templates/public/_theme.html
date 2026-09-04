@@ -14,40 +14,40 @@
   blockquote { margin-left:0; padding-left:1rem; }
   section.module { margin:2.2rem 0; }
 {% if league.theme == "disco" %}
-  /* DISCO CHAT — CRC / battle-management board: dark panel, amber track
-     symbology accents, status-board section labels. Restrained; a board,
-     never a radar-screen costume. */
-  body { background:#14181d; color:#e8e4d8; font-family: Georgia, 'Times New Roman', serif; }
-  header.masthead { border-bottom:3px double #e8a33d; }
-  header.masthead h1 { font-size:2.5rem; color:#e8a33d; }
-  header.masthead .sub { color:#8fa8b8; }
-  nav.leaguenav { border-bottom:1px solid #2c343d; }
-  nav.leaguenav a { color:#8fa8b8; }
-  h2.section-label { color:#e8a33d; border-left:6px solid #e8a33d; padding-left:.6rem; }
-  h2.section-label::before { content:"▸ "; color:#8fa8b8; }
-  a { color:#e8a33d; }
-  section.module { border-top:1px solid #2c343d; padding-top:.8rem; }
-  .credit { color:#8fa8b8; }
-  td, th { border:1px solid #2c343d; }
-  th { background:#1c2229; color:#e8a33d; }
-  blockquote { border-left:3px solid #e8a33d; color:#c9c4b4; }
+  /* DISCO CHAT — 606 ACS patch colours: indigo panel, patch gold for track
+     symbology and section labels. Keep in step with public/_site_css.html.
+     Restrained; a board, never a radar-screen costume. */
+  body { background:#15142c; color:#e9e7f2; font-family: Georgia, 'Times New Roman', serif; }
+  header.masthead { border-bottom:3px double #f0d848; }
+  header.masthead h1 { font-size:2.5rem; color:#f0d848; }
+  header.masthead .sub { color:#a9a6c8; }
+  nav.leaguenav { border-bottom:1px solid #33325f; }
+  nav.leaguenav a { color:#a9a6c8; }
+  h2.section-label { color:#f0d848; border-left:6px solid #f0d848; padding-left:.6rem; }
+  h2.section-label::before { content:"▸ "; color:#a9a6c8; }
+  a { color:#f0d848; }
+  section.module { border-top:1px solid #33325f; padding-top:.8rem; }
+  .credit { color:#a9a6c8; }
+  td, th { border:1px solid #33325f; }
+  th { background:#1f1e40; color:#f0d848; }
+  blockquote { border-left:3px solid #f0d848; color:#d5d1e6; }
 {% else %}
-  /* THE SURFEIT — Skunk Works Futures: night-navy field, coin gold,
-     sky-blue links, assessment-document typography. Keep in step with the
-     canonical theme in public/base.html. */
-  body { background:#071a2f; color:#e4ecf5; font-family: Georgia, 'Times New Roman', serif; }
-  header.masthead { border-bottom:3px solid #facd00; }
-  header.masthead h1 { font-size:2.5rem; color:#facd00; }
-  header.masthead .sub { color:#9fb6cc; }
-  nav.leaguenav { border-bottom:1px solid #1d3d63; background:#050f1d; }
-  nav.leaguenav a { color:#9fc4e2; }
-  h2.section-label { color:#facd00; border-bottom:2px solid #1d3d63; padding-bottom:.2rem; }
-  h2.section-label::after { content: " ·"; color:#58b6f0; }
-  a { color:#58b6f0; }
+  /* THE SURFEIT — Skunk Works insignia: black field, roundel-blue links,
+     banner gold for rules and labels, assessment-document typography. Keep
+     in step with the canonical theme in public/_site_css.html. */
+  body { background:#0a0b0e; color:#eef1f5; font-family: Georgia, 'Times New Roman', serif; }
+  header.masthead { border-bottom:3px solid #f0c419; }
+  header.masthead h1 { font-size:2.5rem; color:#f0c419; }
+  header.masthead .sub { color:#a3adba; }
+  nav.leaguenav { border-bottom:1px solid #2a2f38; background:#050608; }
+  nav.leaguenav a { color:#b6c2ce; }
+  h2.section-label { color:#f0c419; border-bottom:2px solid #2a2f38; padding-bottom:.2rem; }
+  h2.section-label::after { content: " ·"; color:#4da3e8; }
+  a { color:#4da3e8; }
   section.module { }
-  .credit { color:#9fb6cc; }
-  td, th { border:1px solid #1d3d63; }
-  th { background:#10293f; color:#facd00; }
-  blockquote { border-left:3px solid #58b6f0; color:#c2d2e0; }
+  .credit { color:#a3adba; }
+  td, th { border:1px solid #2a2f38; }
+  th { background:#171b22; color:#f0c419; }
+  blockquote { border-left:3px solid #4da3e8; color:#ccd5de; }
 {% endif %}
 </style>
