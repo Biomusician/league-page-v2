@@ -61,7 +61,14 @@ DRAFT_DEFAULT = ["masthead", "lowdown", "draft-capsules", "hardware", "power",
                  "false-assumptions", "all-city", "all-city-marquee", "custom"]
 # Excluded unless the commissioner includes them. Sidebar features live here:
 # they run when there is an edition to run and stay out of the way otherwise.
+# Everything else in the weekly registry starts INCLUDED: the recurring
+# spine of the newsletter is the default, and the week's job is to say what
+# does not belong this time, not to opt each section back in one at a time.
 OPT_IN_MODULES = {"custom", "all-city", "all-city-marquee"}
+
+# What an included section with no material says, instead of removing
+# itself. See `empty` in module_states.
+EMPTY_SECTION_NOTE = "No meaningful material this week — consider excluding"
 
 MIN_INTEL_WEEKS = 5  # before this, playoff math is fake precision — module omits itself
 
@@ -195,9 +202,8 @@ def module_states(
         elif kind == "intel":
             if weeks_played < MIN_INTEL_WEEKS:
                 status, detail = "not_ready", (
-                    f"omitted: needs {MIN_INTEL_WEEKS}+ played weeks for meaningful "
-                    "playoff leverage (no fake early-season precision)")
-                included = False if key not in saved else included
+                    f"needs {MIN_INTEL_WEEKS}+ played weeks for meaningful playoff "
+                    "leverage (no fake early-season precision)")
             else:
                 status, detail = "ready", "leverage data available; scenario engine is a later phase"
         else:  # section
@@ -219,6 +225,11 @@ def module_states(
             "approved": approved,
             "status": status,
             "detail": detail,
+            # An included section with nothing in it is the Commissioner's
+            # call to make, not the system's. Dropping it for him hides the
+            # decision; leaving it silent makes him work out for himself
+            # why the issue will not assemble. Say it instead.
+            "empty": bool(included and kind != "auto" and status == "not_ready"),
         })
     # explicit commissioner positions win ties against defaults
     out.sort(key=lambda m: (m["position"], not m["_explicit_pos"], m["_registry_index"]))

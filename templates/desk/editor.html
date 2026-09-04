@@ -16,6 +16,7 @@
   .blockers ul { margin:.3rem 0 .2rem; padding-left:1.2rem; }
   .ready { border:2px solid #2f6b2f; background:#eef7ee; color:#2f6b2f; font-weight:bold; }
   details.sec { margin:.8rem 0; }
+  .chip.empty { background:#fff3cd; border:1px solid #e0c96a; color:#5a4a10; }
   details.sec > summary { display:flex; gap:.6rem; align-items:baseline; flex-wrap:wrap;
                           font-size:1.05rem; font-weight:bold; list-style:none; }
   details.sec > summary::before { content:"▸ "; }
@@ -156,7 +157,11 @@
       {% if c.brief and c.brief.stale_prose %}<span class="chip stale"
             title="Sleeper data was synced after this section was written; check the writing brief.">data updated since written</span>{% endif %}
     {% endif %}
-    {% if c.detail %}<span class="meta">{{ c.detail }}</span>{% endif %}
+    {#  An included section with nothing in it is his call, not the
+        system's: it used to remove itself, which hid the decision. #}
+    {% if c.empty %}<span class="chip empty"
+          title="{{ c.detail }}">No meaningful material this week — consider excluding</span>
+    {% elif c.detail %}<span class="meta">{{ c.detail }}</span>{% endif %}
   </summary>
 
   <div class="cardctl">
