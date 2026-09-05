@@ -1,5 +1,7 @@
 **What's in a Name? City Fantasy Team Build**
 
+This section was AI-generated then edited by the commish.
+
 The premise: build the best fantasy starting lineup in which every player's own first or last name is exactly the name of a real city. One QB, two RB, two WR, one TE, one K. Exact matches only, so no nicknames and no partial credit for living inside a longer name.
 
 The rule that decides everything is municipal class rather than size. The place has to be a city, which means a town, a village or a borough gets you nothing no matter how many people live there.

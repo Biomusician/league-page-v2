@@ -1,8 +1,8 @@
 <b>Jordan Love, QB (EMCO) — Green Bay at Minnesota</b>
 
-The name is considerably better than the matchup. Minnesota allowed the fewest fantasy points to quarterbacks last season, and Love managed just 139 passing yards and 7.1 fantasy points in his 2025 meeting with the Vikings. FanDuel also grades Minnesota as last year's No. 2 pass defense, allowing only 158.5 passing yards per game, and projects Love for a modest 15.5 fantasy points. In a 1QB league, there are enough alternatives that this is a matchup I would rather avoid.
+The name is considerably better than the matchup. Minnesota allowed the fewest fantasy points to quarterbacks last season, and Love managed just 139 passing yards and 7.1 fantasy points in his 2025 meeting with the Vikings. FanDuel also grades Minnesota as last year's No. 2 pass defense, allowing only 158.5 passing yards per game, and projects Love for a modest 15.5 fantasy points. It is a SF league, but I would prefer alternatives if there are any viable ones available (there aren't).
 
-The fade: Sit in normal 1QB formats if you have a credible alternative. Still usable in Superflex.
+The fade: Would sit in in most 1QB formats if you have a credible alternative. Still usable in Superflex.
 
 <b>Rashee Rice, WR (EMCO) — Kansas City vs. Denver</b>
 

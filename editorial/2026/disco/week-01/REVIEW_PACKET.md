@@ -24,7 +24,9 @@ judgment, not an objective ranking; set yours on the rankings screen.
 
 ## TAKES WORTH TRACKING
 
-- none flagged yet
+Already tracked:
+- take:1 [open] "Sam LaPorta is carrying a thin TE room, but there is enough balance here that very few weekly lineup spots should be outright liabilities."
+- take:2 [open] "RotoBaller expects Lloyd to handle the bulk of the carries and calls him a reliable RB2; FantasyPros currently projects roughly 13 carries, 52 rushing yards and 9."
 
 ## STORY BOARD
 

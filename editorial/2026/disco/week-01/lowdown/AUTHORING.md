@@ -2,7 +2,7 @@
 
 **Read `.claude/skills/my-writing-style/SKILL.md` first and follow it.** Jonathan remains the primary
 author of The Lowdown; your job is to make starting it easy. Newsletter
-register; league theme: Operational / League Control and Reporting Center.
+register; league theme: League Control and Reporting Center.
 
 Three deliverables, in order, each on explicit request from the workflow:
 

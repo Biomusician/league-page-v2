@@ -1,0 +1,1 @@
+This section was written by the commish using AI-assisted research (asking questions, preparing relevant stats, etc.).

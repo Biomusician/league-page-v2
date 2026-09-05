@@ -1,7 +1,7 @@
 # Tracks of Interest AUTHORING — DISCO CHAT 2026 week-01
 
 **Read `.claude/skills/my-writing-style/SKILL.md` first and follow it.** Newsletter register;
-league theme: Operational / League Control and Reporting Center. Facts come from this brief and its
+league theme: League Control and Reporting Center. Facts come from this brief and its
 evidence; if it is not here, it does not exist. Write
 `sections/tracks.md`, starting with `<!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->`;
 the commissioner edits/approves on the Desk before anything publishes.
