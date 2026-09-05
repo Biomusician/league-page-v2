@@ -1129,3 +1129,87 @@ it had been counting the temp directory the test fixture happened to sit
 in, which is long under pytest and short in the repo. It now measures the
 instructions with the paths removed, which is what "paths, not payload"
 actually means.
+
+## 2026-09-05 — A job is a row, and the lease is permission to write
+
+**The Desk could not answer the only question that mattered after a
+crash.** Sync and publish jobs lived in module globals (`_JOB`, `_JOBS`,
+`_ACTIVE`) with a daemon thread each. That is enough to drive a spinner
+and nothing else. `scripts/launch_desk.py` runs uvicorn with
+`reload_dirs=[leaguepage/]`, so editing any file in the package restarted
+the Desk, took every running job's state with it, and left the
+`npx vercel deploy` it had spawned running against production. What was
+left was a live site that may or may not carry the correction and a Desk
+with no memory of having tried. The same hole opens on a laptop lid, a
+crash, or anything serverless, where the process that answers the POST is
+not the process that would have finished the work.
+
+**So the job is a row.** `leaguepage/jobs.py` holds the control plane:
+what was requested, which immutable thing it applies to, who is executing
+it now, what has already happened, and how it ended. Three ideas carry it.
+
+*Leases.* A worker does not own a job, it holds a time-boxed lease and
+renews it on its own thread every 30 seconds, so a six-minute deploy keeps
+a ninety-second lease alive while a dead process stops renewing within
+ninety seconds. `claim` is a single guarded UPDATE, so two workers racing
+cannot both win whatever the isolation level underneath. Every other write
+checks `lease_owner`, which is the part that matters: a worker that hung,
+was declared dead, and then woke up cannot overwrite its replacement's
+record. A job whose lease expires becomes **lost**, deliberately not
+**failed** — failed says the work did not happen, and nobody can say that
+about a worker that stopped reporting mid-deploy.
+
+*An append-only event log.* Stages are `job_events` rows, not a JSON blob
+rewritten in place. The stage list the browser renders is a fold over
+them; the history the fold discards is exactly what a recovery reads.
+
+*Idempotency keys held only while a job is live.* A second Sync click
+joins the running sync because the key says one is live, and the key is
+released when the job ends, so tomorrow's sync is never blocked by
+today's. Publishing is keyed per issue. A partial unique index enforces
+it, rather than the application being trusted to check.
+
+**A publish binds to one revision.** `target_revision` is set by the
+snapshot stage and refuses to be rebound to a different number. Every
+later stage ships that number instead of re-reading the directory, so a
+job that froze r2 cannot deploy r3 because a save landed while npx was
+warming up.
+
+**Production state is recorded when production changes.** The deploy stage
+writes `deployed-unverified` the moment the deployment goes out, and
+verification upgrades it. Previously the only write happened when the job
+ended, so a crash during verification lost the fact of a deploy entirely.
+
+**Recovery reports; it never re-runs.** `leaguepage/job_recovery.py` reads
+four sources in descending order of proof — the event log, the
+checkpoints written either side of each irreversible stage, the publish
+log file (which outlives the process), and production itself — and
+returns one of four verdicts with the facts behind it. When the deploy
+command started and never reported an exit code, the verdict is
+`deploy-uncertain` and the Desk says so, because "go and look" is the
+honest answer and re-running the stage that may already have changed
+production is the failure this module exists to prevent.
+
+**What this cost the UI: nothing.** `as_dict` returns the same keys the
+in-memory job exposed. One key was added, `active`, because a job can now
+exist before a worker has claimed it, and "should the button stay
+disabled" is that question rather than `state == "running"`. The two job
+types had also disagreed about stage vocabulary (`fail` here, `failed`
+there), so whichever one the icon table missed rendered as a bullet;
+there is one vocabulary now.
+
+**Deliberate limits.** Nothing auto-resumes. `run_job` skips stages the
+event log says already succeeded, so resumption is safe, but no caller
+resumes on its own: recovering a lost publish means a person reading the
+finding and pressing the button, and the snapshot stage's existing
+unchanged-text branch already makes that retry a no-op rather than a
+second revision. The database was not switched to WAL — that is a
+persistent change to a populated file, and per-connection `busy_timeout`
+plus `BEGIN IMMEDIATE` on writes closes the read-then-write window that
+actually bites here.
+
+`migrations/0004_durable_jobs.sql` brings the Postgres placeholder from
+`0001` to the same shape so `PostgresJobRepository` can implement the same
+contract. Timestamps stay UTC, second-resolution, fixed width, because
+SQLite compares them as text and Postgres as timestamps, and that is only
+safe while every one of them looks the same; a test pins it.

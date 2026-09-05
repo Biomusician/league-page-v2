@@ -1,10 +1,70 @@
 # HANDOFF
 
-Updated 2026-09-05, end of the first Commissioner Portal tranche. Companions:
+Updated 2026-09-05, end of the durable jobs tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Commissioner Portal, tranche 2 — durable jobs (2026-09-05)
+
+**Status: 1,317 tests green (2 skipped; 30 new), migration verified against the
+real 24MB database (additive, 3ms, no row count moved). Nothing published,
+nothing deployed, no snapshot, no revision and no Commissioner prose
+touched. No Supabase migration applied: `0004` is written and waits for
+Jonathan.**
+
+Job state moved out of module globals and daemon threads into rows. Why it
+mattered: `scripts/launch_desk.py` runs uvicorn with
+`reload_dirs=[leaguepage/]`, so editing any file in the package restarted
+the Desk, discarded every running job's state, and left the
+`npx vercel deploy` it had spawned running against production. Full
+reasoning in DECISIONS; the architecture doc has the table of pieces.
+
+What shipped:
+
+- **`leaguepage/jobs.py`** — the control plane. `Job`, `JobEvent`,
+  `JobSpec`, the `JobRepository` protocol, and `SQLiteJobRepository`.
+  Leases (`claim` is one guarded UPDATE; every other write checks
+  `lease_owner`), an append-only `job_events` table folded into the stage
+  list the browser renders, idempotency keys held only while a job is
+  live and enforced by a partial unique index, and `target_revision`
+  binding a publish to the revision its snapshot froze.
+- **`leaguepage/job_runner.py`** — the executor seam. Four stage outcomes
+  (ok, hard failure, soft failure that keeps going, skip), a heartbeat
+  thread so a six-minute deploy keeps a ninety-second lease, and a rule
+  that a stage the log says succeeded is never run again.
+- **`leaguepage/job_recovery.py`** — what a lost job actually did, from
+  the event log, the checkpoints, the publish log file and production, in
+  that order of proof. Four verdicts. It reports and never re-runs.
+- **Sync and Publish migrated**, keeping every editorial meaning: the
+  correction-note refusal, the unchanged-text no-op, `deploy_state`,
+  `_mark_shipped_revisions`, the log redaction, the process tree kill.
+  Publish additionally records `deployed-unverified` the moment the
+  deployment goes out rather than when the job ends.
+- **`migrations/0004_durable_jobs.sql`** — brings the Postgres placeholder
+  from `0001` to the same shape, RLS forced, `anon` granted nothing.
+  Registered in `verify_supabase_schema.py`.
+
+Deliberate limits, so they are not mistaken for oversights:
+
+- **Nothing auto-resumes.** Resumption is safe (completed stages are
+  skipped) but no caller claims a job a second time. Recovering a lost
+  publish means a person reading the finding and pressing the button, and
+  the snapshot stage's unchanged-text branch already makes that a no-op
+  rather than a second revision.
+- **The worker is still a daemon thread** in the Desk process. A killed
+  process still abandons work; the difference is that abandonment is now
+  visible within ninety seconds instead of invisible forever.
+- **The database was not switched to WAL.** That is a persistent change to
+  a populated file. Per-connection `busy_timeout` and `BEGIN IMMEDIATE` on
+  writes close the read-then-write window that actually bites here.
+- **Auth rate limiting is still process-local** (`auth._LOGIN_ATTEMPTS`,
+  `_USED_LOGIN_JTI`, `_EPHEMERAL`). It is the remaining piece of the old
+  "jobs are process globals" blocker and belongs with identity, not jobs.
+- **`jobs` is not in the export bundle.** `AUTHORITATIVE_TABLES` in
+  `scripts/export_commissioner_state.py` is for state no sync can rebuild;
+  job history is operational and is purged at 30 days / 50 jobs per type.
 
 ## Commissioner Portal, tranche 1 (2026-09-05)
 

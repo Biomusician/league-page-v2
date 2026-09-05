@@ -28,7 +28,7 @@ Target architecture, transition order and the manual gates live in
 | 1 | Canonical preview (one renderer) | 32 | `shipped` |
 | 2 | Issue Room shell | 19 | `shipped` |
 | 3 | CTP single approval | 16 | `shipped` |
-| 4 | Durable jobs table | 13 | `planned` |
+| 4 | Durable jobs table | 13 | `shipped` 2026-09-05 |
 | 5 | AI WritingPacket + proposal queue UX | 10 | `partial` — the packet exists; the queue does not |
 | 6 | Prose repository boundary | 10 | `planned` |
 | 7 | Cloud persistence (Supabase Postgres) | 9 | `planned` |
@@ -36,8 +36,10 @@ Target architecture, transition order and the manual gates live in
 | 9 | Cloud publication worker (GitHub Actions) | 2.4 | `deferred` until 6 and 7 |
 | 10 | Portability / onboarding | 1 | seams only, no SaaS |
 
-Durable jobs outranks the prose repository because it pays off locally on
-its own: a publish survives a Desk restart today, not only after a cutover.
+Durable jobs outranked the prose repository because it paid off locally on
+its own, and it did: a publish now survives a Desk restart, and a publish
+that does not survive says so instead of vanishing. The prose repository is
+next, and its inventory is in the architecture doc.
 
 ## Sequencing gate: remote authoring
 
@@ -58,9 +60,14 @@ Structural blockers still open, in order:
 1. **Seed `app_commissioners`** — Jonathan, once. Blocks proving anything below.
 2. **Prose repository** — `editorial/**/*.md` behind a repository interface so
    Postgres is a drop-in. Four path shapes. The last structural blocker.
-3. **Durable jobs table** — replaces the `_JOB`/`_JOBS` process globals in
-   `publish_jobs.py` and `sync_jobs.py`, and the login rate-limit
-   dictionaries in `auth.py`.
+3. ~~**Durable jobs table**~~ — done 2026-09-05. `_JOB`, `_JOBS` and
+   `_ACTIVE` are gone; job state is leased rows in `jobs` + `job_events`
+   (`leaguepage/jobs.py`), and `migrations/0004_durable_jobs.sql` is written
+   and waiting on the Supabase gate. **Still open, and separated out because
+   it belongs with identity rather than with jobs:** the login rate-limit
+   dictionaries in `auth.py` (`_LOGIN_ATTEMPTS`, `_USED_LOGIN_JTI`,
+   `_EPHEMERAL`) are still per-process, so throttling resets on a restart and
+   a one-time login token could be replayed against a second instance.
 4. **Filesystem write sites** — measured 2026-09-05: 62 in `leaguepage/`, of
    which ~24 are persistent editorial state a read-only serverless runtime
    rejects. The rest are build artifacts, immutable publication records, or

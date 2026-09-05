@@ -24,7 +24,7 @@ SQLite database and a tree of Markdown files.
 | CSRF | Middleware over every mutating method; token in a `<meta>` tag, attached centrally by `static/desk.js` |
 | Prose | `editorial/**/*.md` on disk |
 | Editorial state | SQLite: decisions, approvals, provenance, prose revisions, takes, notes |
-| Jobs | Daemon threads plus module globals in `publish_jobs.py` and `sync_jobs.py` |
+| Jobs | Durable `jobs` + `job_events` rows with leases (`leaguepage/jobs.py`); a local daemon thread is one possible worker, not the record |
 | Publication | Immutable JSON snapshots in `published/`, corrections as sibling revisions |
 | Build | Local `build_public_site.py` into `dist/`, privacy audit, then the `site` branch or the Vercel CLI |
 
@@ -37,10 +37,13 @@ approval bound to content, provenance recorded rather than inferred.
 1. **Prose is filesystem state.** Roughly 24 write sites under `leaguepage/`
    put editorial state on disk. A read-only serverless runtime rejects all
    of them.
-2. **Jobs are process globals.** `_JOBS`, `_ACTIVE`, `_JOB` and the auth
-   rate-limit dictionaries live in one process. On a platform that can end
-   a process between requests, a publish loses its progress and its
-   single-flight guard, and login rate limiting resets.
+2. ~~**Jobs are process globals.**~~ **Done, 2026-09-05.** Job state is
+   durable and leased (see *Durable jobs*, below). What remains of this
+   blocker is smaller and separate: the auth rate-limit dictionaries
+   (`auth._LOGIN_ATTEMPTS`, `_USED_LOGIN_JTI`, `_EPHEMERAL`) are still
+   per-process, so login throttling resets on a restart and a one-time
+   login token could be replayed against a second instance. Those belong
+   with identity, not with jobs.
 3. **The build reads the private database.** `dist/` is produced from
    SQLite and `editorial/`, which is why Vercel never rebuilds and only
    ever receives an audited artifact.
@@ -140,6 +143,46 @@ there and Vercel already consumes the `site` branch from it.
   recovery route, and it is also the thing that proves the artifact is the
   same either way.
 
+### Durable jobs
+
+Built 2026-09-05. `leaguepage/jobs.py` is the control plane and
+`leaguepage/job_runner.py` is the executor, and the split is what makes the
+worker above a change of caller rather than a rewrite.
+
+| Piece | What it is for |
+| --- | --- |
+| `jobs` row | What was requested, which immutable revision it applies to, who holds the lease, how it ended |
+| `job_events` | Append-only stage history. The rendered stage list is a fold over it; the history the fold discards is what a recovery reads |
+| Lease | `lease_owner` + `lease_expires_at`, renewed by a heartbeat every 30s. Every write is guarded by the owner, so a superseded worker cannot overwrite its replacement |
+| `idempotency_key` | Held only while a job is live, released when it ends. A partial unique index enforces it |
+| `target_revision` | Binds a publish to the revision its snapshot froze. Rebinding to a different number is refused |
+| `error_code` | Stable slug for branching; `error` is the sentence a person reads; the log file carries the diagnosis |
+
+`JobRepository` is the seam. It is deliberately free of SQL, connections
+and datetime objects so `PostgresJobRepository` can implement it exactly;
+a test asserts the SQLite implementation matches the protocol
+signature-for-signature. `migrations/0004_durable_jobs.sql` brings the
+Postgres side to the same shape.
+
+Two states are new and both are load-bearing. **queued** exists because a
+job can be created by a request handler and claimed by something else, so
+the UI asks `job.active` rather than `state == "running"`. **lost** exists
+because a worker that stops renewing its lease has not failed, it has
+stopped reporting, and those call for different things from a person.
+
+`leaguepage/job_recovery.py` answers what a lost job actually did, from
+four sources in descending order of proof: the event log, the checkpoints
+written either side of each irreversible stage, the publish log file
+(which outlives the process), and production itself. It reports and never
+re-runs. **Nothing auto-resumes.** `run_job` skips stages the log says
+succeeded, so resumption is safe when something does claim a job again,
+but no caller does that on its own.
+
+Still process-local, and named here so it is not mistaken for done: the
+worker is a daemon thread in the Desk process, so a killed process still
+abandons work. The difference is that abandonment is now visible within
+ninety seconds instead of invisible forever.
+
 ### Multi-device editing
 
 One Commissioner with a laptop and a phone is still concurrency. Every
@@ -147,6 +190,48 @@ prose write carries the version it was based on and is refused with a
 conflict when that version has moved — this exists now (`base_sha`, 409)
 and must survive the repository cutover. Approval binds to a content
 signature for the same reason; CTP already works this way.
+
+### Where prose lives, before it moves
+
+A read-only inventory taken 2026-09-05, after the jobs work and before any
+`ProseRepository` exists. This is the shape such a repository would have to
+cover; nothing here has been changed.
+
+**On disk**, under `editorial/{season}/{league}/{issue}/`:
+
+| Path | Holds |
+| --- | --- |
+| `lowdown/lowdown.md` | The commissioner-owned Lowdown |
+| `sections/<module>.md` | Section prose |
+| `matchups/<slug>/draft.md` | Weekly matchup previews |
+| `proposals/<section>.md` | Assistant drafts awaiting accept or discard |
+| `sections/AUTHORING-<section>.md`, `generated/` | Research briefs, never published |
+
+Seven write sites in `desk_editor.py` reach the first four
+(`path.write_text` at the save, restore, reset, clear, accept-proposal,
+apply-fix and request-queue routes). Reads go through one helper,
+`_section_path`, which is the natural place for a repository to take over.
+
+**In SQLite**, already the right shape for Postgres:
+
+| Table | Holds |
+| --- | --- |
+| `prose_revisions` | Undo history, trimmed per section |
+| `section_prose_state` | generated vs commissioner-edited |
+| `prose_provenance` | origin, assistance, generated hash, private baseline text |
+| `issue_modules` | Inclusion, approval, and `approved_sha` |
+
+**In Postgres already**, unused: `sections` from `0001` (content, state,
+`version` for optimistic concurrency, primary-keyed by league/season/issue/
+section). It is the destination, and its `version` column is the existing
+409-conflict rule expressed in the schema.
+
+The order that follows from this: a `ProseRepository` fronts `_section_path`
+and the seven write sites first, keeping the filesystem as its
+implementation; only then does a Postgres implementation become a swap
+rather than a rewrite. The private research layer (`AUTHORING-*.md`,
+`generated/`) stays on disk and out of any repository that a hosted runtime
+can read, because it is the material that must never travel.
 
 ### Portability seams
 
