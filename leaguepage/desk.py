@@ -166,6 +166,19 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                   openapi_url=None)
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+    # Job history is operational, not editorial: it records what the Desk
+    # did, and none of it can be reconstructed into a lost issue. So it is
+    # kept for a month and for the last fifty jobs of each type, whichever
+    # is more generous, and trimmed once at boot rather than on a timer.
+    # A job still running is never touched.
+    try:
+        from leaguepage.jobs import SQLiteJobRepository
+
+        SQLiteJobRepository(db_path).purge(keep_days=30, keep_per_type=50)
+    except Exception:                                       # noqa: BLE001
+        # Housekeeping must never be the reason the Desk will not start.
+        pass
+
     # ---- central authorization -------------------------------------
     # Every route is private by default. Exemptions are listed here and
     # nowhere else, so a new route cannot be born public by accident (the
@@ -437,7 +450,7 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     def sync_status():
         from leaguepage import sync_jobs
 
-        job = sync_jobs.get_sync_job()
+        job = sync_jobs.get_sync_job(db_path)
         return {"job": job}
 
     @app.get("/commissioner")
@@ -482,7 +495,7 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             control = mission_control(s, LEAGUES)
         for row in control:
             row.update(extra.get(row["league"].slug, {}))
-        job = sync_jobs.get_sync_job()
+        job = sync_jobs.get_sync_job(db_path)
         return templates.TemplateResponse(request, "desk/home.html", {
             "last_sync": last_sync, "sync_job": job, "control": control})
 

@@ -78,19 +78,22 @@
 <div class="card" id="syncpanel">
   <form method="post" action="/commissioner/sync-start" id="syncform" style="display:inline">
     <button class="bigcta" type="submit" id="syncbtn"
-            {% if sync_job and sync_job.state == "running" %}disabled{% endif %}>
+            {% if sync_job and sync_job.active %}disabled{% endif %}>
       Sync Sleeper</button>
   </form>
   <span class="meta" id="synced-line">
-    {% if sync_job and sync_job.state == "running" %}Sync running…
+    {% if sync_job and sync_job.active %}Sync running…
     {% elif last_sync %}Synced {{ last_sync[:16].replace("T", " ") }}
     {% else %}Not synced yet this session.{% endif %}
   </span>
   <div id="syncprogress" style="display:none; margin-top:.5rem"></div>
   <div id="syncsummary" style="margin-top:.4rem">
-    {% if sync_job and sync_job.state != "running" %}
-    {% if sync_job.state == "succeeded" %}<b>Sync complete.</b>{% else %}
-    <b>Sync failed:</b> <span class="meta">{{ sync_job.error }}</span>{% endif %}
+    {% if sync_job and not sync_job.active %}
+    {% if sync_job.state == "succeeded" %}<b>Sync complete.</b>
+    {% elif sync_job.state == "lost" %}<b>Sync interrupted.</b>
+    <span class="meta">{{ sync_job.error }} Nothing a sync does is
+      irreversible, so running it again is safe.</span>
+    {% else %}<b>Sync failed:</b> <span class="meta">{{ sync_job.error }}</span>{% endif %}
     {% for lg in sync_job.summary %}
     <div class="meta">{{ lg.league }}:
       {% if lg.ok %}week {{ lg.week }} · {{ lg.teams }} teams
@@ -123,14 +126,14 @@
   "use strict";
   var btn = document.getElementById("syncbtn");
   var prog = document.getElementById("syncprogress");
-  var running = {{ "true" if sync_job and sync_job.state == "running" else "false" }};
+  var running = {{ "true" if sync_job and sync_job.active else "false" }};
 
   function render(job) {
     if (!job) return;
     prog.style.display = "block";
     prog.innerHTML = job.stages.map(function (st) {
       var mark = st.status === "ok" ? "✅" : st.status === "failed" ? "❌"
-        : st.status === "running" ? "⏳" : "·";
+        : st.status === "running" ? "⏳" : st.status === "skipped" ? "⏭" : "·";
       return "<div class='meta'>" + mark + " " + st.name +
         (st.detail ? " — " + st.detail : "") + "</div>";
     }).join("");
@@ -142,7 +145,7 @@
         var job = data.job;
         if (!job) return;
         render(job);
-        if (job.state === "running") { setTimeout(poll, 800); }
+        if (job.active) { setTimeout(poll, 800); }
         else { window.location.reload(); }
       }).catch(function () { setTimeout(poll, 2000); });
   }

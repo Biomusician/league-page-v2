@@ -18,17 +18,18 @@ from fixtures import populate_league
 
 @pytest.fixture(autouse=True)
 def _reset_job(tmp_path, monkeypatch):
-    """Fresh job state, and editorial paths isolated so a job's refresh
-    stage can never touch the real workspace from a synthetic test DB."""
+    """Editorial paths isolated so a job's refresh stage can never touch
+    the real workspace from a synthetic test DB.
+
+    Job state needs no resetting any more: it lives in the database, and
+    every test gets its own.
+    """
     import leaguepage.issue_builder as ib
     import leaguepage.matchup_packet as mp
 
     monkeypatch.setattr(ib, "EDITORIAL_DIR", tmp_path / "editorial")
     monkeypatch.setattr(mp, "EDITORIAL_DIR", tmp_path / "editorial")
     monkeypatch.setattr(mp, "load_managers", lambda: {})
-    sync_jobs._JOB = None
-    yield
-    sync_jobs._JOB = None
 
 
 @pytest.fixture
@@ -55,10 +56,18 @@ def _fake_sync_all(ok=(True, True)):
     return fake
 
 
-def _wait(job, timeout=10.0):
+def _wait(db, timeout=10.0):
+    """Re-read until the job is over.
+
+    A durable job is a row, so watching one means asking the store again,
+    not holding an object and waiting for a thread to mutate it. This is
+    also what the browser does.
+    """
     start = time.time()
-    while job["state"] == "running" and time.time() - start < timeout:
+    job = sync_jobs.get_sync_job(db)
+    while job and job["active"] and time.time() - start < timeout:
         time.sleep(0.05)
+        job = sync_jobs.get_sync_job(db)
     return job
 
 
@@ -66,9 +75,9 @@ def test_sync_job_succeeds_and_stamps_timestamp(world, monkeypatch):
     import leaguepage.ingest as ingest
 
     monkeypatch.setattr(ingest, "sync_all", _fake_sync_all())
-    job, created = sync_jobs.start_sync_job(world)
+    _job, created = sync_jobs.start_sync_job(world)
     assert created
-    _wait(job)
+    job = _wait(world)
     assert job["state"] == "succeeded"
     assert all(st["status"] in ("ok", "skipped") for st in job["stages"])
     with Storage(world) as s:
@@ -90,17 +99,22 @@ def test_duplicate_click_joins_running_job(world, monkeypatch):
     assert created1 and not created2
     assert job1["job_id"] == job2["job_id"]
     gate.set()
-    assert _wait(job1)["state"] == "succeeded"
+    assert _wait(world)["state"] == "succeeded"
 
 
 def test_one_league_failure_is_not_reported_as_success(world, monkeypatch):
     import leaguepage.ingest as ingest
 
     monkeypatch.setattr(ingest, "sync_all", _fake_sync_all(ok=(True, False)))
-    job, _ = sync_jobs.start_sync_job(world)
-    _wait(job)
+    sync_jobs.start_sync_job(world)
+    job = _wait(world)
     assert job["state"] == "failed"
     assert "did not sync" in job["error"]
+    # The working league's data is still kept, and its context and
+    # research stages still ran: one league failing is a soft failure.
+    stages = {st["key"]: st["status"] for st in job["stages"]}
+    assert stages["context"] == "ok" and stages["editorial"] == "ok"
+    assert "failed" in stages.values()
     ok_leagues = [x for x in job["summary"] if x["ok"]]
     bad = [x for x in job["summary"] if not x["ok"]]
     assert len(ok_leagues) == 1 and len(bad) == 1
@@ -116,8 +130,7 @@ def test_desk_exposes_sync_control_and_status(world, monkeypatch):
     assert "Sync Sleeper" in home.text          # the control, no longer shouting
     r = c.post("/commissioner/sync-start", follow_redirects=False)
     assert r.status_code == 303          # control returns immediately
-    job = sync_jobs.get_sync_job()
-    _wait(job)
+    _wait(world)
     status = c.get("/commissioner/sync-status").json()
     assert status["job"]["state"] == "succeeded"
     home = c.get("/commissioner")
