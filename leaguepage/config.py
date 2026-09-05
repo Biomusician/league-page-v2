@@ -80,7 +80,7 @@ LEAGUES: list[League] = [
         display_name="DISCO CHAT",
         league_id="1355356729629495296",
         theme="disco",
-        subtitle="Operational / League Control and Reporting Center",
+        subtitle="League Control and Reporting Center",
         adp_source="fantasypros_ecr_redraft_superflex",
         author_roster_id=1,
     ),
