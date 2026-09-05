@@ -31,8 +31,8 @@ from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
 from leaguepage import prose, provenance
 from leaguepage.issue_builder import (
     BLOCKED_MARKERS, CUSTOM_DEFAULT_TITLE, WRITING_SKILL, assemble_issue,
-    is_custom_key, issue_dir, matchup_children, module_defs_for, module_states,
-    next_custom_key,
+    _custom_index, is_custom_key, issue_dir, matchup_children,
+    module_defs_for, module_states, next_custom_key,
 )
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER, week_dir
 from leaguepage.team_names import resolve_public_names
@@ -65,6 +65,23 @@ def _split_chunks(text: str) -> list[str]:
 def _chunk_heading(chunk: str) -> str:
     m = re.search(r"(?m)^### +(.+)$", chunk)
     return m.group(1).strip() if m else "(intro)"
+
+
+def _strip_draft_markers(text: str) -> str:
+    """Remove the ROUGH DRAFT scaffolding comment lines from accepted prose.
+
+    Only whole comment lines whose content is a blocked marker; a comment
+    the author wrote for himself, and anything on a line with real words on
+    it, is left exactly alone.
+    """
+    kept = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if (stripped.startswith("<!--") and stripped.endswith("-->")
+                and any(m in stripped for m in BLOCKED_MARKERS)):
+            continue
+        kept.append(line)
+    return "\n".join(kept).lstrip("\n")
 
 
 def register_editor(app, storage, templates) -> None:  # noqa: C901 - route registry
@@ -102,20 +119,24 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
     def _blockers(s, league, season: str, issue_key: str, modules: list[dict]) -> list[dict]:
         assembled = assemble_issue(s, league, season, issue_key, week=_week_of(issue_key))
-        by_title = {m["title"]: m["module_key"] for m in modules}
+        titles = {m["module_key"]: m["title"] for m in modules}
         out = []
-        for w in assembled["warnings"]:
-            anchor, kind, module_key = "sec-team-names", "generic", None
-            m = re.search(r"[Mm]odule '([^']+)'", w)
-            if m and m.group(1) in by_title:
-                module_key = by_title[m.group(1)]
-                anchor = f"sec-{module_key}"
-                if "no publishable content" in w:
-                    kind = "empty-section"
-                    w = (f"'{m.group(1)}' is included but not written yet "
-                         f"— write it or exclude it from this issue.")
-            out.append({"text": w, "anchor": anchor, "kind": kind,
-                        "module_key": module_key})
+        # Each warning names its own module now. Matching on the displayed
+        # title used to send two sections with the same name to the same
+        # anchor, and pointed a custom section called "Fades" at the
+        # standing Fades module's Exclude button.
+        for row in assembled.get("warning_rows") or []:
+            key, kind, text = row["module_key"], row["kind"], row["text"]
+            # A warning about the issue as a whole belongs to no section.
+            # It used to fall through to the team-name anchor, which sent
+            # him to the wrong end of the page.
+            anchor = (f"sec-{key}" if key
+                      else ("blockers" if kind == "empty-issue" else "sec-team-names"))
+            if kind == "empty-section":
+                text = (f"'{titles.get(key, key)}' is included but not written "
+                        f"yet — write it or exclude it from this issue.")
+            out.append({"text": text, "anchor": anchor, "kind": kind,
+                        "module_key": key})
         return out
 
     def _takes_rows(league_slug: str, season: str) -> list[dict]:
@@ -394,45 +415,48 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                     matchup_slug=m.group(1),
                                     status="approved" if action == "approve" else "edited")
                 return JSONResponse({"ok": True, "approved": action == "approve"})
-            if action == "approve":
-                kind = dict((k, kd) for k, _t, kd
-                            in module_defs_for(
-                                league, issue_key,
-                                s.get_issue_modules(league_slug, season, issue_key))
-                            ).get(section)
-                if kind is None:
-                    return JSONResponse({"ok": False, "error": "unknown section"},
-                                        status_code=404)
-                # Common Tactical Picture holds no prose of its own: it is
-                # made of the week's matchup previews, so the gate is that
-                # they are all signed off. Checking it for a `ctp.md` that
-                # never existed refused every click on it.
-                if kind == "ctp":
-                    week = _week_of(issue_key)
-                    kids = (matchup_children(s, league, season, issue_key, week)
-                            if week is not None else [])
-                    left = [c for c in kids if not c["approved"]]
-                    if not kids:
-                        return JSONResponse(
-                            {"ok": False, "error": "no matchups computed for this week"},
-                            status_code=400)
-                    if left:
-                        return JSONResponse(
-                            {"ok": False,
-                             "error": f"{len(left)} matchup preview(s) still unapproved: "
-                                      + ", ".join(c["title"] for c in left[:3])
-                                      + ("…" if len(left) > 3 else "")},
-                            status_code=400)
-                elif kind in ("lowdown", "section", "all-city"):
-                    text = _read(_section_path(league, season, issue_key, section)) or ""
-                    bad = [mk for mk in BLOCKED_MARKERS if mk in text]
-                    if not text.strip():
-                        return JSONResponse({"ok": False, "error": "section is empty"},
-                                            status_code=400)
-                    if bad:
-                        return JSONResponse(
-                            {"ok": False, "error": f"blocked marker present: {bad[0]}"},
-                            status_code=400)
+            # Validated in both directions. Unapprove used to skip this
+            # and write a row anyway, and `included` defaults to 1 in the
+            # schema, so unapproving a retired key resurrected it --
+            # included -- on an issue that had never carried it.
+            kind = dict((k, kd) for k, _t, kd
+                        in module_defs_for(
+                            league, issue_key,
+                            s.get_issue_modules(league_slug, season, issue_key))
+                        ).get(section)
+            if kind is None:
+                return JSONResponse({"ok": False, "error": "unknown section"},
+                                    status_code=404)
+            # Common Tactical Picture holds no prose of its own: it is
+            # made of the week's matchup previews, so the gate is that
+            # they are all signed off. Checking it for a `ctp.md` that
+            # never existed refused every click on it.
+            if action == "approve" and kind == "ctp":
+                week = _week_of(issue_key)
+                kids = (matchup_children(s, league, season, issue_key, week)
+                        if week is not None else [])
+                left = [c for c in kids if not c["approved"]]
+                if not kids:
+                    return JSONResponse(
+                        {"ok": False, "error": "no matchups computed for this week"},
+                        status_code=400)
+                if left:
+                    return JSONResponse(
+                        {"ok": False,
+                         "error": f"{len(left)} matchup preview(s) still unapproved: "
+                                  + ", ".join(c["title"] for c in left[:3])
+                                  + ("…" if len(left) > 3 else "")},
+                        status_code=400)
+            elif action == "approve" and kind in ("lowdown", "section", "all-city"):
+                text = _read(_section_path(league, season, issue_key, section)) or ""
+                bad = [mk for mk in BLOCKED_MARKERS if mk in text]
+                if not text.strip():
+                    return JSONResponse({"ok": False, "error": "section is empty"},
+                                        status_code=400)
+                if bad:
+                    return JSONResponse(
+                        {"ok": False, "error": f"blocked marker present: {bad[0]}"},
+                        status_code=400)
             s.set_issue_module(league_slug=league_slug, season=season, issue_key=issue_key,
                                module_key=section, approved=1 if action == "approve" else 0)
         return JSONResponse({"ok": True, "approved": action == "approve"})
@@ -446,8 +470,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             fields["included"] = 1
         elif action == "exclude":
             fields["included"] = 0
-        elif action == "move" and position.strip().lstrip("-").isdigit():
-            fields["position"] = int(position)
+        elif action == "move":
+            # `.lstrip("-")` accepted "--5", which then raised out of int()
+            # as an unhandled 500.
+            try:
+                fields["position"] = int(position.strip())
+            except (TypeError, ValueError):
+                pass
         if fields:
             with storage() as s:
                 s.set_issue_module(league_slug=league_slug, season=season,
@@ -477,7 +506,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             saved = s.get_issue_modules(league_slug, season, issue_key)
             if action == "add":
                 key = next_custom_key(saved)
-                n = sum(1 for k in saved if is_custom_key(k)) + 1
+                # Numbered from the key it actually got. Counting existing
+                # rows instead meant that reusing a freed key handed the new
+                # section the wrong number and a duplicate position.
+                n = _custom_index(key)
                 s.set_issue_module(
                     league_slug=league_slug, season=season, issue_key=issue_key,
                     module_key=key, included=1, approved=0,
@@ -669,7 +701,14 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 if current:
                     s.add_prose_revision(league_slug, season, issue_key, section,
                                          current, "proposal-accept")
-                accepted = ppath.read_text(encoding="utf-8")
+                # The draft marker is scaffolding, not prose: it exists so
+                # unreviewed text cannot publish. Accepting IS the review,
+                # so it comes off here rather than being left for him to
+                # delete -- which would edit the text, break the hash, and
+                # retire a provenance claim that was true. Left in, the
+                # marker also blocks approval and publication outright, so
+                # no accepted proposal could ever reach a page labelled.
+                accepted = _strip_draft_markers(ppath.read_text(encoding="utf-8"))
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(accepted, encoding="utf-8")
                 # Remember what was accepted, so the page can say so honestly
@@ -682,6 +721,14 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     method=("matchup-brief" if section.startswith("matchup:")
                             else "section-brief"),
                     text=accepted)
+                if section.startswith("matchup:"):
+                    # A preview does not publish under its own key: it is
+                    # concatenated into Common Tactical Picture. So CTP's
+                    # claim is recomputed from its children, and it is only
+                    # fully generated when every one of them still is.
+                    provenance.refresh_ctp(
+                        s, league=league, season=season, issue_key=issue_key,
+                        week=_week_of(issue_key))
                 s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
                 if not section.startswith("matchup:"):
                     s.set_issue_module(league_slug=league_slug, season=season,

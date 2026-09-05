@@ -104,6 +104,20 @@ def publish_issue(
     return out
 
 
+def _prose_only(sections: list[dict] | None) -> list[dict]:
+    """Sections stripped of everything that is not the writing.
+
+    Whether an issue has changed is a question about its prose. Provenance
+    is a fact ABOUT that prose and lives in a gitignored database, so a
+    fresh clone or a rebuilt DB would otherwise make an unchanged issue
+    look changed -- refusing an identical republish with an error that says
+    the text moved when it did not, and offering a correction whose only
+    effect is to delete a true AI disclosure.
+    """
+    return [{k: v for k, v in s.items() if k != "provenance"}
+            for s in (sections or [])]
+
+
 def publish_assembled_issue(
     storage: Storage,
     league: League,
@@ -183,7 +197,7 @@ def publish_assembled_issue(
         # is refused and pointed at the correction mechanism, which keeps
         # the original and adds a sibling.
         prior = _json.loads(snap_path.read_text(encoding="utf-8"))
-        if prior.get("sections") == sections:
+        if _prose_only(prior.get("sections")) == _prose_only(sections):
             storage.set_issue_status(league_slug=league.slug, season=season,
                                      issue_key=issue_key, status="published",
                                      published_path=snap_path.as_posix())
@@ -297,7 +311,7 @@ def revise_issue(
             + " | ".join(f"{b['category_label']}: {b['title']}"
                          for b in qa["blockers"][:6]))
 
-    if sections == latest.get("sections"):
+    if _prose_only(sections) == _prose_only(latest.get("sections")):
         raise PublishError("The corrected text is identical to what is already "
                            "published; nothing to revise.")
 

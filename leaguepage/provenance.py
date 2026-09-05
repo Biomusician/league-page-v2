@@ -142,3 +142,47 @@ def describe_machine(method: str | None) -> dict:
         "caption": f"{caption} {NO_EDITS}",
         "badge_text": "AUTO",
     }
+
+
+def refresh_ctp(storage: Storage, *, league, season: str, issue_key: str,
+                week: int | None) -> None:
+    """Recompute Common Tactical Picture's claim from its matchup previews.
+
+    A preview never publishes under its own key: the module concatenates
+    them, so a per-matchup provenance row describes text no page renders.
+    CTP is fully machine-written only when every preview inside it still is
+    -- one edited preview makes the section a collaboration, and the
+    section is what the reader sees.
+    """
+    from leaguepage.issue_builder import _module_content_md, issue_dir, matchup_children
+    from leaguepage.team_names import resolve_public_names
+
+    if week is None:
+        return
+    kids = matchup_children(storage, league, season, issue_key, week)
+    if not kids:
+        forget(storage, league_slug=league.slug, season=season,
+               issue_key=issue_key, section="ctp")
+        return
+    idir = issue_dir(league, season, issue_key)
+    for child in kids:
+        draft = idir / "matchups" / child["slug"] / "draft.md"
+        text = draft.read_text(encoding="utf-8") if draft.exists() else None
+        if state_for(storage, league_slug=league.slug, season=season,
+                     issue_key=issue_key, section=child["section"],
+                     text=text) is None:
+            forget(storage, league_slug=league.slug, season=season,
+                   issue_key=issue_key, section="ctp")
+            return
+    names = {rid: v["name"] for rid, v in resolve_public_names(storage, league).items()
+             if v["name"]}
+    assembled = _module_content_md(
+        storage, league, season, issue_key,
+        {"module_key": "ctp", "kind": "ctp"}, idir, names)
+    if assembled is None:
+        forget(storage, league_slug=league.slug, season=season,
+               issue_key=issue_key, section="ctp")
+        return
+    record(storage, league_slug=league.slug, season=season, issue_key=issue_key,
+           section="ctp", generator="claude-code", method="matchup-brief",
+           text=assembled)

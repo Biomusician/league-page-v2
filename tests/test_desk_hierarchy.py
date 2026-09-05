@@ -138,7 +138,9 @@ def test_administration_sits_below_the_writing(env):
     head = html.index('<h2 class="adminhead">')
     assert html.index('id="sec-lowdown"') < head
     assert html.index('id="sec-hardware"') < head
-    for admin in ("sec-team-names", "sec-masthead"):
+    # the CARD, not any mention: the blockers panel above links to
+    # `sec-team-names` as its fallback anchor
+    for admin in ('id="sec-team-names"', 'id="sec-masthead"'):
         assert html.index(admin) > head, admin
 
 

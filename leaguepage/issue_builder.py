@@ -146,6 +146,8 @@ def _order_rank(key: str, order: list[str]) -> tuple[int, int]:
     """
     if is_custom_key(key):
         return (order.index("__custom__"), _custom_index(key))
+    if key == "__never__":                      # unreachable; keeps mypy honest
+        return (0, 0)
     if key in order:
         return (order.index(key), 0)
     return (order.index("hardware") - 1, 500)
@@ -414,9 +416,21 @@ def module_states(
     # against each other -- the one place the Commissioner sets them -- and
     # nothing else.
     order = DRAFT_ORDER if issue_key == "draft" else WEEKLY_ORDER
-    out.sort(key=lambda m: (_order_rank(m["module_key"], order),
-                            m["position"] if m["_explicit_pos"] else 0,
-                            m["_registry_index"]))
+
+    def sort_key(m):
+        slot, within = _order_rank(m["module_key"], order)
+        # A custom section he has positioned sorts by that position; the
+        # creation-order index is the fallback. Coerced, because `position`
+        # is a nullable TEXT-tolerant column and comparing a string against
+        # an int raises rather than sorting.
+        if is_custom_key(m["module_key"]) and m["_explicit_pos"]:
+            try:
+                within = int(m["position"])
+            except (TypeError, ValueError):
+                pass
+        return (slot, within, m["_registry_index"])
+
+    out.sort(key=sort_key)
     return out
 
 
@@ -501,9 +515,20 @@ def assemble_issue(
     resolved = resolve_public_names(storage, league)
     public_names = {rid: v["name"] for rid, v in resolved.items() if v["name"]}
     warnings: list[str] = []
+    # Same warnings, each with the key of the module it is about. The Desk
+    # used to match a warning back to its section by TITLE, and titles are
+    # free text on a custom section: two sections called the same thing
+    # collided, and a custom section named after a standing one handed him
+    # a button that excluded the standing one instead.
+    warning_rows: list[dict] = []
+
+    def warn(text: str, module_key: str | None = None, kind: str = "generic") -> None:
+        warnings.append(text)
+        warning_rows.append({"text": text, "module_key": module_key, "kind": kind})
+
     for rid, v in resolved.items():
         if v["name"] is None:
-            warnings.append(f"Roster {rid} has no confirmed public display name.")
+            warn(f"Roster {rid} has no confirmed public display name.")
     sections = []
     for module in modules:
         if not module["included"]:
@@ -516,20 +541,32 @@ def assemble_issue(
         if content is None:
             if module["kind"] in ("intel",) or module["module_key"] == "blackbox":
                 continue  # sections that legitimately disappear
-            warnings.append(f"Included module '{module['title']}' has no publishable content.")
+            warn(f"Included module '{module['title']}' has no publishable content.",
+                 module["module_key"], "empty-section")
             sections.append({**module, "content_md": None})
             continue
         if not module["approved"]:
-            warnings.append(f"Module '{module['title']}' is not approved.")
+            warn(f"Module '{module['title']}' is not approved.",
+                 module["module_key"], "unapproved")
         for marker in BLOCKED_MARKERS:
             if marker in content:
-                warnings.append(f"Module '{module['title']}' contains blocked marker '{marker}'.")
+                warn(f"Module '{module['title']}' contains blocked marker '{marker}'.",
+                     module["module_key"], "blocked-marker")
         sections.append({**module, "content_md": content})
+    # An issue with nothing in it produced no warnings at all, so every
+    # gate passed and the Desk said READY TO PUBLISH. Publishing it froze a
+    # blank page into the immutable record, and the republish guard then
+    # refused to correct it in place. Excluding sections one at a time to
+    # see what a thin week looks like is an ordinary thing to do.
+    if not any(s.get("content_md") for s in sections):
+        warn("This issue has no publishable content: every section is "
+             "excluded, empty, or automatic.", None, "empty-issue")
     issue_row = storage.get_issue(league.slug, season, issue_key)
     result = {
         "league": league.slug, "season": season, "issue_key": issue_key,
         "theme": (issue_row or {}).get("theme"),
         "sections": sections, "warnings": warnings,
+        "warning_rows": warning_rows,
     }
     if enforce and warnings:
         raise ValueError("Issue cannot publish: " + " | ".join(warnings))

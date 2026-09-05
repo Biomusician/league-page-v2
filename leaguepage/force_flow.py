@@ -147,13 +147,13 @@ def flags_for(row: dict, *, stats: dict, values: dict, profile: dict,
         # same player leaving another team's bench in the same week is the
         # ordinary way a waiver wire works, not churn.
         gone = later_dropped.get((p.get("rid"), p.get("pid")))
-        if gone is not None and 0 <= gone - row["week"] <= CHURN_WEEKS:
-            span = gone - row["week"]
+        if gone is not None and 0 <= gone - row.get("week", 0) <= CHURN_WEEKS:
+            span = gone - row.get("week", 0)
             when = "the same week" if span == 0 else f"{span} week(s) later"
             out.append({
                 "flag": "churn", "label": _label("churn"), "inferred": False,
                 "why": f"{p['name']} was added and dropped again {when}.",
-                "evidence": [f"added week {row['week']}, dropped week {gone}"],
+                "evidence": [f"added week {row.get('week', 0)}, dropped week {gone}"],
             })
 
     for p in drops:
