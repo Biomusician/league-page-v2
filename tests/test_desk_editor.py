@@ -330,7 +330,9 @@ def test_build_failure_prevents_deploy(jobs_env, monkeypatch):
     assert pj._stage(job, "build")["status"] == "fail"
     assert pj._stage(job, "deploy")["status"] == "pending"      # never ran
     assert not any("vercel@latest" in " ".join(c) for c in calls)
-    assert data["deploy_state"]["state"] == "deploy-failed"     # separate from snapshot
+    # production was never touched, and the record says exactly that
+    assert data["deploy_state"]["state"] == "never-deployed"
+    assert data["deploy_state"]["last_attempt"]["failed_stage"] == "build"
     assert (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json").exists()  # local ok
 
 
@@ -368,3 +370,84 @@ def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
     # refresh recovery: status still reports the finished job afterwards
     again = client.get(f"{EDIT}/publish-status").json()
     assert again["job"]["job_id"] == data["job"]["job_id"]
+
+
+def test_failure_reason_reaches_the_log(jobs_env):
+    """A Desk restart forgets the in-memory job; the log must carry why."""
+    client, db, idir, calls = jobs_env      # lowdown not approved -> blocked
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    data = _wait_job(client)
+    assert "FAIL snapshot blocked" in data["log_tail"]
+
+
+def test_a_changed_published_issue_needs_a_note_and_becomes_a_correction(jobs_env):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    assert _wait_job(client)["job"]["state"] == "succeeded"
+    original = cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.json"
+    before = original.read_bytes()
+
+    (idir / "lowdown" / "lowdown.md").write_text("# The Lowdown\n\nCorrected words.\n",
+                                                 encoding="utf-8")
+    page = client.get(f"{EDIT}/publish").text
+    assert "Correction note" in page and "changed" in page
+    # no note: refused before any job exists
+    pj._JOBS.clear()
+    r = client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"},
+                    follow_redirects=False)
+    assert "error=note" in r.headers["location"] and pj._JOBS == {}
+
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "local", "confirm": "yes", "note": "lowdown wording"})
+    job = _wait_job(client)["job"]
+    assert job["state"] == "succeeded", job["stages"]
+    assert job["stages"][0]["name"] == pj.CORRECTION_STAGE_NAME
+    assert "correction r2" in job["stages"][0]["detail"]
+    assert (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.r2.json").exists()
+    assert original.read_bytes() == before          # the original is never rewritten
+
+    # unchanged after the correction: a plain republish is a no-op, not a refusal
+    pj._JOBS.clear()
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    assert _wait_job(client)["job"]["state"] == "succeeded"
+    assert not (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.r3.json").exists()
+
+
+def test_a_deploy_that_fails_verification_is_still_recorded_as_a_deploy(jobs_env, monkeypatch):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+
+    def unverifiable(job, dbp):
+        raise pj.StageError("production verification failed after 6 attempts")
+
+    monkeypatch.setitem(pj._STAGE_FNS, "verify", unverifiable)
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes"})
+    data = _wait_job(client)
+    assert data["job"]["state"] == "failed"
+    assert pj._stage(data["job"], "deploy")["status"] == "ok"
+    assert data["deploy_state"]["state"] == "deployed-unverified"
+    assert data["deploy_state"]["url"].endswith(f"/surfeit/{SEASON}/draft/")
+    assert "verification failed" in data["deploy_state"]["reason"]
+
+
+def test_verification_retries_while_the_alias_propagates(monkeypatch, tmp_path):
+    probes = []
+
+    def probe(url):
+        probes.append(url)
+        return 404 if len(probes) <= 3 else 200      # first sweep 404, second 200
+
+    monkeypatch.setattr(pj, "_probe_url", probe)
+    monkeypatch.setattr(pj, "VERIFY_PAUSE", 0)
+    job = {"league_slug": "surfeit", "season": SEASON, "issue_key": "draft",
+           "log_path": str(tmp_path / "log.txt"), "stages": []}
+    detail = pj._stage_verify(job, None)
+    assert "(attempt 2)" in detail and len(probes) == 6
+    assert "verify attempt 1/" in (tmp_path / "log.txt").read_text(encoding="utf-8")
+
+    monkeypatch.setattr(pj, "_probe_url", lambda url: 0)
+    monkeypatch.setattr(pj, "VERIFY_ATTEMPTS", 2)
+    with pytest.raises(pj.StageError, match="after 2 attempts"):
+        pj._stage_verify(job, None)

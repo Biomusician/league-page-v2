@@ -36,6 +36,10 @@ PRODUCTION_URL = "https://league-page-ten-sandy.vercel.app"
 VERCEL_PROJECT = "league-page"
 
 TIMEOUTS = {"build": 300, "link": 240, "deploy": 600, "verify": 25}
+# A production alias can take a few seconds to answer after "Ready";
+# one probe a second after the deploy is not a verdict on the deployment.
+VERIFY_ATTEMPTS = 6
+VERIFY_PAUSE = 5
 
 _LOCK = threading.Lock()
 _JOBS: dict[str, dict] = {}          # job_id -> job
@@ -45,6 +49,7 @@ STAGES_LOCAL = [("snapshot", "Creating immutable issue snapshot"),
                 ("build", "Building public site + privacy audit")]
 STAGES_DEPLOY = STAGES_LOCAL + [("deploy", "Deploying to Vercel production"),
                                 ("verify", "Verifying production URLs")]
+CORRECTION_STAGE_NAME = "Freezing a correction beside the original snapshot"
 
 
 class StageError(Exception):
@@ -118,20 +123,25 @@ def get_job_for(league_slug: str, season: str, issue_key: str) -> dict | None:
 
 
 def start_publish_job(db_path, league_slug: str, season: str, issue_key: str,
-                      mode: str) -> tuple[dict, bool]:
+                      mode: str, *, note: str | None = None) -> tuple[dict, bool]:
     """(job, created). A running job for the same issue is returned as-is:
-    duplicate clicks can never start duplicate production deployments."""
+    duplicate clicks can never start duplicate production deployments.
+
+    `note` turns the snapshot stage into a correction: the original stays
+    on disk and a sibling revision is frozen beside it."""
     key = _issue_key(league_slug, season, issue_key)
+    note = (note or "").strip() or None
     with _LOCK:
         active_id = _ACTIVE.get(key)
         if active_id and _JOBS[active_id]["state"] == "running":
             return _JOBS[active_id], False
-        stages = STAGES_DEPLOY if mode == "deploy" else STAGES_LOCAL
+        stages = [(k, CORRECTION_STAGE_NAME if (k == "snapshot" and note) else n)
+                  for k, n in (STAGES_DEPLOY if mode == "deploy" else STAGES_LOCAL)]
         job = {
             "job_id": uuid.uuid4().hex[:12],
             "issue": key,
             "league_slug": league_slug, "season": season, "issue_key": issue_key,
-            "mode": mode, "state": "running",
+            "mode": mode, "note": note, "state": "running",
             "created_at": _now(), "ended_at": None,
             "stages": [{"key": k, "name": n, "status": "pending", "detail": ""}
                        for k, n in stages],
@@ -142,7 +152,8 @@ def start_publish_job(db_path, league_slug: str, season: str, issue_key: str,
         }
         _JOBS[job["job_id"]] = job
         _ACTIVE[key] = job["job_id"]
-    _log(job, f"---- publish job {job['job_id']} mode={mode} ----")
+    _log(job, f"---- publish job {job['job_id']} mode={mode}"
+              + (" correction" if note else "") + " ----")
     threading.Thread(target=_run_job, args=(job, db_path), daemon=True).start()
     return job, True
 
@@ -177,6 +188,9 @@ def _run_job(job: dict, db_path) -> None:
 
 def _fail(job: dict, message: str) -> None:
     job["state"] = "failed"
+    # The reason used to live only in the in-memory job, which a Desk
+    # restart forgets. The log is what survives.
+    _log(job, f"FAIL {message}")
     for s in job["stages"]:
         if s["status"] == "running":
             s["status"] = "fail"
@@ -187,13 +201,33 @@ def _fail(job: dict, message: str) -> None:
 
 
 def _record_deploy_state(job: dict, db_path) -> None:
-    deployed = job["state"] == "succeeded"
+    """What production actually carries, kept separate from how the job
+    ended. A job that died at the snapshot or build stage never touched
+    production, so the previous record stands and the attempt is noted
+    beside it; a deploy that went out but failed verification is still a
+    deploy, and is recorded as one."""
+    deploy_st, verify_st = _stage(job, "deploy"), _stage(job, "verify")
+    now = _now()
     with Storage(db_path) as s:
-        s.set_meta(f"deploy_state:{job['issue']}", json.dumps({
-            "state": "deployed" if deployed else "deploy-failed",
-            "at": _now(), "url": job["issue_url"] if deployed else None,
-            "deployment_id": job["deployment_id"],
-        }))
+        key = f"deploy_state:{job['issue']}"
+        if deploy_st["status"] == "ok":
+            verified = verify_st["status"] == "ok"
+            record = {"state": "deployed" if verified else "deployed-unverified",
+                      "at": now, "url": job["issue_url"],
+                      "deployment_id": job["deployment_id"], "verified": verified,
+                      "reason": None if verified else verify_st["detail"][:300]}
+        elif deploy_st["status"] == "fail":
+            record = {"state": "deploy-failed", "at": now, "url": None,
+                      "deployment_id": None, "reason": deploy_st["detail"][:300]}
+        else:
+            prior = s.get_meta(key)
+            record = json.loads(prior) if prior else {
+                "state": "never-deployed", "at": None, "url": None, "deployment_id": None}
+            failed = next((st for st in job["stages"] if st["status"] == "fail"), None)
+            record["last_attempt"] = {
+                "at": now, "failed_stage": failed["key"] if failed else None,
+                "reason": (failed["detail"] if failed else "")[:300]}
+        s.set_meta(key, json.dumps(record))
 
 
 def deploy_state(storage: Storage, league_slug: str, season: str, issue_key: str) -> dict | None:
@@ -204,15 +238,28 @@ def deploy_state(storage: Storage, league_slug: str, season: str, issue_key: str
 # ------------------------------------------------------------------ stages
 
 def _stage_snapshot(job: dict, db_path) -> str:
-    from leaguepage.publish import publish_assembled_issue
+    from leaguepage import config as cfg
+    from leaguepage.publish import (publish_assembled_issue, revise_issue,
+                                    snapshot_family)
 
     league = get_league(job["league_slug"])
     week = (int(job["issue_key"].removeprefix("week-"))
             if job["issue_key"].startswith("week-") else None)
+    family = snapshot_family(cfg.PUBLISHED_DIR, league.slug, job["season"], job["issue_key"])
     try:
         with Storage(db_path) as s:
+            if job.get("note"):
+                if not family:
+                    raise StageError("this issue has never been published, so there is "
+                                     "nothing to correct; publish it normally")
+                snap = revise_issue(s, league, job["season"], job["issue_key"],
+                                    note=job["note"], week=week)
+                rev = snap.stem.rsplit(".", 1)[-1]
+                return f"correction {rev} frozen beside the original: {snap}"
             snap = publish_assembled_issue(s, league, job["season"], job["issue_key"],
                                            week=week)
+    except StageError:
+        raise
     except Exception as exc:
         raise StageError(f"snapshot blocked: {exc}") from exc
     return f"frozen: {snap}"
@@ -297,22 +344,36 @@ def _stage_deploy(job: dict, db_path) -> str:
     return f"deployment {job['deployment_id'] or '(id not reported)'}"
 
 
-def _stage_verify(job: dict, db_path) -> str:
+def _probe_url(url: str) -> int:
+    """HTTP status of one GET; an HTTP error is its code, anything else 0."""
+    import urllib.error
     import urllib.request
 
-    checks = []
-    for path in ("/", f"/{job['league_slug']}/",
-                 f"/{job['league_slug']}/{job['season']}/{job['issue_key']}/"):
-        try:
-            with urllib.request.urlopen(PRODUCTION_URL + path,
-                                        timeout=TIMEOUTS["verify"]) as resp:
-                checks.append((path, resp.status))
-        except Exception:
-            checks.append((path, 0))
-    detail = ", ".join(f"{p} -> {c or 'unreachable'}" for p, c in checks)
-    if not all(c == 200 for _, c in checks):
-        raise StageError(f"production verification failed: {detail}")
-    return detail
+    try:
+        with urllib.request.urlopen(url, timeout=TIMEOUTS["verify"]) as resp:
+            return resp.status
+    except urllib.error.HTTPError as exc:
+        return exc.code
+    except Exception:
+        return 0
+
+
+def _stage_verify(job: dict, db_path) -> str:
+    import time
+
+    paths = ("/", f"/{job['league_slug']}/",
+             f"/{job['league_slug']}/{job['season']}/{job['issue_key']}/")
+    detail = ""
+    for attempt in range(1, VERIFY_ATTEMPTS + 1):
+        checks = [(p, _probe_url(PRODUCTION_URL + p)) for p in paths]
+        detail = ", ".join(f"{p} -> {c or 'unreachable'}" for p, c in checks)
+        if all(c == 200 for _, c in checks):
+            return detail + (f" (attempt {attempt})" if attempt > 1 else "")
+        _log(job, f"verify attempt {attempt}/{VERIFY_ATTEMPTS}: {detail}")
+        if attempt < VERIFY_ATTEMPTS:
+            time.sleep(VERIFY_PAUSE)
+    raise StageError(f"production verification failed after {VERIFY_ATTEMPTS} attempts: "
+                     f"{detail}. The deployment itself went out; check the URLs by hand.")
 
 
 _STAGE_FNS = {"snapshot": _stage_snapshot, "build": _stage_build,

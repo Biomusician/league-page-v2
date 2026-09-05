@@ -15,15 +15,37 @@
 
 <h2>Publish {{ league.display_name }} · {{ season }} · {{ issue_key }}</h2>
 
+{% set err = request.query_params.get("error") %}
+{% if err == "note" %}
+  <div class="card bad"><b>A correction note is required.</b> This issue is already
+    published and its text has changed since. Say what was corrected in the note
+    field below; the original snapshot is kept and the change travels with the note.</div>
+{% elif err == "confirm" %}
+  <div class="card bad"><b>Not started.</b> Tick the confirmation before deploying.</div>
+{% endif %}
+
 <div class="card statebar">
   <span>Snapshot: <b>{{ (issue_row or {}).get("status") or "not started" }}</b>
-    {% if issue_row and issue_row.get("updated_at") %}<span class="meta">({{ issue_row["updated_at"][:16] }})</span>{% endif %}</span>
+    {% if issue_row and issue_row.get("updated_at") %}<span class="meta">({{ issue_row["updated_at"][:16] }})</span>{% endif %}
+    {% if published_rev %}<span class="meta">· rev {{ published_rev.n }} frozen {{ published_rev.at[:16] }}{% if published_rev.count > 1 %} · {{ published_rev.count }} files{% endif %}</span>{% endif %}</span>
+  {% if published_rev %}
+  <span>Text since publication:
+    {% if text_changed %}<b style="color:var(--accent)">changed</b> <span class="meta">(the next publish is a correction and needs a note)</span>
+    {% elif text_changed is none %}<span class="meta">could not compare</span>
+    {% else %}<b>unchanged</b> <span class="meta">(publishing again re-deploys the same text)</span>{% endif %}
+  </span>
+  {% endif %}
   <span>Production:
     {% if deploy_state and deploy_state.state == "deployed" %}
-      <b style="color:#2f6b2f">deployed</b> <span class="meta">({{ deploy_state.at[:16] }}{% if deploy_state.deployment_id %} · {{ deploy_state.deployment_id }}{% endif %})</span>
-    {% elif deploy_state %}
-      <b style="color:var(--accent)">deploy failed</b> <span class="meta">({{ deploy_state.at[:16] }})</span>
+      <b style="color:#2f6b2f">deployed</b> <span class="meta">({{ (deploy_state.at or "")[:16] }}{% if deploy_state.deployment_id %} · {{ deploy_state.deployment_id }}{% endif %})</span>
+    {% elif deploy_state and deploy_state.state == "deployed-unverified" %}
+      <b style="color:#8a6d00">deployed, verification failed</b> <span class="meta">({{ (deploy_state.at or "")[:16] }}{% if deploy_state.deployment_id %} · {{ deploy_state.deployment_id }}{% endif %}; check the URLs by hand)</span>
+    {% elif deploy_state and deploy_state.state == "deploy-failed" %}
+      <b style="color:var(--accent)">deploy failed</b> <span class="meta">({{ (deploy_state.at or "")[:16] }})</span>
     {% else %}<span class="meta">never deployed from this issue</span>{% endif %}
+    {% if deploy_state and deploy_state.last_attempt %}
+      <span class="meta">· last attempt {{ (deploy_state.last_attempt.at or "")[:16] }} failed at {{ deploy_state.last_attempt.failed_stage or "?" }}; production untouched</span>
+    {% endif %}
   </span>
 </div>
 
@@ -56,6 +78,19 @@
 {% endif %}
 {% if not blockers and qa.ready %}
   <div class="card ok2"><b>READY TO PUBLISH.</b> All gates pass.</div>
+{% if published_rev %}
+  <div class="card">
+    <h3 style="margin-top:0">This issue is already published</h3>
+    <p class="meta">Published snapshots are never rewritten. If the text changed, the
+      publish below freezes a correction (<code>{{ issue_key }}.r{{ published_rev.n + 1 }}.json</code>)
+      beside the original; the public page shows the latest text with an
+      "Updated &lt;date&gt; · &lt;note&gt;" line, and the original stays on disk as the
+      record of what shipped. If the text is unchanged, no new file is written.</p>
+    <label>Correction note <span class="meta">(what was corrected; {{ "required" if text_changed else "only used if the text changed" }})</span><br>
+      <textarea id="corrnote" rows="2" style="width:100%" {% if text_changed %}required{% endif %}
+        placeholder="e.g. Fades: Jordan Love wording corrected for Superflex"></textarea></label>
+  </div>
+{% endif %}
   <div class="card">
     <h3 style="margin-top:0">Publish locally</h3>
     <p class="meta">Freezes the immutable snapshot under <code>published/</code> and rebuilds
@@ -64,7 +99,8 @@
           onsubmit="return confirm('Freeze and publish this issue locally?')">
       <input type="hidden" name="mode" value="local">
       <input type="hidden" name="confirm" value="yes">
-      <button class="primary">Publish Locally</button>
+      <input type="hidden" name="note" class="notefield" value="">
+      <button class="primary">{{ "Publish Correction Locally" if text_changed else "Publish Locally" }}</button>
     </form>
   </div>
   <div class="card">
@@ -76,9 +112,10 @@
           onsubmit="return confirm('Deploy to the LIVE public site now?')">
       <input type="hidden" name="mode" value="deploy">
       <input type="hidden" name="confirm" value="yes">
+      <input type="hidden" name="note" class="notefield" value="">
       <label><input type="checkbox" name="confirm_deploy" value="yes">
         I want this issue live on the public internet.</label><br><br>
-      <button>Publish &amp; Deploy</button>
+      <button>{{ "Publish Correction &amp; Deploy" if text_changed else "Publish &amp; Deploy" }}</button>
     </form>
   </div>
 {% endif %}
@@ -90,6 +127,13 @@ const STATUS = {{ (edit_base ~ "/publish-status") | tojson }};
 const ISSUE_URL = {{ (production_url ~ "/" ~ league.slug ~ "/" ~ season ~ "/" ~ issue_key ~ "/") | tojson }};
 const initialState = {{ (job.state if job else "none") | tojson }};
 const ICON = {pending: "·", running: "⏳", ok: "✅", fail: "❌"};
+
+// one note box feeds both forms
+document.querySelectorAll("form[action$='/publish-start']").forEach(f => f.addEventListener("submit", () => {
+  const box = document.getElementById("corrnote");
+  const field = f.querySelector(".notefield");
+  if (box && field) field.value = box.value.trim();
+}));
 
 function render(data) {
   const job = data.job;

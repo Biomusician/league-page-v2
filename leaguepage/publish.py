@@ -196,7 +196,11 @@ def publish_assembled_issue(
         # retried. So: an identical re-entry is a no-op, and a changed one
         # is refused and pointed at the correction mechanism, which keeps
         # the original and adds a sibling.
-        prior = _json.loads(snap_path.read_text(encoding="utf-8"))
+        # ...measured against the latest revision: after a correction the
+        # Desk text matches r2, not the original, and that is unchanged.
+        latest = snapshot_family(snap_path.parent.parent.parent, league.slug, season,
+                                 issue_key)[-1]
+        prior = _json.loads(latest.read_text(encoding="utf-8"))
         if _prose_only(prior.get("sections")) == _prose_only(sections):
             storage.set_issue_status(league_slug=league.slug, season=season,
                                      issue_key=issue_key, status="published",
@@ -206,7 +210,8 @@ def publish_assembled_issue(
             f"{issue_key} was already published on "
             f"{(prior.get('published_at') or '')[:10]} and the text has changed "
             f"since. Publishing again would rewrite the record of what shipped. "
-            f"Use a correction (revise_issue) so the original is kept and the "
+            f"Publish it as a correction instead: add a correction note on the "
+            f"publish page (revise_issue) so the original is kept and the "
             f"change travels with a note.")
     snap_path.write_text(_json.dumps(snapshot, indent=1, ensure_ascii=False) + "\n",
                          encoding="utf-8")
@@ -216,6 +221,40 @@ def publish_assembled_issue(
 
 
 # ------------------------------------------------------------- corrections
+
+def text_changed_since_publish(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    *,
+    published_dir: Path | None = None,
+    base_dir: Path | None = None,
+    week: int | None = None,
+) -> bool | None:
+    """Whether the prose on the Desk differs from the latest frozen
+    revision. None when the issue has never been published. The same
+    comparison publish_assembled_issue makes, so the publish page can say
+    "a correction note is required" before a job is started and fails."""
+    import json as _json
+
+    from leaguepage.config import PUBLISHED_DIR
+    from leaguepage.issue_builder import assemble_issue
+
+    family = snapshot_family(published_dir or PUBLISHED_DIR, league.slug, season, issue_key)
+    if not family:
+        return None
+    latest = _json.loads(family[-1].read_text(encoding="utf-8"))
+    assembled = assemble_issue(storage, league, season, issue_key,
+                               base_dir=base_dir, week=week, enforce=False)
+    current = [{
+        "module_key": s["module_key"], "title": s["title"],
+        "content_md": strip_editorial_comments(s["content_md"]).strip(),
+        "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
+    } for s in assembled["sections"]
+        if s["kind"] != "auto" and s.get("content_md") and s.get("included", True)]
+    return _prose_only(current) != _prose_only(latest.get("sections"))
+
 
 REVISION_RE = _re.compile(r"^(?P<key>.+?)\.r(?P<n>\d+)$")
 

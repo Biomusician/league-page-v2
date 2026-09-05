@@ -6,6 +6,23 @@ playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
+## Publish pipeline fix (2026-09-05 morning)
+
+The Disco Week 1 publish of 2026-09-04 evening deployed (dpl_Fe6g8iSMeUPShzuuEtkAea9QqcJc,
+live and answering 200 on /, /disco/ and /disco/2026/week-01/) but its verify
+stage failed one second later without logging why. The morning republish was
+refused at the snapshot stage because the Fades and one matchup draft had
+changed since; the Desk had no correction path. Now: failures are logged,
+verification retries (6 x 5s) and records HTTP codes, the deploy-state record
+distinguishes deployed / deployed-unverified / deploy-failed / never-deployed
+and keeps the prior record when a job dies before the deploy stage, and the
+publish page shows "Text since publication: changed" with a required
+correction note that freezes `week-01.r2.json` beside the untouched original.
+The wrong "deploy failed 10:35" record in the local DB was corrected by hand
+to the verified truth. **Nothing was published or deployed by Claude; the
+correction note and the click are Jonathan's.** `published/disco/2026/week-01.json`
+is still untracked in git and is the record of what shipped; commit it.
+
 ## Overnight editorial pass (2026-09-04)
 
 **Status: 1,175 tests green (2 skipped; 43 new), public build 102 pages and privacy-clean, repo audit

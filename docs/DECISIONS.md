@@ -890,3 +890,34 @@ reference source and the brief says that rather than faking it; nothing
 anywhere is a projection; a team-name history on sync would turn the
 Disco Week 1 "George & Friends" identification from elimination into a
 lookup. Those are in ROADMAP.
+
+## 2026-09-05 — Corrections go through the publish page, and production state means production
+
+Disco Week 1 was published and deployed on the evening of 2026-09-04. The
+deploy went out and the alias answered, but the verification stage failed
+one second later and the reason never reached the log, because the failure
+message lived only in the in-memory job. The next morning the Commissioner
+had edited two sections and pressed Publish again; the snapshot stage
+refused, correctly, because published snapshots are immutable, and its
+message pointed at a correction mechanism the Desk did not expose. The
+page then said "Production: deploy failed" about a job that had never
+reached the deploy stage, on an issue that was live.
+
+Three rules follow. A failure reason is logged, always; the log is what
+survives a restart. The verification stage retries for half a minute
+before it calls a deployment unreachable, and records HTTP codes rather
+than "unreachable" for everything. And the deploy-state record describes
+production, not the job: a deploy that failed verification is
+"deployed-unverified" with its deployment id; a job that died before the
+deploy stage leaves the previous record standing and notes the attempt
+beside it.
+
+The correction path is now on the publish page. When an issue is already
+published, the page says whether the Desk text has changed since the latest
+frozen revision, and if it has, a correction note is required before a job
+starts. With the note, the snapshot stage calls `revise_issue`: the original
+file is never rewritten, `<key>.rN.json` is frozen beside it, and the public
+page carries the "Updated · note" line. A republish of unchanged text is a
+no-op, measured against the latest revision rather than the original, so a
+corrected issue can be re-deployed without being told to correct it again.
+Nothing here publishes anything by itself; the note and the click are his.

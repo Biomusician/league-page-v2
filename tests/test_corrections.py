@@ -155,3 +155,17 @@ def test_publication_gate_stops_a_first_publish_too(env):
     db, tmp = env
     with pytest.raises(PublishError, match="Publication check"):
         _publish(db, tmp, "Preview pending.\n")
+
+
+def test_a_republish_after_a_correction_compares_with_the_latest_revision(env):
+    """The Desk text matches r2 after a correction. A plain republish of
+    that text is a no-op, not a refusal that points at yet another
+    correction; the original stays byte-identical throughout."""
+    db, tmp_path = env
+    original = _publish(db, tmp_path, ORIGINAL)
+    before = original.read_bytes()
+    _revise(db, tmp_path, CORRECTED)
+    again = _publish(db, tmp_path, CORRECTED)
+    assert again == original and original.read_bytes() == before
+    assert [p.name for p in snapshot_family(tmp_path / "published", LEAGUE.slug, SEASON, "draft")] \
+        == ["draft.json", "draft.r2.json"]

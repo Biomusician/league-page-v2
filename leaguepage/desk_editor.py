@@ -1176,18 +1176,51 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         ctx["job"] = publish_jobs.get_job_for(league_slug, season, issue_key)
         with storage() as s:
             ctx["deploy_state"] = publish_jobs.deploy_state(s, league_slug, season, issue_key)
+            ctx["published_rev"], ctx["text_changed"] = _publication_state(
+                s, league_slug, season, issue_key)
         return templates.TemplateResponse(request, "desk/publish_confirm.html", ctx)
+
+    def _publication_state(s, league_slug: str, season: str, issue_key: str):
+        """(latest frozen revision or None, whether the Desk text differs
+        from it). Tells the page whether the next publish is a republish,
+        a no-op, or a correction that needs a note."""
+        import json as _json
+
+        from leaguepage import config as cfg
+        from leaguepage.publish import snapshot_family, text_changed_since_publish
+
+        family = snapshot_family(cfg.PUBLISHED_DIR, league_slug, season, issue_key)
+        if not family:
+            return None, None
+        latest = _json.loads(family[-1].read_text(encoding="utf-8"))
+        rev = {"n": int(latest.get("revision") or 1),
+               "at": latest.get("revised_at") or latest.get("published_at") or "",
+               "count": len(family), "note": latest.get("revision_note")}
+        try:
+            changed = text_changed_since_publish(
+                s, get_league(league_slug), season, issue_key, week=_week_of(issue_key))
+        except Exception:
+            changed = None
+        return rev, changed
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish-start")
     def publish_start(league_slug: str, season: str, issue_key: str,
                       mode: str = Form(...), confirm: str = Form(""),
-                      confirm_deploy: str = Form("")):
+                      confirm_deploy: str = Form(""), note: str = Form("")):
         from leaguepage import publish_jobs
 
         back = f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish"
         if mode not in ("local", "deploy") or confirm != "yes"                 or (mode == "deploy" and confirm_deploy != "yes"):
             return RedirectResponse(back + "?error=confirm", status_code=303)
-        publish_jobs.start_publish_job(db_path_of(), league_slug, season, issue_key, mode)
+        note = note.strip()
+        with storage() as s:
+            _rev, changed = _publication_state(s, league_slug, season, issue_key)
+        if changed and not note:
+            # Refuse before a job exists: the snapshot stage would refuse
+            # anyway, but a form field is a better place to learn that.
+            return RedirectResponse(back + "?error=note", status_code=303)
+        publish_jobs.start_publish_job(db_path_of(), league_slug, season, issue_key, mode,
+                                       note=note or None)
         return RedirectResponse(back, status_code=303)
 
     def db_path_of():
