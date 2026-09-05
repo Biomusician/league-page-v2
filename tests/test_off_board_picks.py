@@ -63,3 +63,19 @@ def test_off_board_survives_the_team_summary_whitelist():
                           "co_managed": False, "evidence": []},
                          picks, starters_count=9, rounds=1)
     assert out["picks_by_round"][0]["off_board"] is True
+
+
+def test_headline_reaches_never_list_an_off_board_pick():
+    """The Draft page showed one under Biggest Reaches, wearing the verdict
+    "outside the reference board's range" -- a reach with no magnitude,
+    ranked among the biggest. Off-board picks stay out of both lists."""
+    from leaguepage.draft_value import headline_deviations
+
+    picks = [{"name": "In range", "position": "WR", "delta": -30.0, "pick_no": 40,
+              "adp": 70.0, "team_slug": "t", "off_board": False},
+             {"name": "Off board", "position": "WR", "delta": -244.0, "pick_no": 41,
+              "adp": 285.0, "team_slug": "t", "off_board": True}]
+    out = headline_deviations(picks, 12)
+    assert [p["name"] for p in out["skill_reaches"]] == ["In range"]
+    assert out["skill_steals"] == [] and out["special_teams"] == []
+

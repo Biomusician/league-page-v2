@@ -109,7 +109,12 @@ def headline_deviations(picks: list[dict], league_size: int,
     actually cross the one-round threshold. special_teams: K/DST picks at
     least two rounds from reference, reported separately so mandatory
     late-position picks cannot drown out roster-construction stories."""
-    rated = [p for p in picks if p.get("delta") is not None]
+    # Off-board picks carry no magnitude (see classify_pick), so they cannot
+    # be ranked as the biggest anything. Listing one under Biggest Reaches
+    # with the verdict "outside the reference board's range" contradicted
+    # the page's own footnote.
+    rated = [p for p in picks if p.get("delta") is not None
+             and not p.get("off_board")]
     skill = [p for p in rated if (p.get("position") or "").upper()
              in SKILL_POSITIONS]
     st = [p for p in rated if (p.get("position") or "").upper()

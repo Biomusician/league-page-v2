@@ -37,6 +37,8 @@ from leaguepage.matchup_analysis import (all_play, analyze_week, season_efficien
                                          team_record, weekly_scores)
 from leaguepage.matchup_packet import compute_week, matchup_status, week_dir
 from leaguepage.publish import BLOCKED_MARKERS, strip_editorial_comments
+from leaguepage.force_flow_history import (PERSISTENT_TAB_MODULES, move_unit,
+                                           moves_that_mattered)
 from leaguepage.storage import Storage
 from leaguepage.team_analytics import lineup_slots
 from leaguepage.team_names import resolve_public_names
@@ -214,6 +216,13 @@ def _strip_duplicate_heading(content_md: str, title: str) -> str:
 def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
     sections = []
     for s in snap["sections"]:
+        # Force Flow became a standing tab. An issue that carried it as a
+        # section still holds that prose in its immutable snapshot, and the
+        # tab reads the selections behind it; the archived issue does not
+        # reprint it. A presentation rule, applied at render time, so no
+        # published file is ever rewritten to achieve it.
+        if s["module_key"] in PERSISTENT_TAB_MODULES:
+            continue
         sections.append({
             "anchor": s["module_key"],
             "title": s["title"],
@@ -656,21 +665,9 @@ def build_league(
                 tx_by_rid.setdefault(_rid, []).append(_row)
 
     def _move_ctx(row: dict) -> dict:
-        from leaguepage.transaction_analysis import describe_move
-
-        return {"week": row["week"], "type": row["type"],
-                "line": describe_move(row),
-                "adds": ", ".join(a["name"] for a in row["adds"]),
-                "drops": ", ".join(d["name"] for d in row["drops"]),
-                "faab": row["faab"], "priority": row.get("priority", 0),
-                "text": row["rationale"]["text"],
-                "questionable": row["rationale"]["kind"] == "questionable",
-                "rank_shift": row.get("rank_shift"),
-                "outcome": row.get("outcome"),
-                # what actually happened afterwards, as its own column. The
-                # rationale above is what he was reading at the time and is
-                # never rewritten with hindsight.
-                "aged": row.get("aged_line")}
+        # One shape for every surface that shows a move, with the team(s)
+        # carried structurally so the page can put them first and link them.
+        return move_unit(row, public_by_rid)
 
     from leaguepage.draft_aging import (aging_line, departed_headliners,
                                         draft_aging)
@@ -1023,13 +1020,17 @@ def build_league(
     # transactions (Force Flow): analytical reading + full reference log
     log, meaningful = [], []
     for row in tx_rows:
-        team_label = ", ".join(names[rid]["name"] or f"Roster {rid}"
-                               for rid in row["rids"])
-        ctx = dict(_move_ctx(row), team=team_label)
+        ctx = _move_ctx(row)
         log.append(ctx)
         if row.get("significant"):
             meaningful.append(ctx)
     meaningful.sort(key=lambda m: -m["priority"])
+    # The Commissioner's own selections, read back from the story decisions
+    # behind each published issue rather than from the prose those issues
+    # printed. Team identity arrives as roster ids, never as a guess.
+    editorial_groups = moves_that_mattered(
+        storage, league, tx_rows=tx_rows, snaps=snaps, names=public_by_rid,
+        render_md=_render_md)
     # The reading of the moves is arithmetic over synced data, not a
     # language model, so it says that rather than wearing a Claude badge it
     # has not earned.
@@ -1040,18 +1041,30 @@ def build_league(
                         f"{league.display_name}, with what each move was reading "
                         f"and what it cost."),
            log=log, meaningful=meaningful,
-           editorial_sections=_published_module_sections(snaps, "forceflow"),
+           editorial_groups=editorial_groups,
            current_nav="Force Flow")
 
     # draft page
     analysis = draft_analysis
     board, team_sections, status_line, prov = [], [], "", None
     reaches_ctx, steals_ctx, st_ctx = [], [], []
+    draft_meta: list[tuple[str, str]] = []
     if analysis and analysis["picks"]:
         prov = analysis.get("adp_provenance")
         status_line = (f"{analysis['pick_count']} of {analysis.get('expected_pick_count') or '?'} picks "
                        f"({analysis['draft_status']}); {analysis['total_teams']} teams, "
                        f"{analysis['rounds']} rounds, {analysis['draft_type']}.")
+        # The same facts as a strip of labelled figures, which is how a
+        # data page introduces itself. The sentence stays for the
+        # description tag and for anything that still reads it.
+        draft_meta = [
+            ("Status", str(analysis["draft_status"]).replace("_", " ")),
+            ("Picks", f"{analysis['pick_count']} of "
+                      f"{analysis.get('expected_pick_count') or '?'}"),
+            ("Teams", str(analysis["total_teams"])),
+            ("Rounds", str(analysis["rounds"])),
+            ("Format", str(analysis["draft_type"]).replace("_", " ")),
+        ]
         rid_by_slug = {t["team_slug"]: t["roster_id"] for t in analysis["teams"]}
         public_of = {t["team_slug"]: (names[rid_by_slug[t["team_slug"]]]["name"]
                                       or f"Roster {rid_by_slug[t['team_slug']]}")
@@ -1098,6 +1111,7 @@ def build_league(
     render("draft/index.html", "public/draft.html", 2,
            description=_draft_description(league, analysis),
            board=board, team_sections=team_sections, status_line=status_line,
+           draft_meta=draft_meta,
            reaches=reaches_ctx, steals=steals_ctx, special_teams=st_ctx,
            league_size=league_size,
            adp_provenance=prov, recap_href=recap["href"] if recap else None,

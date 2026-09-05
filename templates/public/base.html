@@ -55,7 +55,9 @@
      href="{{ lroot }}teams/index.html" hidden>My team</a>
 </nav>
 {% endif %}
-<main id="content">
+{#  A page whose value is comparative data may ask for the wide treatment;
+    prose pages keep the reading measure. #}
+<main id="content"{% block main_attrs %}{% endblock %}>
 {% block content %}{% endblock %}
 </main>
 <footer class="colophon">

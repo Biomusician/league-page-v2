@@ -409,7 +409,7 @@ def weekly_story_candidates(
 
         for c in transaction_story_candidates(storage, league, week):
             candidates.append(_cand(
-                f"txn:{c['headline']}", "transaction", c["headline"],
+                c["candidate_id"], "transaction", c["headline"],
                 facts=c["support"], ev=[],
                 why=c["angle"], sections=["forceflow", "tracks"]))
     except Exception:

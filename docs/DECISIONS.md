@@ -777,3 +777,74 @@ A Commissioner intro inside Common Tactical Picture removes CTP's badge
 outright, even when every preview under it is untouched. The badge describes
 the section a reader sees, and that section now contains his sentence. No badge
 is never a false statement; that one would be.
+
+## 2026-09-04 — The Draft page is a data page and takes a data measure
+
+The site's 52rem reading measure is right for prose and was wrong for the
+one page that is mostly tables and side-by-side lists: on a wide monitor the
+Draft rendered as a 700px article with two-thirds of the screen empty, and
+Biggest Reaches and Biggest Steals sat in cards so narrow that every entry
+wrapped onto four lines.
+
+The container width is a per-page choice, not a global one. `base.html`
+exposes a `main_attrs` block; the Draft page asks for `class="wide"` and
+gets 84rem (about 70% of a 1920px display; not full-bleed). Every other page
+keeps 52rem, and prose inside the wide page — the recap callout, the method
+note — is capped back to a 60rem line by `.measure`, because a data page is
+not licence for 1300px sentences.
+
+Inside it, the hierarchy is the one a reader of draft analysis wants: a
+strip of labelled facts (status, picks, teams, rounds, format) instead of a
+status sentence; the Commissioner's recap as a quiet labelled callout rather
+than an underlined line floating between sections; Market Deviations as the
+lead analytical feature with reaches and steals side by side from 1024px up,
+each entry three scannable lines (player / team · pick · reference /
+verdict); special-teams outliers spanning beneath, not squeezed in as a third
+column — and sitting beside the one headline list when only one exists, so
+no draft ever leaves an empty column; team tables two abreast; the full board
+at full width. Grid minimums use `min(30rem, 100%)` so a 320px phone never
+scrolls sideways, which measurement confirmed at 320/375/430/768/1024/1440/
+1920.
+
+Off-board picks no longer appear under Biggest Reaches. They carry no
+magnitude by design, and listing one as a headline reach with the verdict
+"outside the reference board's range" contradicted the page's own footnote.
+
+## 2026-09-04 — Force Flow leads with who did it
+
+A reader's first question about any move is which team made it, and the tab
+answered it last, or not prominently. Every surface now leads with the team:
+the Commissioner's selections, the machine reading, and the log, whose
+columns run Week · Team · Move · Added · Dropped · FAAB — the week is what a
+reader scans by, and inside a week the team is what they scan for. Sort
+semantics are unchanged.
+
+Team identity is structural. A move carries its roster ids, resolved to
+canonical public names and linked through the page's own team map; a trade
+names both sides with ↔. Nothing recognises a team from a sentence, which is
+why "Moves That Mattered" changed its source: it used to render the raw prose
+of an issue's Force Flow section, which is opaque. It now reads the story
+decisions behind each published issue — the Commissioner's `include` rulings,
+keyed by the move's own candidate id — and joins them to the synced log on
+that exact id. The candidate id has one definition
+(`transaction_analysis.story_candidate_id`) shared by the Desk that offers a
+move and the site that reads the ruling back, so the join is an equality
+test, never a resemblance. A selected move the log no longer contains is
+omitted rather than reconstructed. An issue whose Force Flow prose has no
+structured selection behind it shows that prose as published, labelled with
+its issue, and that is the whole extent of the fallback.
+
+## 2026-09-04 — Force Flow is a standing tab, not an archive section
+
+Force Flow stopped being a weekly section but issues written before that
+still carry one, and published snapshots are immutable. Reprinting a standing
+feature inside every back issue is not how a newspaper works, and showing the
+same prose once in the archive and again on the live tab is worse.
+
+So this is a presentation rule, not a data change. `PERSISTENT_TAB_MODULES`
+names the module; `_issue_ctx` skips it when rendering any published issue,
+the home page's "In this issue" list follows, and the snapshot file is not
+touched — the Disco Week 1 file's hash and mtime are identical before and
+after a build, and it still contains the section. The tab may consume that
+history as evidence; it is simply not itself archived as a weekly section.
+The archive index never had a Force Flow entry, and now has a test saying so.

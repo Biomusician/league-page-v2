@@ -325,3 +325,76 @@
                  border:1px solid currentColor; border-radius:2px;
                  font-size:.62rem; letter-spacing:.06em; font-weight:bold; }
   @media (max-width:30rem) { .aiprov { font-size:.74rem; } }
+
+/* ---- data pages: the draft ----
+   The reading measure (52rem) is right for prose and wrong for a page
+   that is mostly tables and side-by-side lists. A page asks for `.wide`
+   on <main> and gets a data measure; the prose inside it (the recap
+   callout, the method note) is capped back to a readable line. Not
+   full-bleed: on a 1920px display this is about 70% of the viewport. */
+  main.wide { max-width:84rem; }
+  .wide .measure { max-width:60rem; }
+  .facts { display:flex; flex-wrap:wrap; gap:.5rem 1.8rem; margin:.3rem 0 1rem; padding:0; }
+  .facts > div { margin:0; }
+  .facts dt { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; }
+  .facts dd { margin:0; font-size:1.08rem; font-weight:600; }
+  .callout { border-radius:4px; padding:.65rem 1rem; margin:.6rem 0 1.4rem;
+             display:flex; gap:.2rem 1rem; align-items:baseline; flex-wrap:wrap; }
+  .callout .label { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; }
+  /* Reaches and steals side by side when there is room for two readable
+     columns, stacked when there is not. `min(22rem, 100%)` is what keeps
+     a 22rem minimum from overflowing a 320px phone. Special teams spans
+     the row beneath rather than squeezing in as a third column. */
+  .deviations { display:grid; gap:.8rem;
+                grid-template-columns:repeat(auto-fit, minmax(min(30rem, 100%), 1fr)); }
+  .deviations .card { margin:0; min-width:0; }
+  .deviations .card.span { grid-column:1 / -1; }
+  /* Only one headline list this draft: the outliers sit beside it instead
+     of leaving an empty column at its shoulder. */
+  .deviations .card.span:nth-child(2) { grid-column:auto; }
+  /* Inline links in a data line keep their rhythm; the hit area grows
+     into the margins so a thumb still lands on them. */
+  .devlist .meta a, .callout a.more { display:inline-block; padding:.75rem 0; margin:-.75rem 0; }
+  .deviations h3 { margin:0 0 .4rem; }
+  .devlist { list-style:none; margin:0; padding:0; }
+  .devlist li { display:grid; gap:.08rem; padding:.55rem 0; border-top:1px solid; }
+  .devlist li:first-child { border-top:0; padding-top:.1rem; }
+  .devlist .player { font-weight:600; font-size:1.02rem; }
+  .devlist .verdict { font-size:.95rem; }
+  /* Two columns of six-column team tables, one on a phone. `min-width:0`
+     lets the table scroll inside its wrapper instead of forcing the grid
+     track (and the page) wider. */
+  .teamdraft { display:grid; gap:.8rem;
+               grid-template-columns:repeat(auto-fit, minmax(min(30rem, 100%), 1fr)); }
+  .teamdraft .card { margin:0; min-width:0; }
+  .teamstrip.jump { margin:.2rem 0 1rem; }
+  .teamstrip.jump a { min-height:2.75rem; display:inline-flex; align-items:center; }
+{% if league and league.theme == "disco" %}
+  .facts dt, .callout .label { color:#a9a6c8; }
+  .facts dd { color:#e9e7f2; }
+  .callout { background:#1d1c3d; border:1px solid #33325f; border-left:4px solid #f0d848; }
+  .devlist li { border-color:#33325f; }
+{% else %}
+  .facts dt, .callout .label { color:#a3adba; }
+  .facts dd { color:#eef1f5; }
+  .callout { background:#13161c; border:1px solid #2a2f38; border-left:4px solid #f0c419; }
+  .devlist li { border-color:#2a2f38; }
+{% endif %}
+
+/* ---- Force Flow: team first ----
+   Every move leads with who made it. The team is a heading, sized to be
+   found at a glance without shouting over the move beneath it. */
+  .move { padding:.8rem 1.1rem; }
+  .move .mover { margin:0 0 .2rem; font-size:1.08rem; font-weight:700; }
+  /* The team name is the card's one link and a thumb has to land on
+     it: the hit area grows into the margins, the heading keeps its
+     rhythm. 28px of line plus 17.6px of padding clears 44. */
+  .move .mover a { display:inline-block; padding:.55rem 0; margin:-.55rem 0; }
+  .move .moveline { margin:.05rem 0 .3rem; }
+  .move p { margin:.25rem 0; }
+  .movegroup { margin:1rem 0 1.6rem; }
+  .moveweek { font-size:.8rem; letter-spacing:.14em; text-transform:uppercase;
+              margin:1.1rem 0 .4rem; }
+  .move .note { font-size:.95rem; margin:.4rem 0 0; }
+  .move .note b, .moveweek .meta { font-variant:small-caps; letter-spacing:.05em;
+                                  font-weight:normal; text-transform:none; }

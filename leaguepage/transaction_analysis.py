@@ -577,6 +577,19 @@ def describe_move(row: dict) -> str:
     return f"{verb} · dropped {drops}" if drops else verb
 
 
+def story_candidate_id(row: dict) -> str:
+    """The Story Board id a move is decided under.
+
+    One definition, used both when the candidate is offered to the
+    Commissioner and when his decision is read back against the synced
+    log. The join is this exact string, so the public site never has to
+    recognise a move from the sentence written about it.
+    """
+    names = ", ".join(a["name"] for a in row["adds"]) or \
+        ", ".join(d["name"] for d in row["drops"])
+    return f"txn:Week {row['week']}: {names} ({row['type']})"
+
+
 def transaction_story_candidates(storage: Storage, league: League,
                                  through_week: int) -> list[dict]:
     """Story Board candidates from meaningful move analysis."""
@@ -597,6 +610,7 @@ def transaction_story_candidates(storage: Storage, league: League,
             angle = "a consequential pickup"
         cands.append({
             "kind": "transaction", "week": row["week"],
+            "candidate_id": story_candidate_id(row),
             "headline": f"Week {row['week']}: {names} ({row['type']})",
             "angle": angle,
             "support": [s for s in [r.get("text"), row.get("rank_shift"),

@@ -1,6 +1,18 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Force Flow{% endblock %}
-{% from "public/_links.html" import team_list %}
+{% from "public/_links.html" import team %}
+
+{#  Who did it, first. A reader's opening question about any move is which
+    team made it, so every surface on this page leads with the team and
+    follows with the move. `m.teams` is structural (roster ids resolved to
+    canonical public names), never a name recognised in a sentence. A trade
+    names both sides. #}
+{% macro movers(m) -%}
+{%- for t in m.teams -%}
+{%- if not loop.first %}{{ " ↔ " if m.is_trade else ", " }}{% endif -%}
+{{ team(t.name, team_links) }}
+{%- endfor -%}
+{%- endmacro %}
 
 {% block content %}
 <h2 class="section-label">Force Flow</h2>
@@ -16,16 +28,38 @@ reading get labelled, not hidden.</p>
 <p><a href="{{ lroot }}draft/index.html">See how these rosters were built →</a></p>
 {% endif %}
 
-{% if editorial_sections %}
+{% if editorial_groups %}
 <section class="module">
   <h2 class="section-label">Moves That Mattered</h2>
-  <p class="meta">Editorial selections from published issues.</p>
-  {% for s in editorial_sections %}
-  <div class="card">
-    <p class="meta">{{ s.issue_label }}</p>
-    <div class="prose">{{ s.html | safe }}</div>
+  <p class="meta">The moves the Commissioner selected for a published issue,
+  read back against the transaction log.</p>
+  {% for g in editorial_groups %}
+  <div class="movegroup">
+    <h3 class="moveweek">Week {{ "%02d" % g.week }} <span class="meta">selected for {{ g.issue_label }}</span></h3>
+    {% if g.html %}
+    {#  An issue that printed Force Flow prose with no structured selection
+        behind it. Shown as published; nothing is inferred from it. #}
+    <div class="card"><div class="prose">{{ g.html | safe }}</div></div>
+    {% else %}
+    {% for m in g.moves %}
+    <article class="card move">
+      <h4 class="mover">{{ movers(m) }}</h4>
+      <p class="moveline">{{ m.line }}
+        <span class="meta">{{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %}</span>
+        {% if m.questionable %} <span class="tag warn">QUESTIONABLE MOVE</span>{% endif %}</p>
+      {% if m.text %}<p class="meta">{{ m.text }}</p>{% endif %}
+      {% if m.rank_shift %}<p class="meta">Positional shift: {{ m.rank_shift }}</p>{% endif %}
+      {% if m.outcome %}<p class="meta">{{ m.outcome }}</p>{% endif %}
+      {% if m.note %}<p class="note"><b>Commissioner:</b> {{ m.note }}</p>{% endif %}
+      {% if m.aged %}<p class="aged"><b>How it aged:</b> {{ m.aged }}</p>{% endif %}
+    </article>
+    {% endfor %}
+    {% endif %}
   </div>
   {% endfor %}
+  <p class="meta">Rationales are inferred from roster construction and cost at
+  the time of the move; they are never a manager's stated intent unless the
+  Commissioner's note says so.</p>
 </section>
 {% endif %}
 
@@ -36,14 +70,15 @@ reading get labelled, not hidden.</p>
   {% include "public/_ai_provenance.html" %}
 {% endwith %}{% endif %}
   {% for m in meaningful %}
-  <div class="card">
-    <strong>{{ m.line }}</strong> — {{ team_list(m.team, team_links) }}
-    <span class="meta">(wk {{ m.week }} · {{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %})</span>
-    {% if m.questionable %} <span class="tag warn">QUESTIONABLE MOVE</span>{% endif %}
+  <article class="card move">
+    <h4 class="mover">{{ movers(m) }}</h4>
+    <p class="moveline">{{ m.line }}
+      <span class="meta">wk {{ m.week }} · {{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %}</span>
+      {% if m.questionable %} <span class="tag warn">QUESTIONABLE MOVE</span>{% endif %}</p>
     {% if m.text %}<p>{{ m.text }}{% if m.rank_shift %} <span class="meta">({{ m.rank_shift }})</span>{% endif %}</p>{% endif %}
     {% if m.outcome %}<p class="meta">{{ m.outcome }}</p>{% endif %}
     {% if m.aged %}<p class="aged"><b>How it aged:</b> {{ m.aged }}</p>{% endif %}
-  </div>
+  </article>
   {% endfor %}
   <p class="meta">Move rationales are inferred from roster construction,
   positional strength, transaction cost, and available context. They describe
@@ -58,16 +93,18 @@ reading get labelled, not hidden.</p>
 <section class="module">
   <h2 class="section-label">Transaction Log</h2>
   <p class="meta">The full reference log. Not everything here mattered; that is what the sections above are for.</p>
+  {#  Week, then who, then what. The default order is newest week first,
+      and inside a week the team is the thing a reader scans for. #}
   <div class="tablewrap" tabindex="0" role="region" aria-label="Transaction log">
   <table data-sortable>
     <tr><th scope="col" data-sort-type="number" data-sort-dir="desc">Week</th>
-        <th scope="col" data-sort-type="text">Type</th>
         <th scope="col" data-sort-type="text">Team</th>
+        <th scope="col" data-sort-type="text">Move</th>
         <th scope="col" data-sort-type="text">Added</th>
         <th scope="col" data-sort-type="text">Dropped</th>
         <th scope="col" data-sort-type="number" data-sort-dir="desc">FAAB</th></tr>
     {% for t in log %}
-    <tr><td>{{ t.week }}</td><td>{{ t.type }}</td><th scope="row" class="wrap">{{ team_list(t.team, team_links) }}</th>
+    <tr><td>{{ t.week }}</td><th scope="row" class="wrap">{{ movers(t) }}</th><td>{{ t.type }}</td>
         <td class="wrap">{{ t.adds or "—" }}</td><td class="wrap">{{ t.drops or "—" }}</td><td>{{ t.faab or "—" }}</td></tr>
     {% endfor %}
   </table>

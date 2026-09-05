@@ -1373,3 +1373,56 @@ but Python is loaded once, so a Desk started before these changes renders the
 new markup against the old card data. Every new field is guarded, so the page
 degrades to its previous behaviour rather than breaking — but the new controls
 will not appear until the process is restarted.
+
+## Draft page redesign, Force Flow team-first, archive boundary (2026-09-04)
+
+**Starting state.** HEAD `2db7e89`, one commit ahead of `origin/main` (the
+previous tranche's commit had not been pushed). Working tree carried
+Jonathan's own Disco Week 1 publication (`published/disco/2026/week-01.json`)
+and his typo fix in the `love-sutton-brocks` preview; both were left exactly
+as found and are not part of the implementation commit.
+
+**Draft page** (`templates/public/draft.html`, `_site_css.html`,
+`base.html`). Wide container (`main.wide`, 84rem) via a `main_attrs` block
+the prose pages do not use; facts strip; recap callout; Market Deviations
+with reaches/steals side by side from 1024px and special teams spanning
+beneath (or beside a lone list); two-column team tables; capped prose. The
+build passes `draft_meta` alongside the old `status_line`. Off-board picks
+excluded from headline reaches (`draft_value.headline_deviations`).
+
+**Force Flow** (`templates/public/transactions.html`,
+`leaguepage/force_flow_history.py` new). Team-first on every surface; trades
+show `A ↔ B`; log columns Week · Team · Move · Added · Dropped · FAAB. Moves
+That Mattered is assembled from story decisions × transaction rows on
+`story_candidate_id` (shared with the Desk via `weekly_signals`), grouped by
+week with the issue as provenance; Commissioner notes come from
+`force_flow_notes` or the decision note; rationale is labelled as inference;
+"How it aged" retained. Prose fallback only when an issue has Force Flow
+prose and no structured selection.
+
+**Archive.** `PERSISTENT_TAB_MODULES = {"forceflow"}`; `_issue_ctx` omits it
+from every rendered issue and from the home page's "In this issue". Snapshots
+untouched (hash-checked in `test_the_snapshot_is_not_rewritten_to_achieve_that`
+and against the real Disco Week 1 file).
+
+**Measured in the browser** (Chromium pane, static server on 8090 serving
+`dist/`; `.claude/launch.json` added for it). Draft page at 320/375/430/768/
+1024/1440/1920: `scrollWidth == clientWidth` at every width; `main` 1344px at
+1440 and 1920; deviations 2 columns at ≥1024, 1 below; team grid 2 columns at
+≥1024; all 13 tables inside `.tablewrap` and scrolling internally on phones;
+jump links 44px; zero interactive targets under 44px. Force Flow at 320/375/
+768/1440/1920: no overflow; team links 44px after the hit-area fix. Archived
+Disco Week 1 at 1440: seven sections, no Force Flow. Screenshots were taken
+and inspected at 1920 (both leagues' drafts, Force Flow), 375 (Disco draft,
+Force Flow) and 1440 (archived Disco Week 1).
+
+**Desk staleness.** No launcher-side stale-process fix has landed in this
+repo; a Desk started before a Python change keeps the old code until it is
+restarted. Public-site changes are only visible after build + deploy.
+
+**Claude usage.** `claude-usage` (run via its own venv under `CC and ChatGPT
+Teaming`) reports a healthy collector with no pool ever captured; its
+consumer rule is "task fitness first; no budget telemetry, so shape nothing
+by budget." Scope was not shaped by budget.
+
+**Surfeit Week 1 remains unpublished.** Nothing here publishes.

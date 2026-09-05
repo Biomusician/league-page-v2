@@ -181,7 +181,8 @@ def test_team_routes_and_draft_page(site_env):
     assert "Full Board" in draft
     assert "Player Number1" in draft
     disco_draft = (tmp / "dist" / "disco" / "draft" / "index.html").read_text(encoding="utf-8")
-    assert "36 of 36 picks" in disco_draft  # 12 teams x 3 rounds
+    # The summary is a strip of labelled figures now: "Picks" / "36 of 36".
+    assert "36 of 36" in disco_draft  # 12 teams x 3 rounds
 
 
 def test_historical_archive_issue_renders_verbatim_without_metadata(site_env):

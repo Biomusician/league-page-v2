@@ -2,63 +2,103 @@
 {% from "public/_dv.html" import dv %}
 {% block title %}{{ league.display_name }} — Draft{% endblock %}
 {% from "public/_links.html" import team %}
+{#  A draft page is a data page: most of its value is comparative and
+    tabular, so it takes the wide treatment instead of the reading measure
+    the prose pages keep. Prose inside it -- the recap callout, the method
+    note -- is capped back to a readable line by `.wide .measure`. #}
+{% block main_attrs %} class="wide"{% endblock %}
 {% block content %}
 <h2 class="section-label">Draft · {{ season }}</h2>
 {% if not board %}
 <p>The {{ season }} draft has not produced picks yet.</p>
 {% else %}
-<p class="meta">{{ status_line }}</p>
+
+{#  How the draft stands, as labelled figures rather than a sentence. #}
+<dl class="facts" aria-label="Draft summary">
+  {% for label, value in draft_meta %}
+  <div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+  {% endfor %}
+</dl>
 
 {% if recap_href %}
-<p><a class="more" href="{{ lroot }}{{ recap_href }}">Read the editorial Draft Issue →</a></p>
+{#  A related feature, not a call to action: the recap is the Commissioner's
+    reading of the same draft, and it belongs beside the data at the size
+    of a note. #}
+<aside class="callout measure">
+  <span class="label">Draft Issue</span>
+  <a class="more" href="{{ lroot }}{{ recap_href }}">Read the Commissioner's draft recap →</a>
+</aside>
 {% endif %}
 
 {% if reaches or steals or special_teams %}
 <section class="module">
   <h2 class="section-label">Market Deviations</h2>
-  <div class="teamgrid">
+  {#  Reaches and steals side by side where the width supports it, one
+      column where it does not. Special-teams outliers span beneath rather
+      than squeezing a third column in: a K/DST list is a footnote to the
+      headline lists, not a peer of them. A missing list simply leaves the
+      other one the room. #}
+  <div class="deviations">
     {% if reaches %}
     <div class="card">
-      <strong>Biggest Reaches</strong> <span class="meta">(QB/RB/WR/TE)</span>
-      <ul>
+      <h3>Biggest Reaches <span class="meta">QB/RB/WR/TE</span></h3>
+      <ol class="devlist">
         {% for p in reaches %}
-        <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }})</span><br>{{ dv(p.dv) }}</li>
+        <li>
+          <span class="player">{{ p.name }}</span>
+          <span class="meta"><a href="#team-{{ p.team_slug }}">{{ p.team }}</a> · pick {{ p.pick_no }} · ref {{ p.adp }}</span>
+          <span class="verdict">{{ dv(p.dv) }}</span>
+        </li>
         {% endfor %}
-      </ul>
+      </ol>
     </div>
     {% endif %}
     {% if steals %}
     <div class="card">
-      <strong>Biggest Steals</strong> <span class="meta">(QB/RB/WR/TE)</span>
-      <ul>
+      <h3>Biggest Steals <span class="meta">QB/RB/WR/TE</span></h3>
+      <ol class="devlist">
         {% for p in steals %}
-        <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }})</span><br>{{ dv(p.dv) }}</li>
+        <li>
+          <span class="player">{{ p.name }}</span>
+          <span class="meta"><a href="#team-{{ p.team_slug }}">{{ p.team }}</a> · pick {{ p.pick_no }} · ref {{ p.adp }}</span>
+          <span class="verdict">{{ dv(p.dv) }}</span>
+        </li>
         {% endfor %}
-      </ul>
+      </ol>
+    </div>
+    {% endif %}
+    {% if special_teams %}
+    <div class="card span">
+      <h3>Special Teams Outliers</h3>
+      <ol class="devlist">
+        {% for p in special_teams %}
+        <li>
+          <span class="player">{{ p.name }}</span>
+          <span class="meta"><a href="#team-{{ p.team_slug }}">{{ p.team }}</a> · pick {{ p.pick_no }} · ref {{ p.adp }}{% if p.context %} · {{ p.context }}{% endif %}</span>
+          <span class="verdict">{{ dv(p.dv) }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      <p class="meta measure">Consensus ranks kickers and defenses below the range
+      where leagues actually have to draft them, so early K/DST picks always
+      measure as reaches against the overall board. They are listed here, on
+      their own scale of aggressiveness, instead of crowding the headline
+      lists above.</p>
     </div>
     {% endif %}
   </div>
-  {% if special_teams %}
-  <div class="card">
-    <strong>Special Teams Outliers</strong>
-    <ul>
-      {% for p in special_teams %}
-      <li>{{ p.name }} <span class="meta">(<a href="#team-{{ p.team_slug }}">{{ p.team }}</a>, pick {{ p.pick_no }} · ref {{ p.adp }}{% if p.context %} · {{ p.context }}{% endif %})</span><br>{{ dv(p.dv) }}</li>
-      {% endfor %}
-    </ul>
-    <p class="meta">Consensus ranks kickers and defenses below the range
-    where leagues actually have to draft them, so early K/DST picks always
-    measure as reaches against the overall board. They are listed here, on
-    their own scale of aggressiveness, instead of crowding the headline
-    lists above.</p>
-  </div>
-  {% endif %}
 </section>
 {% endif %}
 
 <section class="module">
   <h2 class="section-label">Team-by-Team</h2>
-  <p class="meta">{% for t in team_sections %}<a href="#team-{{ t.slug }}">{{ t.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+  <nav class="teamstrip jump" aria-label="Jump to a team">
+    {% for t in team_sections %}<a href="#team-{{ t.slug }}">{{ t.name }}</a>{% endfor %}
+  </nav>
+  {#  Two columns of team tables on a wide screen, one on a phone. Each
+      table is six narrow columns, so two of them fit the width the page
+      now has, and the page is half as tall for it. #}
+  <div class="teamdraft">
   {% for t in team_sections %}
   <div class="card" id="team-{{ t.slug }}">
     <h3>{% if t.page_slug %}<a href="{{ lroot }}team/{{ t.page_slug }}/index.html">{{ t.name }}</a>{% else %}{{ t.name }}{% endif %}</h3>
@@ -80,6 +120,7 @@
     </div>
   </div>
   {% endfor %}
+  </div>
 </section>
 
 <section class="module">
@@ -101,7 +142,7 @@
   </table>
   </div>
 </section>
-<p class="meta" id="how">Reach/Steal compares each pick with the league's stored
+<p class="meta measure" id="how">Reach/Steal compares each pick with the league's stored
 reference board ({{ adp_provenance or "no reference source" }}). REACH means the
 player went at least one full league round ({{ league_size }} picks here)
 earlier than reference; STEAL means at least one full round later. Color deepens
