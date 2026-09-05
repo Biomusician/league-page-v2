@@ -123,7 +123,7 @@ def test_the_rail_says_what_needs_him_not_what_the_column_is_called(env):
         assert jargon not in labels, jargon
     assert labels <= {"excluded", "automatic", "AI draft ready", "needs writing",
                       "needs review", "approved", "nothing this week"} | {
-        l for l in labels if re.fullmatch(r"\d+/\d+ previews", l)}, labels
+        l for l in labels if re.fullmatch(r"\d+/\d+ written", l)}, labels
 
 
 @pytest.mark.parametrize("card,expected", [
@@ -134,7 +134,10 @@ def test_the_rail_says_what_needs_him_not_what_the_column_is_called(env):
     ({"included": True, "changed_since_approval": True}, ("needs review", "need")),
     ({"included": True, "empty": True}, ("nothing this week", "work")),
     ({"included": True, "approved": True}, ("approved", "ok")),
-    ({"included": True, "children_total": 6, "children_approved": 2}, ("2/6 previews", "work")),
+    ({"included": True, "children_total": 6, "children_written": 2}, ("2/6 written", "work")),
+    ({"included": True, "children_total": 6}, ("0/6 written", "work")),
+    ({"included": True, "children_total": 6, "children_written": 6, "approved": True},
+     ("approved", "ok")),
 ])
 def test_rail_state_precedence(card, expected):
     assert _rail_state(card) == expected

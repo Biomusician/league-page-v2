@@ -21,8 +21,8 @@
       {% elif c.editable %}<span class="chip {% if c.prose_state == 'commissioner-edited' %}edited{% endif %}"
             data-role="state-chip" data-section="{{ c.module_key }}">{{ c.prose_state }}</span>{% endif %}
       {% if c.children_total %}<span data-role="child-count"
-            class="chip {% if c.children_approved == c.children_total %}approved{% else %}edited{% endif %}"
-            title="Matchup previews approved, out of the week's total.">{{ c.children_approved }} / {{ c.children_total }} approved</span>{% endif %}
+            class="chip {% if c.children_written == c.children_total %}approved{% else %}edited{% endif %}"
+            title="Matchup previews written, out of the week's total. The section is approved once, over all of them.">{{ c.children_written }} / {{ c.children_total }} written</span>{% endif %}
       {% if c.changed_since_approval %}<span class="chip stale"
             title="This changed after you approved it. Approve again to publish what is here now.">changed since approval</span>{% endif %}
       {% if c.brief and c.brief.stale_prose %}<span class="chip stale"
@@ -252,10 +252,11 @@ words replace this)</span>{{ c.brief.text }}</div>
     {% endif %}
   {% elif c.kind == "ctp" %}
     {% if c.children %}
-      <p class="meta">This section is the week's matchup previews. Approving it
-        means approving all {{ c.children_total }}; it publishes as one page.
-        Every preview below stays open for editing after it is approved, and
-        editing one takes its approval back so nothing publishes unread.</p>
+      <p class="meta">This section is the week's matchup previews, and it
+        publishes as one page, so it is approved once — here, over all
+        {{ c.children_total }}. Each preview stays editable; editing any of them,
+        or the opening remarks, makes this approval stale automatically,
+        because the approval is signed over exactly the text it covered.</p>
       {% for mc in c.children %}{% include "desk/_matchup_card.html" %}{% endfor %}
     {% else %}
       <p class="meta">{{ c.detail or c.status }}</p>

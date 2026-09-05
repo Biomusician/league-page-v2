@@ -312,6 +312,63 @@ def matchup_children(
     return out
 
 
+def ctp_signature(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    week: int | None,
+    *,
+    base_dir: Path | None = None,
+) -> str:
+    """A hash over exactly what Common Tactical Picture would publish.
+
+    Approving CTP is approving this writing: the previews that compose
+    into it, in order, plus the optional opening remarks. Editing any of
+    them changes the signature, and an approval whose signature no longer
+    matches is not an approval of what is there now. Nothing has to notice
+    the edit or clean up after it — the same reasoning provenance uses.
+    """
+    from leaguepage import provenance
+
+    if week is None:
+        return ""
+    idir = issue_dir(league, season, issue_key, base_dir)
+    parts = []
+    for child in matchup_children(storage, league, season, issue_key, week,
+                                  base_dir=base_dir):
+        draft = _read(idir / "matchups" / child["slug"] / "draft.md")
+        if draft and draft.strip() and _clean(draft):
+            parts.append(f"{child['slug']}:{provenance.text_sha(draft)}")
+    parts.append("intro:" + provenance.text_sha(_read(idir / "sections" / "ctp.md")))
+    return provenance.text_sha("\n".join(parts))
+
+
+def ctp_approved(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    week: int | None,
+    *,
+    row: dict | None = None,
+    base_dir: Path | None = None,
+) -> bool:
+    """Whether the section as it stands now is the one he approved."""
+    if row is None:
+        row = (storage.get_issue_modules(league.slug, season, issue_key) or {}).get("ctp") or {}
+    if not row.get("approved"):
+        return False
+    recorded = row.get("approved_sha")
+    # Approved before signatures existed: we know he approved it, we do not
+    # know what it said, and un-approving shipped work to say so would be a
+    # worse lie than grandfathering it.
+    if not recorded:
+        return True
+    return recorded == ctp_signature(storage, league, season, issue_key, week,
+                                     base_dir=base_dir)
+
+
 def module_states(
     storage: Storage,
     league: League,
@@ -352,17 +409,23 @@ def module_states(
             if approved and status == "edited":
                 status = "approved"
         elif kind == "ctp":
-            # The parent is exactly its children. It has no prose of its
-            # own, so its readiness is theirs and there is nothing to sign
-            # off until every preview under it is signed off.
+            # The parent is exactly its children, so one approval covers
+            # the writing they publish. It goes stale on its own the moment
+            # any preview or the opening changes, because the approval
+            # carries a signature over that exact text.
             t = len(kids)
-            a = sum(1 for c in kids if c["approved"])
+            written = sum(1 for c in kids if c.get("written"))
+            approved = ctp_approved(storage, league, season, issue_key, week,
+                                    row=row, base_dir=base_dir)
             if t == 0:
                 status, detail = "not_ready", "no matchups"
-            elif a < t:
-                status, detail = "needs_review", f"{a} / {t} approved"
+            elif written < t:
+                status, detail = ("edited",
+                                  f"{written} / {t} previews written")
+            elif approved:
+                status, detail = "approved", f"{t} previews, approved together"
             else:
-                status, detail = "approved" if approved else "edited", f"{a} / {t} approved"
+                status, detail = "edited", f"{t} previews written; approve the section"
         elif kind == "power":
             label = "preseason" if issue_key == "draft" else issue_key
             entries = storage.get_power_rankings(league.slug, season, label)
@@ -405,6 +468,7 @@ def module_states(
             "retired": key in RETIRED_MODULES,
             "children": kids,
             "children_approved": sum(1 for c in kids if c["approved"]),
+            "children_written": sum(1 for c in kids if c.get("written")),
             "children_total": len(kids),
             "title": row.get("custom_title") or title,
             "position": saved_pos if saved_pos is not None else position,
@@ -470,7 +534,11 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
                              (s["state"] or {}).get("prominence_override") or s["recommended_prominence"])):
             m = sm["matchup"]
             draft = _read(idir / "matchups" / m["matchup_slug"] / "draft.md")
-            if draft and matchup_status(sm["state"], True) in ("approved", "locked") and _clean(draft):
+            # Every written preview belongs to the section. Individual
+            # sign-off used to decide membership, which meant an unapproved
+            # preview vanished from the page silently; the published unit is
+            # Common Tactical Picture, and one approval covers it.
+            if draft and draft.strip() and _clean(draft):
                 names = " vs ".join(public_names[t["roster_id"]] for t in m["teams"])
                 body = "\n".join(l for l in draft.splitlines() if not l.strip().startswith("<!--"))
                 # Each preview carries its own provenance line under its

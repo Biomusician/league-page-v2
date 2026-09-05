@@ -378,6 +378,11 @@ class Storage:
                       "href TEXT", "note TEXT"],
             "story_decisions": ["route TEXT"],  # lowdown | matchup | award | blackbox | custom
             "issues": ["theme TEXT"],           # optional issue-wide gimmick
+            # An approval is a statement about a particular text. For
+            # Common Tactical Picture that text is its previews, so the
+            # approval carries a signature over them (2026-09-05); a row
+            # approved before this existed has NULL and is grandfathered.
+            "issue_modules": ["approved_sha TEXT"],
             # Provenance grew from "was this generated and is it still exact"
             # into origin / edited / assistance (2026-09-05). baseline_text
             # is the private generated text the Desk's edit metric measures
@@ -885,7 +890,7 @@ class Storage:
     def set_issue_module(
         self, *, league_slug: str, season: str, issue_key: str, module_key: str, **fields,
     ) -> None:
-        allowed = {"position", "included", "custom_title", "approved"}
+        allowed = {"position", "included", "custom_title", "approved", "approved_sha"}
         bad = set(fields) - allowed
         if bad:
             raise ValueError(f"Unknown issue module fields: {bad}")

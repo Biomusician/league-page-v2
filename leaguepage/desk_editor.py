@@ -114,8 +114,9 @@ def _rail_state(card: dict) -> tuple[str, str]:
         return "nothing this week", "work"
     if card.get("approved"):
         return "approved", "ok"
-    if card.get("children_total") and card.get("children_approved") != card.get("children_total"):
-        return f"{card['children_approved']}/{card['children_total']} previews", "work"
+    total, written = card.get("children_total") or 0, card.get("children_written") or 0
+    if total and written != total:
+        return f"{written}/{total} written", "work"
     return "needs review", "need"
 
 
@@ -271,13 +272,16 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                     week=week, matchup_slug=m.group(1),
                                     status="edited")
                 _mark_changed(s, league.slug, season, issue_key, section, True)
-            if (s.get_issue_modules(league.slug, season, issue_key)
-                    .get("ctp") or {}).get("approved"):
-                s.set_issue_module(league_slug=league.slug, season=season,
-                                   issue_key=issue_key, module_key="ctp",
-                                   approved=0)
-                _mark_changed(s, league.slug, season, issue_key, "ctp", True)
+            # Common Tactical Picture is NOT cleared here. Its approval
+            # carries a signature over the previews, so it stops counting
+            # the moment this edit lands and starts counting again if the
+            # exact text comes back — the same reasoning provenance uses,
+            # and one mechanism rather than two that can disagree.
+            _mark_changed(s, league.slug, season, issue_key, "ctp", True)
             return
+        if section == "ctp":
+            _mark_changed(s, league.slug, season, issue_key, "ctp", True)
+            return          # ...and the opening remarks are inside that signature
         row = s.get_issue_modules(league.slug, season, issue_key).get(section) or {}
         if row.get("approved"):
             s.set_issue_module(league_slug=league.slug, season=season,
@@ -672,14 +676,15 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 return JSONResponse({"ok": False, "error": "unknown section"},
                                     status_code=404)
             # Common Tactical Picture holds no prose of its own: it is
-            # made of the week's matchup previews, so the gate is that
-            # they are all signed off. Checking it for a `ctp.md` that
-            # never existed refused every click on it.
+            # made of the week's matchup previews. This one click is the
+            # sign-off for all of them, so the gate is that they are
+            # written; asking him to approve each preview and then approve
+            # the section that IS those previews was ceremony.
             if action == "approve" and kind == "ctp":
                 week = _week_of(issue_key)
                 kids = (matchup_children(s, league, season, issue_key, week)
                         if week is not None else [])
-                left = [c for c in kids if not c["approved"]]
+                left = [c for c in kids if not c.get("written")]
                 if not kids:
                     return JSONResponse(
                         {"ok": False, "error": "no matchups computed for this week"},
@@ -687,7 +692,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 if left:
                     return JSONResponse(
                         {"ok": False,
-                         "error": f"{len(left)} matchup preview(s) still unapproved: "
+                         "error": f"{len(left)} matchup preview(s) not written yet: "
                                   + ", ".join(c["title"] for c in left[:3])
                                   + ("…" if len(left) > 3 else "")},
                         status_code=400)
@@ -701,8 +706,18 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     return JSONResponse(
                         {"ok": False, "error": f"blocked marker present: {bad[0]}"},
                         status_code=400)
+            extra = {}
+            if kind == "ctp":
+                # Sign the approval over the text it covers, so it retires
+                # itself when any of that text changes.
+                from leaguepage.issue_builder import ctp_signature
+
+                extra["approved_sha"] = (
+                    ctp_signature(s, league, season, issue_key, _week_of(issue_key))
+                    if action == "approve" else None)
             s.set_issue_module(league_slug=league_slug, season=season, issue_key=issue_key,
-                               module_key=section, approved=1 if action == "approve" else 0)
+                               module_key=section, approved=1 if action == "approve" else 0,
+                               **extra)
             # He has now ruled on what is actually there, either way.
             _mark_changed(s, league_slug, season, issue_key, section, False)
         return JSONResponse({"ok": True, "approved": action == "approve"})

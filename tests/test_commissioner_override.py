@@ -121,7 +121,16 @@ def _editors(html):
 
 
 def _approved(db, key):
+    """Whether the section as it stands now is approved.
+
+    Common Tactical Picture answers through its signature rather than a
+    flag: its approval covers the previews it publishes, so it stops
+    counting when any of them changes and counts again if the exact text
+    returns. Every other module is the flag.
+    """
     with Storage(db) as s:
+        if key == "ctp":
+            return ib.ctp_approved(s, LG, SEASON, "week-01", 1)
         return bool((s.get_issue_modules("surfeit", SEASON, "week-01")
                      .get(key) or {}).get("approved"))
 
@@ -186,11 +195,11 @@ def test_the_hardware_evidence_is_shown_but_not_typed_into(env):
     assert "<input" not in evidence and "<textarea" not in evidence
 
 
-def test_ctp_children_stay_editable_at_five_of_five_approved(env):
-    """`5 / 5 approved` describes the previews. It does not close them."""
+def test_ctp_children_stay_editable_when_every_preview_is_written(env):
+    """`5 / 5 written` describes the previews. It does not close them."""
     client, db, _ed = env
     card = _card(_page(client), "ctp")
-    assert "5 / 5 approved" in card
+    assert "5 / 5 written" in card
     editors = _editors(card)
     with Storage(db) as s:
         kids = ib.matchup_children(s, LG, SEASON, "week-01", week=1)
