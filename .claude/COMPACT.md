@@ -83,9 +83,12 @@ must remain strictly local.
   documented post-compaction injection point; PostCompact hooks exist but
   their stdout is not added to context.)
 
-## When summarizing (manual /compact guidance)
+## When summarizing
 
-Preserve verbatim: the model-gate status and any pending phase tranche; every
-prohibition above; the list of decisions currently waiting on Jonathan;
-unresolved public team names. Compress aggressively: tool output, file dumps,
-draft prose already saved to disk (the repo copy is the source of truth).
+The directions live in `compact.md` at the repository root, so there is one
+copy of them rather than a fuller version and a shorter version that drift.
+Read it before compacting. In short: preserve every prohibition above
+verbatim, the current SHAs and publication status, decisions waiting on
+Jonathan, and residual defects with their reasons; compress tool output,
+file dumps and anything already on disk; never carry a Sleeper handle or
+private research.

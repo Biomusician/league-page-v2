@@ -68,6 +68,15 @@ preference for red-teaming over unsolicited drafting does NOT apply when he
 runs a weekly/draft authoring workflow — those runs are his explicit drafting
 request, so generate the full requested prose by default.
 
+## Compaction
+
+When context passes 75%, finish the current answer, then compact — never
+mid-task. `compact.md` at the repository root says what to preserve
+verbatim, what to compress, and what must never appear in a summary.
+`.claude/COMPACT.md` is its counterpart: a SessionStart hook re-injects it
+after every compaction. Re-read `docs/HANDOFF.md` and re-check `git status`
+afterwards rather than trusting a summary's copy of them.
+
 ## Editorial AI model
 
 Claude Code IS the editorial AI. The pipeline is:
