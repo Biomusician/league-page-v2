@@ -23,4 +23,4 @@ Three deliverables, in order, each on explicit request from the workflow:
 
 Facts come from PREP.md and the issue's packets. No em-dashes; no negated
 parallels; run `scripts/style_check.py` on anything you produce.
-
+Issue theme selected by the commissioner: The Marshal Phase of a Strike Package. Weave it in where it fits; never force every section to participate.

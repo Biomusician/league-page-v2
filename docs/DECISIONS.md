@@ -848,3 +848,45 @@ touched — the Disco Week 1 file's hash and mtime are identical before and
 after a build, and it still contains the section. The tab may consume that
 history as evidence; it is simply not itself archived as a weekly section.
 The archive index never had a Force Flow entry, and now has a test saying so.
+
+## 2026-09-04 — The Editorial Command Brief, and coherence as a check rather than a section
+
+The Desk answered "what is the state of the issue" in a review packet and
+"what candidates exist" on a board, and nothing answered "what are this
+week's stories". The brief does that in one page, deterministically, from
+evidence the app already computes: flagged and Story-Board-selected moves
+(joined on the candidate id, never the headline), out-designated starters on
+rooms that matter, lopsided construction (skill positions only, at most two
+such stories, because five lopsided rosters are one story), matchup rank
+gaps and archive callbacks, takes with engine readings, live receipts, pubqa
+collisions, reference age, and byes. Every line names its evidence. The
+scorecard is statuses, never a number, because a number would be invented.
+It is private, regenerated on every research refresh and on every open of
+its Desk page, gitignored like PREP.md, and its top stories open the Lowdown
+prep so the two lists cannot disagree about what the week is about.
+
+The Week 1 reader audit found the failures were between sections, not inside
+them: a preview naming a player Tracks calls unavailable; 1QB advice in a
+Superflex paper; Hardware using a team name the rest of the issue does not;
+the same paragraph in both leagues. pubqa gained a "coherence" category of
+warnings-only checks that work on structured ids (roster ids, callsigns,
+synced injury status, the lineup format read from roster_positions), never
+on prose resemblance. A paragraph carrying injury words is exempt from the
+unavailable-player check; owner attribution stops at the sentence boundary;
+the Lowdown and any custom section are exempt from the cross-league
+duplicate check because Jonathan writes those once for both papers on
+purpose. Nothing here blocks publication; it is all review material.
+
+Byes come from the 2026 nflverse schedule, exported once from Fantasy Bot's
+cache into refdata/nfl and read by a small loader. An absent schedule is
+reported as unknown, not as "no byes". No runtime dependency on Fantasy Bot
+and no scraper; the file is a source snapshot like the ADP files.
+
+Preseason evidence stays evidence. Week 1 has nothing else, and the brief
+says so in its data watch instead of discounting it.
+
+Left alone on purpose: source disagreement cannot be measured with one
+reference source and the brief says that rather than faking it; nothing
+anywhere is a projection; a team-name history on sync would turn the
+Disco Week 1 "George & Friends" identification from elimination into a
+lookup. Those are in ROADMAP.

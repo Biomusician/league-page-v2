@@ -102,7 +102,18 @@ def refresh_issue_research(s: Storage, league, season: str, issue_key: str) -> N
         candidates += [c for c in change_inbox.as_candidates(board["items"])
                        if c["candidate_id"] not in known]
     awards = awards_for(s, league, season, issue_key)
-    build_lowdown_prep(s, league, season, issue_key, candidates)
+    # The Command Brief first, so the Lowdown prep can open with its top
+    # stories: one ranking, quoted in both places, instead of two lists
+    # that disagree about what the week is about.
+    from leaguepage.command_brief import build_command_brief, top_story_lines
+
+    try:
+        _path, brief = build_command_brief(s, league, season, issue_key,
+                                           candidates=candidates)
+        lead = top_story_lines(brief)
+    except Exception:  # research is advisory; never fail the build on it
+        lead = []
+    build_lowdown_prep(s, league, season, issue_key, candidates, extra=lead)
     build_section_authoring(s, league, season, issue_key, candidates, awards)
     write_authoring_index(league, season, issue_key)
 
@@ -841,6 +852,26 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             s.set_issue_theme(league_slug, season, issue_key, theme.strip() or None)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}", status_code=303)
+
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/brief")
+    def command_brief(request: Request, league_slug: str, season: str, issue_key: str):
+        """The Editorial Command Brief, rebuilt on every open so it is never
+        a stale file about a league that has moved on."""
+        import markdown as md
+
+        from leaguepage.command_brief import build_command_brief
+
+        league = get_league(league_slug)
+        with storage() as s:
+            candidates = _candidates_for(s, league, season, issue_key)
+            path, _data = build_command_brief(s, league, season, issue_key,
+                                              candidates=candidates)
+        html = md.markdown(path.read_text(encoding="utf-8"), extensions=["tables"])
+        return templates.TemplateResponse(request, "desk/review.html", {
+            "league": league, "season": season, "issue_key": issue_key,
+            "packet_html": html, "packet_path": path.as_posix(),
+            "page_title": "Editorial Command Brief",
+        })
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/review")
     def review_packet(request: Request, league_slug: str, season: str, issue_key: str):

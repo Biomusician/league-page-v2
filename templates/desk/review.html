@@ -1,5 +1,5 @@
 {% extends "desk/base.html" %}
-{% block title %}Review Packet — {{ issue_key }}{% endblock %}
+{% block title %}{{ page_title or 'Review Packet' }} — {{ issue_key }}{% endblock %}
 {% block masthead_right %}<a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}">← {{ issue_key }} workspace</a>{% endblock %}
 {% block content %}
 <div class="card">{{ packet_html | safe }}</div>

@@ -619,7 +619,11 @@ def build_lowdown_prep(
     candidates: list[dict],
     *,
     base_dir: Path | None = None,
+    extra: list[str] | None = None,
 ) -> Path:
+    """`extra` is the Command Brief's top stories, when the caller has
+    them: the strongest material goes first, ahead of the raw candidate
+    list, because that is the order he should read it in."""
     idir = issue_dir(league, season, issue_key, base_dir)
     ldir = idir / "lowdown"
     ldir.mkdir(parents=True, exist_ok=True)
@@ -632,6 +636,7 @@ def build_lowdown_prep(
         "The Lowdown is commissioner-authored and commissioner-credited. This prep",
         "exists to make starting it dramatically easier; nothing here publishes.",
         "",
+        *((extra + [""]) if extra else []),
         _mentions_md(candidates, decisions),
         "",
         f"Issue theme selected: {theme or '(none)'}",

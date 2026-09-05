@@ -76,38 +76,56 @@ def key_players(storage: Storage, league: League, team: dict, values: dict,
 
 # ------------------------------------------------------------ availability
 
-def availability(storage: Storage, league: League, team: dict) -> list[str]:
+def availability(storage: Storage, league: League, team: dict, *,
+                 season: str | int | None = None, week: int | None = None) -> list[str]:
     """Who is carrying a designation, on the starting lineup first.
 
-    Byes are not here and are not guessed: the synced player payload has no
-    bye week in it and this product does not hold an NFL schedule. Saying
-    so is the whole of what can honestly be said.
+    Byes come from the reference schedule when one is on file for the
+    season (`nfl_schedule`); a starter whose NFL team has no game that week
+    is listed first, because he is the one certain absence. Without a
+    schedule the note below says so rather than guessing.
     """
+    from leaguepage.nfl_schedule import teams_on_bye
+
     starters = {p for p in (team.get("starters") or []) if p and p != "0"}
     rid = team["roster_id"]
     roster = _roster(storage, league, rid)
+    byes = teams_on_bye(season, week) if (season is not None and week) else None
     flagged = []
     for pid in (roster.get("players") or []):
         p = storage.get_player(pid) or {}
+        name = p.get("full_name") or pid
+        where = "STARTING" if pid in starters else "bench"
+        if byes and (p.get("team") or "") in byes:
+            flagged.append((pid in starters, "",
+                            f"  BYE — {p.get('position', '?')} {name} ({where}, "
+                            f"{p.get('team')} does not play this week)"))
         status = (p.get("injury_status") or "").strip()
         if not status:
             continue
-        name = p.get("full_name") or pid
-        where = "STARTING" if pid in starters else "bench"
         detail = (p.get("injury_body_part") or "").strip()
         flagged.append((pid in starters, status,
                         f"  {status.upper()} — {p.get('position', '?')} {name} "
                         f"({where}{', ' + detail if detail else ''})"))
     if not flagged:
-        return ["  nobody on this roster carries an injury designation"]
+        return ["  nobody on this roster carries an injury designation"
+                + (" or a bye" if byes is not None else "")]
     flagged.sort(key=lambda f: (not f[0], f[1]))
     return [f[2] for f in flagged]
 
 
-def bye_note() -> str:
-    return ("  byes: not available — the synced player data carries no bye "
-            "week and there is no NFL schedule in this product. Check "
-            "Sleeper before writing one.")
+def bye_note(season: str | int | None = None, week: int | None = None) -> str:
+    """What the schedule can and cannot say about byes this week."""
+    from leaguepage.nfl_schedule import describe_source, teams_on_bye
+
+    byes = teams_on_bye(season, week) if (season is not None and week) else None
+    if byes is None:
+        return ("  byes: not available — no NFL schedule on file for this "
+                "season. Check Sleeper before writing one.")
+    src = describe_source(season) or "reference schedule"
+    if not byes:
+        return f"  byes: none this week ({src})"
+    return f"  byes this week: {', '.join(sorted(byes))} ({src})"
 
 
 # ------------------------------------------------------------ gap to close
@@ -152,6 +170,194 @@ def gap_to_close(profile: dict, team: dict, other: dict, name: str,
     if not behind:
         out.append(f"  not behind {other_name} at any rated position")
     return out
+
+
+# ------------------------------------------------------------ the lineup
+
+# A bench player has to out-rate the starter by this much (in value points,
+# roughly reference-rank places) before the brief calls it a decision. Two
+# players ten places apart on a preseason board are a coin flip, not a call.
+LINEUP_CALL_MARGIN = 15.0
+
+
+def league_starting_values(storage: Storage, league: League, week: int,
+                           values: dict) -> dict[str, list[float]]:
+    """Every starter's value this week, by position, across the league.
+
+    What "a weak starting TE" is measured against: the other nine or eleven
+    starting tight ends in this league this week, not a national number.
+    """
+    out: dict[str, list[float]] = {}
+    for row in storage.get_matchups(league.league_id, week):
+        for pid in (row.get("starters") or []):
+            v = values.get(pid)
+            if not v or not v.get("position"):
+                continue
+            out.setdefault(v["position"], []).append(float(v.get("value") or 0.0))
+    return out
+
+
+def _median(xs: list[float]) -> float | None:
+    if not xs:
+        return None
+    xs = sorted(xs)
+    n = len(xs)
+    return xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2
+
+
+def weakest_slot(team: dict, values: dict, league_starters: dict[str, list[float]],
+                 stage: str) -> list[str]:
+    """The starter furthest below what this league starts at his position.
+
+    Written per team because the slot that loses a matchup is usually the
+    one nobody wrote about. The basis is printed: off a preseason board it
+    is a claim about draft rank, and after games it is a claim about
+    scoring, and those are different sentences.
+    """
+    starters = [p for p in (team.get("starters") or []) if p and p != "0"]
+    worst = None
+    for pid in starters:
+        v = values.get(pid)
+        if not v or not v.get("position"):
+            continue
+        med = _median(league_starters.get(v["position"]) or [])
+        if med is None:
+            continue
+        gap = float(v.get("value") or 0.0) - med
+        if worst is None or gap < worst[0]:
+            worst = (gap, v)
+    if worst is None:
+        return []
+    gap, v = worst
+    if gap >= 0:
+        return [f"  no starting slot below the league's median starter ({stage})"]
+    return [f"  {v['position']} {v['name']}: {abs(gap):.0f} points under the league's "
+            f"median starting {v['position']} ({stage})"]
+
+
+def lineup_calls(storage: Storage, league: League, team: dict, values: dict,
+                 *, limit: int = 2) -> list[str]:
+    """Bench players who out-rate a starter at their own position.
+
+    A decision waiting to be made, or already made and worth asking about.
+    Same position only: whether a bench WR should displace a starting RB in
+    a flex is a projection question, and there is no projection here.
+    """
+    starters = [p for p in (team.get("starters") or []) if p and p != "0"]
+    roster = _roster(storage, league, team["roster_id"])
+    bench = [p for p in (roster.get("players") or []) if p not in starters]
+    weakest: dict[str, dict] = {}
+    for pid in starters:
+        v = values.get(pid)
+        if not v or not v.get("position"):
+            continue
+        cur = weakest.get(v["position"])
+        if cur is None or float(v.get("value") or 0) < float(cur.get("value") or 0):
+            weakest[v["position"]] = v
+    calls = []
+    for pid in bench:
+        v = values.get(pid)
+        if not v or not v.get("position") or v["position"] not in weakest:
+            continue
+        w = weakest[v["position"]]
+        edge = float(v.get("value") or 0) - float(w.get("value") or 0)
+        if edge >= LINEUP_CALL_MARGIN:
+            calls.append((edge, f"  bench {v['position']} {v['name']} rates {edge:.0f} "
+                                f"above starter {w['name']} (reference rank, not a projection)"))
+    calls.sort(key=lambda c: -c[0])
+    return [c[1] for c in calls[:limit]]
+
+
+# ------------------------------------------------------------ construction
+
+# Draft construction is a story while the season is young. Once results
+# exist they say more than the draft did, and the block goes quiet.
+CONSTRUCTION_WEEKS = 4
+
+
+def how_built(storage: Storage, league: League, team: dict, *,
+              weeks_played: int) -> list[str]:
+    """How this roster was assembled: the shape of the first rounds and the
+    one pick furthest from the reference board in each direction."""
+    if weeks_played >= CONSTRUCTION_WEEKS:
+        return []
+    from leaguepage.adp import load_adp_for_league
+    from leaguepage.draft_analysis import analyze_league_draft
+    from leaguepage.draft_value import (CLASS_REACH, CLASS_STEAL, SKILL_POSITIONS,
+                                        classify_pick)
+
+    rid = team["roster_id"]
+    analysis = analyze_league_draft(storage, league, adp=load_adp_for_league(league))
+    if not analysis:
+        return []
+    size = analysis.get("total_teams") or 0
+    for t in analysis.get("teams", []):
+        if t.get("roster_id") != rid:
+            continue
+        picks = t.get("picks_by_round") or []
+        out = []
+        first = [p.get("position") for p in picks[:3] if p.get("position")]
+        if first:
+            out.append(f"  opened {', '.join(first)}")
+        rated = [(p, classify_pick(p["delta"], size, off_board=p.get("off_board", False)))
+                 for p in picks if p.get("delta") is not None
+                 and p.get("position") in SKILL_POSITIONS]
+        reach = min((pc for pc in rated if pc[1] and pc[1]["draft_value_class"] == CLASS_REACH),
+                    key=lambda pc: pc[0]["delta"], default=None)
+        steal = max((pc for pc in rated if pc[1] and pc[1]["draft_value_class"] == CLASS_STEAL),
+                    key=lambda pc: pc[0]["delta"], default=None)
+        if reach:
+            out.append(f"  biggest reach: {reach[0]['name']} at {reach[0]['pick_no']}, "
+                       f"{reach[1]['label'].removeprefix('REACH · ')}")
+        if steal:
+            out.append(f"  biggest steal: {steal[0]['name']} at {steal[0]['pick_no']}, "
+                       f"{steal[1]['label'].removeprefix('STEAL · ')}")
+        return out
+    return []
+
+
+# ------------------------------------------------------------ on the record
+
+def on_the_record(storage: Storage, league: League, season: str, week: int,
+                  rids: list[int], names: dict[int, str], slugs: dict[int, str],
+                  *, limit: int = 3) -> list[str]:
+    """Open takes and live receipts touching either side of this matchup.
+
+    The paper remembering itself. Nothing here is recorded as shown, so
+    the brief can render as often as it likes without spending a callback.
+    """
+    from leaguepage import takes as takes_mod
+
+    out = []
+    mine = {slugs.get(rid) for rid in rids} | {str(rid) for rid in rids}
+    for t in storage.open_takes(league.slug, season):
+        subj = t.get("subject") or ""
+        if subj not in mine and not any(slugs.get(rid) and slugs[rid] in subj for rid in rids):
+            continue
+        rec = t.get("recommended_status")
+        label = takes_mod.STATUS_LABELS.get(rec, rec) if rec else "no reading yet"
+        out.append(f"  take {t['take_id']} ({t.get('context') or 'undated'}, engine: {label}): "
+                   f"\"{_clip(t.get('quote') or '', 110)}\"")
+        if len(out) >= limit:
+            return out
+    try:
+        for r in takes_mod.public_receipts(storage, league, season, names):
+            if r.get("subject_roster_id") not in rids:
+                continue
+            out.append(f"  receipt on {r.get('subject_name')}: {r.get('status')} — "
+                       f"\"{_clip(r.get('quote') or '', 110)}\"")
+            if len(out) >= limit:
+                break
+    except Exception:
+        pass
+    return out
+
+
+def _clip(text: str, limit: int) -> str:
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(",;:") + " …"
 
 
 # ------------------------------------------------------------ moves

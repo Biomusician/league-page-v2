@@ -71,6 +71,18 @@ piece actually does and where.
   folded into the inbox once the inbox has survived a few real weeks.
 - Draft-receipt change items (a Reach suddenly performing) are Tier 4 #14.
 
+**Deferred from the overnight editorial pass (2026-09-04):**
+
+- Source disagreement: import a second reference (rest-of-season ECR or a
+  projection set) so the Command Brief's SOURCE DISAGREEMENT section can
+  measure a gap instead of saying it cannot. `planned`.
+- Team-name history on sync: keep every Sleeper team name a roster has
+  carried, so a former name in old copy (Disco Week 1 Hardware's "George &
+  Friends") is matched structurally rather than by elimination. `planned`.
+- Cross-league lane reuse: Tracks and Fades draw the same national-source
+  paragraphs into both papers. The coherence check reports it; the section
+  authoring workflow should prevent it with a per-league angle. `planned`.
+
 ---
 
 ## Tier 2 — the consumer half

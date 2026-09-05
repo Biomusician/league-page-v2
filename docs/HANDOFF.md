@@ -1,10 +1,75 @@
 # HANDOFF
 
-Updated 2026-09-03, end of the product evolution tranche. Companions:
+Updated 2026-09-04, end of the overnight editorial pass. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Overnight editorial pass (2026-09-04)
+
+**Status: 1,175 tests green (2 skipped; 43 new), public build 102 pages and privacy-clean, repo audit
+clean. Nothing pushed, nothing deployed, nothing published.** Disco Week 1
+stays published and its snapshot is byte-identical (sha256 485bee4e…, mtime
+2026-09-04 21:39); Surfeit Week 1 stays `generated`. No Commissioner prose
+was touched; the only new file in an issue directory that is his to act on
+is `editorial/2026/disco/week-01/CORRECTION_CANDIDATE.md`.
+
+Both Week 1 issues were read as a subscriber first. The defects were between
+sections, not inside them, so the work went into checks and a brief rather
+than new sections:
+
+- **Editorial Command Brief** (`leaguepage/command_brief.py`): one private,
+  deterministic page per issue (TOP STORIES, MATCHUPS TO WATCH, MARKET /
+  ROSTER MOVEMENT, SOURCE DISAGREEMENT, CONTINUITY, EDITORIAL COLLISIONS,
+  DATA WATCH, plus a statuses-only SCORECARD). Written to
+  `COMMAND_BRIEF.md` in the issue directory (gitignored) by every research
+  refresh and by its Desk page,
+  `/commissioner/{league}/{season}/issue/{key}/brief`, linked from the
+  workspace. Its top stories open `lowdown/PREP.md`.
+- **Cross-section coherence** (`leaguepage/coherence.py`, wired into pubqa
+  as the `coherence` category, warnings only): wrong-format advice (1QB copy
+  in a Superflex paper and the reverse), raw Sleeper team names in copy,
+  player attributed to the wrong roster (structured: callsign or team name
+  after the player, inside the same sentence), out-designated players
+  written up as available, one player carrying three or more sections, and
+  paragraphs shared word-for-word with the other league's issue (research
+  lanes only; the Lowdown and custom sections are his, written once for
+  both papers).
+- **Matchup writer brief** (`matchup_research.py`, `ghost_briefs.py`): byes
+  and out-type players first in availability; weakest slot and same-position
+  lineup calls from reference rank (never a projection); how each side was
+  built (goes quiet from week 4); open takes and receipts touching either
+  side.
+- **NFL schedule** (`leaguepage/nfl_schedule.py`, `refdata/nfl/
+  schedule_2026.json`): byes per week from the nflverse 2026 schedule,
+  exported once from Fantasy Bot's cache. Absent schedule reads as unknown.
+  No runtime dependency on Fantasy Bot.
+
+Week 1 before and after, per league (pubqa on the assembled issue):
+
+- Disco Week 1 (published): the HEAD checks reported nothing. The new
+  checks report 5 warnings, all real: Hardware calls a team "Stafford&Son"
+  (and "George & Friends", a name no roster carries, which only a team-name
+  history could catch structurally); the CTP preview writes Josh Jacobs
+  (Sleeper status NA, benched) as leading a room; two Fades sentences give
+  1QB advice; Amon-Ra St. Brown carries three sections. All in the
+  correction candidate. Nothing applied.
+- Surfeit Week 1 (unpublished): 4 warnings: two Tracks sentences give
+  Superflex advice in a 1QB league; Amon-Ra St. Brown and Bucky Irving each
+  carry three sections. The pre-existing two proposals are still pending.
+  No new proposals were written; the brief and the checks are the
+  proposals.
+
+Both briefs on real data: construction stories are capped at two and skill
+positions only, Questionable tags are limited to top-two rooms and four
+lines, special-teams rooms never make a story or a mismatch, and moves the
+Commissioner selected on the Story Board appear in MARKET whether or not a
+flag fired.
+
+Deferred (ROADMAP, Tier 1 follow-ups): a second reference source for
+disagreement; team-name history on sync; per-league angles to stop
+Tracks/Fades reusing national-source paragraphs across both papers.
 
 ## Product evolution run (2026-09-03)
 

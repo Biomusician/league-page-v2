@@ -1,0 +1,2186 @@
+{
+ "source": "nflverse games.csv (public), via a one-time export from the Fantasy Bot cache",
+ "source_key": "nflverse_schedule",
+ "season": 2026,
+ "fetched_at": "2026-09-04T14:30:14.828433+00:00",
+ "imported_at": "2026-09-05T02:40:00+00:00",
+ "note": "Regular-season games only. Team codes are the ones Sleeper uses on its player payload (GB, LAR, LV, WAS ...), so a starter's team joins directly. A team absent from a week's rows is on bye that week. Reference data: nothing here is fetched at runtime.",
+ "rows": [
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "NE",
+   "gameday": "2026-09-09"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "SF",
+   "gameday": "2026-09-10"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "CHI",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "TB",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "NO",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "BUF",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "BAL",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "CLE",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "ATL",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "NYJ",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "ARI",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "MIA",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "GB",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "WAS",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "DAL",
+   "gameday": "2026-09-13"
+  },
+  {
+   "season": 2026,
+   "week": 1,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "DEN",
+   "gameday": "2026-09-14"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "DET",
+   "gameday": "2026-09-17"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "CAR",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "NO",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "MIN",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "CIN",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "PIT",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "GB",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "CLE",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "PHI",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "JAX",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "LV",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "SEA",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "WAS",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "MIA",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "IND",
+   "gameday": "2026-09-20"
+  },
+  {
+   "season": 2026,
+   "week": 2,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "NYG",
+   "gameday": "2026-09-21"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "ATL",
+   "gameday": "2026-09-24"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "LAC",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "CAR",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "NYJ",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "HOU",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "NE",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "KC",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "TEN",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "CIN",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "SEA",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "ARI",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "MIN",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "BAL",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "LV",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "LAR",
+   "gameday": "2026-09-27"
+  },
+  {
+   "season": 2026,
+   "week": 3,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "PHI",
+   "gameday": "2026-09-28"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "PIT",
+   "gameday": "2026-10-01"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "IND",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "TEN",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "NE",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "NYJ",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "JAX",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "DAL",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "ARI",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "LAR",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "GB",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "MIA",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "KC",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "LAC",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "DEN",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "DET",
+   "gameday": "2026-10-04"
+  },
+  {
+   "season": 2026,
+   "week": 4,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "ATL",
+   "gameday": "2026-10-05"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "TB",
+   "gameday": "2026-10-08"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "PHI",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "CIN",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "LV",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "MIN",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "CLE",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "IND",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "HOU",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "NYG",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "DEN",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "DET",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "CHI",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "SF",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "BAL",
+   "gameday": "2026-10-11"
+  },
+  {
+   "season": 2026,
+   "week": 5,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "BUF",
+   "gameday": "2026-10-12"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "SEA",
+   "gameday": "2026-10-15"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "HOU",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "CHI",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "BAL",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "TEN",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "NYJ",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "NO",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "CAR",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "PIT",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "ARI",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "LAC",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "BUF",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "DAL",
+   "gameday": "2026-10-18"
+  },
+  {
+   "season": 2026,
+   "week": 6,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "WAS",
+   "gameday": "2026-10-19"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "NE",
+   "gameday": "2026-10-22"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "PIT",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "SF",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "CIN",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "TB",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "NYG",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "IND",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "MIA",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "CLE",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "DEN",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "GB",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "LAR",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "KC",
+   "gameday": "2026-10-25"
+  },
+  {
+   "season": 2026,
+   "week": 7,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "DAL",
+   "gameday": "2026-10-26"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "CAR",
+   "gameday": "2026-10-29"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "BAL",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "TEN",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "ARI",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "MIN",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "IND",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "LV",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "CLE",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "ATL",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "LAC",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "KC",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "NE",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "PHI",
+   "gameday": "2026-11-01"
+  },
+  {
+   "season": 2026,
+   "week": 8,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "CHI",
+   "gameday": "2026-11-02"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "JAX",
+   "gameday": "2026-11-05"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "CIN",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "DEN",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "DAL",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "NYJ",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "DET",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "CLE",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "NYG",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "LAR",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "HOU",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "LV",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "GB",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "ARI",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "TB",
+   "gameday": "2026-11-08"
+  },
+  {
+   "season": 2026,
+   "week": 9,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "BUF",
+   "gameday": "2026-11-09"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "WAS",
+   "gameday": "2026-11-12"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "NE",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "KC",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "HOU",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "MIN",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "MIA",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "CAR",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "BUF",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "JAX",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "LAR",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "SEA",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "SF",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "PIT",
+   "gameday": "2026-11-15"
+  },
+  {
+   "season": 2026,
+   "week": 10,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "LAC",
+   "gameday": "2026-11-16"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "IND",
+   "gameday": "2026-11-19"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "MIA",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "BAL",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "NO",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "TEN",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "TB",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "ARI",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "JAX",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "NYJ",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "LV",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "PIT",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "MIN",
+   "gameday": "2026-11-22"
+  },
+  {
+   "season": 2026,
+   "week": 11,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "CIN",
+   "gameday": "2026-11-23"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "GB",
+   "gameday": "2026-11-25"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "CHI",
+   "gameday": "2026-11-26"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "PHI",
+   "gameday": "2026-11-26"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "KC",
+   "gameday": "2026-11-26"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "DEN",
+   "gameday": "2026-11-27"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "NO",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "LV",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "BAL",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "NYG",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "NYJ",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "ATL",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "TEN",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "WAS",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "SEA",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "NE",
+   "gameday": "2026-11-29"
+  },
+  {
+   "season": 2026,
+   "week": 12,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "CAR",
+   "gameday": "2026-11-30"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "KC",
+   "gameday": "2026-12-03"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "DET",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "JAX",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "CIN",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "GB",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "SF",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "LAC",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "WAS",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "PHI",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "MIA",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "CAR",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "BUF",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "HOU",
+   "gameday": "2026-12-06"
+  },
+  {
+   "season": 2026,
+   "week": 13,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "DAL",
+   "gameday": "2026-12-07"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "MIN",
+   "gameday": "2026-12-10"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "TB",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "NO",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "ATL",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "TEN",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "CHI",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "DEN",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "IND",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "HOU",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "LAC",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "KC",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "NYG",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "LAR",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "BUF",
+   "gameday": "2026-12-13"
+  },
+  {
+   "season": 2026,
+   "week": 14,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "PIT",
+   "gameday": "2026-12-14"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "SF",
+   "gameday": "2026-12-17"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "SEA",
+   "gameday": "2026-12-19"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "CHI",
+   "gameday": "2026-12-19"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "CIN",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "MIA",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "JAX",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "CLE",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "BAL",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "NO",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "IND",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "ATL",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "NYJ",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "DAL",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "DEN",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "DET",
+   "gameday": "2026-12-20"
+  },
+  {
+   "season": 2026,
+   "week": 15,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "NE",
+   "gameday": "2026-12-21"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "PHI",
+   "away": "HOU",
+   "gameday": "2026-12-24"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "GB",
+   "gameday": "2026-12-25"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "BUF",
+   "gameday": "2026-12-25"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "SEA",
+   "away": "LAR",
+   "gameday": "2026-12-25"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "TB",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "CLE",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "CIN",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "LAC",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "WAS",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "ARI",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "NE",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "PIT",
+   "away": "CAR",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "LV",
+   "away": "TEN",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "SF",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "JAX",
+   "gameday": "2026-12-27"
+  },
+  {
+   "season": 2026,
+   "week": 16,
+   "game_type": "REG",
+   "home": "DET",
+   "away": "NYG",
+   "gameday": "2026-12-28"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "BAL",
+   "gameday": "2026-12-31"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "ATL",
+   "away": "NO",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "SEA",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "CLE",
+   "away": "IND",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "DAL",
+   "away": "NYG",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "JAX",
+   "away": "WAS",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "LAC",
+   "away": "KC",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "MIA",
+   "away": "BUF",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "DEN",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "NYJ",
+   "away": "MIN",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "TB",
+   "away": "LAR",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "TEN",
+   "away": "PIT",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "LV",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "CHI",
+   "away": "DET",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "SF",
+   "away": "PHI",
+   "gameday": "2027-01-03"
+  },
+  {
+   "season": 2026,
+   "week": 17,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "HOU",
+   "gameday": "2027-01-04"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "ARI",
+   "away": "SF",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "BAL",
+   "away": "PIT",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "BUF",
+   "away": "NYJ",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "CAR",
+   "away": "ATL",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "CIN",
+   "away": "CLE",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "DEN",
+   "away": "LAC",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "GB",
+   "away": "DET",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "HOU",
+   "away": "TEN",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "IND",
+   "away": "JAX",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "KC",
+   "away": "LV",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "LAR",
+   "away": "SEA",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "MIN",
+   "away": "CHI",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "NE",
+   "away": "MIA",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "NO",
+   "away": "TB",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "NYG",
+   "away": "PHI",
+   "gameday": "2027-01-10"
+  },
+  {
+   "season": 2026,
+   "week": 18,
+   "game_type": "REG",
+   "home": "WAS",
+   "away": "DAL",
+   "gameday": "2027-01-10"
+  }
+ ]
+}

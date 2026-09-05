@@ -327,8 +327,13 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
     block("WHO DECIDES IT",
           lambda t, nm: research.key_players(storage, league, t, values, stage))
     block("WHO MIGHT NOT PLAY",
-          lambda t, nm: research.availability(storage, league, t))
-    lines.insert(len(lines) - 1, research.bye_note())
+          lambda t, nm: research.availability(storage, league, t,
+                                              season=season, week=week))
+    lines.insert(len(lines) - 1, research.bye_note(season, week))
+    league_starters = research.league_starting_values(storage, league, week, values)
+    block("WEAKEST SLOT AND LINEUP CALLS (reference rank, never a projection)",
+          lambda t, nm: research.weakest_slot(t, values, league_starters, stage)
+          + research.lineup_calls(storage, league, t, values))
     block("WHAT EACH SIDE HAS TO GET PAST",
           lambda t, nm: research.gap_to_close(
               profile, t, b if t is a else a, nm, nb if t is a else na,
@@ -343,6 +348,17 @@ def _matchup_brief(storage, league, season, week, slug) -> dict:
     block("ON THE RECORD AGAINST THEM (private; roast ammunition, not a joke)",
           lambda t, nm: research.self_inflicted(storage, league, t,
                                                 weeks_played=weeks_played))
+
+    block("HOW THEY WERE BUILT (draft construction; goes quiet once results exist)",
+          lambda t, nm: research.how_built(storage, league, t, weeks_played=weeks_played))
+    slugs = {t["roster_id"]: t.get("team_slug") for t in (a, b)}
+    record = research.on_the_record(
+        storage, league, season, week, [a["roster_id"], b["roster_id"]],
+        {rid: name_of(t) for rid, t in ((a["roster_id"], a), (b["roster_id"], b))}, slugs)
+    if record:
+        lines.append("ON THE RECORD (open takes and receipts touching either side)")
+        lines.extend(record)
+        lines.append("")
 
     reason, cb_lines = research.notable_callback(m, resolved)
     if reason:

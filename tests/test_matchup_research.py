@@ -319,3 +319,96 @@ def test_the_brief_never_reaches_a_published_snapshot(env, tmp_path):
                     "roast ammunition"):
         assert heading not in blob, heading
     assert "ON THE RECORD AGAINST THEM" in brief   # it does exist, privately
+
+
+# ------------------------------------------------------- the lineup, built
+
+class _Store:
+    """Just enough storage for the pure-ish lineup helpers."""
+
+    def __init__(self, rosters, players, matchups):
+        self._r, self._p, self._m = rosters, players, matchups
+
+    def get_rosters(self, league_id):
+        return self._r
+
+    def get_player(self, pid):
+        return self._p.get(pid, {})
+
+    def get_matchups(self, league_id, week):
+        return self._m
+
+
+class _Lg:
+    league_id = "x"
+    slug = "surfeit"
+
+
+VALUES = {
+    "qb1": {"name": "Starting QB", "position": "QB", "value": 200.0},
+    "te1": {"name": "Weak TE", "position": "TE", "value": 40.0},
+    "te2": {"name": "Bench TE", "position": "TE", "value": 120.0},
+    "rb1": {"name": "Fine RB", "position": "RB", "value": 150.0},
+    "rb9": {"name": "Other RB", "position": "RB", "value": 160.0},
+    "te9": {"name": "Other TE", "position": "TE", "value": 110.0},
+}
+
+
+def _store():
+    return _Store(
+        rosters=[{"roster_id": 1, "players": ["qb1", "te1", "te2", "rb1"], "starters": ["qb1", "te1", "rb1"]},
+                 {"roster_id": 2, "players": ["rb9", "te9"], "starters": ["rb9", "te9"]}],
+        players={},
+        matchups=[{"roster_id": 1, "starters": ["qb1", "te1", "rb1"]},
+                  {"roster_id": 2, "starters": ["rb9", "te9"]}])
+
+
+def test_the_weakest_slot_is_measured_against_the_leagues_own_starters():
+    st = _store()
+    league_starters = research.league_starting_values(st, _Lg(), 1, VALUES)
+    assert sorted(league_starters) == ["QB", "RB", "TE"]
+    team = {"roster_id": 1, "starters": ["qb1", "te1", "rb1"]}
+    lines = research.weakest_slot(team, VALUES, league_starters, "preseason consensus ranks")
+    assert lines and lines[0].startswith("  TE Weak TE:")
+    assert "median starting TE" in lines[0] and "preseason consensus ranks" in lines[0]
+
+
+def test_a_team_above_median_everywhere_says_so():
+    st = _store()
+    league_starters = research.league_starting_values(st, _Lg(), 1, VALUES)
+    team = {"roster_id": 2, "starters": ["rb9", "te9"]}
+    lines = research.weakest_slot(team, VALUES, league_starters, "x")
+    assert lines == ["  no starting slot below the league's median starter (x)"]
+
+
+def test_a_bench_player_who_outrates_a_starter_is_a_lineup_call():
+    team = {"roster_id": 1, "starters": ["qb1", "te1", "rb1"]}
+    lines = research.lineup_calls(_store(), _Lg(), team, VALUES)
+    assert lines == ["  bench TE Bench TE rates 80 above starter Weak TE (reference rank, not a projection)"]
+
+
+def test_a_coin_flip_is_not_a_lineup_call():
+    close = dict(VALUES, te2={"name": "Bench TE", "position": "TE", "value": 50.0})
+    team = {"roster_id": 1, "starters": ["qb1", "te1", "rb1"]}
+    assert research.lineup_calls(_store(), _Lg(), team, close) == []
+
+
+def test_construction_goes_quiet_once_results_exist(env):
+    s, _db = env
+    _a, m = _week(s)
+    team = m["teams"][0]
+    early = research.how_built(s, LG, team, weeks_played=0)
+    assert early and early[0].startswith("  opened ")
+    assert research.how_built(s, LG, team, weeks_played=research.CONSTRUCTION_WEEKS) == []
+
+
+def test_the_brief_carries_the_new_blocks(env):
+    s, db = env
+    from leaguepage.ghost_briefs import brief_for_section
+
+    _a, m = _week(s)
+    b = brief_for_section(s, LG, SEASON, "week-01", f"matchup:{m['matchup_slug']}", 1)
+    text = b["text"]
+    assert "WEAKEST SLOT AND LINEUP CALLS" in text
+    assert "HOW THEY WERE BUILT" in text
+    assert "WHO MIGHT NOT PLAY" in text

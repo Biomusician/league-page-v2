@@ -47,6 +47,7 @@ COPY = "copy"
 FRESHNESS = "freshness"
 ANALYTICS = "analytics"
 PRIVACY = "privacy"
+COHERENCE = "coherence"
 
 BLOCKER = "blocker"
 WARNING = "warning"
@@ -59,8 +60,10 @@ CATEGORY_LABELS = {
     FRESHNESS: "Freshness",
     ANALYTICS: "Analytical consistency",
     PRIVACY: "Privacy",
+    COHERENCE: "Cross-section coherence",
 }
-CATEGORY_ORDER = [PRIVACY, IDENTITY, PLACEHOLDER, FORMATTING, FRESHNESS, ANALYTICS, COPY]
+CATEGORY_ORDER = [PRIVACY, IDENTITY, PLACEHOLDER, FORMATTING, FRESHNESS, ANALYTICS,
+                  COHERENCE, COPY]
 
 
 @dataclass
@@ -117,6 +120,15 @@ class QAContext:
     player_positions: dict[str, str] = field(default_factory=dict)
     current_pairings: set[frozenset] = field(default_factory=set)
     n_teams: int = 0
+    # --- what the cross-section checks (leaguepage.coherence) compare against
+    lineup_format: str | None = None            # "superflex" | "1qb"
+    # player name -> {"rid", "position", "status"} for every rostered player
+    players: dict[str, dict] = field(default_factory=dict)
+    sleeper_names: dict[int, str] = field(default_factory=dict)
+    callsigns: dict[str, int] = field(default_factory=dict)
+    former_names: dict[str, int] = field(default_factory=dict)
+    other_league_paragraphs: set[str] = field(default_factory=set)
+    other_league_label: str | None = None
 
 
 _WORD_RE = re.compile(r"[a-z0-9']+")
@@ -195,7 +207,26 @@ def build_context(
                 rostered.add(nm)
                 if p.get("position"):
                     ctx.player_positions[nm] = p["position"].upper()
+                ctx.players[nm] = {"rid": rid, "position": (p.get("position") or "").upper(),
+                                   "status": (p.get("injury_status") or None)}
         ctx.rosters[rid] = {"drafted": drafted.get(rid, set()), "rostered": rostered}
+
+    # cross-section coherence: the league's own format, the raw Sleeper
+    # names beside the public ones, and the other league's issue so a
+    # paragraph shared between the two papers can be noticed.
+    try:
+        from leaguepage import coherence as _coh
+        from leaguepage.team_names import sleeper_team_names
+
+        positions = (storage.get_league(league.league_id) or {}).get("roster_positions") or []
+        ctx.lineup_format = ("superflex" if "SUPER_FLEX" in positions
+                             else ("1qb" if "QB" in positions else None))
+        ctx.sleeper_names = {rid: nm for rid, nm in sleeper_team_names(storage, league).items() if nm}
+        ctx.callsigns = _coh.callsigns_from_names(public_names)
+        ctx.other_league_paragraphs, ctx.other_league_label = _other_league_text(
+            league, season, issue_key)
+    except Exception:  # advisory; never block the gate on it
+        pass
 
     # this week's actual pairings, for "matchup changed" freshness
     if week:
@@ -214,6 +245,40 @@ def build_context(
     for nm in public_names.values():
         ctx.team_slugs.add(slugify(nm))
     return ctx
+
+
+def _other_league_text(league: League, season: str, issue_key: str) -> tuple[set[str], str | None]:
+    """Normalised paragraphs of the other league's same issue: what is on
+    the Desk for it now, and whatever it has already published."""
+    import glob
+    import json
+
+    from leaguepage import coherence as _coh
+    from leaguepage import config as _cfg
+    from leaguepage.issue_builder import issue_dir
+
+    other = next((lg for lg in _cfg.LEAGUES if lg.slug != league.slug), None)
+    if other is None:
+        return set(), None
+    texts: list[str] = []
+    idir = issue_dir(other, season, issue_key)
+    for path in ([idir / "lowdown" / "lowdown.md"] + sorted(idir.glob("sections/*.md"))
+                 + sorted(idir.glob("matchups/*/draft.md"))):
+        if path.exists():
+            texts.append(path.read_text(encoding="utf-8"))
+    for path in sorted(glob.glob(str(_cfg.PUBLISHED_DIR / other.slug / season / f"{issue_key}*.json"))):
+        try:
+            snap = json.loads(_read_text(path))
+        except Exception:
+            continue
+        texts += [sec.get("content_md") or "" for sec in snap.get("sections", [])]
+    return _coh.other_league_paragraphs(texts), f"{other.display_name} {issue_key}"
+
+
+def _read_text(path: str) -> str:
+    from pathlib import Path
+
+    return Path(path).read_text(encoding="utf-8")
 
 
 # ------------------------------------------------------------- identity
@@ -771,7 +836,39 @@ def check_sections(sections: list[dict], ctx: QAContext, *,
         findings += _check_copy(text, key, ctx)
         findings += _check_freshness(text, key, ctx, published=published)
         findings += _check_analytics(text, key, ctx)
+    findings += _check_coherence(sections, ctx)
     return _dedupe(findings)
+
+
+def _check_coherence(sections: list[dict], ctx: QAContext) -> list[Finding]:
+    """The between-sections checks, run once over the whole issue."""
+    from leaguepage import coherence as _coh
+
+    live = [{"module_key": s.get("module_key"), "title": s.get("title"),
+             "content_md": (s.get("content_md") or "")}
+            for s in sections if (s.get("content_md") or "").strip()]
+    if not live:
+        return []
+    claims = []
+    for s in live:
+        for _, body, rid in _team_blocks(s["content_md"], ctx):
+            for m in _POS_RANK_RE.finditer(body):
+                pos = m.group(1).upper()
+                claims.append({"module_key": s["module_key"], "rid": rid,
+                               "pos": "DEF" if pos == "DST" else pos,
+                               "claimed": int(m.group(2))})
+    cctx = {"format": ctx.lineup_format, "public_names": ctx.public_names,
+            "sleeper_names": ctx.sleeper_names, "callsigns": ctx.callsigns,
+            "players": ctx.players, "former_names": ctx.former_names,
+            "other_league_paragraphs": ctx.other_league_paragraphs,
+            "other_league_label": ctx.other_league_label}
+    out = []
+    for f in _coh.check(live, cctx, rank_claims=claims):
+        out.append(Finding(f["category"], WARNING, f["title"], f["detail"],
+                           f.get("module_key"), excerpt=f.get("excerpt"),
+                           suggestion=f.get("suggestion"),
+                           evidence=list(f.get("evidence") or [])))
+    return out
 
 
 def _dedupe(findings: list[Finding]) -> list[Finding]:

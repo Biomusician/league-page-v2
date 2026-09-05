@@ -90,3 +90,18 @@ def test_take_add_and_resolve_via_desk(client):
            data={"status": "too_early", "resolution": ""})
     with Storage(db) as s:
         assert s.open_takes("surfeit")[0]["status"] == "too_early"
+
+
+def test_command_brief_page_renders_inside_the_temp_tree(client, tmp_path, monkeypatch):
+    """The brief route rebuilds the page on every open; the file it writes
+    must land in the issue directory, never anywhere else."""
+    import leaguepage.issue_builder as ib
+    import leaguepage.matchup_packet as mp
+
+    monkeypatch.setattr(ib, "EDITORIAL_DIR", tmp_path / "editorial")
+    monkeypatch.setattr(mp, "EDITORIAL_DIR", tmp_path / "editorial")
+    c, _ = client
+    r = c.get("/commissioner/surfeit/2026/issue/week-01/brief")
+    assert r.status_code == 200
+    assert "TOP STORIES" in r.text and "Editorial Command Brief" in r.text
+    assert (tmp_path / "editorial" / "2026" / "surfeit" / "week-01" / "COMMAND_BRIEF.md").exists()
