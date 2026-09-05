@@ -337,3 +337,11 @@ def test_a_genuinely_unrendered_heading_is_still_caught():
     # four-space indent makes python-markdown treat it as a code block
     fs = check("Some prose.\n\n    ## Correction — methodology\n\nMore prose.\n")
     assert "Markdown heading did not render" in titles(fs)
+
+
+def test_a_lowercased_private_handle_still_blocks():
+    """QA and the build audit share one matcher. A case-sensitive test here
+    let a name through QA into a frozen revision the build then refused."""
+    c = ctx(private_handles=["ConfedFatties"])
+    fs = check("confedfatties had a night.", c=c)
+    assert only(fs, pubqa.PRIVACY) and only(fs, pubqa.PRIVACY)[0].severity == BLOCKER

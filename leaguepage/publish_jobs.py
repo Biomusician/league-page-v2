@@ -266,10 +266,15 @@ def _stage_snapshot(job: dict, db_path) -> str:
 
 
 def _stage_build(job: dict, db_path) -> str:
+    import os
+
     py = REPO_ROOT / ".venv" / "Scripts" / "python.exe"
+    # The child inherits a cp1252 console; its output is decoded as UTF-8
+    # here, so tell it to write UTF-8 or every em-dash logs as a "?".
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
     proc = _run(job, [str(py if py.exists() else sys.executable),
                       str(REPO_ROOT / "scripts" / "build_public_site.py")],
-                cwd=REPO_ROOT, timeout=TIMEOUTS["build"])
+                cwd=REPO_ROOT, timeout=TIMEOUTS["build"], env=env)
     if proc.returncode != 0:
         tail = (proc.stdout + proc.stderr).strip()[-300:]
         raise StageError(f"build/privacy audit failed: {tail}")

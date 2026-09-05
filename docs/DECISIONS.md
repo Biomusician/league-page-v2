@@ -921,3 +921,24 @@ page carries the "Updated · note" line. A republish of unchanged text is a
 no-op, measured against the latest revision rather than the original, so a
 corrected issue can be re-deployed without being told to correct it again.
 Nothing here publishes anything by itself; the note and the click are his.
+
+## 2026-09-05 — The Commissioner's own nickname is a byline, and QA matches the way the audit does
+
+The first correction of Disco Week 1 froze cleanly and then failed the
+build's privacy audit on "the commish" in two sections the Commissioner had
+written himself. The string is an alias in his own manager entry, and the
+audit treats every alias not already inside a public team name as private,
+because aliases are where other managers' real first names live. His own
+are different in kind: he signs the paper, and a nickname he calls himself
+in his own approved prose is a byline. The exemption is structural, the
+manager entry whose roster is the configured author roster, and it covers
+aliases only. His Sleeper handle and display name stay private like
+everyone's, because those are account identifiers, not names he writes
+under.
+
+The second defect was the reason the text reached a frozen revision at
+all: the pre-publish QA matched handles case-sensitively while the build
+audit matched case-insensitively, so "the commish" passed QA, became an
+immutable file, and only then was refused. QA now uses the audit's own
+matcher. What passes the publication check cannot fail the build for the
+same reason.

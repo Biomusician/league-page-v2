@@ -1442,6 +1442,17 @@ _SCRIPT_OR_STYLE_RE = re.compile(
     re.S | re.I)
 
 
+def _is_author(entry: dict) -> bool:
+    """The Commissioner's own manager entry: the one whose roster is the
+    author roster in any league (config, not a name match)."""
+    from leaguepage.config import LEAGUES
+
+    leagues = entry.get("leagues") or {}
+    return any(isinstance(leagues.get(lg.slug), dict)
+               and leagues[lg.slug].get("roster_id") == lg.author_roster_id
+               for lg in LEAGUES)
+
+
 def _private_handles(public_names: list[str] | None = None) -> list[str]:
     """Every name a manager is known by locally that he has not already
     published himself.
@@ -1460,6 +1471,12 @@ def _private_handles(public_names: list[str] | None = None) -> list[str]:
     Aliases are therefore only scanned when the caller can say what the
     public names are. Without that list this returns handles alone, which is
     the behaviour that has always shipped.
+
+    The Commissioner's own aliases are exempt. He signs the paper, and a
+    nickname he calls himself in his own approved prose ("the commish") is
+    a byline, not somebody else's name reaching the public. His Sleeper
+    handle and display name stay private like everyone's: those are account
+    identifiers, not names he writes under.
     """
     from leaguepage.config import EDITORIAL_DIR
 
@@ -1473,7 +1490,7 @@ def _private_handles(public_names: list[str] | None = None) -> list[str]:
         if not isinstance(m, dict):
             continue
         candidates = [key, m.get("display_name")]
-        if public_names is not None:
+        if public_names is not None and not _is_author(m):
             for field in ("aliases", "unverified_aliases"):
                 v = m.get(field)
                 if isinstance(v, list):

@@ -112,3 +112,20 @@ def test_without_public_names_only_handles_are_scanned(tmp_path, monkeypatch):
     _managers(tmp_path, monkeypatch, {
         "handleone": {"display_name": "handleone", "aliases": ["Bartholomew"]}})
     assert _private_handles() == ["handleone"]
+
+
+def test_the_commissioners_own_nickname_is_a_byline_not_a_leak(tmp_path, monkeypatch):
+    """He signs the paper. "the commish" in his own approved prose is a
+    byline; his Sleeper handle stays private like everyone's, and another
+    manager's alias is still somebody else's name."""
+    from leaguepage.config import LEAGUES
+
+    lg = LEAGUES[0]
+    _managers(tmp_path, monkeypatch, {
+        "authorhandle": {"display_name": "authorhandle", "aliases": ["The Commish"],
+                         "leagues": {lg.slug: {"roster_id": lg.author_roster_id}}},
+        "otherhandle": {"display_name": "otherhandle", "aliases": ["Bartholomew"],
+                        "leagues": {lg.slug: {"roster_id": lg.author_roster_id + 1}}}})
+    handles = _private_handles(["Some Team (X)"])
+    assert "The Commish" not in handles
+    assert "authorhandle" in handles and "Bartholomew" in handles

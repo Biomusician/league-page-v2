@@ -19,7 +19,10 @@ and keeps the prior record when a job dies before the deploy stage, and the
 publish page shows "Text since publication: changed" with a required
 correction note that freezes `week-01.r2.json` beside the untouched original.
 The wrong "deploy failed 10:35" record in the local DB was corrected by hand
-to the verified truth. **Nothing was published or deployed by Claude; the
+to the verified truth. The first correction (r2, "League title fixed") then failed the build's
+privacy audit on "the commish" in his own prose: the author's own aliases are
+now a byline (exempt), QA and the build audit share one case-insensitive
+matcher, and the real build passes with r2. **Nothing was published or deployed by Claude; the
 correction note and the click are Jonathan's.** `published/disco/2026/week-01.json`
 is still untracked in git and is the record of what shipped; commit it.
 

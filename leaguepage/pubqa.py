@@ -403,9 +403,14 @@ def _check_identity(text: str, module_key: str, ctx: QAContext) -> list[Finding]
 
 
 def _check_privacy(text: str, module_key: str, ctx: QAContext) -> list[Finding]:
+    # The build audit's matcher, so what passes here cannot fail there.
+    # A case-sensitive test let "the commish" through QA into a frozen
+    # revision that the (case-insensitive) build audit then refused.
+    from leaguepage.privacy import handle_re
+
     out = []
     for handle in ctx.private_handles:
-        if re.search(rf"\b{re.escape(handle)}\b", text):
+        if handle_re(handle).search(text):
             out.append(Finding(
                 PRIVACY, BLOCKER, "Private Sleeper handle in public prose",
                 "A login handle from the private manager file appears in copy "
