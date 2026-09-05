@@ -22,7 +22,7 @@ Montgomery gets one of the cleanest Week 1 volume/matchup combinations outside t
 
 <b>The play:</b> Strong RB2. Buffalo's run defense gives Montgomery a realistic route to beating the fairly modest consensus ranking.
 
-<b>Jayden Daniels, QB — Wild SeeKats (Seabass/Kats) — WAS at PHI</b>
+<b>Jayden Daniels, QB — Wild SeeKats (Seebass/Kats) — WAS at PHI</b>
 
 Philadelphia is a good defense, which is exactly why Daniels is interesting here. The Eagles finished eighth against the pass, and FanDuel's projection is relatively restrained at 15.5 fantasy points. The counter is the one matchup trait that matters enormously for Daniels: Philadelphia allowed the second-most quarterback rushing yards <i>and</i> rushing touchdowns last season. RotoBaller still grades him as a solid QB1, while FantasyPros has him QB6 in its Week 1 Superflex consensus. A difficult conventional quarterback matchup becomes considerably less conventional when the quarterback is part running back.
 
