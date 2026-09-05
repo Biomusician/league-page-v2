@@ -1,0 +1,275 @@
+{#  One section of an issue, with everything the Commissioner can do to
+    it: state chips, the controls, any Claude proposal awaiting review,
+    the computed evidence behind it, the writing brief, and the boxes he
+    types in.
+
+    Shared by the Issue Room and the older long-form editor, so the two
+    surfaces cannot drift into disagreeing about what a section is. `c`
+    is a card from desk_editor._editor_context; `card_open` decides
+    whether it starts expanded, which is the only thing the two callers
+    want differently. #}
+<details class="sec card" id="sec-{{ c.module_key }}"{% if card_open %} open{% endif %}>
+  <summary>
+    {{ c.title }}
+    {% if not c.included %}<span class="chip excluded">excluded</span>{% endif %}
+    {% if c.kind == "auto" %}<span class="chip approved">automatic</span>
+    {% else %}
+      <span class="chip {% if c.approved %}approved{% endif %}" data-role="approve-chip"
+            data-section="{{ c.module_key }}">{{ "approved" if c.approved else "not approved" }}</span>
+      {% if c.editable and c.not_written %}
+        <span class="chip notwritten">not written · suggestions ready</span>
+      {% elif c.editable %}<span class="chip {% if c.prose_state == 'commissioner-edited' %}edited{% endif %}"
+            data-role="state-chip" data-section="{{ c.module_key }}">{{ c.prose_state }}</span>{% endif %}
+      {% if c.children_total %}<span data-role="child-count"
+            class="chip {% if c.children_approved == c.children_total %}approved{% else %}edited{% endif %}"
+            title="Matchup previews approved, out of the week's total.">{{ c.children_approved }} / {{ c.children_total }} approved</span>{% endif %}
+      {% if c.changed_since_approval %}<span class="chip stale"
+            title="This changed after you approved it. Approve again to publish what is here now.">changed since approval</span>{% endif %}
+      {% if c.brief and c.brief.stale_prose %}<span class="chip stale"
+            title="Sleeper data was synced after this section was written; check the writing brief.">data updated since written</span>{% endif %}
+    {% endif %}
+    {#  An included section with nothing in it is his call, not the
+        system's: it used to remove itself, which hid the decision. #}
+    {% if c.empty %}<span class="chip empty"
+          title="{{ c.detail }}">No meaningful material this week — consider excluding</span>
+    {% elif c.detail %}<span class="meta">{{ c.detail }}</span>{% endif %}
+  </summary>
+
+  {#  Expanded, a card says who wrote what is in it and what he can do about
+      it. Collapsed it says almost nothing, on purpose: the summary is for
+      finding the section, and this line is for working in it.
+
+      "Automatic" was never meant to mean "locked". Every line of prose the
+      newsletter publishes is his to change, and the only things that stay
+      fixed are computed results, which are labelled as such where they
+      appear. #}
+  {% if c.authority %}
+    <p class="authority">{{ c.authority }}{% if c.changed_since_approval %} ·
+      <b>changed since you approved it</b>; approve again to publish what is here now{% endif %}.
+      Edit it in the box below.</p>
+  {% elif c.blurb %}
+    <p class="authority">Assembled automatically from
+      {{ "the week's matchup previews" if c.kind == "ctp" else "your saved rankings" }}.
+      The results below are computed and stay as they are; the opening remarks
+      are yours, optional, and block nothing when left empty.</p>
+  {% endif %}
+
+  <div class="cardctl">
+    {% if c.custom %}
+    {#  A special section's title is the only thing about it that is not
+        shared with every other section, so it is edited in place here
+        rather than in a settings screen somewhere else. #}
+    <form method="post" action="{{ edit_base }}/custom" class="inline">
+      <input type="hidden" name="action" value="rename">
+      <input type="hidden" name="module_key" value="{{ c.module_key }}">
+      <label class="visually-hidden" for="title-{{ c.module_key }}">Section title</label>
+      <input type="text" id="title-{{ c.module_key }}" name="title"
+             value="{{ c.title }}" size="24" maxlength="80">
+      <button>Rename</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ edit_base }}/module" class="inline">
+      <input type="hidden" name="module_key" value="{{ c.module_key }}">
+      {% if c.included %}<button name="action" value="exclude">Exclude from issue</button>
+      {% else %}<button name="action" value="include">Include in issue</button>{% endif %}
+      <input type="hidden" name="position" value="">
+    </form>
+    {% if c.kind != "auto" %}
+      <button type="button" onclick="approve('{{ c.module_key }}', true)">Approve</button>
+      <button type="button" onclick="approve('{{ c.module_key }}', false)">Unapprove</button>
+    {% endif %}
+    {% if c.editable %}
+      <button type="button" onclick="previewSection('{{ c.module_key }}')">Preview section</button>
+      <button type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
+      {% if c.not_written %}
+        <button type="button" onclick="copyPrompt('{{ c.module_key }}', this)">Copy prompt for Claude</button>
+      {% else %}
+        <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
+      {% endif %}
+      {% if c.module_key == "lowdown" and c.generated_source and not c.not_written %}
+        <button type="button" onclick="resetGenerated('lowdown')">Reset to generated draft</button>
+      {% endif %}
+      {#  A section with a composed default gets it as a starting point or
+          as a way back. The wording changes because the act does: taking
+          the default when there is nothing there is not the same decision
+          as throwing away what he wrote. Either way his current text goes
+          to History first, so an override is never destroyed. #}
+      {% if c.generated_available %}
+        <button type="button" onclick="resetGenerated('{{ c.module_key }}')">
+          {{ "Use generated copy" if c.not_written else "Reset to generated" }}</button>
+      {% endif %}
+      {#  Origin is a fact, not a score: however much he edits a generated
+          section it stays generated in origin. This is the one deliberate
+          act that makes the wording his, and it clears the box so that is
+          literally true; the generated text waits in History. #}
+      {% if c.origin in ("ai", "deterministic") and not c.not_written %}
+        <button type="button" onclick="replaceOrigin('{{ c.module_key }}')">Replace with my copy</button>
+      {% endif %}
+    {% endif %}
+    {% if c.blurb %}
+      <button type="button" onclick="previewSection('{{ c.module_key }}')">Preview opening remarks</button>
+      <button type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
+      {% if c.blurb.written %}
+        <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  {% for r in c.requests %}
+    <p class="meta">✎ open rewrite request {{ r.id }}: “{{ r.note }}” — tell Claude Code:
+      <code>work all pending rewrite requests for {{ league.slug }} {{ issue_key }}</code></p>
+  {% endfor %}
+
+  {% if c.proposal %}
+  <div class="proposal">
+    <b>Claude proposal awaiting review</b> — your current text is untouched until you accept.
+    <div class="compare">
+      <div><div class="meta">Current (yours)</div>
+        <textarea class="prose" rows="14" readonly>{{ c.chunks | map(attribute="text") | join("") }}</textarea></div>
+      <div><div class="meta">Proposed (Claude)</div>
+        <textarea class="prose" rows="14" readonly>{{ c.proposal }}</textarea></div>
+    </div>
+    <div class="cardctl">
+      <button class="primary" type="button" onclick="proposal('{{ c.module_key }}', 'accept')">Accept proposal</button>
+      <button type="button" onclick="proposal('{{ c.module_key }}', 'discard')">Keep current (discard)</button>
+      <span class="meta">Accepting snapshots your current text to History first.</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {#  The computed half. These are results, not readings: they came out of
+      the week's scoring and his own award decisions, so they are shown
+      rather than typed into. Changing how the section reads never means
+      changing what happened, which is why the prose and the evidence sit
+      in separate boxes. #}
+  {% if c.evidence_rows %}
+  <details class="evd"><summary>Computed evidence — {{ c.evidence_rows | length }}
+    decided award(s), not editable here</summary>
+    <div class="briefpanel">{% for e in c.evidence_rows %}{{ e.award_name }} — winner: {{ e.winner or "(none recorded)" }}
+  basis: {{ e.metric }}
+{% for f in e.facts %}  · {{ f }}
+{% endfor %}{% if e.note %}  · your private note: {{ e.note }}
+{% endif %}
+{% endfor %}</div>
+    <p class="meta">Decided on the <a href="{{ base }}/awards">awards screen</a>. Your
+      private notes stay on the Desk and never reach the composed copy.</p>
+  </details>
+  {% endif %}
+
+  {#  His voice above a body he did not type. The textarea carries the
+      module's own key, so autosave, history, preview and rewrite requests
+      all reach it through the machinery every written section already
+      uses. Empty is a valid finished state. #}
+  {% if c.blurb %}
+  <div class="subcard">
+    <h4>Opening remarks <span class="meta">optional; publishes above the
+      {{ "previews" if c.kind == "ctp" else "rankings" }}</span></h4>
+    {% if c.blurb.proposal %}
+    <div class="proposal">
+      <b>Claude proposal awaiting review</b>
+      <div class="compare">
+        <div><div class="meta">Current (yours)</div>
+          <textarea class="prose" rows="8" readonly>{{ c.blurb.text }}</textarea></div>
+        <div><div class="meta">Proposed (Claude)</div>
+          <textarea class="prose" rows="8" readonly>{{ c.blurb.proposal }}</textarea></div>
+      </div>
+      <div class="cardctl">
+        <button class="primary" type="button" onclick="proposal('{{ c.module_key }}', 'accept')">Accept proposal</button>
+        <button type="button" onclick="proposal('{{ c.module_key }}', 'discard')">Keep current (discard)</button>
+      </div>
+    </div>
+    {% endif %}
+    <div class="editwrap {% if c.blurb.written %}has-content{% endif %}">
+      <textarea class="prose autosave" data-section="{{ c.module_key }}"
+                data-sha="{{ c.blurb.sha }}" rows="4">{{ c.blurb.text }}</textarea>
+    </div>
+    <div class="previewbox" id="preview-{{ c.module_key }}" hidden></div>
+    <div class="revlist" id="revs-{{ c.module_key }}" hidden></div>
+  </div>
+  {% endif %}
+
+  {% if c.editable %}
+    {% if c.module_key == "lowdown" and c.generated_source and c.not_written %}
+      <details class="evd"><summary>Show existing Claude draft (not loaded into your editor)</summary>
+        <textarea class="prose" rows="12" readonly>{{ c.generated_source }}</textarea>
+        <div class="cardctl"><button type="button" onclick="resetGenerated()">Use this Claude draft as my starting text</button></div>
+      </details>
+    {% endif %}
+    {% for ch in c.chunks %}
+      <div class="{% if c.chunk_count > 1 %}subcard{% endif %}">
+        {% if ch.heading %}<h4>{{ ch.heading }}</h4>{% endif %}
+        <div class="editwrap {% if ch.text.strip() %}has-content{% endif %}">
+          {% if c.brief and c.brief.text and c.chunk_count == 1 %}
+          <div class="ghost"><span class="ghostlabel">Writing suggestions (private; your typed
+words replace this)</span>{{ c.brief.text }}</div>
+          {% endif %}
+          <textarea class="prose autosave" data-section="{{ c.module_key }}"
+                    data-sha="{{ ch.sha }}"
+                    {% if c.chunk_count > 1 %}data-chunk-index="{{ ch.index }}"
+                    data-chunk-count="{{ c.chunk_count }}"{% endif %}
+                    rows="{{ [(c.brief.text.count('\n') + 4) if (c.brief and not ch.text.strip() and c.chunk_count == 1) else 4, [ch.text.count('\n') + 2, 26] | min] | max }}">{{ ch.text }}</textarea>
+        </div>
+      </div>
+    {% endfor %}
+    {% if c.brief and c.brief.text %}
+    <details class="evd"><summary>Writing brief{% if c.brief.data_as_of %} (data as of {{ c.brief.data_as_of[:16] }}){% endif %}</summary>
+      <div class="briefpanel">{{ c.brief.text }}</div>
+      {% if c.brief.evidence %}
+      <details class="evd"><summary>Show evidence ({{ c.brief.evidence | length }})</summary>
+        <ul>{% for e in c.brief.evidence %}<li class="meta">{{ e }}</li>{% endfor %}</ul>
+      </details>
+      {% endif %}
+    </details>
+    {% endif %}
+    <div class="previewbox" id="preview-{{ c.module_key }}" hidden></div>
+    <div class="revlist" id="revs-{{ c.module_key }}" hidden></div>
+  {% elif c.kind == "power" %}
+    {% if c.brief and c.brief.text %}
+    <details class="evd"><summary>System recommendation (yours to overrule)</summary>
+      <div class="briefpanel">{{ c.brief.text }}</div>
+    </details>
+    {% endif %}
+    {% if c.rankings %}
+    <form method="post" action="{{ edit_base }}/rankings">
+      <input type="hidden" name="label" value="{{ c.label }}">
+      <table>
+        <tr><th>Roster</th><th>Rank</th><th>Tier</th><th>Rationale</th></tr>
+        {% for p in c.rankings %}
+        <tr>
+          <td>{{ p.roster_id }}</td>
+          <td><input type="text" name="rank_{{ p.roster_id }}" value="{{ p.rank or '' }}" size="3"></td>
+          <td><input type="text" name="tier_{{ p.roster_id }}" value="{{ p.tier or '' }}" size="3"></td>
+          <td><input type="text" name="note_{{ p.roster_id }}" value="{{ p.note or '' }}" style="width:95%"></td>
+        </tr>
+        {% endfor %}
+      </table>
+      <div class="cardctl"><button class="primary">Save rankings</button>
+        <a href="{{ base | replace('/issue/' + issue_key, '') }}/rankings/{{ c.label }}">full rankings screen →</a></div>
+    </form>
+    {% else %}
+      <p class="meta">No "{{ c.label }}" rankings saved yet —
+        <a href="{{ base | replace('/issue/' + issue_key, '') }}/rankings/{{ c.label }}">set them here</a>.</p>
+    {% endif %}
+  {% elif c.kind == "ctp" %}
+    {% if c.children %}
+      <p class="meta">This section is the week's matchup previews. Approving it
+        means approving all {{ c.children_total }}; it publishes as one page.
+        Every preview below stays open for editing after it is approved, and
+        editing one takes its approval back so nothing publishes unread.</p>
+      {% for mc in c.children %}{% include "desk/_matchup_card.html" %}{% endfor %}
+    {% else %}
+      <p class="meta">{{ c.detail or c.status }}</p>
+    {% endif %}
+  {% elif c.kind == "auto" %}
+    <p class="meta">Masthead is issue metadata, not writing: it contributes no
+      prose to the published page, so there is nothing here to edit or
+      override. The issue theme it reads is set on the
+      <a href="{{ base }}">issue workspace</a>, where it steers the writing
+      briefs.</p>
+  {% elif c.kind == "intel" %}
+    <p class="meta">{{ c.detail or c.status }} — this module publishes nothing until the
+      scenario engine exists, so there is no prose to write or override yet.</p>
+  {% else %}
+    <p class="meta">{{ c.detail or c.status }}</p>
+  {% endif %}
+</details>

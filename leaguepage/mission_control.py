@@ -168,7 +168,7 @@ def _next_action(row: dict) -> dict:
     if sec["empty"]:
         n = sec["empty"]
         return {"text": f"Write {n} empty section{'' if n == 1 else 's'}",
-                "href": f"{base}/issue/{key}/edit",
+                "href": f"{base}/issue/{key}/room",
                 "why": f"{sec['approved']} of {sec['total']} approved"}
     if sec["drafted"]:
         n = sec["drafted"]
@@ -177,7 +177,7 @@ def _next_action(row: dict) -> dict:
                 "why": "written but not approved"}
     if row["blockers"]:
         return {"text": f"Clear {len(row['blockers'])} publication blocker(s)",
-                "href": f"{base}/issue/{key}/edit",
+                "href": f"{base}/issue/{key}/room",
                 "why": row["blockers"][0][:120]}
     if sec["total"] and sec["approved"] == sec["total"]:
         return {"text": f"Preview and publish week {week}",
@@ -186,7 +186,7 @@ def _next_action(row: dict) -> dict:
     if row["undecided"]:
         return {"text": f"Clear {row['undecided']} inbox item(s)",
                 "href": "/commissioner/inbox", "why": "nothing urgent, but not empty"}
-    return {"text": f"Open week {week}", "href": f"{base}/issue/{key}/edit",
+    return {"text": f"Open week {week}", "href": f"{base}/issue/{key}/room",
             "why": "nothing is waiting on you"}
 
 

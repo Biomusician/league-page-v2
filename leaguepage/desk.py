@@ -380,6 +380,17 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         return FileResponse(STATIC_DIR / "sortable.js",
                             media_type="text/javascript")
 
+    @app.get("/static/desk-editor.js")
+    def desk_editor_js():
+        """The editing behaviour both issue surfaces load. Same reasoning as
+        desk.js: named explicitly rather than mounted as a directory."""
+        from fastapi.responses import FileResponse
+
+        from leaguepage.config import STATIC_DIR
+
+        return FileResponse(STATIC_DIR / "desk-editor.js",
+                            media_type="text/javascript")
+
     @app.get("/static/desk.js")
     def desk_js():
         """Named explicitly rather than mounted as a directory: a mount

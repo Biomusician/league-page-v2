@@ -96,6 +96,29 @@ def _chunk_heading(chunk: str) -> str:
     return m.group(1).strip() if m else "(intro)"
 
 
+# What the rail says about a section, and which token colour carries it.
+# Deliberately the reader's language rather than the implementation's: the
+# Commissioner needs to know what needs him, not what column changed.
+def _rail_state(card: dict) -> tuple[str, str]:
+    if not card.get("included"):
+        return "excluded", "off"
+    if card.get("kind") == "auto":
+        return "automatic", "off"
+    if card.get("proposal") or (card.get("blurb") or {}).get("proposal"):
+        return "AI draft ready", "ai"
+    if card.get("editable") and card.get("not_written"):
+        return "needs writing", "work"
+    if card.get("changed_since_approval"):
+        return "needs review", "need"
+    if card.get("empty"):
+        return "nothing this week", "work"
+    if card.get("approved"):
+        return "approved", "ok"
+    if card.get("children_total") and card.get("children_approved") != card.get("children_total"):
+        return f"{card['children_approved']}/{card['children_total']} previews", "work"
+    return "needs review", "need"
+
+
 def _strip_draft_markers(text: str) -> str:
     """Remove the ROUGH DRAFT scaffolding comment lines from accepted prose.
 
@@ -1284,11 +1307,16 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
     # ------------------------------------------------ publish / deploy
 
 
-    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish")
-    def publish_confirm(request: Request, league_slug: str, season: str, issue_key: str):
+    def _add_publication_state(ctx: dict, league_slug: str, season: str,
+                               issue_key: str) -> dict:
+        """What is frozen, what is live, and whether the text has moved.
+
+        One implementation for the publish screen and the Issue Room's
+        publish drawer: two readings of publication state that could
+        disagree is exactly the bug this project keeps fixing.
+        """
         from leaguepage import publish_jobs
 
-        ctx = _editor_context(league_slug, season, issue_key)
         ctx["job"] = publish_jobs.get_job_for(league_slug, season, issue_key)
         with storage() as s:
             ctx["deploy_state"] = publish_jobs.deploy_state(s, league_slug, season, issue_key)
@@ -1300,7 +1328,36 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         ctx["live"] = bool(ds and ds.get("state") in publish_jobs.LIVE_STATES and rev
                            and ds.get("revision") == rev["n"])
         ctx["live_ago"] = publish_jobs.ago(ds["at"]) if ds and ds.get("at") else None
+        return ctx
+
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/publish")
+    def publish_confirm(request: Request, league_slug: str, season: str, issue_key: str):
+        ctx = _add_publication_state(_editor_context(league_slug, season, issue_key),
+                                     league_slug, season, issue_key)
         return templates.TemplateResponse(request, "desk/publish_confirm.html", ctx)
+
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/room")
+    def issue_room(request: Request, league_slug: str, season: str, issue_key: str):
+        """The week's work in one place.
+
+        The same context the long-form editor renders, the same section
+        card partial, the same endpoints. What it adds is a rail, a state
+        token per section, the reader's preview beside the writing, and
+        publication within reach — so a week does not cost a dozen page
+        loads. The old editor stays until this has run a real week.
+        """
+        from leaguepage import mission_control, sync_jobs
+
+        ctx = _add_publication_state(_editor_context(league_slug, season, issue_key),
+                                     league_slug, season, issue_key)
+        for card in ctx["cards"]:
+            card["state_label"], card["tone"] = _rail_state(card)
+        with storage() as s:
+            _hours, said = mission_control._age(s.get_meta(sync_jobs.LAST_SYNC_KEY))
+        ctx["sync_age"] = said
+        ctx["weekly"] = [c for c in ctx["cards"] if c.get("checklist")]
+        ctx["admin"] = [c for c in ctx["cards"] if not c.get("checklist")]
+        return templates.TemplateResponse(request, "desk/issue_room.html", ctx)
 
     def _publication_state(s, league_slug: str, season: str, issue_key: str):
         """(latest frozen revision or None, whether the Desk text differs

@@ -87,7 +87,7 @@ def test_writing_comes_before_approving():
     a = _next_action(_row(sections={"total": 8, "approved": 2, "drafted": 3,
                                     "empty": 3, "rows": []}))
     assert a["text"] == "Write 3 empty sections"
-    assert a["href"].endswith("/issue/week-04/edit")
+    assert a["href"].endswith("/issue/week-04/room")
 
 
 def test_approving_comes_before_publishing():
