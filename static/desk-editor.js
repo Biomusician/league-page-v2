@@ -187,8 +187,9 @@ async function restoreRev(section, id) {
  * out of the way. The prompt names files on this machine rather than
  * pasting their contents, so nothing private travels with it.
  */
-async function copyPrompt(section, btn) {
-  const r = await fetch(EDIT + "/claude-prompt?section=" + encodeURIComponent(section));
+async function copyPrompt(section, btn, to) {
+  const r = await fetch(EDIT + "/claude-prompt?section=" + encodeURIComponent(section)
+                        + "&to=" + encodeURIComponent(to || "claude"));
   const data = await r.json().catch(() => ({}));
   if (!r.ok || !data.prompt) { alert("Could not build the prompt: " + (data.error || r.status)); return; }
   const label = btn ? btn.textContent : null;

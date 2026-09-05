@@ -444,7 +444,13 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     def home(request: Request):
         from leaguepage import sync_jobs
 
-        cards = []
+        # One card per league. The second card this page used to carry said
+        # the league's name, season and week again underneath the first, so
+        # the answer to "what needs me?" arrived twice and disagreed about
+        # which was the primary action. The few facts only it had — the
+        # draft's own state, and the way into the standing screens — are
+        # merged into the cockpit below.
+        extra = {}
         with storage() as s:
             for league in LEAGUES:
                 league_data = s.get_league(league.league_id) or {}
@@ -457,28 +463,28 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 issue = s.get_issue(league.slug, season, "draft")
                 wk = int(s.get_meta("current_week") or 1)
                 week_issue = s.get_issue(league.slug, season, f"week-{wk:02d}")
-                cards.append({
+                extra[league.slug] = {
                     "week_issue_status": week_issue["status"] if week_issue else "not started",
-                    "league": league,
                     "season": season,
-                    "current_week": int(s.get_meta("current_week") or 1),
+                    "current_week": wk,
                     "league_status": league_data.get("status"),
                     "draft_status": draft.get("status") if draft else "none",
                     "picks": picks,
                     "story_decisions": decided,
                     "award_decisions": awards_decided,
                     "issue_status": issue["status"] if issue else "not started",
-                })
+                }
             last_sync = s.get_meta(sync_jobs.LAST_SYNC_KEY)
             # What to do next, computed rather than left to be inferred from
             # two status words and a pick count.
             from leaguepage.mission_control import mission_control
 
             control = mission_control(s, LEAGUES)
+        for row in control:
+            row.update(extra.get(row["league"].slug, {}))
         job = sync_jobs.get_sync_job()
         return templates.TemplateResponse(request, "desk/home.html", {
-            "cards": cards, "last_sync": last_sync, "sync_job": job,
-            "control": control})
+            "last_sync": last_sync, "sync_job": job, "control": control})
 
     # ---------------------------------------------------------- Change Inbox
 

@@ -137,3 +137,46 @@ def test_style_rules_travel_with_every_packet(env):
     rules = " ".join(_packet(db).style_rules).lower()
     assert "voice profile" in rules and "em-dash" in rules
     assert "never invent a number" in rules
+
+
+# ---------------------------------------------------- one packet, two envelopes
+
+def test_claude_gets_paths_and_chatgpt_gets_the_packet(env):
+    """Claude Code runs on this machine and can open the evidence, so it is
+    given paths. ChatGPT is a website, so it gets only what is safe to
+    paste. Both are told the same purpose, authorship rule and style."""
+    db, _idir = env
+    paths = {"skill": ".claude/skills/my-writing-style/SKILL.md",
+             "research": "editorial/2027/surfeit/week-01/sections/AUTHORING-tracks.md",
+             "proposal": "editorial/2027/surfeit/week-01/proposals/tracks.md",
+             "target": "editorial/2027/surfeit/week-01/sections/tracks.md",
+             "marker": "ROUGH DRAFT"}
+    claude = wp.handoff(_packet(db, delivery="copy-for-claude"), paths=paths)
+    gpt = wp.handoff(_packet(db, delivery="copy-for-chatgpt"))
+    assert "AUTHORING-tracks.md" in claude and "Do not touch" in claude
+    assert ".md" not in gpt and "editorial/" not in gpt
+    assert "Tracks of Interest" in claude and "Tracks of Interest" in gpt
+    # The authorship rule is the part that decides what comes back, so both
+    # carry it. The style rules reach Claude Code through the skill file it
+    # is told to read first, which is why its envelope stays paths, not
+    # payload; ChatGPT cannot open that file, so it gets them inline.
+    assert "Authorship:" in claude and "## Who writes it" in gpt
+    assert "my-writing-style" in claude and "voice profile" in gpt
+    assert len(claude) < 1200, "the Claude envelope must not start carrying content"
+
+
+def test_the_chatgpt_envelope_asks_for_a_proposal_not_a_publication(env):
+    db, _idir = env
+    gpt = wp.handoff(_packet(db, delivery="copy-for-chatgpt"))
+    assert "pastes your answer into the Desk as a proposal" in gpt
+    assert "decides whether it publishes" in gpt
+
+
+def test_neither_envelope_leaks_anything_private(env):
+    db, _idir = env
+    for delivery in ("copy-for-claude", "copy-for-chatgpt"):
+        text = wp.handoff(_packet(db, delivery=delivery),
+                          paths={"skill": "s.md", "research": "r.md",
+                                 "proposal": "p.md", "target": "t.md"})
+        for leak in ("C:\\", "Jonathan", ".sqlite3", "managers.json"):
+            assert leak not in text, (delivery, leak)

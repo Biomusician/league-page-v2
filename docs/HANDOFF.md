@@ -36,8 +36,14 @@ What shipped:
   `ctp_approved()`, `issue_modules.approved_sha`. Previews are written or
   not; the section is approved once and goes stale automatically.
 - **WritingPacket** (`leaguepage/writing_packet.py`): one structured brief
-  per section, four delivery modes, path redaction. Defined and tested, not
-  yet wired into the Desk buttons — that is the next tranche.
+  per section, four delivery modes, path redaction. Wired into
+  `/edit/claude-prompt?to=claude|chatgpt` through `handoff()`, which picks
+  an envelope rather than a set of facts: paths for Claude Code, the packet
+  inline for ChatGPT. Both section cards carry both buttons. No paid API.
+- **One cockpit per league** on the Desk home, replacing the mission card
+  plus a second card that repeated it. Answers what week, when synced, what
+  is live, what needs him, what would block publishing, and what to do
+  next, with the standing screens as a quiet link row.
 
 Known and deliberate: Surfeit Week 1's composed CTP now differs from its
 published snapshot by exactly the two inline provenance lines added in the

@@ -1095,3 +1095,37 @@ subscription is a person's account, not an API this app may call, so manual
 handoff is first-class rather than a placeholder. Nothing is wired to a
 paid API, and the packet's tests pin that a real one leaks no path, no
 handle and no private note.
+
+## 2026-09-05 — One cockpit per league, and one brief for both assistants
+
+Two finishing items from the same tranche.
+
+**The Desk home said everything twice.** A mission card per league carried
+the week, the sync age, the next action and four counts; a second card
+underneath repeated the league name, the season and the week, added the
+draft's own state, and offered two shouting all-caps buttons into the old
+editor. Two answers to "what needs me?" that could disagree about which
+was the primary action. There is now one card per league, answering the
+six questions that matter — what week, when synced, what is live, what
+needs him, what would refuse to publish, what to do next — with the
+standing screens as a quiet link row underneath, because administration
+should not be styled like the week's work. The buttons stopped shouting.
+
+**Both assistants read one brief.** The writing packet existed but nothing
+consumed it, so the Claude prompt route was still the seventh place that
+assembled context. Now `/edit/claude-prompt` builds a `WritingPacket` and
+hands it to `writing_packet.handoff()`, which chooses an envelope rather
+than a set of facts. Claude Code runs on this machine, so it is given
+repo-relative paths and reads the evidence itself: the research stays
+private by construction and the clipboard carries instructions only.
+ChatGPT is a website, so it gets the packet inline — and therefore only
+what the packet already guarantees is safe to paste, with no path, no
+handle and no private note among it. Both are told the same authorship
+rule, which is the part that decides what comes back, and both are told
+the answer returns as a proposal that the Commissioner reviews.
+
+The existing guard on prompt size survived this, and was improved by it:
+it had been counting the temp directory the test fixture happened to sit
+in, which is long under pytest and short in the repo. It now measures the
+instructions with the paths removed, which is what "paths, not payload"
+actually means.

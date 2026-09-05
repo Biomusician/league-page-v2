@@ -202,7 +202,12 @@ def test_the_prompt_carries_paths_not_private_material(env):
         kid = matchup_children(s, LG, SEASON, "week-01", 1)[0]
     for section in ("tracks", "lowdown", kid["section"]):
         p = client.get(f"{EDIT}/claude-prompt", params={"section": section}).json()["prompt"]
-        assert len(p) < 1200, f"{section}: prompt is long enough to be carrying content"
+        # Measure the instructions, not the paths. A raw character count was
+        # really counting the temp directory this fixture happens to sit in,
+        # which is long here and short in the repo, so it moved for reasons
+        # that had nothing to do with what the prompt carries.
+        instructions = re.sub(r"`[^`]*`", "``", p)
+        assert len(instructions) < 700,             f"{section}: prompt is long enough to be carrying content"
         for leaked in ("owner_id", "user_id", "sleeper", "roast", "possible move",
                        "private note", "ghost", "evidence:", "take:"):
             assert leaked not in p.lower(), f"{section} leaked {leaked!r}"

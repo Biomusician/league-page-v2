@@ -113,7 +113,7 @@ def test_desk_exposes_sync_control_and_status(world, monkeypatch):
     monkeypatch.setattr(ingest, "sync_all", _fake_sync_all())
     c = TestClient(create_app(world))
     home = c.get("/commissioner")
-    assert "SYNC SLEEPER" in home.text
+    assert "Sync Sleeper" in home.text          # the control, no longer shouting
     r = c.post("/commissioner/sync-start", follow_redirects=False)
     assert r.status_code == 303          # control returns immediately
     job = sync_jobs.get_sync_job()

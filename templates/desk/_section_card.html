@@ -83,6 +83,7 @@
       <button type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
       {% if c.not_written %}
         <button type="button" onclick="copyPrompt('{{ c.module_key }}', this)">Copy prompt for Claude</button>
+        <button type="button" onclick="copyPrompt('{{ c.module_key }}', this, 'chatgpt')">Copy brief for ChatGPT</button>
       {% else %}
         <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
       {% endif %}

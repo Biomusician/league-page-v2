@@ -112,6 +112,67 @@ class WritingPacket:
         return "\n".join(out).rstrip() + "\n"
 
 
+def handoff(packet: "WritingPacket", *, paths: dict | None = None) -> str:
+    """The packet as the thing a particular assistant is handed.
+
+    One brief, two envelopes. Claude Code runs on this machine, so it is
+    given repo-relative paths and reads the evidence itself: that keeps the
+    research private by construction, and it can open more than a clipboard
+    would carry. ChatGPT is a website, so it gets the packet inline — and
+    therefore only what `build()` already guarantees is safe to paste, with
+    no path among it.
+
+    Both are told the same purpose, the same authorship rule and the same
+    style rules, because those are the parts that decide what comes back.
+    """
+    if packet.delivery == "copy-for-claude":
+        p = paths or {}
+        out = [f"Draft the {packet.section_title} section for {packet.league} "
+               f"{packet.season} {packet.issue_key}.", ""]
+        if p.get("skill"):
+            out += [f"1. Read `{p['skill']}` first and follow it. It is the voice",
+                    "   authority; nothing else overrides it."]
+        if p.get("research"):
+            out += [f"2. Read `{p['research']}` for the brief, the evidence and the",
+                    "   angles. Every fact in the draft comes from there — find the story,",
+                    "   never the numbers."]
+        if p.get("proposal"):
+            out += [f"3. Write the full section to `{p['proposal']}`,",
+                    f"   starting with `<!-- {p.get('marker', 'ROUGH DRAFT')} -->`."]
+        if p.get("target"):
+            out += [f"4. Do not touch `{p['target']}`. The Commissioner's text is",
+                    "   authoritative until he accepts the proposal on the Desk."]
+        # Two lines of framing, and no more. The style rules are in the
+        # skill this prompt already tells it to read, and the facts are in
+        # the brief it already tells it to open; repeating either here is
+        # the payload that would put private research in a clipboard.
+        out += ["", f"Authorship: {_AUTHORSHIP_LINE[packet.authorship]}."]
+        if packet.instruction:
+            out += [f"He asked for: {packet.instruction}"]
+        out += ["",
+                "Line breaks are honored on the published page, so break lines where",
+                "you mean to and let paragraphs soft-wrap."]
+        return "\n".join(out) + "\n"
+
+    # ChatGPT is a website. Everything it needs travels inline, and nothing
+    # that identifies this machine or its private files travels at all.
+    body = packet.render()
+    return (body + "\n## How to reply\n"
+            "Return the section as Markdown and nothing else: no preamble, no "
+            "explanation of your choices, no headings that repeat the section "
+            "name. The Commissioner pastes your answer into the Desk as a "
+            "proposal, reviews it, and decides whether it publishes.\n")
+
+
+# Short on purpose: this is the one rule that must not depend on which
+# button was pressed, and the Claude envelope stays paths, not payload.
+_AUTHORSHIP_LINE = {
+    "commissioner": "he writes it; research helps and is not the copy",
+    "ai": "propose the prose; he reviews and accepts, nothing publishes unread",
+    "deterministic": "composed from results; only the reading around them is open",
+}
+
+
 def redact(value: str) -> str:
     """Strip anything path-shaped. One place decides, so one test covers it.
 
@@ -180,7 +241,15 @@ def build(
         week = int(issue_key.removeprefix("week-"))
     saved = storage.get_issue_modules(league.slug, season, issue_key)
     titles = {k: t for k, t, _kind in module_defs_for(league, issue_key, saved)}
-    title = titles.get(section, section.replace("-", " ").title())
+    if section.startswith("matchup:"):
+        from leaguepage.issue_builder import matchup_children
+
+        slug = section.split(":", 1)[1]
+        kids = (matchup_children(storage, league, season, issue_key, week)
+                if week is not None else [])
+        title = next((c["title"] for c in kids if c["slug"] == slug), slug)
+    else:
+        title = titles.get(section, section.replace("-", " ").title())
 
     prov_row = storage.get_prose_provenance(league.slug, season, issue_key, section)
     origin = provenance.origin_of(prov_row)

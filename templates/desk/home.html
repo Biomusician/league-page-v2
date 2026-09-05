@@ -25,8 +25,17 @@
 <div class="mission">
   {% for c in control %}
   <div class="card mc">
+    {#  One cockpit per league, answering six questions in one place: what
+        week, when synced, what is live, what needs him, what would refuse
+        to publish, and what to do next. #}
     <h3 style="margin:.1rem 0">{{ c.league.display_name }}
-      <span class="meta">week {{ c.week }} · synced {{ c.sync_age }}{% if c.last_change %} · published {{ c.last_change.ago }}{% endif %}</span></h3>
+      <span class="meta">week {{ c.week }}{% if c.season %} · {{ c.season }}{% endif %}</span></h3>
+    <p class="meta" style="margin:.1rem 0 .5rem">
+      synced {{ c.sync_age }}
+      {%- if c.last_change %} · <b>live:</b> {{ c.last_change.issue_key }} rev
+        {{ c.last_change.revision or 1 }}, {{ c.last_change.ago }}
+      {%- else %} · never deployed{% endif %}
+    </p>
     {% if c.next_action %}
     <p class="nextline"><span class="nextlabel">Next</span>
       <a class="next" href="{{ c.next_action.href }}">{{ c.next_action.text }}</a></p>
@@ -50,6 +59,17 @@
       <ul class="facts">{% for b in c.blockers %}<li>{{ b }}</li>{% endfor %}</ul>
     </details>
     {% endif %}
+    {% if c.season %}
+    {#  Administration, styled as administration: the week's work is the
+        Next line above, and these are the standing screens. #}
+    <p class="meta" style="margin-top:.6rem">
+      <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/week-{{ "%02d"|format(c.current_week) }}/room">Issue Room</a>
+      · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/draft/room">draft issue ({{ c.issue_status }})</a>
+      · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/week/{{ c.current_week }}/matchups">Matchup Lab</a>
+      · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/draft-review">draft review</a>
+      · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/rankings/preseason">rankings</a>
+    </p>
+    {% endif %}
   </div>
   {% endfor %}
 </div>
@@ -59,7 +79,7 @@
   <form method="post" action="/commissioner/sync-start" id="syncform" style="display:inline">
     <button class="bigcta" type="submit" id="syncbtn"
             {% if sync_job and sync_job.state == "running" %}disabled{% endif %}>
-      SYNC SLEEPER</button>
+      Sync Sleeper</button>
   </form>
   <span class="meta" id="synced-line">
     {% if sync_job and sync_job.state == "running" %}Sync running…
@@ -92,7 +112,7 @@
     {% endif %}
   </div>
   <div class="ctarow">
-    <a class="bigcta" href="/commissioner/inbox">WHAT CHANGED?</a>
+    <a class="bigcta secondary" href="/commissioner/inbox">What changed?</a>
   </div>
   <div class="meta">The Change Inbox ranks what moved since your last reviewed sync,
     says why, and routes an item straight into the issue.</div>
@@ -129,33 +149,11 @@
 
   document.getElementById("syncform").addEventListener("submit", function () {
     btn.disabled = true;
-    btn.textContent = "SYNCING…";
+    btn.textContent = "Syncing…";
     // the POST redirects home; polling resumes there via `running`
   });
   if (running) { btn.disabled = true; poll(); }
 })();
 </script>
 
-{% for c in cards %}
-<div class="card">
-  <h3 style="margin:.1rem 0">{{ c.league.display_name }}
-    <span class="meta">— {{ c.season }} · {{ c.league.subtitle }}</span></h3>
-  <ul class="facts">
-    <li>Draft Issue: <b>{{ c.issue_status }}</b> · draft {{ c.draft_status }} ({{ c.picks }} picks)</li>
-    <li>Week {{ c.current_week }}: <b>{{ c.week_issue_status }}</b> · league {{ c.league_status }}</li>
-  </ul>
-  {% if c.season %}
-  <div class="ctarow">
-    <a class="bigcta" href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/draft/edit">EDIT DRAFT ISSUE</a>
-    <a class="bigcta secondary" href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/week-{{ "%02d"|format(c.current_week) }}/edit">EDIT WEEK {{ c.current_week }}</a>
-  </div>
-  <span class="meta">
-    <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/issue/draft">draft workspace</a>
-    · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/week/{{ c.current_week }}/matchups">Matchup Lab</a>
-    · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/draft-review">draft review</a>
-    · <a href="/commissioner/{{ c.league.slug }}/{{ c.season }}/rankings/preseason">rankings</a>
-  </span>
-  {% endif %}
-</div>
-{% endfor %}
 {% endblock %}

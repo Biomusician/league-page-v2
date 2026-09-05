@@ -968,20 +968,28 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         return JSONResponse({"ok": True, "request_id": rid})
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/claude-prompt")
-    def claude_prompt(league_slug: str, season: str, issue_key: str, section: str):
-        """The text of a prompt to hand a Claude Code session, for the
-        clipboard.
+    def claude_prompt(league_slug: str, season: str, issue_key: str, section: str,
+                      to: str = "claude"):
+        """The brief for this section, addressed to one assistant.
 
-        Paths, not payload. Everything Claude needs to write this section is
-        already on this machine in files it can open, so the prompt names
-        them instead of pasting them. That keeps the research private
-        by construction: nothing here leaves the Desk except instructions and
-        file paths, and no private note, evidence line, ghost brief or
-        manager identity travels in a clipboard.
+        Both come from the same `WritingPacket`, so what Claude Code and
+        ChatGPT are told about a section does not depend on which button was
+        pressed. Only the envelope differs: Claude Code runs on this machine
+        and is given repo-relative paths to read, which keeps the research
+        private by construction; ChatGPT is a website and gets the packet
+        inline, which is why the packet carries no path, no handle and no
+        private note.
 
-        It writes to `proposals/`, never to his section file. His text stays
-        authoritative until he accepts a proposal on the Desk.
+        Either way the answer arrives as a proposal in `proposals/`, never
+        as a write to his section file. His text stays authoritative until
+        he accepts it on the Desk.
         """
+        from leaguepage import writing_packet as wp
+
+        delivery = {"claude": "copy-for-claude", "chatgpt": "copy-for-chatgpt"}.get(to)
+        if delivery is None:
+            return JSONResponse({"ok": False, "error": "unknown assistant"},
+                                status_code=400)
         league = get_league(league_slug)
         target = _section_path(league, season, issue_key, section)
         if target is None:
@@ -1010,25 +1018,15 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 return pth.as_posix()
         research = (target.parent / "generated" / "AUTHORING.md" if m
                     else idir / "sections" / f"AUTHORING-{section}.md")
-        lines = [
-            f"Draft the {title} section for {league.display_name} "
-            f"{season} {issue_key}.",
-            "",
-            f"1. Read `{WRITING_SKILL}` first and follow it. It is the voice",
-            "   authority; nothing else overrides it.",
-            f"2. Read `{rel(research)}` for the brief, the evidence and the",
-            "   angles. Every fact in the draft comes from there — find the story,",
-            "   never the numbers.",
-            f"3. Write the full section to `{rel(_proposal_path(idir, section))}`,",
-            f"   starting with `<!-- {ROUGH_DRAFT_MARKER} -->`.",
-            f"4. Do not touch `{rel(target)}`. The Commissioner's text is",
-            "   authoritative until he accepts the proposal on the Desk.",
-            "",
-            "Line breaks are honored on the published page, so break lines where",
-            "you mean to and let paragraphs soft-wrap.",
-        ]
+        with storage() as s:
+            packet = wp.build(s, league, season, issue_key, section,
+                              week=_week_of(issue_key), delivery=delivery)
+        prompt = wp.handoff(packet, paths={
+            "skill": WRITING_SKILL, "research": rel(research),
+            "proposal": rel(_proposal_path(idir, section)), "target": rel(target),
+            "marker": ROUGH_DRAFT_MARKER})
         return JSONResponse({"ok": True, "section": section, "title": title,
-                             "prompt": "\n".join(lines) + "\n"})
+                             "to": to, "prompt": prompt})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/proposal")
     async def proposal_action(request: Request, league_slug: str, season: str, issue_key: str):
