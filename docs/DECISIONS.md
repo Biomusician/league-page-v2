@@ -603,3 +603,110 @@ computed off four games is fake precision. The reasoning is right and the
 silence was not, because he never learned the section had been considered.
 The module stays in, prints the reason, and dropping it stays a click he
 makes. Explicit decisions are preserved in both directions through Sync.
+
+## Weekly Hardware closes the paper (2026-09-04)
+
+The weekly issue runs **Lowdown → matchups → custom section(s) → the
+standing sections → Weekly Hardware**, and Hardware last is an invariant
+rather than a default. A saved `position` used to win the module sort
+outright, so a row written at any time could put any section anywhere,
+including in front of the closer. Position now orders custom sections
+against each other, which is the one place the Commissioner sets it, and
+`_order_rank` gives Hardware a rank nothing else can reach.
+
+The earlier guidance to write the Lowdown last is superseded. The Lowdown
+and the matchups are the two highest-priority weekly writing surfaces and
+the editor is ordered accordingly.
+
+Placement note worth revisiting: the canonical order puts *Custom* at
+position 3, so custom sections sit immediately after the matchups and
+before the standing sections. That is the literal reading of the
+Commissioner's numbering. Moving them after the standing sections is a
+one-line change to `WEEKLY_ORDER`.
+
+## A custom section is a row, not a schema (2026-09-04)
+
+`issue_modules` already had `custom_title` and `position`, so making
+special sections repeatable needed no migration at all. The first keeps
+the plain `custom` key the single section has always used -- which is why
+the prose already on disk did not move -- and the ones after it are
+`custom-2`, `custom-3`. `next_custom_key` counts from the keys that
+exist rather than from how many there are, so deleting the middle of three
+cannot hand the next section a key already taken.
+
+Nothing creates them in advance. A week arrives with no custom section
+until he makes one, which is what stops every issue carrying an empty one
+to ignore. There is no delete: excluding keeps the prose and takes the
+section out of the paper, and a button that can destroy writing is not
+worth the two clicks it saves.
+
+## Retired, not deleted (2026-09-04)
+
+Force Flow, The All-City Team and The All-Marquee Team keep their registry
+entries and their rendering code. An issue that already published one still
+has to assemble and render, and Disco's Week 1 Force Flow was written
+before it stopped being a weekly section. So a retired module is never
+offered on a new issue, an issue that already carries one keeps it, and
+that copy publishes while sitting off the checklist and outside the
+approval count.
+
+Force Flow left for a different reason from the other two. It is a standing
+league page built from synced transaction data -- it always was, at
+`/{league}/transactions/` -- so asking him to rewrite it weekly was asking
+for work the data already does. All-City and All-Marquee folded into the
+generic custom-section primitive, which does the same job without two
+bespoke modules to maintain.
+
+## Provenance is recorded, never detected (2026-09-04)
+
+A reader is entitled to know when nothing on a page passed through a
+person, and the honest way to answer is to record it when it happens. A
+detector would eventually be wrong about the Commissioner's own prose, and
+being wrong in that direction is worse than saying nothing.
+
+So accepting generated text stores the generator, an input class, and a
+hash of exactly what was accepted. The section is fully AI-generated for as
+long as its current text still hashes to that value: one edited character
+retires the claim, and nothing has to notice or clean up after it.
+Provenance freezes into the published snapshot beside the text it
+describes, because the claim is about a particular text rather than about
+a section key.
+
+Two constraints fall out of that. `method` is a key into a fixed table of
+input-class descriptions rather than free text, so a path, a prompt or a
+private brief cannot be stored in it even by accident. And a generator we
+cannot identify is reported as unknown rather than guessed, because a wrong
+badge is a false statement about who wrote something. Force Flow's reading
+of the week is arithmetic rather than a language model, so it says
+"generated automatically" instead of wearing a Claude badge it did not
+earn.
+
+## Force Flow flags what is unusual for this league (2026-09-04)
+
+"A big FAAB bid" is not a fixed share of budget. It is a bid this league
+would find large, so the spend flags read the distribution of the league's
+own completed bids rather than a number somebody typed once. Every flag
+carries the evidence that produced it, and a flag that is a reading rather
+than an observation says so on its face: the block detector states outright
+that it is not proof of a block.
+
+Internally a move can be called questionable. In public the evidence goes
+out and the Commissioner's own voice does any roasting. A note is optional
+on every flagged move and a missing one is never a blocker.
+
+## Identity is reconciled across stores, not matched by name (2026-09-04)
+
+Four stores describe an owner and none is a foreign key to the others:
+Sleeper's users and rosters, the confirmed public name in `team_names`, and
+the callsign and roster binding in `editorial/managers.json`. They join on
+the Sleeper user id, and nothing checked that the join held.
+`leaguepage/identity_audit.py` reconciles them; every finding names two
+stores and the stable id they disagree about, and none of it comes from
+comparing names for similarity, because deciding that two records are the
+same person is a factual claim only the Commissioner may make.
+
+**The Surfeit's canonical callsign is Seebass.** The superseded spelling
+lived in exactly one authoritative place, the confirmed public name for
+Surfeit roster 7; the Sleeper handle and the manager key were already
+correct. Renaming changes the public team slug, so a link already shared to
+`/surfeit/team/wild-seekats-seabass-kats/` will 404.

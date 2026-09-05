@@ -1239,3 +1239,56 @@ packet embeds its output rather than calling the functions directly.
 
 **Next.** Week 1 is drafted and approved section by section on the Desk;
 publication is the Commissioner's act and was deliberately not performed.
+
+## Weekly model, Force Flow, provenance and identity (2026-09-04)
+
+**The weekly post is Lowdown → Matchups → Custom section(s) → Weekly
+Hardware.** Hardware is always last (`WEEKLY_ORDER` / `_order_rank` in
+`leaguepage/issue_builder.py`). Every recurring section starts INCLUDED and
+NOT APPROVED; `OPT_IN_MODULES` is now empty. A section with nothing in it
+advises exclusion and does not exclude itself.
+
+**Custom sections are repeatable and needed no schema change.** Keys are
+`custom`, `custom-2`, `custom-3`; the row is the section, so nothing exists
+until `+ Add custom section` writes one. Rename in place; exclude rather
+than delete. Existing prose did not move.
+
+**Retired as future authoring concepts**: `forceflow`, `all-city`,
+`all-city-marquee` (`RETIRED_MODULES`). Never offered on a new issue; an
+issue with a saved included row keeps it, publishes it, and shows it under
+Administration rather than on the checklist. Historical snapshots are
+untouched.
+
+**Force Flow is a standing league page**, at `/{league}/transactions/`,
+already in the public nav. `leaguepage/force_flow.py` adds a private
+flagging layer over `transaction_analysis`: unusual FAAB (league-relative,
+from the league's own bid distribution), free starters, notable drops,
+churn, trades, hard-to-read moves, and possible blocks. Every flag carries
+evidence; inferred flags say so. Review and optional Commissioner notes at
+`/commissioner/{league}/{season}/force-flow`. Nothing publishes on its own.
+
+**AI provenance** (`leaguepage/provenance.py`, table `prose_provenance`) is
+structural: generator + input class + hash of what was accepted. Fully
+generated and unedited content carries a small caption before it; one
+edited character removes it. `method` is a fixed vocabulary, so no path or
+prompt can be stored or rendered. Deterministic output says "generated
+automatically" rather than naming a model.
+
+**About** edits at `/commissioner/site/about`, saves to
+`editorial/site/about.md`, publishes to `/about/`. Not a module: it cannot
+enter weekly readiness or block an issue. `config.SUPPORT_URL` is still
+empty by design, so no donation link renders.
+
+**Identity**: `leaguepage/identity_audit.py` reconciles owners across the
+four stores. Live result: no blockers; two warnings, Disco roster 4 and
+Surfeit roster 3 have renamed themselves on Sleeper since their public
+names were confirmed. **Seebass** is canonical for The Surfeit.
+
+**Known residue.** The superseded spelling remains in the *published* draft
+issue (`editorial/2026/surfeit/draft/sections/custom.md` and the
+`published/surfeit/2026/draft.r3.json` snapshot it produced). Correcting a
+published issue is the Commissioner's act via
+`scripts/identity_correction.py`, which keeps the original and adds a
+revision; it was deliberately not done here.
+
+**Next.** Week 1 remains unpublished; publication is his act.
