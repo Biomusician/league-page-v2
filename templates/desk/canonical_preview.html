@@ -1,0 +1,43 @@
+{#  The Commissioner's private preview of an unpublished issue.
+
+    It extends the PUBLIC issue page rather than imitating it. Same
+    template, same stylesheet, same masthead, same section structure, same
+    provenance lines, same responsive rules — because it IS the page, built
+    from the same snapshot shape the publisher freezes. There used to be a
+    second renderer here that looked roughly like the real one and drifted
+    from it; a preview that lies about the thing it previews is worse than
+    no preview.
+
+    The only additions are outside the document: a fixed toolbar in the
+    base template's `private_toolbar` block, and the unpublished banner the
+    public template already knows how to draw. Comments are not passed, so
+    the Giscus block never renders for a page nobody can reach. #}
+{% extends "public/issue_page.html" %}
+
+{% block private_toolbar %}
+<style>
+  .previewbar { position:sticky; top:0; z-index:20; display:flex; gap:.5rem 1rem;
+                align-items:center; flex-wrap:wrap; padding:.5rem .9rem;
+                background:#7a2318; color:#fff; font-size:.85rem;
+                font-family:system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .previewbar b { letter-spacing:.1em; }
+  .previewbar a { color:#fff; text-decoration:underline; min-height:44px;
+                  display:inline-flex; align-items:center; }
+  .previewbar .grow { margin-left:auto; }
+  .previewbar .warn { background:#fff; color:#7a2318; padding:.1rem .45rem;
+                      border-radius:3px; font-weight:bold; }
+  @media (max-width:30rem) { .previewbar { font-size:.8rem; } }
+</style>
+<div class="previewbar" role="note">
+  <b>PRIVATE PREVIEW</b>
+  <span>not published{% if preview_warnings %} ·
+    <span class="warn">{{ preview_warnings|length }} would block publication</span>{% endif %}</span>
+  <span class="grow"></span>
+  <a href="{{ room_base }}">← back to the issue</a>
+</div>
+{% if preview_warnings %}
+<div class="previewbar" style="background:#5a1a12">
+  <span>{{ preview_warnings | join(" · ") }}</span>
+</div>
+{% endif %}
+{% endblock %}

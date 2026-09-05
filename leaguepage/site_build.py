@@ -213,6 +213,40 @@ def _strip_duplicate_heading(content_md: str, title: str) -> str:
     return content_md
 
 
+def preview_snapshot(storage: Storage, league: League, season: str, issue_key: str,
+                     *, base_dir: Path | None = None, week: int | None = None) -> dict:
+    """An unpublished issue in the exact shape a frozen snapshot has.
+
+    The Commissioner's preview and the published page must not be two
+    renderers that happen to look alike, so they are not: this builds the
+    same dict `published/**/*.json` holds, and both paths hand it to
+    `_issue_ctx` and `public/issue_page.html`. Provenance is included
+    because a preview that hides the labels is not a preview of the page.
+    """
+    from leaguepage.issue_builder import assemble_issue
+
+    if week is None and issue_key.startswith("week-"):
+        week = int(issue_key.removeprefix("week-"))
+    assembled = assemble_issue(storage, league, season, issue_key,
+                               base_dir=base_dir, week=week)
+    sections = [
+        {"module_key": s["module_key"], "title": s["title"],
+         "content_md": strip_editorial_comments(s["content_md"]).strip(),
+         "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
+         "provenance": provenance.section_state(
+             storage, league_slug=league.slug, season=season, issue_key=issue_key,
+             section=s["module_key"], text=s["content_md"]),
+         "approved": s.get("approved"),
+         }
+        for s in assembled["sections"] if s["kind"] != "auto" and s.get("content_md")
+    ]
+    return {"league": league.slug, "season": season, "issue_key": issue_key,
+            "issue_label": issue_key.replace("week-", "Week ").replace("draft", "Draft Issue"),
+            "published_at": None, "sections": sections,
+            "href": f"{season}/{issue_key}/index.html",
+            "warnings": assembled["warnings"], "theme": assembled.get("theme")}
+
+
 def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
     sections = []
     for s in snap["sections"]:
@@ -404,13 +438,17 @@ def build_league(
         # from the output path itself; the historical depth argument counted
         # from the site root and left every relative link one level too high.
         lroot = "../" * rel.count("/")
+        # Where the stylesheet, logos and scripts live, relative to this
+        # page. A variable rather than five inline joins, so the Desk can
+        # serve the same documents with its own asset route.
+        asset_root = f"{lroot}../assets/" if league else f"{lroot}assets/"
         # Every page gets the name-to-team-page map, built against its own
         # relative root. A name we cannot resolve renders as text.
         team_links = {nm: f"{lroot}team/{slugs[rid]}/index.html"
                       for rid, nm in public_by_rid.items()}
         html = env.get_template(template).render(
             league=league, season=season, lroot=lroot, team_links=team_links,
-            css_name=league.slug,
+            css_name=league.slug, asset_root=asset_root,
             # Every page carries the league's team slugs so the My Team nav
             # shortcut can tell a live choice from a stale one. It used to
             # look for a card with that slug, and the cards only exist on
@@ -437,21 +475,8 @@ def build_league(
 
     # optional commissioner preview of an unpublished issue (dist-preview only)
     if preview_issue:
-        from leaguepage.issue_builder import assemble_issue
-
-        wk = int(preview_issue.removeprefix("week-")) if preview_issue.startswith("week-") else None
-        assembled = assemble_issue(storage, league, season, preview_issue,
-                                   base_dir=editorial_dir, week=wk)
-        sections = [
-            {"module_key": s["module_key"], "title": s["title"],
-             "content_md": strip_editorial_comments(s["content_md"]).strip(),
-             "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None}
-            for s in assembled["sections"] if s["kind"] != "auto" and s.get("content_md")
-        ]
-        snap = {"league": league.slug, "season": season, "issue_key": preview_issue,
-                "issue_label": preview_issue.replace("week-", "Week ").replace("draft", "Draft Issue"),
-                "published_at": None, "sections": sections,
-                "href": f"{season}/{preview_issue}/index.html"}
+        snap = preview_snapshot(storage, league, season, preview_issue,
+                                base_dir=editorial_dir)
         ctx = _issue_ctx(snap, preview=True)
         if latest_ctx is None:
             latest_ctx = ctx

@@ -27,7 +27,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from leaguepage import pubqa
 from leaguepage import takes as takes_mod
-from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
+from leaguepage.config import DIST_DIR, REPO_ROOT, SITE_URL, get_league
 from leaguepage import prose, provenance, section_defaults
 from leaguepage.issue_builder import (
     BLOCKED_MARKERS, BLURB_MODULES, CUSTOM_DEFAULT_TITLE, WRITING_SKILL,
@@ -36,6 +36,11 @@ from leaguepage.issue_builder import (
 )
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER, week_dir
 from leaguepage.storage import utcnow_iso
+
+# Where the private preview loads the public stylesheet and logos from.
+# Private like every other Desk route; the auth middleware covers it.
+PREVIEW_ASSETS = "/commissioner/preview-assets"
+PREVIEW_ASSET_TYPES = {".png", ".jpg", ".jpeg", ".svg", ".webp", ".ico"}
 from leaguepage.team_names import resolve_public_names
 
 # Kinds whose file is public prose, and therefore his to change. A section
@@ -500,23 +505,59 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/full-preview")
     def full_preview(request: Request, league_slug: str, season: str, issue_key: str):
+        """The issue as a reader will see it, through the reader's renderer.
+
+        Not a Desk imitation of the public page: the same snapshot shape,
+        the same `public/issue_page.html`, the same stylesheet. Assets come
+        from this process rather than production so local template and CSS
+        changes show up here before they ship.
+        """
+        from leaguepage.site_build import _issue_ctx, preview_snapshot
+
         league = get_league(league_slug)
         with storage() as s:
-            assembled = assemble_issue(s, league, season, issue_key, week=_week_of(issue_key))
-        sections = []
-        for x in assembled["sections"]:
-            if x["kind"] == "auto":
-                continue
-            html = (prose.render(x["content_md"])
-                    if x.get("content_md") else "<p><em>(no content yet)</em></p>")
-            sections.append({"title": x["title"], "html": html, "approved": x["approved"],
-                             "anchor": f"sec-{x['module_key']}"})
-        return templates.TemplateResponse(request, "desk/full_preview.html", {
-            "league": league, "season": season, "issue_key": issue_key,
-            "theme": assembled.get("theme"), "sections": sections,
-            "warnings": assembled["warnings"],
-            "edit_base": f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit",
+            snap = preview_snapshot(s, league, season, issue_key, week=_week_of(issue_key))
+        ctx = _issue_ctx(snap, preview=True)
+        return templates.TemplateResponse(request, "desk/canonical_preview.html", {
+            "request": request,
+            # exactly what the static build passes public/issue_page.html
+            "league": league, "season": season, "issue": ctx,
+            "css_name": league.slug,
+            "lroot": f"{SITE_URL}/{league.slug}/",
+            "asset_root": PREVIEW_ASSETS + "/",
+            "team_links": {}, "team_slugs": "",
+            "page_description": "", "canonical": None,
+            "preview_mode": True, "current_nav": None, "comments": None,
+            # ...plus the two things only a private preview has
+            "preview_warnings": snap["warnings"],
+            "room_base": f"/commissioner/{league_slug}/{season}/issue/{issue_key}/room",
         })
+
+    @app.get(PREVIEW_ASSETS + "/{name}")
+    def preview_asset(name: str):
+        """The public site's own stylesheet and images, served to the
+        private preview. The CSS is rendered from the same template the
+        build writes into dist/assets, so a change to the site's styling is
+        visible here before anything is published."""
+        from fastapi.responses import FileResponse, Response
+
+        from leaguepage.config import LEAGUES_BY_SLUG, STATIC_DIR
+        from leaguepage.site_build import _env
+
+        if name.endswith(".css"):
+            league = LEAGUES_BY_SLUG.get(name[:-4])
+            if league is None:
+                return JSONResponse({"error": "unknown stylesheet"}, status_code=404)
+            css = _env().get_template("public/_site_css.html").render(league=league)
+            return Response(css, media_type="text/css")
+        # Names are matched against the directory listing rather than joined
+        # into a path: a traversal cannot name a file that is not in it.
+        f = next((x for x in STATIC_DIR.iterdir()
+                  if x.is_file() and x.name == name
+                  and x.suffix.lower() in PREVIEW_ASSET_TYPES), None)
+        if f is None:
+            return JSONResponse({"error": "unknown asset"}, status_code=404)
+        return FileResponse(f)
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/preview-section")
     def preview_section(league_slug: str, season: str, issue_key: str, section: str):

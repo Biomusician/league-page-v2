@@ -24,17 +24,22 @@
 <meta name="twitter:title" content="{{ self.title() }}">
 {% if page_description %}<meta name="twitter:description" content="{{ page_description }}">{% endif %}
 {% if og_image %}<meta name="twitter:image" content="{{ og_image }}">{% endif %}
-<link rel="stylesheet" href="{{ lroot }}{% if league %}../{% endif %}assets/{{ css_name }}.css">
+<link rel="stylesheet" href="{{ asset_root }}{{ css_name }}.css">
 <style>
 {% block extra_css %}{% endblock %}
 </style>
 </head>
 <body>
+{#  Empty on every public page, so published output is byte-identical to
+    what it was before this block existed. The Commissioner's private
+    preview fills it with its own toolbar, which is how editor controls
+    stay OUTSIDE the document being previewed. #}
+{% block private_toolbar %}{% endblock %}
 <a class="skip" href="#content">Skip to content</a>
 {% if league %}
 <header class="masthead">
-  {% if league.slug == "disco" %}<img class="logo-mark" src="{{ lroot }}../assets/disco-logo-light.png" alt="" width="800" height="300">{% endif %}
-  {% if league.slug == "surfeit" %}<img class="logo-badge" src="{{ lroot }}../assets/surfeit-badge.png" alt="" width="560" height="528">{% endif %}
+  {% if league.slug == "disco" %}<img class="logo-mark" src="{{ asset_root }}disco-logo-light.png" alt="" width="800" height="300">{% endif %}
+  {% if league.slug == "surfeit" %}<img class="logo-badge" src="{{ asset_root }}surfeit-badge.png" alt="" width="560" height="528">{% endif %}
   <h1><a href="{{ lroot }}index.html">{{ league.display_name }}</a></h1>
   <div class="sub">{{ league.subtitle }} · {{ season }}</div>
 </header>
@@ -61,10 +66,10 @@
 {% block content %}{% endblock %}
 </main>
 <footer class="colophon">
-  {% if league and league.slug == "disco" %}<img class="logo-footer" src="{{ lroot }}../assets/disco-logo-banner.jpg" alt="" width="800" height="300" loading="lazy">{% endif %}
+  {% if league and league.slug == "disco" %}<img class="logo-footer" src="{{ asset_root }}disco-logo-banner.jpg" alt="" width="800" height="300" loading="lazy">{% endif %}
   {% if league %}{{ league.display_name }} · {{ season }} · <a href="{{ lroot }}../index.html">League select</a>{% endif %}
 </footer>
-{% if league %}<script src="{{ lroot }}../assets/sortable.js" defer></script>
-<script src="{{ lroot }}../assets/myteam.js" defer></script>{% endif %}
+{% if league and not preview_mode %}<script src="{{ asset_root }}sortable.js" defer></script>
+<script src="{{ asset_root }}myteam.js" defer></script>{% endif %}
 </body>
 </html>

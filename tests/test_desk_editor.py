@@ -170,12 +170,15 @@ def test_reset_to_generated_requires_confirm_and_clears_approval(env):
     assert "Generated rough." in text
 
 
-def test_full_preview_shows_unapproved_and_banner(env):
+def test_full_preview_renders_the_public_page_with_a_private_banner(env):
+    """One renderer: the preview IS the public issue page. Parity is pinned
+    in tests/test_preview_parity.py; this is the route still working."""
     client, db, idir = env
     r = client.get(f"{EDIT}/full-preview")
     assert r.status_code == 200
-    assert "PRIVATE COMMISSIONER PREVIEW" in r.text
+    assert "PRIVATE PREVIEW" in r.text and "UNPUBLISHED COMMISSIONER PREVIEW" in r.text
     assert "Original words." in r.text
+    assert '<header class="masthead">' in r.text
 
 
 def test_health_endpoint(env):
