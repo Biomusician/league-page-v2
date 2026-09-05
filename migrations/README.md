@@ -29,6 +29,7 @@ on conflict (email) do nothing;
 | File | What it does |
 |---|---|
 | `0001_commissioner_state.sql` | Authoritative editorial tables (issues, modules, **sections** — where prose moves off the filesystem — revisions, decisions, overrides, rankings, editorial meta) plus the durable `jobs` table. Enables **and forces** RLS on every table with a single policy that requires an authenticated user on the `app_commissioners` allowlist. Grants `anon` nothing. |
+| `0004_durable_jobs.sql` | Turns the placeholder `jobs` table into a control plane: a **lease** (`lease_owner`, `lease_expires_at`, `heartbeat_at`) so a superseded worker cannot overwrite its replacement's record, an **idempotency key held only while a job is live** enforced by a partial unique index, a `target_revision` that binds a publish to one immutable revision, and an append-only `job_events` table replacing the rewritten-in-place `stages` blob. RLS forced on both tables, `anon` granted nothing. Idempotent; safe on a database that already has `0001`. |
 
 ## Security notes worth keeping in mind
 

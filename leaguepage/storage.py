@@ -21,6 +21,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+from leaguepage import jobs
 from leaguepage.config import DB_PATH
 
 SCHEMA = """
@@ -343,6 +344,11 @@ CREATE TABLE IF NOT EXISTS sync_snapshots (
 CREATE INDEX IF NOT EXISTS idx_sync_snapshots_league
     ON sync_snapshots(league_slug, season, snapshot_id DESC);
 """
+
+# The job control plane's own tables. Defined beside the model that owns
+# them rather than inlined here, so the repository can guarantee them when
+# it is used without a Storage, and both paths apply the same text.
+SCHEMA += jobs.JOBS_DDL
 
 
 def utcnow_iso() -> str:
