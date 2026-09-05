@@ -92,18 +92,6 @@
   </div>
 {% endif %}
   <div class="card">
-    <h3 style="margin-top:0">Publish locally</h3>
-    <p class="meta">Freezes the immutable snapshot under <code>published/</code> and rebuilds
-      the audited <code>dist/</code>. Nothing leaves this machine.</p>
-    <form method="post" action="{{ edit_base }}/publish-start"
-          onsubmit="return confirm('Freeze and publish this issue locally?')">
-      <input type="hidden" name="mode" value="local">
-      <input type="hidden" name="confirm" value="yes">
-      <input type="hidden" name="note" class="notefield" value="">
-      <button class="primary">{{ "Publish Correction Locally" if text_changed else "Publish Locally" }}</button>
-    </form>
-  </div>
-  <div class="card">
     <h3 style="margin-top:0">Publish &amp; Deploy to production</h3>
     <p class="meta">Snapshot → audited build → Vercel production
       (<code>{{ production_url }}</code>) → verification. Stops at the first failed
@@ -115,7 +103,7 @@
       <input type="hidden" name="note" class="notefield" value="">
       <label><input type="checkbox" name="confirm_deploy" value="yes">
         I want this issue live on the public internet.</label><br><br>
-      <button>{{ "Publish Correction &amp; Deploy" if text_changed else "Publish &amp; Deploy" }}</button>
+      <button class="primary">{{ "Publish Correction & Deploy" if text_changed else "Publish & Deploy" }}</button>
     </form>
   </div>
 {% endif %}
@@ -128,7 +116,7 @@ const ISSUE_URL = {{ (production_url ~ "/" ~ league.slug ~ "/" ~ season ~ "/" ~ 
 const initialState = {{ (job.state if job else "none") | tojson }};
 const ICON = {pending: "·", running: "⏳", ok: "✅", fail: "❌"};
 
-// one note box feeds both forms
+// the note box feeds the publish form
 document.querySelectorAll("form[action$='/publish-start']").forEach(f => f.addEventListener("submit", () => {
   const box = document.getElementById("corrnote");
   const field = f.querySelector(".notefield");
