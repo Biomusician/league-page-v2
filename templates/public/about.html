@@ -36,8 +36,10 @@
 </head>
 <body>
 <main>
-  <h1>About League Page</h1>
-  <p>Information about the project will be added here.</p>
+  {#  Written on the Desk at Site -> About and rendered through the same
+      prose renderer as everything else, so a line break he types here
+      behaves the way it does in an issue. #}
+  {{ about_html | safe }}
   {#  The support section renders only once a real destination is configured.
       `SUPPORT_URL` is empty in config.py by design, so nothing here can ship
       as a dead or invented donation button. #}

@@ -30,7 +30,7 @@ from leaguepage.config import (DIST_DIR, LEAGUES, PUBLISHED_DIR, SITE_URL, STATI
                                TEMPLATES_DIR, League)
 from leaguepage.privacy import (ALWAYS_FORBIDDEN, MIN_HANDLE_LEN, PRIVATE_PATTERNS,
                                 handle_re, published_matcher)
-from leaguepage import prose
+from leaguepage import prose, provenance
 from leaguepage.draft_value import SKILL_POSITIONS
 from leaguepage.editorial import load_coalitions
 from leaguepage.matchup_analysis import (all_play, analyze_week, season_efficiency,
@@ -218,6 +218,10 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
             "anchor": s["module_key"],
             "title": s["title"],
             "credit": s.get("credit"),
+            # Absent on every snapshot frozen before provenance existed,
+            # which is the right answer for them: nothing was recorded, so
+            # nothing is claimed.
+            "provenance": s.get("provenance"),
             "html": _render_md(_strip_duplicate_heading(s["content_md"], s["title"])),
         })
     lowdown = next((s for s in snap["sections"] if s["module_key"] == "lowdown"), None)
@@ -1026,7 +1030,12 @@ def build_league(
         if row.get("significant"):
             meaningful.append(ctx)
     meaningful.sort(key=lambda m: -m["priority"])
+    # The reading of the moves is arithmetic over synced data, not a
+    # language model, so it says that rather than wearing a Claude badge it
+    # has not earned.
+    ff_prov = provenance.describe_machine("transactions") if meaningful else None
     render("transactions/index.html", "public/transactions.html", 2,
+           force_flow_provenance=ff_prov,
            description=(f"Every completed add, drop and trade in "
                         f"{league.display_name}, with what each move was reading "
                         f"and what it cost."),
@@ -1355,10 +1364,13 @@ def build_site(
                      preview_issue=(preview_issues or {}).get(league.slug))
     _write(out, "index.html",
            env.get_template("public/root.html").render(site_url=SITE_URL), pages)
+    from leaguepage.desk_site import read_about
+
     _write(out, "about/index.html",
            env.get_template("public/about.html").render(
                site_url=SITE_URL, support_url=SUPPORT_URL,
-               support_label=SUPPORT_LABEL), pages)
+               support_label=SUPPORT_LABEL,
+               about_html=_render_md(read_about())), pages)
     # One stylesheet per theme, written once and cached, instead of the whole
     # thing inlined into all 98 documents. It was 728KB of the build's 1.9MB
     # of HTML, and 74% of the bytes on the smallest pages, re-sent on every

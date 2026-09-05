@@ -1,0 +1,48 @@
+{% extends "desk/base.html" %}
+{% block title %}Force Flow — {{ league.display_name }}{% endblock %}
+{% block content %}
+{#  The review queue: what the league did that was not routine, and why
+    each one surfaced. Private. A note is optional on every row -- a
+    flagged move with none publishes on its evidence alone, and nothing
+    here is ever a blocker. #}
+<h2>Force Flow &mdash; {{ league.display_name }}</h2>
+<p class="meta">Through week {{ week }}. Not a weekly section: this page is
+  built from synced transaction data and publishes with the site, not with
+  an issue. Adding a note is optional everywhere.
+  {% for l in leagues %}{% if l.slug != league.slug %}
+    &middot; <a href="/commissioner/{{ l.slug }}/{{ season }}/force-flow">{{ l.display_name }}</a>
+  {% endif %}{% endfor %}
+</p>
+
+{% if not rows %}
+<div class="card"><p>Nothing this league has done so far is out of the
+  ordinary. That is a finding, not an error: routine weeks exist, and the
+  page says so rather than inventing a story.</p></div>
+{% endif %}
+
+{% for r in rows %}
+<details class="sec card" id="txn-{{ r.txn_id }}">
+  <summary>{{ r.line }}
+    <span class="chip">wk {{ r.week }}</span>
+    {% if r.faab %}<span class="chip">{{ r.faab }} FAAB</span>{% endif %}
+    {% for f in r.flags %}<span class="chip {% if f.inferred %}edited{% endif %}">{{ f.label }}</span>{% endfor %}
+    {% if r.note %}<span class="chip approved">noted</span>{% endif %}
+  </summary>
+  <p class="meta">{{ r.teams | join(", ") }}</p>
+  {% for f in r.flags %}
+  <div class="subcard">
+    <h4>{{ f.label }}{% if f.inferred %} <span class="meta">— a reading, not an observation</span>{% endif %}</h4>
+    <p>{{ f.why }}</p>
+    <ul>{% for e in f.evidence %}<li class="meta">{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endfor %}
+  <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/force-flow/note">
+    <input type="hidden" name="txn_id" value="{{ r.txn_id }}">
+    <label class="meta" for="note-{{ r.txn_id }}">Commissioner note (optional)</label>
+    <textarea id="note-{{ r.txn_id }}" name="note" class="prose" rows="3">{{ r.note or "" }}</textarea>
+    <div class="cardctl"><button>Save note</button>
+      <span class="meta">Leave empty to remove. A missing note is never a blocker.</span></div>
+  </form>
+</details>
+{% endfor %}
+{% endblock %}

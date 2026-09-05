@@ -20,7 +20,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-from leaguepage import prose
+from leaguepage import prose, provenance
 from leaguepage.config import EDITORIAL_DIR, SITE_DIR, TEMPLATES_DIR, League
 from leaguepage.storage import Storage
 
@@ -151,11 +151,19 @@ def publish_assembled_issue(
     for s in assembled["sections"]:
         if s["kind"] == "auto" or not s.get("content_md"):
             continue
+        # Provenance is frozen with the content it describes. The claim
+        # "nobody edited this" is only true of a particular text, so it
+        # belongs in the snapshot beside that text rather than being looked
+        # up later against a database that has moved on.
+        prov = provenance.state_for(
+            storage, league_slug=league.slug, season=season, issue_key=issue_key,
+            section=s["module_key"], text=s["content_md"])
         sections.append({
             "module_key": s["module_key"],
             "title": s["title"],
             "content_md": strip_editorial_comments(s["content_md"]).strip(),
             "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
+            "provenance": prov,
         })
     snapshot = {
         "league": league.slug, "season": season, "issue_key": issue_key,
@@ -264,10 +272,19 @@ def revise_issue(
                                        base_dir=base_dir, week=week, enforce=True)
         except ValueError as exc:
             raise PublishError(str(exc)) from exc
+        # Same shape as publish_assembled_issue builds, provenance included.
+        # It has to be: the "nothing changed" check below compares this
+        # against the stored snapshot, and a section dict missing a key the
+        # snapshot has can never compare equal, so an identical re-entry
+        # would sail through as a correction.
         sections = [{
             "module_key": s["module_key"], "title": s["title"],
             "content_md": strip_editorial_comments(s["content_md"]).strip(),
             "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
+            "provenance": provenance.state_for(
+                storage, league_slug=league.slug, season=season,
+                issue_key=issue_key, section=s["module_key"],
+                text=s["content_md"]),
         } for s in assembled["sections"] if s["kind"] != "auto" and s.get("content_md")]
 
     from leaguepage import pubqa

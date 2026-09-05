@@ -288,6 +288,27 @@ CREATE TABLE IF NOT EXISTS section_prose_state (
     PRIMARY KEY (league_slug, season, issue_key, section)
 );
 
+CREATE TABLE IF NOT EXISTS force_flow_notes (
+    league_slug TEXT NOT NULL,
+    season TEXT NOT NULL,
+    txn_id TEXT NOT NULL,           -- Sleeper transaction id
+    note TEXT NOT NULL,             -- the Commissioner's optional blurb
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (league_slug, season, txn_id)
+);
+
+CREATE TABLE IF NOT EXISTS prose_provenance (
+    league_slug TEXT NOT NULL,
+    season TEXT NOT NULL,
+    issue_key TEXT NOT NULL,
+    section TEXT NOT NULL,
+    generator TEXT,                 -- claude-code | chatgpt | NULL when unknown
+    method TEXT,                    -- a key into provenance.METHODS, never free text
+    generated_sha TEXT NOT NULL,    -- hash of exactly what was accepted
+    recorded_at TEXT NOT NULL,
+    PRIMARY KEY (league_slug, season, issue_key, section)
+);
+
 CREATE TABLE IF NOT EXISTS issue_revision_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     league_slug TEXT NOT NULL,
@@ -878,6 +899,74 @@ class Storage:
             (league_slug, season, issue_key),
         ).fetchall()
         return {r["module_key"]: dict(r) for r in rows}
+
+    # -- Force Flow commissioner notes ---------------------------------
+    #
+    # Optional everywhere. A flagged move with no note publishes on its
+    # evidence alone; a missing note is never a blocker.
+
+    def set_force_flow_note(self, *, league_slug: str, season: str,
+                            txn_id: str, note: str) -> None:
+        with self._cursor() as cur:
+            if not note.strip():
+                cur.execute("DELETE FROM force_flow_notes WHERE league_slug=? "
+                            "AND season=? AND txn_id=?", (league_slug, season, txn_id))
+                return
+            cur.execute(
+                "INSERT INTO force_flow_notes (league_slug, season, txn_id, note, updated_at) "
+                "VALUES (?,?,?,?,?) "
+                "ON CONFLICT(league_slug, season, txn_id) DO UPDATE SET "
+                "note=excluded.note, updated_at=excluded.updated_at",
+                (league_slug, season, txn_id, note.strip(), utcnow_iso()))
+
+    def force_flow_notes(self, league_slug: str, season: str) -> dict[str, dict]:
+        rows = self._conn.execute(
+            "SELECT * FROM force_flow_notes WHERE league_slug=? AND season=?",
+            (league_slug, season)).fetchall()
+        return {r["txn_id"]: dict(r) for r in rows}
+
+    # -- AI provenance -------------------------------------------------
+    #
+    # Structural, not inferred: a row says "this exact text was generated",
+    # and a section is fully machine-written only while its current text
+    # still hashes to the stored value.
+
+    def set_prose_provenance(self, *, league_slug: str, season: str, issue_key: str,
+                             section: str, generator: str | None, method: str | None,
+                             generated_sha: str) -> None:
+        with self._cursor() as cur:
+            cur.execute(
+                "INSERT INTO prose_provenance (league_slug, season, issue_key, "
+                "section, generator, method, generated_sha, recorded_at) "
+                "VALUES (?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(league_slug, season, issue_key, section) DO UPDATE SET "
+                "generator=excluded.generator, method=excluded.method, "
+                "generated_sha=excluded.generated_sha, recorded_at=excluded.recorded_at",
+                (league_slug, season, issue_key, section, generator, method,
+                 generated_sha, utcnow_iso()))
+
+    def get_prose_provenance(self, league_slug: str, season: str, issue_key: str,
+                             section: str) -> dict | None:
+        row = self._conn.execute(
+            "SELECT * FROM prose_provenance WHERE league_slug=? AND season=? "
+            "AND issue_key=? AND section=?",
+            (league_slug, season, issue_key, section)).fetchone()
+        return dict(row) if row else None
+
+    def clear_prose_provenance(self, *, league_slug: str, season: str,
+                               issue_key: str, section: str) -> None:
+        with self._cursor() as cur:
+            cur.execute(
+                "DELETE FROM prose_provenance WHERE league_slug=? AND season=? "
+                "AND issue_key=? AND section=?",
+                (league_slug, season, issue_key, section))
+
+    def all_prose_provenance(self, league_slug: str, season: str,
+                             issue_key: str) -> dict[str, dict]:
+        rows = self._conn.execute(
+            "SELECT * FROM prose_provenance WHERE league_slug=? AND season=? AND issue_key=?",
+            (league_slug, season, issue_key)).fetchall()
+        return {r["section"]: dict(r) for r in rows}
 
     def set_issue_theme(self, league_slug: str, season: str, issue_key: str, theme: str | None) -> None:
         self.set_issue_status(league_slug=league_slug, season=season, issue_key=issue_key,

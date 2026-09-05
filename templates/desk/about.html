@@ -1,0 +1,36 @@
+{% extends "desk/base.html" %}
+{% block title %}About page — Commissioner's Desk{% endblock %}
+{% block content %}
+{#  Site content, not weekly editorial. It is styled plainly on purpose:
+    this is not one of the week's writing surfaces and should not look
+    like one, and nothing here can block a weekly issue. #}
+<h2>Site &rarr; About page</h2>
+<p class="meta">Global site content. Not part of any week: it never appears in
+  weekly readiness, never counts toward section approvals, and can never
+  block publishing an issue. Saved to <code>{{ path }}</code> and published
+  with the next site build.</p>
+
+<form method="post" action="/commissioner/site/about">
+  <label class="visually-hidden" for="abouttext">About page content (Markdown)</label>
+  <textarea id="abouttext" name="text" class="prose" rows="18">{{ text }}</textarea>
+  <div class="cardctl">
+    <button class="primary" name="action" value="save">Save</button>
+    <button type="button" onclick="previewAbout()">Preview</button>
+    <a class="btn" href="/commissioner">desk home</a>
+  </div>
+</form>
+
+<h3>Preview</h3>
+<div class="previewbox" id="aboutpreview">{{ preview | safe }}</div>
+
+<script>
+async function previewAbout() {
+  const text = document.getElementById("abouttext").value;
+  const r = await fetch("/commissioner/site/about/preview", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: JSON.stringify({text})});
+  const data = await r.json().catch(() => ({}));
+  document.getElementById("aboutpreview").innerHTML =
+    data.ok ? data.html : "<em>preview unavailable</em>";
+}
+</script>
+{% endblock %}

@@ -32,6 +32,9 @@ reading get labelled, not hidden.</p>
 {% if meaningful %}
 <section class="module">
   <h2 class="section-label">Reading the Moves</h2>
+{% if force_flow_provenance %}{% with prov = force_flow_provenance %}
+  {% include "public/_ai_provenance.html" %}
+{% endwith %}{% endif %}
   {% for m in meaningful %}
   <div class="card">
     <strong>{{ m.line }}</strong> — {{ team_list(m.team, team_links) }}

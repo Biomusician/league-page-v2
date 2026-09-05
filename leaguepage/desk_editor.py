@@ -28,7 +28,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from leaguepage import pubqa
 from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
-from leaguepage import prose
+from leaguepage import prose, provenance
 from leaguepage.issue_builder import (
     BLOCKED_MARKERS, CUSTOM_DEFAULT_TITLE, WRITING_SKILL, assemble_issue,
     is_custom_key, issue_dir, matchup_children, module_defs_for, module_states,
@@ -669,8 +669,19 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 if current:
                     s.add_prose_revision(league_slug, season, issue_key, section,
                                          current, "proposal-accept")
+                accepted = ppath.read_text(encoding="utf-8")
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(ppath.read_text(encoding="utf-8"), encoding="utf-8")
+                target.write_text(accepted, encoding="utf-8")
+                # Remember what was accepted, so the page can say so honestly
+                # for as long as it is still exactly this. The moment he
+                # edits a character the hash stops matching and the claim
+                # retires itself; nothing has to notice or clean up.
+                provenance.record(
+                    s, league_slug=league_slug, season=season, issue_key=issue_key,
+                    section=section, generator="claude-code",
+                    method=("matchup-brief" if section.startswith("matchup:")
+                            else "section-brief"),
+                    text=accepted)
                 s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
                 if not section.startswith("matchup:"):
                     s.set_issue_module(league_slug=league_slug, season=season,

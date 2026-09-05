@@ -1110,7 +1110,11 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         return _back(league_slug, season, week, slug, "#draft")
 
     from leaguepage.desk_editor import register_editor
+    from leaguepage.desk_site import register_site
 
     register_editor(app, storage, templates)
+    # Site-wide surfaces: the About page's copy and the Force Flow review
+    # queue. Neither is weekly editorial, and neither can block an issue.
+    register_site(app, storage, templates)
 
     return app
