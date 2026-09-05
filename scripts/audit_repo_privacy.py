@@ -76,12 +76,20 @@ def _handles() -> list[str]:
     # Keys only was half the file. Aliases and display names are where real
     # first names live, so a real first name committed to main was invisible
     # to this audit while the site audit would have caught it.
+    from leaguepage.site_build import _is_author
+
     names: set[str] = set()
     for key, m in data.items():
         names.add(key)
         if not isinstance(m, dict):
             continue
-        for field in ("display_name", "aliases", "unverified_aliases"):
+        # The Commissioner's own aliases are his byline, the same rule the
+        # site audit applies (decision 2026-09-05): a nickname he signs his
+        # own prose with is not somebody else's name reaching the public.
+        # His Sleeper handle and display name stay on the list.
+        fields = (("display_name",) if _is_author(m)
+                  else ("display_name", "aliases", "unverified_aliases"))
+        for field in fields:
             v = m.get(field)
             if isinstance(v, str):
                 names.add(v)
