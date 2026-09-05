@@ -1,10 +1,18 @@
 # How to compact a League Page session
 
-Directions for summarising this project's context. `/compact` reads this;
-so does an automatic compaction. Its counterpart is `.claude/COMPACT.md`,
-which a SessionStart hook re-injects *after* compaction — that file says
-what is always true, this one says what to carry out of the conversation.
-Where they overlap, `.claude/COMPACT.md` wins, and the repo wins over both.
+Directions for summarising this project's context. The built-in `/compact`
+follows them because `CLAUDE.md` names this file, and so does an automatic
+compaction. Its counterpart is `.claude/COMPACT.md`, which a SessionStart
+hook re-injects *after* compaction — that file says what is always true,
+this one says what to carry out of the conversation. Where they overlap,
+`.claude/COMPACT.md` wins, and the repo wins over both.
+
+> **Do not create `.claude/commands/compact.md`.** A project command of that
+> name shadows the built-in, and the built-in is the only thing that
+> actually shrinks the context window. One existed briefly and did exactly
+> that: `/compact` stopped compacting and merely printed a summary, twice,
+> while the window kept growing. A file here is documentation; only the
+> built-in is the mechanism.
 
 **Trigger.** Compact when context passes **75%**, after finishing the
 current answer — never mid-task, never between a code change and its test
