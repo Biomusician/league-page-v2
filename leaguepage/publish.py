@@ -169,7 +169,7 @@ def publish_assembled_issue(
         # "nobody edited this" is only true of a particular text, so it
         # belongs in the snapshot beside that text rather than being looked
         # up later against a database that has moved on.
-        prov = provenance.state_for(
+        prov = provenance.section_state(
             storage, league_slug=league.slug, season=season, issue_key=issue_key,
             section=s["module_key"], text=s["content_md"])
         sections.append({
@@ -334,7 +334,7 @@ def revise_issue(
             "module_key": s["module_key"], "title": s["title"],
             "content_md": strip_editorial_comments(s["content_md"]).strip(),
             "credit": "by the Commissioner" if s["module_key"] == "lowdown" else None,
-            "provenance": provenance.state_for(
+            "provenance": provenance.section_state(
                 storage, league_slug=league.slug, season=season,
                 issue_key=issue_key, section=s["module_key"],
                 text=s["content_md"]),

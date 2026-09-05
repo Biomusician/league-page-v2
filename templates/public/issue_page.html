@@ -20,7 +20,7 @@
   <h2 class="section-label">{{ s.title }}</h2>
   {% if s.credit %}<div class="credit">{{ s.credit }}</div>{% endif %}
   {% if s.provenance %}{% with prov = s.provenance %}
-    {% include "public/_ai_provenance.html" %}
+    {% include "public/_provenance.html" %}
   {% endwith %}{% endif %}
   <div class="prose">{{ s.html | safe }}</div>
 </section>

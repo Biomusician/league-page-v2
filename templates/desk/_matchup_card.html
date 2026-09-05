@@ -18,13 +18,16 @@
   {#  Approved is not closed. He can rewrite an approved preview from here,
       and doing so takes the approval back rather than leaving a green chip
       standing over text nobody signed off. #}
-  <p class="authority">{{ "Approved" if mc.approved else "Not approved" }}; editable
+  <p class="authority">{{ mc.authority }} · {{ "approved" if mc.approved else "not approved" }}; editable
     either way{% if mc.changed_since_approval %} · <b>changed since you approved
     it</b>, so Common Tactical Picture needs approving again{% endif %}.</p>
   <div class="cardctl">
     <button type="button" onclick="approve('{{ mc.section }}', true)">Approve</button>
     <button type="button" onclick="approve('{{ mc.section }}', false)">Unapprove</button>
     <button type="button" onclick="showRevisions('{{ mc.section }}')">History ({{ mc.revisions }})</button>
+    {% if mc.origin in ("ai", "deterministic") and mc.text.strip() %}
+      <button type="button" onclick="replaceOrigin('{{ mc.section }}')">Replace with my copy</button>
+    {% endif %}
     {% if mc.text.strip() %}
       <button type="button" onclick="askRewrite('{{ mc.section }}')">Request rewrite</button>
     {% else %}

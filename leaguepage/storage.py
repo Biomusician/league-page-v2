@@ -378,6 +378,12 @@ class Storage:
                       "href TEXT", "note TEXT"],
             "story_decisions": ["route TEXT"],  # lowdown | matchup | award | blackbox | custom
             "issues": ["theme TEXT"],           # optional issue-wide gimmick
+            # Provenance grew from "was this generated and is it still exact"
+            # into origin / edited / assistance (2026-09-05). baseline_text
+            # is the private generated text the Desk's edit metric measures
+            # against; it never enters a snapshot.
+            "prose_provenance": ["origin TEXT", "assistance TEXT",
+                                 "baseline_text TEXT", "event TEXT"],
         }
         for table, columns in added.items():
             existing = {r["name"] for r in self._conn.execute(f"PRAGMA table_info({table})")}
@@ -943,17 +949,32 @@ class Storage:
 
     def set_prose_provenance(self, *, league_slug: str, season: str, issue_key: str,
                              section: str, generator: str | None, method: str | None,
-                             generated_sha: str) -> None:
+                             generated_sha: str, origin: str | None = None,
+                             assistance: str | None = None,
+                             baseline_text: str | None = None,
+                             event: str | None = None) -> None:
         with self._cursor() as cur:
             cur.execute(
                 "INSERT INTO prose_provenance (league_slug, season, issue_key, "
-                "section, generator, method, generated_sha, recorded_at) "
-                "VALUES (?,?,?,?,?,?,?,?) "
+                "section, generator, method, generated_sha, recorded_at, origin, "
+                "assistance, baseline_text, event) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
                 "ON CONFLICT(league_slug, season, issue_key, section) DO UPDATE SET "
                 "generator=excluded.generator, method=excluded.method, "
-                "generated_sha=excluded.generated_sha, recorded_at=excluded.recorded_at",
+                "generated_sha=excluded.generated_sha, recorded_at=excluded.recorded_at, "
+                "origin=excluded.origin, assistance=excluded.assistance, "
+                "baseline_text=excluded.baseline_text, event=excluded.event",
                 (league_slug, season, issue_key, section, generator, method,
-                 generated_sha, utcnow_iso()))
+                 generated_sha, utcnow_iso(), origin, assistance, baseline_text, event))
+
+    def set_prose_assistance(self, *, league_slug: str, season: str, issue_key: str,
+                             section: str, assistance: str) -> None:
+        """The assistance axis alone; origin, hash and baseline untouched."""
+        with self._cursor() as cur:
+            cur.execute(
+                "UPDATE prose_provenance SET assistance=? WHERE league_slug=? "
+                "AND season=? AND issue_key=? AND section=?",
+                (assistance, league_slug, season, issue_key, section))
 
     def get_prose_provenance(self, league_slug: str, season: str, issue_key: str,
                              section: str) -> dict | None:

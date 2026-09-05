@@ -236,6 +236,13 @@
         <button type="button" onclick="resetGenerated('{{ c.module_key }}')">
           {{ "Use generated copy" if c.not_written else "Reset to generated" }}</button>
       {% endif %}
+      {#  Origin is a fact, not a score: however much he edits a generated
+          section it stays generated in origin. This is the one deliberate
+          act that makes the wording his, and it clears the box so that is
+          literally true; the generated text waits in History. #}
+      {% if c.origin in ("ai", "deterministic") and not c.not_written %}
+        <button type="button" onclick="replaceOrigin('{{ c.module_key }}')">Replace with my copy</button>
+      {% endif %}
     {% endif %}
     {% if c.blurb %}
       <button type="button" onclick="previewSection('{{ c.module_key }}')">Preview opening remarks</button>
@@ -786,6 +793,21 @@ async function resetGenerated(section) {
     body: JSON.stringify({section: section, confirm: "yes"})});
   if (r.ok) { location.reload(); return; }
   let msg = "Reset failed.";
+  try { msg = (await r.json()).error || msg; } catch (e) { /* keep default */ }
+  alert(msg);
+}
+
+/* Replace with my copy: the deliberate change of authorship. The generated
+ * text goes to History, the box empties, and what he writes next is his in
+ * origin (with the AI draft counted as assistance, because he read it). */
+async function replaceOrigin(section) {
+  if (!confirm("Set this section aside as a generated draft and start your own copy? "
+             + "The generated text goes to History; the box will be empty; approval is cleared.")) return;
+  const r = await fetch(EDIT + "/replace-origin", {method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({section: section, confirm: "yes"})});
+  if (r.ok) { location.reload(); return; }
+  let msg = "Could not change the origin.";
   try { msg = (await r.json()).error || msg; } catch (e) { /* keep default */ }
   alert(msg);
 }

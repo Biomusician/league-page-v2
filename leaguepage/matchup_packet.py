@@ -6,7 +6,8 @@ Layout:
         generated/week.json                     queue summary (regenerated)
         matchups/<slug>/
             commissioner_notes.md               Jonathan's, created once, never overwritten
-            draft.md                            Claude Code writes; Jonathan edits
+            draft.md                            Jonathan writes (Claude Code proposes
+                                                into the issue's proposals/ folder)
             generated/                          regenerated every build
                 data.json  analytics.json  history.md  story_memory.md
                 angles.md  evidence.json  AUTHORING.md
@@ -246,7 +247,11 @@ never infer either.
 
 ## Deliverable
 
-Write `../draft.md`, starting with:
+A matchup preview is Commissioner-written. What you write is a suggestion he
+reads beside his own box on the Desk, never the preview itself, so it goes
+to the issue's proposals folder and not to `draft.md`:
+
+Write `../../../proposals/matchup--{matchup["matchup_slug"]}.md`, starting with:
 
     <!-- {ROUGH_DRAFT_MARKER} -->
 

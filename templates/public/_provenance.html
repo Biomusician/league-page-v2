@@ -1,0 +1,19 @@
+{#  Says who wrote this, in one short line under the heading it describes.
+
+    Six fixed labels and nothing else: AI-generated, AI-generated · Commish
+    edited, Automatically generated, Automatically generated · Commish
+    edited, Commish-written, Commish-written · AI-assisted. The detail is a
+    second, quieter sentence from the same fixed vocabulary. It is a <p>
+    with role="note", not a heading, so it never enters the outline.
+
+    The mark is two to seven letters in a box, never a company's logo.
+    `aria-hidden` keeps a screen reader from announcing "A I" before the
+    sentence that already says it.
+
+    Expects `prov` -- a dict from leaguepage.provenance (classify /
+    describe_machine / public_shape). #}
+<p class="prov" role="note">
+  <span class="prov-mark" aria-hidden="true">{{ prov.badge_text }}</span>
+  <span class="prov-label">{{ prov.label or prov.caption }}</span>
+  {% if prov.detail %}<span class="prov-detail">{{ prov.detail }}</span>{% endif %}
+</p>

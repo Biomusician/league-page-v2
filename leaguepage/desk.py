@@ -580,6 +580,10 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 })
         with storage() as s:
             s.save_power_rankings(league_slug, season, "preseason", entries)
+            from leaguepage import provenance
+
+            provenance.note_rankings(s, league_slug=league_slug, season=season,
+                                     label="preseason", entries=entries)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/draft-review#power", status_code=303
         )
@@ -1090,6 +1094,10 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 })
         with storage() as s:
             s.save_power_rankings(league_slug, season, label, entries)
+            from leaguepage import provenance
+
+            provenance.note_rankings(s, league_slug=league_slug, season=season,
+                                     label=label, entries=entries)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/rankings/{label}", status_code=303)
 

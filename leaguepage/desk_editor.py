@@ -152,17 +152,49 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         """
         if not_written:
             return "Not written yet"
-        recorded = (prov_row or {}).get("generated_sha")
-        if recorded:
-            if provenance.text_sha(text) == recorded:
-                return "Generated, and unchanged since it was accepted"
-            return "Generated, then edited by the Commissioner"
-        if prose_state == "generated":
+        line = provenance.desk_line(prov_row, text)
+        if line == "Origin not recorded" and prose_state == "generated":
             # It arrived in the issue directory rather than through the
             # Desk, so nothing here knows who wrote it. Saying so beats
             # guessing in either direction.
             return "In the issue; no generator recorded, and no Desk edits since"
-        return "Commissioner-written"
+        return line
+
+    def _ai_help_present(league, season: str, issue_key: str, section: str) -> bool:
+        """An AI draft sits beside the box he writes in: a Claude proposal
+        for the section, or the Lowdown's rough draft. Presence on the
+        Desk at the moment he saves, nothing inferred later."""
+        idir = issue_dir(league, season, issue_key)
+        if _proposal_path(idir, section).exists():
+            return True
+        return section == "lowdown" and (idir / "lowdown" / "rough-lowdown.md").exists()
+
+    def _record_origin_on_save(s, league, season: str, issue_key: str, section: str,
+                               current: str) -> None:
+        """Settle origin the first time the Desk writes a section.
+
+        A file carrying the ROUGH DRAFT marker arrived under the Claude
+        Code authoring contract, so the text before his first edit is the
+        generated baseline. An empty section he writes into is his. Text
+        of no known origin stays unknown: an edit to it proves nothing
+        about who wrote the rest.
+        """
+        row = s.get_prose_provenance(league.slug, season, issue_key, section)
+        method = "matchup-brief" if section.startswith("matchup:") else "section-brief"
+        if provenance.origin_of(row) == "unknown":
+            if current and ROUGH_DRAFT_MARKER in current:
+                provenance.record(s, league_slug=league.slug, season=season,
+                                  issue_key=issue_key, section=section,
+                                  generator="claude-code", method=method,
+                                  text=current, event="marker-arrival")
+            elif not current.strip():
+                provenance.mark_commissioner(s, league_slug=league.slug, season=season,
+                                             issue_key=issue_key, section=section,
+                                             method=method, event="commissioner-save")
+        if _ai_help_present(league, season, issue_key, section):
+            provenance.note_assistance(s, league_slug=league.slug, season=season,
+                                       issue_key=issue_key, section=section,
+                                       kind="ai-writing", method=method)
 
     def _mark_changed(s, league_slug: str, season: str, issue_key: str,
                       section: str, on: bool) -> None:
@@ -350,6 +382,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         requests_by_section: dict[str, list[dict]] = {}
         for r in open_requests:
             requests_by_section.setdefault(r["section"], []).append(r)
+        for sec, me in matchup_editing.items():
+            me["authority"] = _authority(prov_rows.get(sec), me["text"], "commissioner-edited",
+                                         not me["text"].strip())
+            me["origin"] = provenance.origin_of(prov_rows.get(sec))
 
         cards = []
         for m in modules:
@@ -382,6 +418,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 card["authority"] = _authority(prov_rows.get(key), text,
                                                card["prose_state"],
                                                card["not_written"])
+                card["origin"] = provenance.origin_of(prov_rows.get(key))
                 if kind == "lowdown":
                     card["generated_source"] = _read(idir / "lowdown" / "rough-lowdown.md")
             elif key in BLURB_MODULES and not (kind == "ctp" and not m["children_total"]):
@@ -524,17 +561,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             if current:
                 s.add_prose_revision(league_slug, season, issue_key, section,
                                      current, "commissioner-save")
+            _record_origin_on_save(s, league, season, issue_key, section, current)
             path.write_text(new_text, encoding="utf-8")
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
             # This used to be a comment and a `pass`. Approval survived every
             # edit, so a section could publish text nobody had signed off
             # while the Desk showed a green chip saying otherwise.
             _invalidate_approval(s, league, season, issue_key, section)
-            # The opening remarks publish inside Common Tactical Picture, so
-            # writing them changes what that section's provenance is about.
-            if section.startswith("matchup:") or section == "ctp":
-                provenance.refresh_ctp(s, league=league, season=season,
-                                       issue_key=issue_key, week=_week_of(issue_key))
         return JSONResponse({"ok": True, "sha": _sha(text),
                              "file_sha": _sha(new_text), "state": "commissioner-edited"})
 
@@ -561,8 +594,6 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                     matchup_slug=m.group(1),
                                     status="approved" if action == "approve" else "edited")
                 _mark_changed(s, league_slug, season, issue_key, section, False)
-                provenance.refresh_ctp(s, league=league, season=season,
-                                       issue_key=issue_key, week=week)
                 return JSONResponse({"ok": True, "approved": action == "approve"})
             # Validated in both directions. Unapprove used to skip this
             # and write a row anyway, and `included` defaults to 1 in the
@@ -698,6 +729,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 })
         with storage() as s:
             s.save_power_rankings(league_slug, season, label, entries)
+            provenance.note_rankings(s, league_slug=league_slug, season=season,
+                                     label=label, entries=entries)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-power",
             status_code=303)
@@ -733,9 +766,6 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             path.write_text(rev["prior_text"], encoding="utf-8")
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
             _invalidate_approval(s, league, season, issue_key, section)
-            if section.startswith("matchup:") or section == "ctp":
-                provenance.refresh_ctp(s, league=league, season=season,
-                                       issue_key=issue_key, week=_week_of(issue_key))
         return JSONResponse({"ok": True})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/reset-generated")
@@ -752,10 +782,11 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         override is never silently destroyed: it is one click away in the
         revision list for as long as the issue exists.
 
-        Provenance is only re-asserted for text this code composed, where we
-        know who wrote it. Restoring a Claude draft re-validates its badge
-        only if the stored hash proves the text is byte-for-byte what was
-        recorded; nothing here invents a claim from a resemblance.
+        Provenance follows the source. Text this code composed is
+        deterministic in origin. A rough draft carrying the ROUGH DRAFT
+        marker arrived under the Claude Code authoring contract and is AI in
+        origin; a file without the marker has no known author and gets no
+        claim.
         """
         body = await request.json()
         section = str(body.get("section") or "")
@@ -793,7 +824,51 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     s, league_slug=league_slug, season=season, issue_key=issue_key,
                     section=section, generator=provenance.DETERMINISTIC,
                     method=section_defaults.GENERATED_METHOD.get(section),
-                    text=composed)
+                    text=composed, event="reset-generated")
+            elif ROUGH_DRAFT_MARKER in generated:
+                provenance.record(
+                    s, league_slug=league_slug, season=season, issue_key=issue_key,
+                    section=section, generator="claude-code", method="section-brief",
+                    text=generated, event="reset-generated")
+            _invalidate_approval(s, league, season, issue_key, section)
+        return JSONResponse({"ok": True, "section": section})
+
+    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/replace-origin")
+    async def editor_replace_origin(request: Request, league_slug: str, season: str,
+                                    issue_key: str):
+        """Replace with my copy: a deliberate change of authorship.
+
+        The generated text goes to History and the box is cleared, so what
+        he writes next is his in origin. The AI draft he is setting aside
+        counts as assistance, because he read it. No similarity score can
+        reach this state; only this click.
+        """
+        body = await request.json()
+        section = str(body.get("section") or "")
+        if str(body.get("confirm")) != "yes":
+            return JSONResponse({"ok": False, "error": "confirmation required"},
+                                status_code=400)
+        league = get_league(league_slug)
+        path = _section_path(league, season, issue_key, section)
+        if path is None:
+            return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        with storage() as s:
+            row = s.get_prose_provenance(league_slug, season, issue_key, section)
+            origin = provenance.origin_of(row)
+            if origin not in ("ai", "deterministic"):
+                return JSONResponse({"ok": False, "error": "this section is not "
+                                     "generated in origin"}, status_code=400)
+            current = _read(path) or ""
+            if current:
+                s.add_prose_revision(league_slug, season, issue_key, section,
+                                     current, "replace-with-my-copy")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("", encoding="utf-8")
+            provenance.mark_commissioner(
+                s, league_slug=league_slug, season=season, issue_key=issue_key,
+                section=section, assistance="ai-writing" if origin == "ai" else None,
+                event="replace-with-my-copy")
+            s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
             _invalidate_approval(s, league, season, issue_key, section)
         return JSONResponse({"ok": True, "section": section})
 
@@ -912,21 +987,21 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     section=section, generator="claude-code",
                     method=("matchup-brief" if section.startswith("matchup:")
                             else "section-brief"),
-                    text=accepted)
-                if section.startswith("matchup:"):
-                    # A preview does not publish under its own key: it is
-                    # concatenated into Common Tactical Picture. So CTP's
-                    # claim is recomputed from its children, and it is only
-                    # fully generated when every one of them still is.
-                    provenance.refresh_ctp(
-                        s, league=league, season=season, issue_key=issue_key,
-                        week=_week_of(issue_key))
+                    text=accepted, event="proposal-accept")
                 s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
                 # Accepting replaces the section outright, so whatever was
                 # approved before is gone. A matchup takes CTP's sign-off
                 # with it, for the same reason an edit to one does.
                 _invalidate_approval(s, league, season, issue_key, section)
-            elif action != "discard":
+            elif action == "discard":
+                # He read it and kept his own. AI help reached the section
+                # either way, and the origin of his text is unchanged.
+                provenance.note_assistance(
+                    s, league_slug=league_slug, season=season, issue_key=issue_key,
+                    section=section, kind="ai-writing",
+                    method=("matchup-brief" if section.startswith("matchup:")
+                            else "section-brief"))
+            else:
                 return JSONResponse({"ok": False, "error": "bad action"}, status_code=400)
             ppath.unlink()
             s.resolve_rewrite_requests(league_slug, season, issue_key, section,

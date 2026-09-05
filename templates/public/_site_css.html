@@ -313,18 +313,22 @@
           border-top:1px dotted; }
   .aged b { font-variant:small-caps; letter-spacing:.05em; font-weight:normal; }
 
-/* ---- AI provenance ----
-   Deliberately quiet: it informs, it does not apologise. Fixed-size mark so
-   it cannot shift the line under it while a webfont settles, and a flex row
-   so a long caption wraps under itself rather than past the column. */
-  .aiprov { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
-            margin:.2rem 0 .9rem; font-size:.78rem; line-height:1.4;
-            opacity:.82; }
-  .aiprov-mark { flex:none; display:inline-flex; align-items:center;
-                 justify-content:center; width:1.55rem; height:1.15rem;
-                 border:1px solid currentColor; border-radius:2px;
-                 font-size:.62rem; letter-spacing:.06em; font-weight:bold; }
-  @media (max-width:30rem) { .aiprov { font-size:.74rem; } }
+/* ---- provenance ----
+   Who wrote this, under the heading and deliberately quiet: it informs, it
+   does not apologise. The mark is a fixed-height box that fits AI, AUTO or
+   COMMISH; the label is one short line; the detail is a quieter sentence
+   that takes the whole next line, so a long label never pushes it past the
+   column and nothing here can widen the page on a phone. */
+  .prov { display:flex; align-items:center; gap:.35rem .5rem; flex-wrap:wrap;
+          margin:.2rem 0 .9rem; font-size:.78rem; line-height:1.4;
+          opacity:.82; max-width:100%; }
+  .prov-mark { flex:none; display:inline-flex; align-items:center;
+               justify-content:center; min-width:1.55rem; height:1.15rem;
+               padding:0 .3rem; border:1px solid currentColor; border-radius:2px;
+               font-size:.62rem; letter-spacing:.06em; font-weight:bold; }
+  .prov-label { font-weight:600; }
+  .prov-detail { flex-basis:100%; font-size:.72rem; opacity:.85; }
+  @media (max-width:30rem) { .prov { font-size:.74rem; } }
 
 /* ---- data pages: the draft ----
    The reading measure (52rem) is right for prose and wrong for a page

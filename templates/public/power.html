@@ -47,7 +47,8 @@ corrected in that issue{% endif %}.{% endif %}</p>
 {% endif %}
 {% if board.rows %}
 <h2 class="section-label">Model Board</h2>
-<p class="meta">Computed from synced data; nobody wrote it. {{ board.basis }}</p>
+{% if board_provenance %}{% with prov = board_provenance %}{% include "public/_provenance.html" %}{% endwith %}{% endif %}
+<p class="meta">{{ board.basis }}</p>
 <div class="board">
 {% for r in board.rows %}
 <div class="card">
@@ -80,6 +81,7 @@ is arbitrary, and the row says so.</p>
   comparison column.
 </div>
 <h2 class="section-label">Model Board</h2>
+{% if board_provenance %}{% with prov = board_provenance %}{% include "public/_provenance.html" %}{% endwith %}{% endif %}
 <div class="board">
 {% for r in board.rows %}
 <div class="card">

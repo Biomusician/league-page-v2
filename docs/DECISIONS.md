@@ -960,3 +960,71 @@ box is ignored with a line saying so, and the job goes on to deploy.
 production for the league, any issue. Production changes only through a
 deploy, so that is exactly when a reader last saw something new. It sits at
 the top of the publish page and on the Desk home cards.
+
+## 2026-09-05 — Provenance is three facts, and origin is not a percentage
+
+The first provenance system answered one question, "is this text exactly
+what a machine produced", and went silent the moment the Commissioner
+touched a character. That was honest but thin: a section Claude Code wrote
+and he then edited read as if nobody could say who wrote it, and a section
+he wrote from a research brief read the same as one he wrote alone.
+
+The model now keeps three facts apart. ORIGIN is who supplied the wording:
+a language model, our own deterministic code, or the Commissioner. EDITED
+is whether a generated text still hashes to its recorded baseline. ASSISTANCE
+is whether AI materially helped Commissioner-authored prose. Six public
+labels follow, and the template can print no others:
+
+    AI-generated
+    AI-generated · Commish edited
+    Automatically generated
+    Automatically generated · Commish edited
+    Commish-written
+    Commish-written · AI-assisted
+
+Origin is structural and durable. It is set by a workflow act and by
+nothing else: accepting a Claude proposal, resetting to a generated draft,
+a draft arriving under the ROUGH DRAFT authoring contract, the
+Commissioner writing into an empty section, a ranking note typed on the
+Desk. Editing changes the label, never the origin: four hundred rewritten
+words of a five-hundred-word draft is still an AI-origin draft he edited,
+and the page says so. An exact restore of the baseline returns the exact
+state by hash. The one way origin changes is "Replace with my copy", a
+deliberate click that sends the generated text to History, clears the
+box, and counts the draft he set aside as assistance because he read it.
+
+The edit metric ("changed from generated baseline") is instrumentation for
+the Desk, not an authorship detector. It compares prose tokens, so a
+Markdown marker, a line ending or a removed scaffolding comment is not an
+edit and a comma is a small one; it reports 0 only for equivalent text and
+at least 1 for any real change; it never appears on a public page and it
+never decides a label. No threshold anywhere turns "very edited" into
+"his": that rule would eventually publish a false claim.
+
+Assistance is its own axis, recorded from presence on the Desk: a Claude
+proposal beside the box when he saves, a proposal he discards after
+reading, the Lowdown's rough draft beside his own Lowdown. Deterministic
+packets are not AI. What the system cannot see, it does not claim: prose
+pasted from outside, research done in another window.
+
+Matchup previews are Commissioner-written by product rule. The authoring
+contract now sends Claude's matchup draft to the issue's proposals folder,
+never to the preview itself; he writes the preview beside it and it reads
+"Commish-written · AI-assisted", or he accepts the proposal deliberately
+and it reads as what it is. Common Tactical Picture carries no badge of
+its own: each preview's line sits under its own heading inside the
+section, his opening carries its own, and the parent stays silent. The
+machinery that badged the whole section from its children is gone.
+
+Force Flow, the Model Board and the team briefings are arithmetic and say
+"Automatically generated" under their headings. Peer and Near-Peer's prose
+is the notes he types beside his ranking and reads "Commish-written"; the
+ranking itself is data and claims nothing.
+
+Retroactively, only the marker proves anything: where the earliest saved
+revision of a section carries the ROUGH DRAFT marker and no row exists,
+the section is recorded as AI in origin with that text as its baseline
+(eight sections, all from the 2026-08-30 migration). Every other existing
+section, including all of Disco Week 1, has no known author and no label.
+Published snapshots carry no provenance metadata and are immutable, so
+the issues already on the site stay unlabelled; nothing rewrites them.

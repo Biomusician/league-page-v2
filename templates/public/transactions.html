@@ -67,7 +67,7 @@ reading get labelled, not hidden.</p>
 <section class="module">
   <h2 class="section-label">Reading the Moves</h2>
 {% if force_flow_provenance %}{% with prov = force_flow_provenance %}
-  {% include "public/_ai_provenance.html" %}
+  {% include "public/_provenance.html" %}
 {% endwith %}{% endif %}
   {% for m in meaningful %}
   <article class="card move">

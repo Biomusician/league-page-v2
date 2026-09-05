@@ -27,6 +27,7 @@ from pathlib import Path
 
 from leaguepage import evidence as ev_mod
 from leaguepage.config import EDITORIAL_DIR, League
+from leaguepage import provenance
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER
 from leaguepage.storage import Storage
 from leaguepage.team_names import require_public_names, resolve_public_names
@@ -472,7 +473,14 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
             if draft and matchup_status(sm["state"], True) in ("approved", "locked") and _clean(draft):
                 names = " vs ".join(public_names[t["roster_id"]] for t in m["teams"])
                 body = "\n".join(l for l in draft.splitlines() if not l.strip().startswith("<!--"))
-                parts.append(f"### {names}\n\n{body.strip()}")
+                # Each preview carries its own provenance line under its
+                # heading; the parent section carries none, so one badge
+                # never describes six different pieces of writing.
+                line = provenance.inline_html(provenance.state_for(
+                    storage, league_slug=league.slug, season=season, issue_key=issue_key,
+                    section=f"matchup:{m['matchup_slug']}", text=draft))
+                parts.append(f"### {names}\n\n" + (f"{line}\n\n" if line else "")
+                             + body.strip())
         if not parts:
             return None
         # His optional lead-in, above the previews. Only when there is
@@ -480,7 +488,10 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
         # so a blurb standing alone is not a Common Tactical Picture.
         blurb = _read(idir / "sections" / "ctp.md")
         if blurb and _clean(blurb):
-            parts.insert(0, blurb.strip())
+            line = provenance.inline_html(provenance.state_for(
+                storage, league_slug=league.slug, season=season, issue_key=issue_key,
+                section="ctp", text=blurb))
+            parts.insert(0, (f"{line}\n\n" if line else "") + blurb.strip())
         return "\n\n".join(parts)
     if kind == "power":
         label = "preseason" if issue_key == "draft" else issue_key

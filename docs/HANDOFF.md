@@ -1,10 +1,59 @@
 # HANDOFF
 
-Updated 2026-09-04, end of the overnight editorial pass. Companions:
+Updated 2026-09-05, end of the provenance tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Provenance tranche (2026-09-05)
+
+**Status: 1,229 tests green (2 skipped), build and both privacy audits clean, responsive QC at
+320/375/430/768/1024/1440/1920 with no horizontal overflow. Nothing pushed,
+nothing published; no Commissioner prose or snapshot touched.**
+
+The canonical model (also in DECISIONS):
+
+    AI-generated                              origin ai, exact baseline
+    AI-generated · Commish edited             origin ai, hash differs
+    Automatically generated                   origin deterministic, exact
+    Automatically generated · Commish edited  origin deterministic, edited
+    Commish-written                           origin commissioner
+    Commish-written · AI-assisted             origin commissioner, AI help recorded
+
+Origin is structural. Editing does not erase origin. Exact reset restores
+the exact state. The edit percentage is descriptive, Desk-only, never an
+authorship inference. Matchup previews are Commissioner-written by product
+rule. AI research/writing help is tracked on its own axis.
+
+Where it lives: `leaguepage/provenance.py` (classify, record,
+mark_commissioner, note_assistance, changed_from_baseline, desk_line,
+inline_html, section_state, public_shape), four new columns on
+`prose_provenance` (origin, assistance, baseline_text, event; the baseline
+is private and never enters a snapshot), `templates/public/_provenance.html`
+(replaces `_ai_provenance.html`; classes `.prov`, `.prov-mark`,
+`.prov-label`, `.prov-detail`), and the Desk (`desk_editor.py`): origin is
+settled on save (ROUGH DRAFT marker present before the first edit = AI
+origin; empty section = his), proposal accept = AI origin, discard = AI
+assistance, reset to a marked rough draft = AI origin, "Replace with my
+copy" (`/edit/replace-origin`) = the one deliberate origin change, ranking
+notes = Commissioner-written Peer and Near-Peer. The CTP parent badge and
+`refresh_ctp` are gone: each preview carries its own line inline under its
+heading, the optional intro its own. The matchup authoring contract in
+`matchup_packet.py` now sends Claude's draft to `proposals/matchup--<slug>.md`.
+
+Standing tabs: Force Flow, the Model Board and the team briefings say
+"Automatically generated" under their headings. Retroactive: the backfill
+(`scripts/backfill_provenance.py --apply`, run once) recorded AI origin for
+the eight sections whose earliest saved revision carries the marker
+(Surfeit draft custom/draft-capsules/hardware, four Surfeit week-01 matchup
+keys of which two are current, Disco draft custom). Every other section,
+Disco Week 1 included, has no known author and no label; published
+snapshots carry no provenance and stay unlabelled and untouched.
+
+Deliberately unlabelled: text pasted from outside the system, research done
+in another window, an unresolved proposal nobody acted on. What the system
+cannot see it does not claim.
 
 ## Publish pipeline fix (2026-09-05 morning)
 

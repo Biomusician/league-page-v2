@@ -122,10 +122,10 @@ def test_the_commissioners_own_nickname_is_a_byline_not_a_leak(tmp_path, monkeyp
 
     lg = LEAGUES[0]
     _managers(tmp_path, monkeypatch, {
-        "authorhandle": {"display_name": "authorhandle", "aliases": ["The Commish"],
+        "authorhandle": {"display_name": "authorhandle", "aliases": ["The Chairman"],
                          "leagues": {lg.slug: {"roster_id": lg.author_roster_id}}},
         "otherhandle": {"display_name": "otherhandle", "aliases": ["Bartholomew"],
                         "leagues": {lg.slug: {"roster_id": lg.author_roster_id + 1}}}})
     handles = _private_handles(["Some Team (X)"])
-    assert "The Commish" not in handles
+    assert "The Chairman" not in handles
     assert "authorhandle" in handles and "Bartholomew" in handles

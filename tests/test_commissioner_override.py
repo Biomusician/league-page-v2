@@ -348,14 +348,17 @@ def test_generated_hardware_is_labelled_as_machine_written_not_as_ai(env):
     assert "AI-generated" not in state["caption"]
 
 
-def test_editing_the_generated_hardware_retires_the_claim(env):
+def test_editing_the_generated_hardware_makes_it_generated_then_edited(env):
+    """Origin stays deterministic however much he rewrites; the label says
+    he edited it and the Desk shows roughly how much."""
     client, db, _ed = env
     new = "### Weekly Hardware\n\nI rewrote every word of this.\n"
     _save(client, "hardware", new)
     with Storage(db) as s:
-        assert provenance.state_for(s, league_slug="surfeit", season=SEASON,
-                                    issue_key="week-01", section="hardware",
-                                    text=new) is None
+        st = provenance.state_for(s, league_slug="surfeit", season=SEASON,
+                                  issue_key="week-01", section="hardware", text=new)
+    assert st["label"] == "Automatically generated · Commish edited"
+    assert st["badge_text"] == "AUTO" and st["generator"] is None
 
 
 def test_resetting_to_generated_makes_the_claim_true_again(env):
@@ -388,9 +391,9 @@ def test_restoring_a_claude_draft_invents_no_claim(env):
 
 def test_the_card_reports_generated_then_edited(env):
     client, _db, _ed = env
-    assert "unchanged since it was accepted" in _card(_page(client), "hardware")
+    assert "exact generated baseline" in _card(_page(client), "hardware")
     _save(client, "hardware", "### Mine\n\nMine now.\n")
-    assert "then edited by the Commissioner" in _card(_page(client), "hardware")
+    assert "changed from generated baseline" in _card(_page(client), "hardware")
 
 
 # =============================================== optional blurbs block nothing
@@ -419,8 +422,8 @@ def test_a_ctp_intro_publishes_above_the_previews(env):
         body = next(x["content_md"] for x in
                     assemble_issue(s, LG, SEASON, "week-01", week=1)["sections"]
                     if x["module_key"] == "ctp")
-    assert body.startswith("Five games, one of them worth watching.")
-    assert "###" in body, "the previews still follow it"
+    assert "Five games, one of them worth watching." in body
+    assert body.index("Five games") < body.index("###"), "the previews still follow it"
 
 
 def test_the_power_blurb_is_editable_from_the_card(env):
@@ -487,10 +490,11 @@ def test_every_card_is_still_closed_on_load(env):
         assert " open" not in m.group(0), m.group(0)[:90]
 
 
-def test_a_commissioner_intro_removes_ctps_ai_badge(env):
-    """CTP's badge says nobody edited the section. His opening line is in
-    that section, so the claim stops being true even though every preview
-    under it is untouched."""
+
+def test_ctp_wears_no_parent_badge_and_each_preview_carries_its_own(env):
+    """One badge over six pieces of writing describes none of them. Each
+    preview's line sits under its own heading inside the section, his
+    opening carries its own, and the section heading stays silent."""
     client, db, _ed = env
     with Storage(db) as s:
         for c in ib.matchup_children(s, LG, SEASON, "week-01", week=1):
@@ -498,22 +502,25 @@ def test_a_commissioner_intro_removes_ctps_ai_badge(env):
                               issue_key="week-01", section=c["section"],
                               generator="claude-code", method="matchup-brief",
                               text=f"Preview of {c['slug']}.\n")
-        provenance.refresh_ctp(s, league=LG, season=SEASON,
-                               issue_key="week-01", week=1)
+        n = len(ib.matchup_children(s, LG, SEASON, "week-01", week=1))
         body = next(x["content_md"] for x in
                     assemble_issue(s, LG, SEASON, "week-01", week=1)["sections"]
                     if x["module_key"] == "ctp")
-        assert provenance.state_for(s, league_slug="surfeit", season=SEASON,
-                                    issue_key="week-01", section="ctp",
-                                    text=body) is not None
+        assert body.count('class="prov"') == n
+        assert body.count("AI-generated") == n
+        assert provenance.section_state(s, league_slug="surfeit", season=SEASON,
+                                        issue_key="week-01", section="ctp",
+                                        text=body) is None
     _save(client, "ctp", "My own way in.\n")
     with Storage(db) as s:
         body = next(x["content_md"] for x in
                     assemble_issue(s, LG, SEASON, "week-01", week=1)["sections"]
                     if x["module_key"] == "ctp")
-        assert provenance.state_for(s, league_slug="surfeit", season=SEASON,
-                                    issue_key="week-01", section="ctp",
-                                    text=body) is None
+        assert body.count('class="prov"') == n + 1
+        assert body.index("Commish-written") < body.index("My own way in.")
+        assert provenance.section_state(s, league_slug="surfeit", season=SEASON,
+                                        issue_key="week-01", section="ctp",
+                                        text=body) is None
 
 
 def test_the_badge_survives_the_trip_through_assembly(env):

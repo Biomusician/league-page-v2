@@ -24,6 +24,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
 <section class="module" aria-labelledby="brief-h">
   <h2 class="section-label" id="brief-h">
     {% if b.state == "preseason" %}Your team going in{% else %}Your team this week{% endif %}</h2>
+  {% if brief_provenance %}{% with prov = brief_provenance %}{% include "public/_provenance.html" %}{% endwith %}{% endif %}
   <div class="card brief">
     {% if b.storyline %}<p class="storyline">{{ b.storyline }}</p>{% endif %}
     <dl>
@@ -120,6 +121,7 @@ Record {{ team.record }} · standings #{{ team.standing }} · PF {{ team.pf }}
 {% if key == "moves" and team.key_moves %}
 <section class="module">
   <h2 class="section-label">Key Moves</h2>
+  {% if moves_provenance %}{% with prov = moves_provenance %}{% include "public/_provenance.html" %}{% endwith %}{% endif %}
   <ul>
     {% for m in team.key_moves %}
     <li>{{ m.line }} <span class="meta">(wk {{ m.week }} · {{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %})</span>

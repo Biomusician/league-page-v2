@@ -230,7 +230,7 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
             # Absent on every snapshot frozen before provenance existed,
             # which is the right answer for them: nothing was recorded, so
             # nothing is claimed.
-            "provenance": s.get("provenance"),
+            "provenance": provenance.public_shape(s.get("provenance")),
             "html": _render_md(_strip_duplicate_heading(s["content_md"], s["title"])),
         })
     lowdown = next((s for s in snap["sections"] if s["module_key"] == "lowdown"), None)
@@ -816,6 +816,8 @@ def build_league(
                         f"{_through(weeks_played_league)} \u2014 and where the "
                         f"Commissioner and the model disagree."),
            rankings=ranking_ctx, label=label, board=board,
+           board_provenance=(provenance.describe_machine("model-board")
+                             if board and board.get("rows") else None),
            ranking_source=ranking_source, disagreements=disagreements_ctx,
            disagree_floor=disagree_floor,
            current_nav="Peer and Near-Peer")
@@ -971,6 +973,11 @@ def build_league(
             "receipt": (briefing.get("receipts") or [None])[0],
         })
         render(f"team/{slugs[rid]}/index.html", "public/team.html", 3,
+               # The briefing and the move readings are arithmetic over
+               # synced data; the page says so under each heading.
+               brief_provenance=provenance.describe_machine("team-brief"),
+               moves_provenance=(provenance.describe_machine("roster-analysis")
+                                 if moves_ctx else None),
                description=(f"{nm}: {rec['wins']}-{rec['losses']}, "
                             f"{rec['fpts']:g} points for, positional room ranks, "
                             f"draft recap and what changed."),
