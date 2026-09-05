@@ -451,3 +451,79 @@ def test_verification_retries_while_the_alias_propagates(monkeypatch, tmp_path):
     monkeypatch.setattr(pj, "VERIFY_ATTEMPTS", 2)
     with pytest.raises(pj.StageError, match="after 2 attempts"):
         pj._stage_verify(job, None)
+
+
+def test_unchanged_text_with_a_leftover_note_deploys_instead_of_failing(jobs_env):
+    """A note left in the box is not a reason to manufacture a revision."""
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    assert _wait_job(client)["job"]["state"] == "succeeded"
+    pj._JOBS.clear()
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes",
+                      "note": "left in the box"})
+    data = _wait_job(client)
+    job = data["job"]
+    assert job["state"] == "succeeded", job["stages"]
+    assert job["stages"][0]["detail"].startswith("unchanged")
+    assert "note was not needed" in job["stages"][0]["detail"]
+    assert not (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.r2.json").exists()
+    assert data["deploy_state"]["revision"] == 1
+
+
+def test_the_page_knows_whether_the_latest_revision_is_live(jobs_env):
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+    client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
+    assert _wait_job(client)["job"]["state"] == "succeeded"
+    page = client.get(f"{EDIT}/publish").text
+    assert "not yet live" in page and "Deploy rev 1" in page
+    assert "has never been deployed from the Desk" in page
+
+    pj._JOBS.clear()
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes"})
+    assert _wait_job(client)["job"]["state"] == "succeeded"
+    page = client.get(f"{EDIT}/publish").text
+    assert "Already live. Nothing has changed." in page
+    assert "Re-deploy the same text" in page
+    assert "updated just now" in page
+
+    # a correction frozen locally puts production behind again
+    (idir / "lowdown" / "lowdown.md").write_text("# The Lowdown\n\nCorrected words.\n",
+                                                 encoding="utf-8")
+    pj._JOBS.clear()
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "local", "confirm": "yes", "note": "wording"})
+    assert _wait_job(client)["job"]["state"] == "succeeded"
+    page = client.get(f"{EDIT}/publish").text
+    assert "not yet live" in page and "Deploy rev 2" in page
+    assert "production carries rev 1" in page
+
+
+def test_a_deploy_marks_every_issue_whose_latest_revision_it_shipped(jobs_env):
+    """One Vercel deploy carries the whole site. A Disco correction frozen
+    earlier goes live with a Surfeit deploy, and its record must say so;
+    an issue already live at its latest revision keeps its own time."""
+    import json as _json
+
+    client, db, idir, calls = jobs_env
+    _approve_only_lowdown(db)
+    other = cfg.PUBLISHED_DIR / "disco" / SEASON
+    other.mkdir(parents=True)
+    for name in ("week-01.json", "week-01.r2.json", "week-02.json"):
+        (other / name).write_text(_json.dumps({"sections": []}), encoding="utf-8")
+    with Storage(db) as s:
+        s.set_meta(f"deploy_state:disco:{SEASON}:week-01", _json.dumps(
+            {"state": "deployed", "at": "2026-01-01T00:00:00+00:00", "revision": 1}))
+        s.set_meta(f"deploy_state:disco:{SEASON}:week-02", _json.dumps(
+            {"state": "deployed", "at": "2026-01-02T00:00:00+00:00", "revision": 1}))
+    client.post(f"{EDIT}/publish-start",
+                data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes"})
+    assert _wait_job(client)["job"]["state"] == "succeeded"
+    with Storage(db) as s:
+        w1 = _json.loads(s.get_meta(f"deploy_state:disco:{SEASON}:week-01"))
+        w2 = _json.loads(s.get_meta(f"deploy_state:disco:{SEASON}:week-02"))
+    assert w1["revision"] == 2 and w1["at"] > "2026-01-01" and w1["via"] == f"surfeit:{SEASON}:draft"
+    assert w2["revision"] == 1 and w2["at"] == "2026-01-02T00:00:00+00:00"

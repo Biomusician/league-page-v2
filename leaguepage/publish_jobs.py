@@ -215,6 +215,7 @@ def _record_deploy_state(job: dict, db_path) -> None:
             record = {"state": "deployed" if verified else "deployed-unverified",
                       "at": now, "url": job["issue_url"],
                       "deployment_id": job["deployment_id"], "verified": verified,
+                      "revision": job.get("revision"),
                       "reason": None if verified else verify_st["detail"][:300]}
         elif deploy_st["status"] == "fail":
             record = {"state": "deploy-failed", "at": now, "url": None,
@@ -228,6 +229,46 @@ def _record_deploy_state(job: dict, db_path) -> None:
                 "at": now, "failed_stage": failed["key"] if failed else None,
                 "reason": (failed["detail"] if failed else "")[:300]}
         s.set_meta(key, json.dumps(record))
+        if deploy_st["status"] == "ok":
+            _mark_shipped_revisions(s, job, record, now)
+
+
+def _mark_shipped_revisions(s: Storage, job: dict, record: dict, now: str) -> None:
+    """A deploy ships the whole built site, not one issue. Every published
+    issue whose latest frozen revision was not yet on production went out
+    with this deployment, so its record says so; an issue already live at
+    its latest revision keeps its own timestamp, because its readers saw
+    nothing new."""
+    from leaguepage import config as cfg
+    from leaguepage.publish import REVISION_RE
+
+    root = Path(cfg.PUBLISHED_DIR)
+    if not root.exists():
+        return
+    latest: dict[tuple[str, str, str], int] = {}
+    for path in root.glob("*/*/*.json"):
+        league_slug, season = path.parent.parent.name, path.parent.name
+        m = REVISION_RE.match(path.stem)
+        key, n = (m.group("key"), int(m.group("n"))) if m else (path.stem, 1)
+        latest[(league_slug, season, key)] = max(latest.get((league_slug, season, key), 0), n)
+    for (league_slug, season, key), n in latest.items():
+        meta_key = f"deploy_state:{_issue_key(league_slug, season, key)}"
+        if meta_key == f"deploy_state:{job['issue']}":
+            continue
+        raw = s.get_meta(meta_key)
+        prior = json.loads(raw) if raw else None
+        if prior and prior.get("state") in LIVE_STATES:
+            if prior.get("revision") is None:
+                prior["revision"] = n            # older record: fill, keep its time
+                s.set_meta(meta_key, json.dumps(prior))
+                continue
+            if prior["revision"] >= n:
+                continue
+        s.set_meta(meta_key, json.dumps({
+            "state": record["state"], "at": now,
+            "url": f"{PRODUCTION_URL}/{league_slug}/{season}/{key}/",
+            "deployment_id": job["deployment_id"], "verified": record.get("verified"),
+            "revision": n, "via": job["issue"], "reason": None}))
 
 
 def deploy_state(storage: Storage, league_slug: str, season: str, issue_key: str) -> dict | None:
@@ -235,12 +276,57 @@ def deploy_state(storage: Storage, league_slug: str, season: str, issue_key: str
     return json.loads(raw) if raw else None
 
 
+LIVE_STATES = ("deployed", "deployed-unverified")
+
+
+def last_public_change(storage: Storage, league_slug: str,
+                       now: dt.datetime | None = None) -> dict | None:
+    """The most recent deploy that reached production for this league, any
+    issue: {"issue_key", "season", "revision", "at", "ago"}. None when the
+    Desk has never deployed it. Production changes only through a deploy,
+    so this is when a reader last saw something new."""
+    best = None
+    for key, raw in storage.list_meta(f"deploy_state:{league_slug}:").items():
+        try:
+            rec = json.loads(raw)
+        except ValueError:
+            continue
+        if rec.get("state") not in LIVE_STATES or not rec.get("at"):
+            continue
+        if best is None or rec["at"] > best["at"]:
+            _prefix, _slug, season, issue_key = key.split(":", 3)
+            best = {"issue_key": issue_key, "season": season, "at": rec["at"],
+                    "revision": rec.get("revision"), "state": rec["state"]}
+    if best:
+        best["ago"] = ago(best["at"], now=now)
+    return best
+
+
+def ago(iso: str, now: dt.datetime | None = None) -> str:
+    """"10 minutes ago", "5 days ago": how a person says when."""
+    try:
+        then = dt.datetime.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return "at an unknown time"
+    if then.tzinfo is None:
+        then = then.replace(tzinfo=dt.timezone.utc)
+    now = now or dt.datetime.now(dt.timezone.utc)
+    secs = max(0, int((now - then).total_seconds()))
+    if secs < 60:
+        return "just now"
+    for unit, size in (("minute", 60), ("hour", 3600), ("day", 86400)):
+        n = secs // size
+        if secs < size * (60 if unit == "minute" else 24 if unit == "hour" else 10**9):
+            return f"{n} {unit}{'' if n == 1 else 's'} ago"
+    return "long ago"
+
+
 # ------------------------------------------------------------------ stages
 
 def _stage_snapshot(job: dict, db_path) -> str:
     from leaguepage import config as cfg
     from leaguepage.publish import (publish_assembled_issue, revise_issue,
-                                    snapshot_family)
+                                    snapshot_family, text_changed_since_publish)
 
     league = get_league(job["league_slug"])
     week = (int(job["issue_key"].removeprefix("week-"))
@@ -248,21 +334,41 @@ def _stage_snapshot(job: dict, db_path) -> str:
     family = snapshot_family(cfg.PUBLISHED_DIR, league.slug, job["season"], job["issue_key"])
     try:
         with Storage(db_path) as s:
+            changed = (text_changed_since_publish(s, league, job["season"], job["issue_key"],
+                                                  week=week) if family else None)
+            if changed is False:
+                # Nothing to freeze. A note left in the box is not a reason
+                # to manufacture a revision; the deploy still runs, because
+                # the site around the issue may have changed.
+                job["revision"] = revision_number(family[-1])
+                return (f"unchanged since {family[-1].name}; nothing new frozen"
+                        + (" (the note was not needed)" if job.get("note") else ""))
+            if changed and not job.get("note"):
+                raise StageError(
+                    "the text has changed since this issue was published; publishing "
+                    "again would rewrite the record of what shipped. Add a correction "
+                    "note on the publish page and the change ships as a revision.")
             if job.get("note"):
-                if not family:
-                    raise StageError("this issue has never been published, so there is "
-                                     "nothing to correct; publish it normally")
                 snap = revise_issue(s, league, job["season"], job["issue_key"],
                                     note=job["note"], week=week)
-                rev = snap.stem.rsplit(".", 1)[-1]
-                return f"correction {rev} frozen beside the original: {snap}"
+                job["revision"] = revision_number(snap)
+                return f"correction r{job['revision']} frozen beside the original: {snap}"
             snap = publish_assembled_issue(s, league, job["season"], job["issue_key"],
                                            week=week)
+            job["revision"] = 1
     except StageError:
         raise
     except Exception as exc:
         raise StageError(f"snapshot blocked: {exc}") from exc
     return f"frozen: {snap}"
+
+
+def revision_number(path: Path) -> int:
+    """week-01.json is 1; week-01.r3.json is 3."""
+    from leaguepage.publish import REVISION_RE
+
+    m = REVISION_RE.match(path.stem)
+    return int(m.group("n")) if m else 1
 
 
 def _stage_build(job: dict, db_path) -> str:

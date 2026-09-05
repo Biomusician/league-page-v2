@@ -420,6 +420,16 @@ class Storage:
                 (key, value),
             )
 
+
+    def list_meta(self, prefix: str) -> dict[str, str]:
+        """Every meta row whose key starts with `prefix` (deploy records
+        are one row per issue under deploy_state:{league}:)."""
+        rows = self._conn.execute(
+            "SELECT key, value FROM meta WHERE key LIKE ? ORDER BY key",
+            (prefix + "%",)).fetchall()
+        # LIKE treats _ as a wildcard; the exact-prefix test is done here
+        return {r["key"]: r["value"] for r in rows if r["key"].startswith(prefix)}
+
     # -- players -------------------------------------------------------
 
     def players_last_updated(self) -> dt.datetime | None:

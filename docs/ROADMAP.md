@@ -71,6 +71,27 @@ piece actually does and where.
   folded into the inbox once the inbox has survived a few real weeks.
 - Draft-receipt change items (a Reach suddenly performing) are Tier 4 #14.
 
+**Morning Force Flow loop (explored 2026-09-05, `planned`):** both leagues
+run FAAB with daily waivers on (the synced settings say `daily_waivers=1`,
+Disco clearing at hour 5 and Surfeit at hour 2), so "after waivers run" is
+every morning. What already exists: the public Force Flow tab renders every
+completed move with a deterministic reading and the Commissioner's per-move
+note, the Desk Force Flow page has a note box on every row, and the Command
+Brief's MARKET section ranks the new moves. What is missing, in order:
+
+1. An unattended morning sync (Windows Task Scheduler running
+   `scripts/sync.py`), which is a machine-level change and his to approve.
+2. "New since the last deploy" on the Desk Force Flow page: the moves that
+   arrived after `last_public_change`, note boxes first, so the morning is
+   three notes and a click rather than a scroll.
+3. A tab-only deploy: build, deploy, verify, with no snapshot stage, so the
+   standing tab can go out without an issue publish. Today the unchanged-text
+   path of an issue publish does this by accident.
+4. Draft notes, never auto-published: a Claude Code morning pass reads the
+   brief's MARKET section and writes note proposals into the Desk for him to
+   accept or discard. The deterministic reading publishes on its own; prose
+   waits for him, per the standing rule.
+
 **Deferred from the overnight editorial pass (2026-09-04):**
 
 - Source disagreement: import a second reference (rest-of-season ECR or a

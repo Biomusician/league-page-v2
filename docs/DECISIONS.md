@@ -942,3 +942,21 @@ audit matched case-insensitively, so "the commish" passed QA, became an
 immutable file, and only then was refused. QA now uses the audit's own
 matcher. What passes the publication check cannot fail the build for the
 same reason.
+
+## 2026-09-05 — The publish page says what is live, not how the last job ended
+
+A frozen revision and a deployed revision are different facts, and the page
+conflated them: after a correction was frozen and its deploy failed, a
+retry with unchanged text was reported as a failure ("nothing to revise")
+when the honest statement was that rev 2 existed and production still
+carried rev 1. The deploy record now carries the revision it shipped, so
+the page can say one of three things: the text changed (a correction with
+a note), the latest revision is frozen but not live (deploy it), or it is
+live and nothing has changed (deploying again only matters if the site
+around the issue changed). Unchanged text never fails: a note left in the
+box is ignored with a line saying so, and the job goes on to deploy.
+
+"Disco updated 10 minutes ago" is the latest deploy that reached
+production for the league, any issue. Production changes only through a
+deploy, so that is exactly when a reader last saw something new. It sits at
+the top of the publish page and on the Desk home cards.

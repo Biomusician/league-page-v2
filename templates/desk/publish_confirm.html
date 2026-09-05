@@ -11,6 +11,7 @@
   pre.logtail { background:#1a1c20; color:#d8d5cd; padding:.7rem; font-size:.78rem;
                 overflow-x:auto; max-height:22rem; }
   .statebar { display:flex; gap:1.4rem; flex-wrap:wrap; font-size:.9rem; }
+  .lastpub { font-size:1.05rem; margin:.2rem 0 .6rem; }
 </style>
 
 <h2>Publish {{ league.display_name }} · {{ season }} · {{ issue_key }}</h2>
@@ -24,6 +25,12 @@
   <div class="card bad"><b>Not started.</b> Tick the confirmation before deploying.</div>
 {% endif %}
 
+<p class="lastpub">
+  {% if last_change %}<b>{{ league.display_name }} updated {{ last_change.ago }}</b>
+    <span class="meta">({{ last_change.issue_key }}{% if last_change.revision %} rev {{ last_change.revision }}{% endif %}, deployed {{ last_change.at[:16] }})</span>
+  {% else %}<span class="meta">{{ league.display_name }} has never been deployed from the Desk.</span>{% endif %}
+</p>
+
 <div class="card statebar">
   <span>Snapshot: <b>{{ (issue_row or {}).get("status") or "not started" }}</b>
     {% if issue_row and issue_row.get("updated_at") %}<span class="meta">({{ issue_row["updated_at"][:16] }})</span>{% endif %}
@@ -32,7 +39,8 @@
   <span>Text since publication:
     {% if text_changed %}<b style="color:var(--accent)">changed</b> <span class="meta">(the next publish is a correction and needs a note)</span>
     {% elif text_changed is none %}<span class="meta">could not compare</span>
-    {% else %}<b>unchanged</b> <span class="meta">(publishing again re-deploys the same text)</span>{% endif %}
+    {% elif live %}<b style="color:#2f6b2f">unchanged, and live</b> <span class="meta">(rev {{ published_rev.n }} has been on the site since {{ live_ago }})</span>
+    {% else %}<b style="color:#8a6d00">unchanged, not yet live</b> <span class="meta">(rev {{ published_rev.n }} is frozen; production carries {{ "rev " ~ deploy_state.revision if deploy_state and deploy_state.revision else "an earlier deployment" }})</span>{% endif %}
   </span>
   {% endif %}
   <span>Production:
@@ -77,7 +85,17 @@
   </div>
 {% endif %}
 {% if not blockers and qa.ready %}
+{% if live and not text_changed %}
+  <div class="card ok2"><b>Already live. Nothing has changed.</b>
+    Rev {{ published_rev.n }} of {{ issue_key }} has been on the public site since {{ live_ago }}
+    and the text is the same. Deploying again republishes the same issue; that is only
+    useful if the site around it changed (a masthead, a template, a standing tab).</div>
+{% elif published_rev and not text_changed %}
+  <div class="card ok2"><b>Rev {{ published_rev.n }} is frozen and ready to go live.</b>
+    Production still carries {{ "rev " ~ deploy_state.revision if deploy_state and deploy_state.revision else "an earlier deployment" }}{% if live_ago %} from {{ live_ago }}{% endif %}; deploying ships the correction.</div>
+{% else %}
   <div class="card ok2"><b>READY TO PUBLISH.</b> All gates pass.</div>
+{% endif %}
 {% if published_rev %}
   <div class="card">
     <h3 style="margin-top:0">This issue is already published</h3>
@@ -103,7 +121,8 @@
       <input type="hidden" name="note" class="notefield" value="">
       <label><input type="checkbox" name="confirm_deploy" value="yes">
         I want this issue live on the public internet.</label><br><br>
-      <button class="primary">{{ "Publish Correction & Deploy" if text_changed else "Publish & Deploy" }}</button>
+      <button class="primary">{{ "Publish Correction & Deploy" if text_changed
+        else ("Re-deploy the same text" if live else ("Deploy rev " ~ published_rev.n if published_rev else "Publish & Deploy")) }}</button>
     </form>
   </div>
 {% endif %}
@@ -136,7 +155,10 @@ function render(data) {
   const res = document.getElementById("jobresult");
   const title = document.getElementById("jobtitle");
   if (job.state === "succeeded") {
-    title.textContent = "Published successfully";
+    const snap = (job.stages[0] && job.stages[0].detail) || "";
+    title.textContent = snap.startsWith("unchanged")
+      ? "Deployed. Nothing changed in the issue itself."
+      : "Published successfully";
     res.innerHTML = job.mode === "deploy"
       ? `<p><a class="btn primary" href="${ISSUE_URL}" target="_blank" rel="noopener">Open Published Issue</a>
          <span class="meta">${job.ended_at || ""}${job.deployment_id ? " · " + job.deployment_id : ""}</span></p>`

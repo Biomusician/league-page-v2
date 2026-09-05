@@ -36,6 +36,14 @@ SYNC_STALE_HOURS = 20
 WORTH_A_LOOK = 60
 
 
+def _last_change(storage: Storage, league_slug: str) -> dict | None:
+    """When a reader last saw something new: the latest deploy that reached
+    production, any issue. A read of the deploy records, nothing more."""
+    from leaguepage import publish_jobs
+
+    return publish_jobs.last_public_change(storage, league_slug)
+
+
 def _age(stamp: str | None) -> tuple[float | None, str]:
     """Hours since an ISO timestamp, and how a person would say it."""
     if not stamp:
@@ -109,6 +117,7 @@ def league_status(storage: Storage, league: League) -> dict:
         "league": league, "season": season, "week": week,
         "issue_key": issue_key,
         "sync_age": said,
+        "last_change": _last_change(storage, league.slug),
         "sync_stale": hours is None or hours >= SYNC_STALE_HOURS,
         "undecided": 0, "worth_a_look": 0,
         "sections": {"total": 0, "approved": 0, "drafted": 0, "empty": 0, "rows": []},

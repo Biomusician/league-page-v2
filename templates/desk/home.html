@@ -26,7 +26,7 @@
   {% for c in control %}
   <div class="card mc">
     <h3 style="margin:.1rem 0">{{ c.league.display_name }}
-      <span class="meta">week {{ c.week }} · synced {{ c.sync_age }}</span></h3>
+      <span class="meta">week {{ c.week }} · synced {{ c.sync_age }}{% if c.last_change %} · published {{ c.last_change.ago }}{% endif %}</span></h3>
     {% if c.next_action %}
     <p class="nextline"><span class="nextlabel">Next</span>
       <a class="next" href="{{ c.next_action.href }}">{{ c.next_action.text }}</a></p>

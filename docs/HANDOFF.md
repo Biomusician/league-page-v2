@@ -26,6 +26,16 @@ matcher, and the real build passes with r2. **Nothing was published or deployed 
 correction note and the click are Jonathan's.** `published/disco/2026/week-01.json`
 is still untracked in git and is the record of what shipped; commit it.
 
+Later the same morning: the publish page now says what is live rather than
+how the last job ended. Deploy records carry the revision they shipped, a
+deploy marks every issue whose latest revision it carried (one Vercel deploy
+is the whole site), unchanged text never fails (a leftover note is ignored
+with a line saying so), and "DISCO CHAT updated 9 hours ago" sits at the top
+of the publish page and on the Desk home cards (`publish_jobs.last_public_change`,
+`Storage.list_meta`). The Force Flow morning loop is explored in ROADMAP,
+not built. As of this note production carries Disco week-01 rev 1 and the
+old masthead; rev 2 and the masthead ship with the next Disco deploy.
+
 ## Overnight editorial pass (2026-09-04)
 
 **Status: 1,175 tests green (2 skipped; 43 new), public build 102 pages and privacy-clean, repo audit

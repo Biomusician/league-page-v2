@@ -1178,6 +1178,12 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             ctx["deploy_state"] = publish_jobs.deploy_state(s, league_slug, season, issue_key)
             ctx["published_rev"], ctx["text_changed"] = _publication_state(
                 s, league_slug, season, issue_key)
+            ctx["last_change"] = publish_jobs.last_public_change(s, league_slug)
+        ds, rev = ctx["deploy_state"], ctx["published_rev"]
+        # Is what production carries the latest frozen revision?
+        ctx["live"] = bool(ds and ds.get("state") in publish_jobs.LIVE_STATES and rev
+                           and ds.get("revision") == rev["n"])
+        ctx["live_ago"] = publish_jobs.ago(ds["at"]) if ds and ds.get("at") else None
         return templates.TemplateResponse(request, "desk/publish_confirm.html", ctx)
 
     def _publication_state(s, league_slug: str, season: str, issue_key: str):
