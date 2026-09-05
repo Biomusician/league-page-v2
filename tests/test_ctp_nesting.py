@@ -100,18 +100,19 @@ def test_children_are_ordered_the_way_the_section_publishes(env):
 
 def test_the_parent_reports_its_children_as_a_count(env):
     _c, db, _ed = env
-    assert _ctp(db)["detail"] == "0 / 5 approved"
+    assert _ctp(db)["detail"] == "0 / 5 previews written"
 
 
-def test_approving_one_child_moves_the_parent_count(env):
+def test_writing_one_child_moves_the_parent_count(env):
+    """The count is what is written, not what is separately signed off:
+    the section carries one approval over all of them."""
     client, db, ed = env
     kids = _ctp(db)["children"]
     _write_all_drafts(ed, kids[:1])
-    assert _approve(client, kids[0]["section"]).status_code == 200
     ctp = _ctp(db)
-    assert ctp["children_approved"] == 1
-    assert ctp["detail"] == "1 / 5 approved"
-    assert ctp["status"] == "needs_review"
+    assert ctp["children_written"] == 1
+    assert ctp["detail"] == "1 / 5 previews written"
+    assert ctp["status"] == "edited"
 
 
 def test_the_parent_is_never_flagged_as_an_empty_section(env):
@@ -124,35 +125,33 @@ def test_the_parent_is_never_flagged_as_an_empty_section(env):
 
 # ------------------------------------------------------------ approval state
 
-def test_the_parent_cannot_be_approved_while_a_child_is_not(env):
+def test_the_parent_cannot_be_approved_while_a_child_is_unwritten(env):
+    """One approval covers the previews, so they all have to exist."""
     client, db, _ed = env
     r = _approve(client, "ctp")
     assert r.status_code == 400
-    assert "unapproved" in r.json()["error"]
+    assert "not written yet" in r.json()["error"]
 
 
 def test_the_refusal_names_the_matchups_still_open(env):
     client, db, ed = env
     kids = _ctp(db)["children"]
-    _write_all_drafts(ed, kids)
-    for c in kids[:4]:
-        _approve(client, c["section"])
+    _write_all_drafts(ed, kids[:4])
     err = _approve(client, "ctp").json()["error"]
     assert kids[4]["title"] in err
 
 
-def test_the_parent_approves_once_every_child_is_approved(env):
-    """It used to be refused forever: the gate read `sections/ctp.md`, a
-    file this module has never had, and called it empty."""
+def test_the_parent_approves_in_one_click_once_the_previews_are_written(env):
+    """Seven decisions became one. It used to be refused forever, too: the
+    gate read `sections/ctp.md`, a file this module has never had."""
     client, db, ed = env
     kids = _ctp(db)["children"]
     _write_all_drafts(ed, kids)
-    for c in kids:
-        assert _approve(client, c["section"]).status_code == 200
     r = _approve(client, "ctp")
     assert r.status_code == 200, r.text
     ctp = _ctp(db)
-    assert ctp["status"] == "approved" and ctp["detail"] == "5 / 5 approved"
+    assert ctp["status"] == "approved"
+    assert ctp["detail"] == "5 previews, approved together"
 
 
 def test_a_module_with_no_prose_file_is_not_judged_by_one(env):
@@ -205,9 +204,11 @@ def test_indentation_alone_would_not_pass(env):
     """A margin-left is allowed on top of the nesting, never instead of it."""
     import pathlib
 
-    tpl = pathlib.Path("templates/desk/editor.html").read_text(encoding="utf-8")
-    assert "details.sec.child" in tpl
+    # the card is a shared partial now; the nesting lives in it
+    tpl = pathlib.Path("templates/desk/_section_card.html").read_text(encoding="utf-8")
     assert re.search(r'c\.kind == "ctp".*?_matchup_card\.html', tpl, re.S)
+    child = pathlib.Path("templates/desk/_matchup_card.html").read_text(encoding="utf-8")
+    assert "details.sec.child" in tpl or 'class="sec card child"' in child
 
 
 # ------------------------------------------------------------ research routing

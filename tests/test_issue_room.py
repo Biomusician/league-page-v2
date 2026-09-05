@@ -260,3 +260,19 @@ def test_the_room_survives_an_issue_with_nothing_written_yet(env, tmp_path):
     (idir / "lowdown" / "lowdown.md").unlink()
     html = _room(client)
     assert "needs writing" in html and "BLOCKED" in html
+
+
+def test_the_publish_drawer_is_covered_by_the_central_csrf_wiring(env):
+    """The drawer's form is an ordinary form in the document, so the
+    document-level submit listener in desk.js attaches the token. A form
+    that carried its own token, or lived outside the document, would be a
+    second path to publishing."""
+    client, db, _idir = env
+    _make_ready(client, db)
+    html = _room(client)
+    assert '<meta name="csrf-token"' in html
+    assert '/static/desk.js' in html
+    drawer = html[html.index('id="pubdlg"'):html.index("</dialog>")]
+    assert 'action="' in drawer and "csrf_token" not in drawer
+    js = pathlib.Path("static/desk.js").read_text(encoding="utf-8")
+    assert 'document.addEventListener("submit"' in js

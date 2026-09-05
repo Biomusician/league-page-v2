@@ -133,7 +133,8 @@ def test_bulk_approve_has_no_endpoint_of_its_own(client):
     be a second path to approval, and approval must have only one."""
     import pathlib
 
-    js = pathlib.Path("templates/desk/editor.html").read_text(encoding="utf-8")
+    # the editing behaviour is one file now, shared by the room and the editor
+    js = pathlib.Path("static/desk-editor.js").read_text(encoding="utf-8")
     body = js[js.index("async function approveAllReady"):
               js.index("function collapseApproved")]
     assert 'EDIT + "/approve"' in body
@@ -147,7 +148,8 @@ def test_bulk_approve_reports_what_it_refused(client):
     button: he would believe the issue was approved."""
     import pathlib
 
-    js = pathlib.Path("templates/desk/editor.html").read_text(encoding="utf-8")
+    # the editing behaviour is one file now, shared by the room and the editor
+    js = pathlib.Path("static/desk-editor.js").read_text(encoding="utf-8")
     body = js[js.index("async function approveAllReady"):
               js.index("function collapseApproved")]
     assert "refused" in body and "Left alone" in body
@@ -157,7 +159,8 @@ def test_bulk_approve_reports_what_it_refused(client):
 def test_bulk_approve_asks_first(client):
     import pathlib
 
-    js = pathlib.Path("templates/desk/editor.html").read_text(encoding="utf-8")
+    # the editing behaviour is one file now, shared by the room and the editor
+    js = pathlib.Path("static/desk-editor.js").read_text(encoding="utf-8")
     assert "approveAllReady()" in js
     body = js[js.index("async function approveAllReady"):
               js.index("function collapseApproved")]

@@ -1028,3 +1028,70 @@ the section is recorded as AI in origin with that text as its baseline
 section, including all of Disco Week 1, has no known author and no label.
 Published snapshots carry no provenance metadata and are immutable, so
 the issues already on the site stay unlabelled; nothing rewrites them.
+
+## 2026-09-05 — One renderer, one room, one approval
+
+Three decisions from the first Commissioner Portal tranche. They share a
+shape: where two things were doing one job and could disagree, there is
+now one thing.
+
+**The preview is the published page.** `templates/desk/full_preview.html`
+drew something that looked roughly like an issue while
+`public/issue_page.html` drew the real one, and they drifted. A preview
+that is confidently wrong about the thing it previews is worse than no
+preview. `site_build.preview_snapshot()` now builds an unpublished issue in
+the exact shape a frozen snapshot has, and the Desk hands it to the same
+`_issue_ctx` and the same public template. The Desk serves the site's own
+stylesheet and logos from the same template the build writes into
+`dist/assets`, so a styling change is visible before it ships rather than
+after. Two additions to the public base template make this possible without
+a fork: one `asset_root` variable replacing five inline relative joins, and
+an empty `private_toolbar` block, so published output is byte-identical and
+editor controls live outside the document.
+
+**A week of work is one room.** The editor was a single column of eleven
+collapsed cards, with publication state at the top, matchup previews nested
+two levels down, and preview and publish on other screens. The Issue Room
+is the same backend seen properly: a sticky header carrying sync freshness,
+save state, readiness and the two decisions; a section rail in the paper's
+running order with one state token each, written in the Commissioner's
+language rather than the schema's; the selected section in the centre;
+Preview, Research and QA beside it. Every section is rendered and one is
+shown, so moving between them costs no request and cannot lose an unsaved
+box, and no framework was needed to achieve that.
+
+It is one implementation, not two. The section card moved to
+`desk/_section_card.html` and the editing behaviour to
+`static/desk-editor.js`; both surfaces include them, both read one
+`_add_publication_state`, and the right-hand preview is an iframe of the
+canonical renderer. The long-form editor stays until the room has run a
+real week. None of this is thrown away by the cloud cutover: the room
+never touches the filesystem, so a prose repository changes what
+`_editor_context` calls and nothing the room renders.
+
+**Common Tactical Picture is approved once.** The old model asked for seven
+decisions — approve each of six previews, then approve the section that is
+exactly those six previews — and individual approval decided membership, so
+an unapproved preview vanished from the page silently. Now the published
+unit carries the approval and the approval carries a signature over the
+text it covered: the ordered hashes of the composing previews plus the
+opening remarks. Editing any of them makes it stale on its own; restoring
+the exact text makes it true again. That is the same reasoning provenance
+uses, and it replaces two mechanisms that could disagree with one that
+cannot. `issue_modules.approved_sha` holds it; a row approved before
+signatures existed is grandfathered, because un-approving shipped work to
+admit we cannot prove what it said would be the worse lie. Verified against
+both leagues: the composed section is byte-identical to what is published.
+
+**A writing packet, not a prompt.** Six places built context for a writer,
+each knowing a slightly different set of facts, so the brief depended on
+which button was pressed and a second assistant meant reconstructing it by
+hand. `leaguepage/writing_packet.py` is that context once: a plain
+dataclass of facts, stories, continuity, constraints and style rules, with
+one redaction function that strips anything path-shaped and a fixed
+vocabulary for section purpose. Delivery is a separate field with four
+modes, and the first two are the honest ones: a Claude Max or ChatGPT Plus
+subscription is a person's account, not an API this app may call, so manual
+handoff is first-class rather than a placeholder. Nothing is wired to a
+paid API, and the packet's tests pin that a real one leaks no path, no
+handle and no private note.

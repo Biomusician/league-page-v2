@@ -39,7 +39,12 @@ SEASON = "2026"
 LG = get_league("surfeit")
 EDIT = f"/commissioner/surfeit/{SEASON}/issue/week-01/edit"
 
-EDITOR = pathlib.Path("templates/desk/editor.html")
+# The editing behaviour and the section markup are shared files now: the
+# Issue Room and the long-form editor include the same ones, so these
+# ergonomics hold on both surfaces rather than on whichever page they were
+# written into.
+EDITOR = pathlib.Path("static/desk-editor.js")
+SECTION = pathlib.Path("templates/desk/_section_card.html")
 CARD = pathlib.Path("templates/desk/_matchup_card.html")
 
 
@@ -115,7 +120,7 @@ def test_the_page_pulls_in_no_editor_library(env):
 # ------------------------------------------------------------ copy a prompt
 
 def test_the_draft_button_copies_a_prompt(env):
-    for tpl in (EDITOR, CARD):
+    for tpl in (SECTION, CARD):
         text = tpl.read_text(encoding="utf-8")
         assert "Copy prompt for Claude" in text, tpl.name
         assert "Request Claude draft" not in text, tpl.name

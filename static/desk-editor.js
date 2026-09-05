@@ -144,24 +144,7 @@ async function approve(section, on) {
   if (chip) {
     chip.textContent = on ? "approved" : (section.startsWith("matchup:") ? "edited" : "not approved");
     chip.classList.toggle("approved", on);
-    refreshParentCount(chip);
   }
-}
-
-/* A matchup preview is a child of Common Tactical Picture, so approving one
- * moves the parent's count. Recomputing it from the children in the page
- * beats re-rendering: the number he reads is the number of chips he can see.
- */
-function refreshParentCount(chip) {
-  const parent = chip.closest("details.sec.child")?.parentElement?.closest("details.sec");
-  if (!parent) return;
-  const counter = parent.querySelector(':scope > summary [data-role="child-count"]');
-  if (!counter) return;
-  const kids = [...parent.querySelectorAll('details.sec.child [data-role="approve-chip"]')];
-  const done = kids.filter(c => c.classList.contains("approved")).length;
-  counter.textContent = `${done} / ${kids.length} approved`;
-  counter.classList.toggle("approved", done === kids.length);
-  counter.classList.toggle("edited", done !== kids.length);
 }
 
 async function previewSection(section) {
@@ -325,7 +308,6 @@ async function approveAllReady() {
     if (r.ok && data.approved) {
       chip.textContent = "approved";
       chip.classList.add("approved");
-      refreshParentCount(chip);
       done.push(section);
     } else {
       refused.push(`${section}: ${data.error || r.status}`);

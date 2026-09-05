@@ -17,6 +17,28 @@ mainly reproduces Sleeper gets rethought or dropped.
 Private side, the equivalent test: does this remove research, navigation, or
 repetitive judgment from the weekly process? If not, it is not Tier 1.
 
+## The Commissioner Portal
+
+Target architecture, transition order and the manual gates live in
+`docs/COMMISSIONER_PORTAL_ARCHITECTURE.md`. Ranked tranches, scored
+(Impact x Prerequisite value x Risk reduction) / Cost on 2026-09-05:
+
+| # | Tranche | Score | Status |
+| --- | --- | --- | --- |
+| 1 | Canonical preview (one renderer) | 32 | `shipped` |
+| 2 | Issue Room shell | 19 | `shipped` |
+| 3 | CTP single approval | 16 | `shipped` |
+| 4 | Durable jobs table | 13 | `planned` |
+| 5 | AI WritingPacket + proposal queue UX | 10 | `partial` — the packet exists; the queue does not |
+| 6 | Prose repository boundary | 10 | `planned` |
+| 7 | Cloud persistence (Supabase Postgres) | 9 | `planned` |
+| 8 | Hosted private beta | 5 | blocked on the manual gate |
+| 9 | Cloud publication worker (GitHub Actions) | 2.4 | `deferred` until 6 and 7 |
+| 10 | Portability / onboarding | 1 | seams only, no SaaS |
+
+Durable jobs outranks the prose repository because it pays off locally on
+its own: a publish survives a Desk restart today, not only after a cutover.
+
 ## Sequencing gate: remote authoring
 
 Remote authenticated authoring is **not live**, and it is blocked on a step
@@ -36,9 +58,13 @@ Structural blockers still open, in order:
 1. **Seed `app_commissioners`** — Jonathan, once. Blocks proving anything below.
 2. **Prose repository** — `editorial/**/*.md` behind a repository interface so
    Postgres is a drop-in. Four path shapes. The last structural blocker.
-3. **Durable jobs table** — replaces the `_JOB`/`_JOBS` process globals.
-4. **Filesystem write sites** — 47 across the Desk, rejected by a read-only
-   serverless runtime.
+3. **Durable jobs table** — replaces the `_JOB`/`_JOBS` process globals in
+   `publish_jobs.py` and `sync_jobs.py`, and the login rate-limit
+   dictionaries in `auth.py`.
+4. **Filesystem write sites** — measured 2026-09-05: 62 in `leaguepage/`, of
+   which ~24 are persistent editorial state a read-only serverless runtime
+   rejects. The rest are build artifacts, immutable publication records, or
+   recomputable research, and do not all need a database.
 5. **Private Vercel project + env vars.**
 
 ## Status key

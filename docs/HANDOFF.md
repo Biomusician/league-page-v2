@@ -1,10 +1,48 @@
 # HANDOFF
 
-Updated 2026-09-05, end of the provenance tranche. Companions:
+Updated 2026-09-05, end of the first Commissioner Portal tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Commissioner Portal, tranche 1 (2026-09-05)
+
+**Status: 1,284 tests green (2 skipped; 62 new), build clean, both privacy audits clean, responsive at
+320-1920. Nothing published, nothing deployed, no snapshot or Commissioner
+prose touched.** Target architecture and the manual gates:
+`docs/COMMISSIONER_PORTAL_ARCHITECTURE.md`. Ranked tranches: ROADMAP.
+
+Measured before the work: a weekly cycle touched 13 distinct Desk pages and
+asked for 14 approval clicks on a Disco week (8 sections + 6 previews), with
+the editor at 175KB in one column.
+
+What shipped:
+
+- **Canonical preview.** `site_build.preview_snapshot()` builds an
+  unpublished issue in snapshot shape; the Desk renders it through
+  `public/issue_page.html` (`desk/canonical_preview.html` fills the new
+  `private_toolbar` block). `templates/desk/full_preview.html` is deleted and
+  `tests/test_preview_parity.py` stops it coming back. Assets come from
+  `/commissioner/preview-assets/`, whose CSS is byte-identical to
+  `dist/assets/<league>.css`.
+- **Issue Room** at `/commissioner/{league}/{season}/issue/{key}/room`:
+  sticky header, section rail with state tokens, one section in the centre,
+  Preview/Research/QA beside it, publish drawer posting to the existing
+  `publish-start`. Shares `desk/_section_card.html`, `static/desk-editor.js`
+  and `_add_publication_state` with the long-form editor, which stays live.
+  The Desk's next-action links now open the room.
+- **CTP single approval.** `issue_builder.ctp_signature()` /
+  `ctp_approved()`, `issue_modules.approved_sha`. Previews are written or
+  not; the section is approved once and goes stale automatically.
+- **WritingPacket** (`leaguepage/writing_packet.py`): one structured brief
+  per section, four delivery modes, path redaction. Defined and tested, not
+  yet wired into the Desk buttons — that is the next tranche.
+
+Known and deliberate: Surfeit Week 1's composed CTP now differs from its
+published snapshot by exactly the two inline provenance lines added in the
+previous tranche. That is a correction to ship when he chooses, not a
+regression here; Disco Week 1 composes byte-identical.
 
 ## Provenance tranche (2026-09-05)
 
