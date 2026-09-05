@@ -19,7 +19,7 @@ from tests.fixtures import TEST_LEAGUE, populate_league
 def ctx(**over) -> QAContext:
     base = dict(
         league_slug="testleague", season="2026", issue_key="draft",
-        public_names={1: "Los Bandidos (Bandit)", 2: "Wild SeeKats (Seabass)",
+        public_names={1: "Los Bandidos (Bandit)", 2: "Wild SeeKats (Seebass)",
                       3: "Statistical Anomalies (McLovin)", 4: "Dave",
                       5: "SHACtin' a Fool (SHAC)"},
         n_teams=5,
@@ -329,7 +329,7 @@ def test_a_table_column_headed_hash_is_not_a_broken_heading():
     table = ("Recomputed, the order changes:\n\n"
              "| # | Team | Value |\n| --- | --- | --- |\n"
              "| 1 | Los Bandidos (Bandit) | +118 |\n"
-             "| 2 | Wild SeeKats (Seabass) | -13 |\n")
+             "| 2 | Wild SeeKats (Seebass) | -13 |\n")
     assert not only(check(table, module_key="custom"), pubqa.FORMATTING)
 
 

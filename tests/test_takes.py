@@ -19,7 +19,7 @@ from leaguepage.storage import Storage
 from fixtures import populate_league, populate_matchups
 
 LEAGUE = get_league("surfeit")
-NAMES = {1: "Los Bandidos (Bandit)", 2: "Wild SeeKats (Seabass)", 3: "Dave",
+NAMES = {1: "Los Bandidos (Bandit)", 2: "Wild SeeKats (Seebass)", 3: "Dave",
          4: "Gary", 5: "Swanson"}
 TOKENS = {rid: pubqa._norm_tokens(nm) for rid, nm in NAMES.items()}
 SLUGS = {rid: f"t{rid}" for rid in NAMES}
