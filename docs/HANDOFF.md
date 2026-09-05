@@ -1426,3 +1426,13 @@ consumer rule is "task fitness first; no budget telemetry, so shape nothing
 by budget." Scope was not shaped by budget.
 
 **Surfeit Week 1 remains unpublished.** Nothing here publishes.
+
+**Gate and state at close (2026-09-04).** 1132 passed, 2 skipped (baseline
+1099; 33 added). Build 102 pages, built-output privacy audit clean;
+publication QA 3 issues, 0 blockers, 4 pre-existing warnings; repo privacy
+audit clean at HEAD; the full-history audit's only finding is the
+long-public commit `4c24977a` (a fake database URL in a test fixture,
+already split at HEAD), which exposes nothing new. Implementation committed
+as `561426e` on `main`; site deployed as `site @ 48a2b72`. Jonathan's Disco
+Week 1 snapshot and his `love-sutton-brocks` typo fix remain uncommitted in
+his working tree, untouched.
