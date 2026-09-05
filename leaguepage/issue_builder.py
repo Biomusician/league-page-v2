@@ -95,6 +95,17 @@ CUSTOM_DEFAULT_TITLE = "Custom Section"
 # but it is not something he writes, so it stays off the weekly checklist.
 NOT_A_WRITING_TASK = {"masthead"}
 
+# Sections whose public body is assembled by code -- the matchup previews for
+# Common Tactical Picture, the saved ranking for Peer and Near-Peer -- and
+# which also accept an optional commissioner blurb that renders above it.
+#
+# The blurb is his voice on top of their results. It is optional in the
+# strong sense: an absent blurb is not a warning, not a blocker, and not a
+# reason the section cannot be approved. Both read `sections/<key>.md`, the
+# same file every written section uses, so history, preview, rewrite
+# requests and provenance work on them without a second mechanism.
+BLURB_MODULES = {"ctp", "power"}
+
 # Nothing starts excluded any more. A section with little to say advises him
 # to drop it; it does not drop itself, and it does not make him opt the
 # recurring spine back in one section at a time. Custom sections are the one
@@ -462,7 +473,15 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
                 names = " vs ".join(public_names[t["roster_id"]] for t in m["teams"])
                 body = "\n".join(l for l in draft.splitlines() if not l.strip().startswith("<!--"))
                 parts.append(f"### {names}\n\n{body.strip()}")
-        return "\n\n".join(parts) if parts else None
+        if not parts:
+            return None
+        # His optional lead-in, above the previews. Only when there is
+        # something for it to lead into: the parent is exactly its children,
+        # so a blurb standing alone is not a Common Tactical Picture.
+        blurb = _read(idir / "sections" / "ctp.md")
+        if blurb and _clean(blurb):
+            parts.insert(0, blurb.strip())
+        return "\n\n".join(parts)
     if kind == "power":
         label = "preseason" if issue_key == "draft" else issue_key
         entries = storage.get_power_rankings(league.slug, season, label)

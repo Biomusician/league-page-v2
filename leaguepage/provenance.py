@@ -32,6 +32,12 @@ GENERATORS = {
     "chatgpt": "ChatGPT",
 }
 
+# Not a provider: a marker meaning "our own deterministic code composed this
+# from computed results". It is recorded the same way and hashed the same
+# way, but it must never be described as AI-generated, because no model was
+# involved and saying otherwise is as false as the badge it would replace.
+DETERMINISTIC = "deterministic"
+
 # What the generator was working from, described as a class of input. These
 # are the only strings that can ever reach a reader, which is what makes the
 # privacy guarantee structural rather than a review step.
@@ -43,6 +49,8 @@ METHODS = {
     "transactions": ("from synced Sleeper league data and deterministic "
                      "transaction analysis"),
     "draft-data": "from the league's synced draft results and reference ranks",
+    "weekly-awards": ("from the week's computed award results as decided on "
+                      "the Commissioner's Desk"),
 }
 
 UNKNOWN_GENERATOR = "an AI assistant (provider not recorded)"
@@ -64,7 +72,8 @@ def record(storage: Storage, *, league_slug: str, season: str, issue_key: str,
     storage.set_prose_provenance(
         league_slug=league_slug, season=season, issue_key=issue_key,
         section=section,
-        generator=generator if generator in GENERATORS else None,
+        generator=(generator if generator in GENERATORS
+                   or generator == DETERMINISTIC else None),
         method=method if method in METHODS else None,
         generated_sha=text_sha(text))
 
@@ -89,6 +98,11 @@ def state_for(storage: Storage, *, league_slug: str, season: str,
         return None
     if text_sha(text) != row["generated_sha"]:
         return None
+    # Machine-composed text is not model-written text. Both are "nobody
+    # edited this", and only one of them is AI, so they get different
+    # captions from the same stored row.
+    if row.get("generator") == DETERMINISTIC:
+        return describe_machine(row.get("method"))
     return describe(row.get("generator"), row.get("method"))
 
 
@@ -165,6 +179,15 @@ def refresh_ctp(storage: Storage, *, league, season: str, issue_key: str,
                issue_key=issue_key, section="ctp")
         return
     idir = issue_dir(league, season, issue_key)
+    # His optional opening publishes inside this section. A sentence he
+    # wrote makes "no Commissioner edits" false about the section a reader
+    # sees, whatever is true of the previews under it. No badge is never a
+    # wrong answer; this one would be.
+    blurb = idir / "sections" / "ctp.md"
+    if blurb.exists() and blurb.read_text(encoding="utf-8").strip():
+        forget(storage, league_slug=league.slug, season=season,
+               issue_key=issue_key, section="ctp")
+        return
     for child in kids:
         draft = idir / "matchups" / child["slug"] / "draft.md"
         text = draft.read_text(encoding="utf-8") if draft.exists() else None

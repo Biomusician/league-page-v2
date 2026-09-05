@@ -1292,3 +1292,84 @@ published issue is the Commissioner's act via
 revision; it was deliberately not done here.
 
 **Next.** Week 1 remains unpublished; publication is his act.
+
+## Commissioner override of generated content (2026-09-04)
+
+**The rule.** Public prose is the Commissioner's and can be changed from the
+card it appears on. Computed results are shown beside it and are not editable
+as prose. Automation supplies the default; it does not remove editorial
+control.
+
+**Approval now follows content.** `editor_save` used to carry a comment saying
+approval must be re-asserted and a `pass` under it, so a section could publish
+text nobody had signed off under a green "approved" chip. Editing, restoring a
+revision, accepting a Claude proposal or taking the generated copy all retire
+the approval, mark the card `changed since approval`, and require re-approval.
+Editing a matchup preview also unapproves Common Tactical Picture, because CTP
+publishes the previews and has no text of its own. The mark is a `meta` row
+(`approval-stale:<league>:<season>:<issue>:<section>`), cleared when he rules
+either way.
+
+**Weekly Hardware** (`leaguepage/section_defaults.py`). Decided awards and
+their computed basis appear read-only under "Computed evidence"; the private
+award note is shown on the Desk and never enters composed copy. `Use generated
+copy` / `Reset to generated` composes the section deterministically from those
+results, snapshotting his current text to History first. Provenance for that
+copy is recorded as `provenance.DETERMINISTIC`, which renders as "generated
+automatically" with an AUTO mark rather than an AI badge.
+
+**Common Tactical Picture** gained an optional Commissioner intro
+(`sections/ctp.md`), publishing above the previews. It never blocks approval or
+publication, it does not publish when no preview is approved, and no second
+copy of the matchup content exists anywhere. Writing an intro removes CTP's AI
+badge even when every preview is untouched.
+
+**Peer and Near-Peer** already read `sections/power.md` into the published
+section and had no editor for it at all. It now has the same blurb editor.
+
+**Retired sections an issue still carries** (Disco Week 1 has Force Flow) now
+get a full editor under Administration, because prose that still publishes is
+still his.
+
+**Audit — can he change the prose from this screen?** Machine-checked across
+both leagues, both issue types; `PUBLISHES PROSE WITH NO EDITOR: none`. The
+test `test_every_weekly_card_with_public_prose_offers_an_editor` holds it.
+
+| Module | Publishes prose | Edit path |
+|---|---|---|
+| lowdown | yes | editor, preview, history, approve, rewrite, reset to Claude draft |
+| ctp | yes (its previews) | each preview editable, approved or not; optional parent intro |
+| matchup:* | yes, inside CTP | editor; editing unapproves it and CTP |
+| custom, custom-N | yes | editor |
+| tracks, fades, blackbox, false-assumptions, draft-capsules | yes | editor |
+| power | yes (blurb + ranking) | blurb editor; ranks, tiers and notes as fields |
+| hardware | yes | editor + computed evidence + generated default + reset |
+| forceflow, all-city\* (retired, still carried) | yes when included | editor under Administration |
+| masthead | **no** — issue metadata; contributes nothing to the published page | none, and the card says so |
+| intel, branches | **no** — self-omit until the scenario engine exists | none, and the card says so |
+
+**Deliberately not editable as prose**, being computed evidence: award results
+and their basis, matchup scores and margins, standings, power-ranking positions
+(set as fields, not text), FAAB and transaction figures, playoff leverage.
+
+**Verified on real data** against copies of `data/league.sqlite3` and
+`editorial/` (his Desk on 8026 untouched): editing an approved Disco matchup
+unapproved it and CTP; a CTP intro published above the previews; Force Flow's
+retired prose edited and saved; History kept the prior text. The generated
+Hardware control does **not** appear on today's real data and correctly should
+not: Week 1 is unplayed, every matchup scores 0.0, so no award has nominees and
+there is nothing to compose. That path is exercised on synthetic data in
+`tests/test_commissioner_override.py`.
+
+**Publication state at the end of this work.** Jonathan published **Disco
+Week 1** himself from his own Desk at 2026-09-05T01:39Z, while this tranche
+was being built; that snapshot is `published/disco/2026/week-01.json` and was
+produced by the code as it stood before these changes. **Surfeit Week 1 is
+still unpublished** and publishing it is his act. Nothing here published
+anything, and his Desk process on 8026 was never restarted.
+
+**His Desk needs a restart to see this.** Jinja reloads templates per request
+but Python is loaded once, so a Desk started before these changes renders the
+new markup against the old card data. Every new field is guarded, so the page
+degrades to its previous behaviour rather than breaking — but the new controls
+will not appear until the process is restarted.

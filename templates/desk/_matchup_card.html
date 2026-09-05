@@ -11,8 +11,16 @@
           data-role="approve-chip" data-section="{{ mc.section }}">{{ mc.status }}</span>
     <span class="chip">{{ mc.prominence or "?" }}</span>
     {% if not mc.written %}<span class="chip notwritten">not written · suggestions ready</span>{% endif %}
+    {% if mc.changed_since_approval %}<span class="chip stale"
+          title="You edited this after approving it. Approve again to publish what is here now.">changed since approval</span>{% endif %}
     <span class="meta">angle: {{ mc.angle }}</span>
   </summary>
+  {#  Approved is not closed. He can rewrite an approved preview from here,
+      and doing so takes the approval back rather than leaving a green chip
+      standing over text nobody signed off. #}
+  <p class="authority">{{ "Approved" if mc.approved else "Not approved" }}; editable
+    either way{% if mc.changed_since_approval %} · <b>changed since you approved
+    it</b>, so Common Tactical Picture needs approving again{% endif %}.</p>
   <div class="cardctl">
     <button type="button" onclick="approve('{{ mc.section }}', true)">Approve</button>
     <button type="button" onclick="approve('{{ mc.section }}', false)">Unapprove</button>

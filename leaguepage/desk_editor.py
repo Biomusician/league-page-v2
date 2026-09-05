@@ -28,14 +28,38 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from leaguepage import pubqa
 from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
-from leaguepage import prose, provenance
+from leaguepage import prose, provenance, section_defaults
 from leaguepage.issue_builder import (
-    BLOCKED_MARKERS, CUSTOM_DEFAULT_TITLE, WRITING_SKILL, assemble_issue,
-    _custom_index, is_custom_key, issue_dir, matchup_children,
-    module_defs_for, module_states, next_custom_key,
+    BLOCKED_MARKERS, BLURB_MODULES, CUSTOM_DEFAULT_TITLE, WRITING_SKILL,
+    assemble_issue, _custom_index, is_custom_key, issue_dir,
+    matchup_children, module_defs_for, module_states, next_custom_key,
 )
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER, week_dir
+from leaguepage.storage import utcnow_iso
 from leaguepage.team_names import resolve_public_names
+
+# Kinds whose file is public prose, and therefore his to change. A section
+# he never opened is still one he can open: automation supplies the default,
+# it does not take the pen away.
+#
+# `all-city` is here because a retired edition still publishes the copy that
+# sits under its table, so that copy still needs an owner who is not a text
+# editor pointed at the repository.
+EDITABLE_KINDS = ("lowdown", "section", "all-city")
+
+
+def _stale_key(league_slug: str, season: str, issue_key: str, section: str) -> str:
+    """Where "this changed after you approved it" is remembered.
+
+    A flag rather than a comparison: by the time the page renders, the text
+    he approved is gone, so nothing on disk can still answer the question.
+    It is set when an edit retires an approval and cleared the moment he
+    makes an approval decision either way.
+    """
+    # Hyphen, not underscore: the prefix goes into a SQL LIKE, where an
+    # underscore is a single-character wildcard.
+    return f"approval-stale:{league_slug}:{season}:{issue_key}:{section}"
+
 
 PRODUCTION_URL = "https://league-page-ten-sandy.vercel.app"
 VERCEL_PROJECT = "league-page"
@@ -117,6 +141,90 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
     def _read(p: Path | None) -> str | None:
         return p.read_text(encoding="utf-8") if p and p.exists() else None
 
+    def _authority(prov_row: dict | None, text: str, prose_state: str,
+                   not_written: bool) -> str:
+        """Who wrote what is on the page right now, in one line.
+
+        Every branch is a stored fact. A recorded provenance hash says
+        generated text was accepted here; whether it still matches says
+        whether he has been through it since. Nothing is inferred from how
+        the writing sounds, which is the whole reason the hash exists.
+        """
+        if not_written:
+            return "Not written yet"
+        recorded = (prov_row or {}).get("generated_sha")
+        if recorded:
+            if provenance.text_sha(text) == recorded:
+                return "Generated, and unchanged since it was accepted"
+            return "Generated, then edited by the Commissioner"
+        if prose_state == "generated":
+            # It arrived in the issue directory rather than through the
+            # Desk, so nothing here knows who wrote it. Saying so beats
+            # guessing in either direction.
+            return "In the issue; no generator recorded, and no Desk edits since"
+        return "Commissioner-written"
+
+    def _mark_changed(s, league_slug: str, season: str, issue_key: str,
+                      section: str, on: bool) -> None:
+        s.set_meta(_stale_key(league_slug, season, issue_key, section),
+                   utcnow_iso() if on else "")
+
+    def _changed_since_approval(s, league_slug: str, season: str,
+                                issue_key: str) -> dict[str, str]:
+        """{section: when} for everything edited since it was signed off."""
+        prefix = _stale_key(league_slug, season, issue_key, "")
+        out = {}
+        for section in _stale_sections(s, prefix):
+            when = s.get_meta(prefix + section)
+            if when:
+                out[section] = when
+        return out
+
+    def _stale_sections(s, prefix: str) -> list[str]:
+        rows = s._conn.execute(  # noqa: SLF001 - meta has no prefix scan
+            "SELECT key FROM meta WHERE key LIKE ?", (prefix + "%",)).fetchall()
+        return [r["key"][len(prefix):] for r in rows]
+
+    def _invalidate_approval(s, league, season: str, issue_key: str,
+                             section: str) -> None:
+        """Changing published prose retires the sign-off it replaced.
+
+        An approval is a statement about a particular text. Editing that
+        text and leaving the approval standing publishes something nobody
+        approved, which is the one failure this whole screen exists to
+        prevent. So an edit takes the approval back and says why, and he
+        re-approves what he now has.
+
+        A matchup preview takes Common Tactical Picture with it. CTP has no
+        text of its own: it publishes the previews, so signing it off was
+        signing off exactly this writing.
+        """
+        m = _MATCHUP_RE.match(section)
+        if m:
+            week = _week_of(issue_key)
+            if week is None:
+                return
+            st = s.get_matchup_state(league_slug=league.slug, season=season,
+                                     week=week, matchup_slug=m.group(1)) or {}
+            if (st.get("status") or "") in ("approved", "locked"):
+                s.set_matchup_state(league_slug=league.slug, season=season,
+                                    week=week, matchup_slug=m.group(1),
+                                    status="edited")
+                _mark_changed(s, league.slug, season, issue_key, section, True)
+            if (s.get_issue_modules(league.slug, season, issue_key)
+                    .get("ctp") or {}).get("approved"):
+                s.set_issue_module(league_slug=league.slug, season=season,
+                                   issue_key=issue_key, module_key="ctp",
+                                   approved=0)
+                _mark_changed(s, league.slug, season, issue_key, "ctp", True)
+            return
+        row = s.get_issue_modules(league.slug, season, issue_key).get(section) or {}
+        if row.get("approved"):
+            s.set_issue_module(league_slug=league.slug, season=season,
+                               issue_key=issue_key, module_key=section,
+                               approved=0)
+            _mark_changed(s, league.slug, season, issue_key, section, True)
+
     def _blockers(s, league, season: str, issue_key: str, modules: list[dict]) -> list[dict]:
         assembled = assemble_issue(s, league, season, issue_key, week=_week_of(issue_key))
         titles = {m["module_key"]: m["title"] for m in modules}
@@ -180,6 +288,16 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                           for sec in set(prose_states) | {m["module_key"] for m in modules}}
             label = "preseason" if week is None else issue_key
             rankings = s.get_power_rankings(league_slug, season, label)
+            stale = _changed_since_approval(s, league_slug, season, issue_key)
+            prov_rows = s.all_prose_provenance(league_slug, season, issue_key)
+            # The computed half of Weekly Hardware: decided awards and the
+            # basis each was decided on. Shown as evidence, and the source
+            # the generated copy is composed from, so the page computes it
+            # once rather than once per use.
+            evidence_rows = {}
+            if any(m["module_key"] == "hardware" for m in modules):
+                evidence_rows["hardware"] = section_defaults.evidence_for(
+                    s, league, season, issue_key, "hardware")
 
             def _brief(section: str) -> dict:
                 b = brief_for_section(s, league, season, issue_key, section, week)
@@ -227,7 +345,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                             league_slug, season, issue_key, section, limit=50)),
                     }
             briefs = {m["module_key"]: _brief(m["module_key"])
-                      for m in modules if m["kind"] in ("lowdown", "section", "power")}
+                      for m in modules
+                      if m["kind"] in ("lowdown", "section", "power", "all-city")}
         requests_by_section: dict[str, list[dict]] = {}
         for r in open_requests:
             requests_by_section.setdefault(r["section"], []).append(r)
@@ -237,28 +356,49 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             key, kind = m["module_key"], m["kind"]
             card = {**m, "anchor": f"sec-{key}", "editable": False,
                     "children": [{**matchup_editing[c["section"]],
-                                   "requests": requests_by_section.get(c["section"], [])}
+                                   "requests": requests_by_section.get(c["section"], []),
+                                   "changed_since_approval": bool(stale.get(c["section"]))}
                                   for c in m["children"] if c["section"] in matchup_editing],
                     "prose_state": prose_states.get(key, "generated"),
                     "requests": requests_by_section.get(key, []),
                     "revisions": rev_counts.get(key, 0), "proposal": None,
+                    "blurb": None, "generated_available": False,
+                    "evidence_rows": evidence_rows.get(key) or [],
+                    "changed_since_approval": bool(stale.get(key)),
                     "brief": briefs.get(key)}
-            if kind in ("lowdown", "section"):
+            if kind in EDITABLE_KINDS:
                 path = _section_path(league, season, issue_key, key)
                 text = _read(path)
                 card["editable"] = True
                 card["not_written"] = not (text or "").strip()
                 text = text or ""
                 card["file_sha"] = _sha(text)
-                chunks = _split_chunks(text) if kind == "section" else [text]
+                chunks = _split_chunks(text) if kind != "lowdown" else [text]
                 card["chunks"] = [{"index": i, "text": c, "sha": _sha(c),
                                    "heading": _chunk_heading(c) if len(chunks) > 1 else None}
                                   for i, c in enumerate(chunks)]
                 card["chunk_count"] = len(chunks)
                 card["proposal"] = _read(_proposal_path(idir, key))
+                card["authority"] = _authority(prov_rows.get(key), text,
+                                               card["prose_state"],
+                                               card["not_written"])
                 if kind == "lowdown":
                     card["generated_source"] = _read(idir / "lowdown" / "rough-lowdown.md")
-            elif kind == "power":
+            elif key in BLURB_MODULES and not (kind == "ctp" and not m["children_total"]):
+                # Its body is assembled by code; this is his voice on top of
+                # it. Same file, same autosave, same history as any written
+                # section, so the card offers the same controls and the
+                # section keeps its own readiness rules.
+                text = _read(_section_path(league, season, issue_key, key)) or ""
+                card["blurb"] = {
+                    "text": text, "sha": _sha(text),
+                    "written": bool(text.strip()),
+                    "proposal": _read(_proposal_path(idir, key)),
+                }
+            if key in section_defaults.GENERATED_DEFAULTS:
+                card["generated_available"] = bool(
+                    section_defaults.compose(key, evidence_rows.get(key) or []))
+            if kind == "power":
                 card["rankings"] = rankings
                 card["label"] = "preseason" if week is None else issue_key
             cards.append(card)
@@ -386,9 +526,15 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                      current, "commissioner-save")
             path.write_text(new_text, encoding="utf-8")
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-            if not section.startswith("matchup:"):
-                # commissioner touched prose: approval must be re-asserted
-                pass
+            # This used to be a comment and a `pass`. Approval survived every
+            # edit, so a section could publish text nobody had signed off
+            # while the Desk showed a green chip saying otherwise.
+            _invalidate_approval(s, league, season, issue_key, section)
+            # The opening remarks publish inside Common Tactical Picture, so
+            # writing them changes what that section's provenance is about.
+            if section.startswith("matchup:") or section == "ctp":
+                provenance.refresh_ctp(s, league=league, season=season,
+                                       issue_key=issue_key, week=_week_of(issue_key))
         return JSONResponse({"ok": True, "sha": _sha(text),
                              "file_sha": _sha(new_text), "state": "commissioner-edited"})
 
@@ -414,6 +560,9 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 s.set_matchup_state(league_slug=league_slug, season=season, week=week,
                                     matchup_slug=m.group(1),
                                     status="approved" if action == "approve" else "edited")
+                _mark_changed(s, league_slug, season, issue_key, section, False)
+                provenance.refresh_ctp(s, league=league, season=season,
+                                       issue_key=issue_key, week=week)
                 return JSONResponse({"ok": True, "approved": action == "approve"})
             # Validated in both directions. Unapprove used to skip this
             # and write a row anyway, and `included` defaults to 1 in the
@@ -459,6 +608,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                         status_code=400)
             s.set_issue_module(league_slug=league_slug, season=season, issue_key=issue_key,
                                module_key=section, approved=1 if action == "approve" else 0)
+            # He has now ruled on what is actually there, either way.
+            _mark_changed(s, league_slug, season, issue_key, section, False)
         return JSONResponse({"ok": True, "approved": action == "approve"})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/module")
@@ -581,29 +732,70 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(rev["prior_text"], encoding="utf-8")
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
+            _invalidate_approval(s, league, season, issue_key, section)
+            if section.startswith("matchup:") or section == "ctp":
+                provenance.refresh_ctp(s, league=league, season=season,
+                                       issue_key=issue_key, week=_week_of(issue_key))
         return JSONResponse({"ok": True})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/reset-generated")
     async def editor_reset_generated(request: Request, league_slug: str, season: str, issue_key: str):
-        """Lowdown only: replace lowdown.md with the generated rough draft."""
+        """Put the generated version back, whatever generated it.
+
+        Two kinds of generated version exist and they arrive differently.
+        The Lowdown's is a Claude rough draft sitting in a file. Weekly
+        Hardware's is composed from the week's decided awards at the moment
+        it is asked for, because the awards are the source and a stale copy
+        of them would be worse than none.
+
+        His current text is snapshotted to History first either way. An
+        override is never silently destroyed: it is one click away in the
+        revision list for as long as the issue exists.
+
+        Provenance is only re-asserted for text this code composed, where we
+        know who wrote it. Restoring a Claude draft re-validates its badge
+        only if the stored hash proves the text is byte-for-byte what was
+        recorded; nothing here invents a claim from a resemblance.
+        """
         body = await request.json()
-        if str(body.get("section")) != "lowdown" or str(body.get("confirm")) != "yes":
-            return JSONResponse({"ok": False, "error": "confirmation required"}, status_code=400)
+        section = str(body.get("section") or "")
+        if str(body.get("confirm")) != "yes":
+            return JSONResponse({"ok": False, "error": "confirmation required"},
+                                status_code=400)
         league = get_league(league_slug)
         idir = issue_dir(league, season, issue_key)
-        rough = _read(idir / "lowdown" / "rough-lowdown.md")
-        if rough is None:
-            return JSONResponse({"ok": False, "error": "no generated draft exists"}, status_code=404)
-        path = idir / "lowdown" / "lowdown.md"
+        path = _section_path(league, season, issue_key, section)
+        if path is None:
+            return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        composed = None
         with storage() as s:
+            if section == "lowdown":
+                generated = _read(idir / "lowdown" / "rough-lowdown.md")
+            elif section in section_defaults.GENERATED_DEFAULTS:
+                generated = composed = section_defaults.generated_md(
+                    s, league, season, issue_key, section)
+            else:
+                return JSONResponse(
+                    {"ok": False, "error": "this section has no generated version"},
+                    status_code=400)
+            if generated is None:
+                return JSONResponse({"ok": False, "error": "no generated draft exists"},
+                                    status_code=404)
             current = _read(path) or ""
             if current:
-                s.add_prose_revision(league_slug, season, issue_key, "lowdown", current, "restore")
-            path.write_text(rough, encoding="utf-8")
-            s.set_prose_state(league_slug, season, issue_key, "lowdown", "generated")
-            s.set_issue_module(league_slug=league_slug, season=season, issue_key=issue_key,
-                               module_key="lowdown", approved=0)
-        return JSONResponse({"ok": True})
+                s.add_prose_revision(league_slug, season, issue_key, section,
+                                     current, "restore")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(generated, encoding="utf-8")
+            s.set_prose_state(league_slug, season, issue_key, section, "generated")
+            if composed is not None:
+                provenance.record(
+                    s, league_slug=league_slug, season=season, issue_key=issue_key,
+                    section=section, generator=provenance.DETERMINISTIC,
+                    method=section_defaults.GENERATED_METHOD.get(section),
+                    text=composed)
+            _invalidate_approval(s, league, season, issue_key, section)
+        return JSONResponse({"ok": True, "section": section})
 
     # ------------------------------------------------ rewrite requests
 
@@ -730,9 +922,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                         s, league=league, season=season, issue_key=issue_key,
                         week=_week_of(issue_key))
                 s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-                if not section.startswith("matchup:"):
-                    s.set_issue_module(league_slug=league_slug, season=season,
-                                       issue_key=issue_key, module_key=section, approved=0)
+                # Accepting replaces the section outright, so whatever was
+                # approved before is gone. A matchup takes CTP's sign-off
+                # with it, for the same reason an edit to one does.
+                _invalidate_approval(s, league, season, issue_key, section)
             elif action != "discard":
                 return JSONResponse({"ok": False, "error": "bad action"}, status_code=400)
             ppath.unlink()

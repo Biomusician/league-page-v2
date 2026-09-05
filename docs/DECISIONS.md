@@ -710,3 +710,70 @@ lived in exactly one authoritative place, the confirmed public name for
 Surfeit roster 7; the Sleeper handle and the manager key were already
 correct. Renaming changes the public team slug, so a link already shared to
 `/surfeit/team/wild-seekats-seabass-kats/` will 404.
+
+## 2026-09-04 — Automation supplies the default; it never takes the pen away
+
+Every section the newsletter publishes exists on a spectrum between "he typed
+it" and "code assembled it", and the Desk had started treating the second end
+as finished business. A card said `Rendered automatically; nothing to write`.
+Common Tactical Picture read `6 / 6 approved` and looked shut. Peer and
+Near-Peer read its optional blurb from `sections/power.md` at publish time and
+offered no way to edit that file. Force Flow, retired as a weekly section but
+still carried inside an already-written issue, published prose the Desk would
+not open.
+
+The rule now is one sentence: **public prose is his; computed results are
+not.** Anything that reaches a reader as writing can be changed from the card
+it appears on, without a hidden route, a terminal, or a text editor pointed at
+the repository. Anything that reaches a reader as a number — a score, a
+standing, a rank, an award result, a FAAB figure — is shown beside the writing
+as evidence and is not editable there, because changing how a section reads is
+a different act from changing what happened.
+
+Weekly Hardware is where the two meet, so it gets both halves explicitly. The
+decided awards and their computed basis are shown read-only. A deterministic
+composition of exactly those results is available as the section's default, to
+take as a starting point or to return to. His override replaces the prose and
+never the evidence, and the previous text goes to History first, so "reset to
+generated" cannot destroy writing.
+
+Common Tactical Picture keeps no second copy of anything. Its optional opening
+remarks are a normal section file that publishes above the previews; the
+previews remain the section's substance, and a blurb with no approved previews
+under it does not publish at all.
+
+## 2026-09-04 — An approval is about a text, so an edit retires it
+
+`editor_save` had a comment saying approval must be re-asserted and a `pass`
+underneath it. Approval survived every edit, which meant a section could
+publish text nobody had signed off while the Desk showed a green chip saying
+otherwise. Editing now takes the approval back, marks the card as changed
+since approval, and requires him to approve what is actually there.
+
+A matchup preview takes Common Tactical Picture's sign-off with it. CTP has no
+text of its own — it publishes the previews — so approving it was approving
+exactly that writing.
+
+The mark is a stored flag rather than a comparison, because by the time the
+page renders, the text that was approved is gone and nothing on disk can still
+answer the question. It clears when he makes an approval decision either way.
+
+## 2026-09-04 — Composed copy is machine-written, and says so
+
+Provenance already distinguished "a model wrote this" from "nobody edited it".
+Weekly Hardware's generated copy needed a third answer: our own code composed
+it from results, so badging it "by Claude Code" would name a writer that was
+not involved. `provenance.DETERMINISTIC` is stored like any other generator and
+renders through `describe_machine`, which claims only that a machine produced
+it and from what.
+
+Restoring a generated version re-validates its badge only through hash
+equality, never through resemblance. That is why resetting the Lowdown to its
+Claude rough draft creates no claim: nothing recorded that the draft was
+Claude's, and inventing the fact from the workflow's usual shape is the
+detector we deliberately do not have.
+
+A Commissioner intro inside Common Tactical Picture removes CTP's badge
+outright, even when every preview under it is untouched. The badge describes
+the section a reader sees, and that section now contains his sentence. No badge
+is never a false statement; that one would be.
