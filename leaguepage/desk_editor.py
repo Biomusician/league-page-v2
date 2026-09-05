@@ -1330,7 +1330,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         """
         from leaguepage import publish_jobs
 
-        ctx["job"] = publish_jobs.get_job_for(league_slug, season, issue_key)
+        ctx["job"] = publish_jobs.get_job_for(db_path_of(), league_slug,
+                                              season, issue_key)
         with storage() as s:
             ctx["deploy_state"] = publish_jobs.deploy_state(s, league_slug, season, issue_key)
             ctx["published_rev"], ctx["text_changed"] = _publication_state(
@@ -1424,15 +1425,28 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
     def publish_status(league_slug: str, season: str, issue_key: str):
         from leaguepage import publish_jobs
 
-        job = publish_jobs.get_job_for(league_slug, season, issue_key)
+        job = publish_jobs.get_job_for(db_path_of(), league_slug, season, issue_key)
         with storage() as s:
             dstate = publish_jobs.deploy_state(s, league_slug, season, issue_key)
         payload: dict = {"deploy_state": dstate}
         if job:
             payload["job"] = {k: job[k] for k in
-                              ("job_id", "mode", "state", "created_at", "ended_at",
-                               "stages", "production_url", "issue_url", "deployment_id")}
-            if job["state"] == "failed":
+                              ("job_id", "mode", "state", "active", "created_at",
+                               "ended_at", "stages", "production_url", "issue_url",
+                               "deployment_id", "revision", "error", "error_code")}
+            if job["state"] == "lost":
+                # The Desk cannot say on its own what a lost job did, so it
+                # goes and looks: the event log, the checkpoints, the
+                # publish log and production itself. It reports; it never
+                # re-runs the stage that may already have shipped.
+                from leaguepage import job_recovery
+
+                payload["recovery"] = job_recovery.probe(db_path_of(),
+                                                         job["job_id"])
+            # "lost" is not "failed": the worker stopped reporting, so the
+            # log is the only account of how far it got, and the reader
+            # needs it more here than after an ordinary failure.
+            if job["state"] in ("failed", "lost"):
                 try:
                     payload["log_tail"] = Path(job["log_path"]).read_text(
                         encoding="utf-8")[-3000:]

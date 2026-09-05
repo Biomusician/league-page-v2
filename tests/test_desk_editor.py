@@ -226,25 +226,36 @@ def test_matchup_proposal_path_is_windows_safe(env):
 
 import time
 
+from types import SimpleNamespace
+
 import leaguepage.publish_jobs as pj
 
 
 @pytest.fixture
 def jobs_env(env, monkeypatch):
-    """Job registry isolated per test; subprocess + network mocked."""
+    """Subprocess + network mocked. Jobs need no isolating any more: they
+    live in the test's own database, not in a module global."""
     client, db, idir = env
-    monkeypatch.setattr(pj, "_JOBS", {})
-    monkeypatch.setattr(pj, "_ACTIVE", {})
     calls = []
 
-    def fake_run(job, cmd, *, cwd, timeout, env=None):
+    def fake_run(ctx, cmd, *, cwd, timeout, env=None):
         calls.append(cmd)
         import subprocess
         return subprocess.CompletedProcess(cmd, 0, "Built ok\naudit clean", "")
 
     monkeypatch.setattr(pj, "_run", fake_run)
-    monkeypatch.setitem(pj._STAGE_FNS, "verify", lambda job, dbp: "/ -> 200 (mocked)")
+    monkeypatch.setitem(pj._STAGE_FNS, "verify", lambda ctx: "/ -> 200 (mocked)")
     return client, db, idir, calls
+
+
+def _stage_of(job, key):
+    return next(s for s in job["stages"] if s["key"] == key)
+
+
+def _live_jobs(db):
+    from leaguepage import jobs as jobs_mod
+
+    return jobs_mod.SQLiteJobRepository(db).active(pj.JOB_TYPE)
 
 
 def _approve_only_lowdown(db):
@@ -261,7 +272,7 @@ def _wait_job(client, timeout=8.0):
     deadline = time.time() + timeout
     while time.time() < deadline:
         data = client.get(f"{EDIT}/publish-status").json()
-        if data.get("job") and data["job"]["state"] != "running":
+        if data.get("job") and not data["job"]["active"]:
             return data
         time.sleep(0.05)
     raise AssertionError("job did not finish (would previously have hung)")
@@ -272,7 +283,7 @@ def test_publish_start_requires_confirmations(jobs_env):
     r = client.post(f"{EDIT}/publish-start", data={"mode": "deploy", "confirm": "yes"},
                     follow_redirects=False)
     assert r.status_code == 303 and "error=confirm" in r.headers["location"]
-    assert pj._JOBS == {}  # nothing started
+    assert pj.get_job_for(db, "surfeit", SEASON, "draft") is None   # nothing started
 
 
 def test_publish_job_blocked_snapshot_fails_fast(jobs_env):
@@ -281,7 +292,8 @@ def test_publish_job_blocked_snapshot_fails_fast(jobs_env):
     data = _wait_job(client)
     job = data["job"]
     assert job["state"] == "failed"
-    assert job["stages"][0]["status"] == "fail" and "blocked" in job["stages"][0]["detail"]
+    assert job["stages"][0]["status"] == "failed"
+    assert "blocked" in job["stages"][0]["detail"]
     assert calls == []  # build never ran
     assert "log_tail" in data  # Show Publish Details has content
 
@@ -317,7 +329,7 @@ def test_build_failure_prevents_deploy(jobs_env, monkeypatch):
     client, db, idir, calls = jobs_env
     _approve_only_lowdown(db)
 
-    def failing_run(job, cmd, *, cwd, timeout, env=None):
+    def failing_run(ctx, cmd, *, cwd, timeout, env=None):
         calls.append(cmd)
         import subprocess
         if "build_public_site" in " ".join(cmd):
@@ -330,8 +342,10 @@ def test_build_failure_prevents_deploy(jobs_env, monkeypatch):
     data = _wait_job(client)
     job = data["job"]
     assert job["state"] == "failed"
-    assert pj._stage(job, "build")["status"] == "fail"
-    assert pj._stage(job, "deploy")["status"] == "pending"      # never ran
+    assert _stage_of(job, "build")["status"] == "failed"
+    # Stages after a hard failure are recorded as skipped rather than left
+    # looking pending forever, which is the same fact stated honestly.
+    assert _stage_of(job, "deploy")["status"] == "skipped"
     assert not any("vercel@latest" in " ".join(c) for c in calls)
     # production was never touched, and the record says exactly that
     assert data["deploy_state"]["state"] == "never-deployed"
@@ -343,14 +357,14 @@ def test_timeout_fails_stage_instead_of_hanging(jobs_env, monkeypatch):
     client, db, idir, calls = jobs_env
     _approve_only_lowdown(db)
 
-    def timing_out(job, cmd, *, cwd, timeout, env=None):
+    def timing_out(ctx, cmd, *, cwd, timeout, env=None):
         raise pj.StageError("timed out after 1s (process terminated)")
 
     monkeypatch.setattr(pj, "_run", timing_out)
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
     job = _wait_job(client)["job"]
     assert job["state"] == "failed"
-    assert "timed out" in pj._stage(job, "build")["detail"]
+    assert "timed out" in _stage_of(job, "build")["detail"]
 
 
 def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
@@ -358,7 +372,7 @@ def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
     _approve_only_lowdown(db)
     gate = time.time() + 0.6
 
-    def slow_run(job, cmd, *, cwd, timeout, env=None):
+    def slow_run(ctx, cmd, *, cwd, timeout, env=None):
         while time.time() < gate:
             time.sleep(0.02)
         import subprocess
@@ -367,7 +381,7 @@ def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
     monkeypatch.setattr(pj, "_run", slow_run)
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
-    assert len(pj._JOBS) == 1        # second click joined the running job
+    assert len(_live_jobs(db)) == 1   # second click joined the running job
     data = _wait_job(client)
     assert data["job"]["state"] == "succeeded"
     # refresh recovery: status still reports the finished job afterwards
@@ -380,7 +394,7 @@ def test_failure_reason_reaches_the_log(jobs_env):
     client, db, idir, calls = jobs_env      # lowdown not approved -> blocked
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
     data = _wait_job(client)
-    assert "FAIL snapshot blocked" in data["log_tail"]
+    assert "FAIL snapshot: snapshot blocked" in data["log_tail"]
 
 
 def test_a_changed_published_issue_needs_a_note_and_becomes_a_correction(jobs_env):
@@ -396,10 +410,10 @@ def test_a_changed_published_issue_needs_a_note_and_becomes_a_correction(jobs_en
     page = client.get(f"{EDIT}/publish").text
     assert "Correction note" in page and "changed" in page
     # no note: refused before any job exists
-    pj._JOBS.clear()
     r = client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"},
                     follow_redirects=False)
-    assert "error=note" in r.headers["location"] and pj._JOBS == {}
+    assert "error=note" in r.headers["location"]
+    assert not _live_jobs(db)                      # and nothing was started
 
     client.post(f"{EDIT}/publish-start",
                 data={"mode": "local", "confirm": "yes", "note": "lowdown wording"})
@@ -411,7 +425,6 @@ def test_a_changed_published_issue_needs_a_note_and_becomes_a_correction(jobs_en
     assert original.read_bytes() == before          # the original is never rewritten
 
     # unchanged after the correction: a plain republish is a no-op, not a refusal
-    pj._JOBS.clear()
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
     assert _wait_job(client)["job"]["state"] == "succeeded"
     assert not (cfg.PUBLISHED_DIR / "surfeit" / SEASON / "draft.r3.json").exists()
@@ -421,7 +434,7 @@ def test_a_deploy_that_fails_verification_is_still_recorded_as_a_deploy(jobs_env
     client, db, idir, calls = jobs_env
     _approve_only_lowdown(db)
 
-    def unverifiable(job, dbp):
+    def unverifiable(ctx):
         raise pj.StageError("production verification failed after 6 attempts")
 
     monkeypatch.setitem(pj._STAGE_FNS, "verify", unverifiable)
@@ -429,10 +442,44 @@ def test_a_deploy_that_fails_verification_is_still_recorded_as_a_deploy(jobs_env
                 data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes"})
     data = _wait_job(client)
     assert data["job"]["state"] == "failed"
-    assert pj._stage(data["job"], "deploy")["status"] == "ok"
+    assert _stage_of(data["job"], "deploy")["status"] == "ok"
     assert data["deploy_state"]["state"] == "deployed-unverified"
     assert data["deploy_state"]["url"].endswith(f"/surfeit/{SEASON}/draft/")
     assert "verification failed" in data["deploy_state"]["reason"]
+
+
+def test_a_lost_publish_reports_what_it_did_rather_than_guessing(jobs_env):
+    """The Desk restarted mid-publish. The status endpoint must say what
+    the evidence supports, not show a spinner forever and not claim a
+    failure it cannot stand behind."""
+    import datetime as dt
+
+    from leaguepage import jobs as jobs_mod
+
+    client, db, idir, calls = jobs_env
+    repo = jobs_mod.SQLiteJobRepository(db)
+    job, _ = repo.create(jobs_mod.JobSpec(
+        job_type=pj.JOB_TYPE, scope=jobs_mod.SCOPE_ISSUE,
+        league_slug="surfeit", season=SEASON, issue_key="draft",
+        mode="deploy", stages=pj.STAGES_DEPLOY))
+    repo.claim(job.job_id, "a-worker-that-died", 60)
+    repo.append_event(job.job_id, "a-worker-that-died", "snapshot",
+                      jobs_mod.OK, "frozen: draft.json")
+    repo.set_target_revision(job.job_id, "a-worker-that-died", 1)
+
+    # The reaper runs on the read path, so simply asking is enough.
+    later = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1)
+    repo.reap_expired(now=later.isoformat(timespec="seconds"))
+    data = client.get(f"{EDIT}/publish-status").json()
+
+    assert data["job"]["state"] == "lost" and not data["job"]["active"]
+    assert data["job"]["revision"] == 1
+    rec = data["recovery"]
+    # The deploy stage never started, so this needs no network to answer.
+    assert rec["verdict"] == "snapshot-only"
+    assert any("was not touched" in f for f in rec["facts"])
+    assert any("bound to revision 1" in f for f in rec["facts"])
+    assert "log_tail" in data          # and the log is offered, as on a failure
 
 
 def test_verification_retries_while_the_alias_propagates(monkeypatch, tmp_path):
@@ -444,16 +491,17 @@ def test_verification_retries_while_the_alias_propagates(monkeypatch, tmp_path):
 
     monkeypatch.setattr(pj, "_probe_url", probe)
     monkeypatch.setattr(pj, "VERIFY_PAUSE", 0)
-    job = {"league_slug": "surfeit", "season": SEASON, "issue_key": "draft",
-           "log_path": str(tmp_path / "log.txt"), "stages": []}
-    detail = pj._stage_verify(job, None)
+    ctx = SimpleNamespace(
+        job=SimpleNamespace(league_slug="surfeit", season=SEASON, issue_key="draft"),
+        log=pj._logger(tmp_path / "log.txt"))
+    detail = pj._stage_verify(ctx)
     assert "(attempt 2)" in detail and len(probes) == 6
     assert "verify attempt 1/" in (tmp_path / "log.txt").read_text(encoding="utf-8")
 
     monkeypatch.setattr(pj, "_probe_url", lambda url: 0)
     monkeypatch.setattr(pj, "VERIFY_ATTEMPTS", 2)
     with pytest.raises(pj.StageError, match="after 2 attempts"):
-        pj._stage_verify(job, None)
+        pj._stage_verify(ctx)
 
 
 def test_unchanged_text_with_a_leftover_note_deploys_instead_of_failing(jobs_env):
@@ -462,7 +510,6 @@ def test_unchanged_text_with_a_leftover_note_deploys_instead_of_failing(jobs_env
     _approve_only_lowdown(db)
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
     assert _wait_job(client)["job"]["state"] == "succeeded"
-    pj._JOBS.clear()
     client.post(f"{EDIT}/publish-start",
                 data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes",
                       "note": "left in the box"})
@@ -484,7 +531,6 @@ def test_the_page_knows_whether_the_latest_revision_is_live(jobs_env):
     assert "not yet live" in page and "Deploy rev 1" in page
     assert "has never been deployed from the Desk" in page
 
-    pj._JOBS.clear()
     client.post(f"{EDIT}/publish-start",
                 data={"mode": "deploy", "confirm": "yes", "confirm_deploy": "yes"})
     assert _wait_job(client)["job"]["state"] == "succeeded"
@@ -496,7 +542,6 @@ def test_the_page_knows_whether_the_latest_revision_is_live(jobs_env):
     # a correction frozen locally puts production behind again
     (idir / "lowdown" / "lowdown.md").write_text("# The Lowdown\n\nCorrected words.\n",
                                                  encoding="utf-8")
-    pj._JOBS.clear()
     client.post(f"{EDIT}/publish-start",
                 data={"mode": "local", "confirm": "yes", "note": "wording"})
     assert _wait_job(client)["job"]["state"] == "succeeded"

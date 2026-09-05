@@ -60,15 +60,16 @@
 <div id="jobpanel">
 {% if job %}
   <div class="card" id="jobcard">
-    <b id="jobtitle">{{ "Publishing…" if job.state == "running" else
-       ("Published successfully" if job.state == "succeeded" else "Publish failed") }}</b>
+    <b id="jobtitle">{{ "Publishing…" if job.active else
+       ("Published successfully" if job.state == "succeeded" else
+        ("Publish interrupted" if job.state == "lost" else "Publish failed")) }}</b>
     <ul class="stages" id="stagelist"></ul>
     <div id="jobresult"></div>
   </div>
 {% endif %}
 </div>
 
-<div id="actions" {% if job and job.state == "running" %}hidden{% endif %}>
+<div id="actions" {% if job and job.active %}hidden{% endif %}>
 {% include "desk/_qa_panel.html" %}
 {% if not qa.ready %}
   <div class="card bad">
@@ -132,8 +133,9 @@
 <script>
 const STATUS = {{ (edit_base ~ "/publish-status") | tojson }};
 const ISSUE_URL = {{ (production_url ~ "/" ~ league.slug ~ "/" ~ season ~ "/" ~ issue_key ~ "/") | tojson }};
-const initialState = {{ (job.state if job else "none") | tojson }};
-const ICON = {pending: "·", running: "⏳", ok: "✅", fail: "❌"};
+const wasActive = {{ (job.active if job else false) | tojson }};
+const ICON = {pending: "·", running: "⏳", ok: "✅", failed: "❌",
+              skipped: "⏭"};
 
 // the note box feeds the publish form
 document.querySelectorAll("form[action$='/publish-start']").forEach(f => f.addEventListener("submit", () => {
@@ -163,6 +165,20 @@ function render(data) {
       ? `<p><a class="btn primary" href="${ISSUE_URL}" target="_blank" rel="noopener">Open Published Issue</a>
          <span class="meta">${job.ended_at || ""}${job.deployment_id ? " · " + job.deployment_id : ""}</span></p>`
       : `<p class="meta">Snapshot frozen and public build ready. Deploy any time below.</p>`;
+  } else if (job.state === "lost") {
+    title.textContent = "Publish interrupted";
+    // The Desk went and looked rather than guessing: what the event log,
+    // the checkpoints, the publish log and production itself support.
+    const rec = data.recovery;
+    const esc = (t) => String(t).replace(/</g, "&lt;");
+    res.innerHTML =
+      (rec ? `<p><b>${esc(rec.summary)}</b></p>
+        <ul class="facts">${rec.facts.map(f => `<li>${esc(f)}</li>`).join("")}</ul>
+        <p class="meta">What you can safely do next:</p>
+        <ul class="facts">${rec.next.map(f => `<li>${esc(f)}</li>`).join("")}</ul>`
+          : `<p class="meta">The worker running this publish stopped reporting.</p>`) +
+      `<details><summary>Show Publish Details</summary>
+      <pre class="logtail">${esc(data.log_tail || "(no log)")}</pre></details>`;
   } else if (job.state === "failed") {
     title.textContent = "Publish failed";
     res.innerHTML = `<details><summary>Show Publish Details</summary>
@@ -177,10 +193,10 @@ async function poll() {
   if (!r.ok) return;
   const data = await r.json().catch(() => ({}));
   render(data);
-  const st = data.job ? data.job.state : "none";
-  if (st === "running") {
+  const stillGoing = Boolean(data.job && data.job.active);
+  if (stillGoing) {
     setTimeout(poll, 1500);
-  } else if (initialState === "running" && st !== "running") {
+  } else if (wasActive) {
     location.reload();   // rerender final state server-side, re-enable actions
   }
 }
