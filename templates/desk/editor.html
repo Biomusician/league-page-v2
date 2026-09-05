@@ -127,7 +127,6 @@
 
 {% with qa_actions = true %}{% include "desk/_qa_panel.html" %}{% endwith %}
 
-{% include "desk/_takes_panel.html" %}
 
 {#  The week's writing, in the order the paper runs: the Lowdown, the
     matchups, the special sections, then everything standing, and Weekly
@@ -315,6 +314,7 @@ words replace this)</span>{{ c.brief.text }}</div>
     because he occasionally needs them, not because the week is waiting on
     them, and nothing in this group counts toward the issue being done. #}
 <h2 class="adminhead">Administration</h2>
+{% include "desk/_takes_panel.html" %}
 {% set neutral = name_rows | selectattr("neutral") | list %}
 {% set renamed = name_rows | selectattr("renamed_on_sleeper") | list %}
 <details class="sec card admin" id="sec-team-names">
