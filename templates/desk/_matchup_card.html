@@ -5,8 +5,7 @@
     the blockers list points at opens its parent on the way down. `mc` is a
     child dict from issue_builder.matchup_children with the editing payload
     (text, sha, brief, proposal) added by the Desk. #}
-<details class="sec card child" id="{{ mc.anchor }}"
-         {% if not mc.approved %}open{% endif %}>
+<details class="sec card child" id="{{ mc.anchor }}">
   <summary>{{ mc.title }}
     <span class="chip {% if mc.approved %}approved{% endif %}"
           data-role="approve-chip" data-section="{{ mc.section }}">{{ mc.status }}</span>

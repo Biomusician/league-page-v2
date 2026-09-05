@@ -268,17 +268,55 @@ def _install_edition(tmp_path, **overrides) -> dict:
     return ed
 
 
+def _carry(db, league, *keys, issue_key="week-01") -> None:
+    """Put a retired section into an issue, the way an old issue has one.
+
+    All-City and All-Marquee are no longer offered on a new issue: they
+    folded into the generic custom-section primitive. An issue that already
+    contains one still assembles it, still renders it and still refuses to
+    publish it broken, which is what the rest of this file tests. That path
+    only exists for issues carrying a saved row, so these tests write one.
+    """
+    with Storage(db) as s:
+        for key in keys:
+            s.set_issue_module(league_slug=league.slug, season=SEASON,
+                               issue_key=issue_key, module_key=key, included=1)
+
+
 def _module(db, league, tmp_path, issue_key="week-01") -> dict:
+    _carry(db, league, "all-city", issue_key=issue_key)
     with Storage(db) as s:
         mods = module_states(s, league, SEASON, issue_key, week=1)
     return next(m for m in mods if m["module_key"] == "all-city")
 
 
-def test_module_is_registered_and_opt_in(env):
+def test_a_new_issue_is_never_offered_these_modules(env):
+    """They are retired as future authoring concepts. Nothing here deletes
+    their code, because an issue that already published one still has to
+    render; they are simply not on the menu any more."""
+    from leaguepage.issue_builder import (RETIRED_MODULES, WEEKLY_DEFAULT,
+                                          module_defs_for)
+
+    db, league, _tmp = env
+    for key in ("all-city", "all-city-marquee"):
+        assert key in RETIRED_MODULES
+        assert key not in WEEKLY_DEFAULT
+    offered = {k for k, _t, _kd in module_defs_for(league, "week-01")}
+    assert "all-city" not in offered and "all-city-marquee" not in offered
+    with Storage(db) as s:
+        keys = {m["module_key"] for m in
+                module_states(s, league, SEASON, "week-01", week=1)}
+    assert "all-city" not in keys and "all-city-marquee" not in keys
+
+
+def test_an_issue_that_already_carries_one_keeps_it(env):
     db, league, tmp = env
     m = _module(db, league, tmp)
     assert m["title"] == "The All-City Team"
-    assert m["included"] is False  # sidebar features stay out unless asked for
+    assert m["included"] is True
+    # ...but it is not one of the week's jobs any more
+    assert m["checklist"] is False
+    assert m["retired"] is True
 
 
 def test_module_is_not_ready_without_an_edition(env):
@@ -554,15 +592,15 @@ def test_the_floor_actually_changes_the_roster():
     assert len(base & marq) <= 2
 
 
-def test_both_modules_are_registered_opt_in_and_independent(env):
+def test_the_two_carried_modules_stay_independent(env):
     db, league, tmp = env
+    _carry(db, league, "all-city", "all-city-marquee")
     with Storage(db) as s:
         mods = {m["module_key"]: m for m in
                 module_states(s, league, SEASON, "week-01", week=1)}
     for key, title in (("all-city", "The All-City Team"),
                        ("all-city-marquee", "The All-Marquee Team")):
         assert mods[key]["title"] == title
-        assert mods[key]["included"] is False
         assert mods[key]["status"] == "not_ready"
     assert "editorial/features/all-city-marquee/" in mods["all-city-marquee"]["detail"]
 
@@ -570,6 +608,7 @@ def test_both_modules_are_registered_opt_in_and_independent(env):
 def test_each_module_reads_only_its_own_feature_directory(env):
     db, league, tmp = env
     _install_edition(tmp)  # writes editorial/features/all-city/ only
+    _carry(db, league, "all-city", "all-city-marquee")
     with Storage(db) as s:
         mods = {m["module_key"]: m for m in
                 module_states(s, league, SEASON, "week-01", week=1)}

@@ -30,8 +30,9 @@ from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, get_league
 from leaguepage import prose
 from leaguepage.issue_builder import (
-    BLOCKED_MARKERS, WRITING_SKILL, assemble_issue, issue_dir, matchup_children,
-    module_defs_for, module_states,
+    BLOCKED_MARKERS, CUSTOM_DEFAULT_TITLE, WRITING_SKILL, assemble_issue,
+    is_custom_key, issue_dir, matchup_children, module_defs_for, module_states,
+    next_custom_key,
 )
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER, week_dir
 from leaguepage.team_names import resolve_public_names
@@ -395,7 +396,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 return JSONResponse({"ok": True, "approved": action == "approve"})
             if action == "approve":
                 kind = dict((k, kd) for k, _t, kd
-                            in module_defs_for(league, issue_key)).get(section)
+                            in module_defs_for(
+                                league, issue_key,
+                                s.get_issue_modules(league_slug, season, issue_key))
+                            ).get(section)
                 if kind is None:
                     return JSONResponse({"ok": False, "error": "unknown section"},
                                         status_code=404)
@@ -450,6 +454,49 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                    issue_key=issue_key, module_key=module_key, **fields)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-{module_key}",
+            status_code=303)
+
+    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/custom")
+    def editor_custom(league_slug: str, season: str, issue_key: str,
+                      action: str = Form("add"), module_key: str = Form(""),
+                      title: str = Form("")):
+        """Create or rename one special section.
+
+        A custom section exists because he made one, which is why nothing
+        creates them in advance: an issue with no custom row has no custom
+        section, and a new week does not invent an empty one to ignore. The
+        row IS the section, so creating it is a single insert and the prose,
+        preview, history and approval machinery all work on it unchanged.
+
+        There is no delete. Excluding a section keeps its prose and takes it
+        out of the paper, which is the recoverable version of the same
+        intent; a button that could silently destroy writing is not worth
+        the two clicks it saves.
+        """
+        with storage() as s:
+            saved = s.get_issue_modules(league_slug, season, issue_key)
+            if action == "add":
+                key = next_custom_key(saved)
+                n = sum(1 for k in saved if is_custom_key(k)) + 1
+                s.set_issue_module(
+                    league_slug=league_slug, season=season, issue_key=issue_key,
+                    module_key=key, included=1, approved=0,
+                    position=n,
+                    custom_title=(title.strip() or f"{CUSTOM_DEFAULT_TITLE} {n}"))
+            elif action == "rename" and is_custom_key(module_key):
+                if module_key not in saved:
+                    return JSONResponse({"ok": False, "error": "no such section"},
+                                        status_code=404)
+                s.set_issue_module(
+                    league_slug=league_slug, season=season, issue_key=issue_key,
+                    module_key=module_key,
+                    custom_title=(title.strip() or CUSTOM_DEFAULT_TITLE))
+                key = module_key
+            else:
+                return JSONResponse({"ok": False, "error": "bad action"},
+                                    status_code=400)
+        return RedirectResponse(
+            f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-{key}",
             status_code=303)
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/rankings")

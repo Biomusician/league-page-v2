@@ -35,6 +35,11 @@ WRITING_SKILL = ".claude/skills/my-writing-style/SKILL.md"
 BLOCKED_MARKERS = (ROUGH_DRAFT_MARKER, "TEST DRAFT", "provisional label")
 
 # (key, canonical title, leagues, kind)
+#
+# Registry, not running order: `WEEKLY_ORDER` below decides where a section
+# sits in the paper. Retired entries stay here so an issue that already
+# published one can still be assembled and rendered; they are simply no
+# longer offered for a new one.
 MODULE_DEFS = [
     ("masthead", "Masthead", ("disco", "surfeit"), "auto"),
     ("lowdown", "The Lowdown", ("disco", "surfeit"), "lowdown"),
@@ -54,17 +59,47 @@ MODULE_DEFS = [
     ("custom", "Custom Section", ("disco", "surfeit"), "section"),
 ]
 
-WEEKLY_DEFAULT = ["masthead", "lowdown", "hardware", "ctp", "power", "tracks",
-                  "fades", "forceflow", "blackbox", "intel", "branches",
-                  "false-assumptions", "all-city", "all-city-marquee", "custom"]
-DRAFT_DEFAULT = ["masthead", "lowdown", "draft-capsules", "hardware", "power",
-                 "false-assumptions", "all-city", "all-city-marquee", "custom"]
-# Excluded unless the commissioner includes them. Sidebar features live here:
-# they run when there is an edition to run and stay out of the way otherwise.
-# Everything else in the weekly registry starts INCLUDED: the recurring
-# spine of the newsletter is the default, and the week's job is to say what
-# does not belong this time, not to opt each section back in one at a time.
-OPT_IN_MODULES = {"custom", "all-city", "all-city-marquee"}
+# Retired as future authoring concepts. They keep their registry entries and
+# their rendering code so a published issue that already contains one still
+# assembles and still renders, but they are never offered on a new issue.
+#
+# Force Flow left for a different reason from the other two: it is now a
+# standing league page built from synced transaction data, not something the
+# Commissioner rewrites every week. All-City and All-Marquee folded into the
+# generic custom-section primitive, which does the same job without two
+# bespoke modules to maintain.
+RETIRED_MODULES = {"forceflow", "all-city", "all-city-marquee"}
+
+# The paper's running order. The Lowdown opens, the matchups follow, the
+# week's special sections come next, the standing sections after them, and
+# Weekly Hardware closes every issue. Hardware being last is an invariant,
+# not a default: `_order_rank` gives it a rank nothing else can reach.
+WEEKLY_ORDER = ["masthead", "lowdown", "ctp", "__custom__", "power", "tracks",
+                "fades", "blackbox", "intel", "branches", "false-assumptions",
+                "hardware"]
+DRAFT_ORDER = ["masthead", "lowdown", "draft-capsules", "__custom__", "power",
+               "false-assumptions", "hardware"]
+
+WEEKLY_DEFAULT = [k for k in WEEKLY_ORDER if k != "__custom__"]
+DRAFT_DEFAULT = [k for k in DRAFT_ORDER if k != "__custom__"]
+
+# A custom section exists because the Commissioner made one. The first is
+# keyed plainly `custom` -- that is the key the single custom section has
+# always used, so the prose already on disk needs no migration -- and every
+# one after it is `custom-2`, `custom-3`. Nothing here creates one.
+CUSTOM_KEY = "custom"
+CUSTOM_PREFIX = "custom-"
+CUSTOM_DEFAULT_TITLE = "Custom Section"
+
+# Rendered automatically from league theme and issue metadata. It publishes,
+# but it is not something he writes, so it stays off the weekly checklist.
+NOT_A_WRITING_TASK = {"masthead"}
+
+# Nothing starts excluded any more. A section with little to say advises him
+# to drop it; it does not drop itself, and it does not make him opt the
+# recurring spine back in one section at a time. Custom sections are the one
+# thing that has to be asked for, and they are asked for by creating them.
+OPT_IN_MODULES: set[str] = set()
 
 # What an included section with no material says, instead of removing
 # itself. See `empty` in module_states.
@@ -73,12 +108,86 @@ EMPTY_SECTION_NOTE = "No meaningful material this week — consider excluding"
 MIN_INTEL_WEEKS = 5  # before this, playoff math is fake precision — module omits itself
 
 
-def module_defs_for(league: League, issue_key: str) -> list[tuple[str, str, str]]:
+def is_custom_key(key: str) -> bool:
+    """`custom`, `custom-2`, `custom-3`. The bare key is the first one."""
+    return key == CUSTOM_KEY or key.startswith(CUSTOM_PREFIX)
+
+
+def _custom_index(key: str) -> int:
+    if key == CUSTOM_KEY:
+        return 1
+    tail = key[len(CUSTOM_PREFIX):]
+    return int(tail) if tail.isdigit() else 10_000
+
+
+def next_custom_key(saved: dict) -> str:
+    """The next free custom key for this issue.
+
+    Counts from the keys that already exist rather than from how many there
+    are, so deleting the middle one of three does not hand the next section
+    a key that is already taken.
+    """
+    used = {k for k in saved if is_custom_key(k)}
+    if CUSTOM_KEY not in used:
+        return CUSTOM_KEY
+    n = 2
+    while f"{CUSTOM_PREFIX}{n}" in used:
+        n += 1
+    return f"{CUSTOM_PREFIX}{n}"
+
+
+def _order_rank(key: str, order: list[str]) -> tuple[int, int]:
+    """Where this section sits in the paper.
+
+    Custom sections share one slot and sort among themselves by creation
+    order. Anything the running order does not name sorts just before
+    Weekly Hardware, which keeps an unknown or retired-but-still-present
+    module inside the issue without ever letting it past the closer.
+    """
+    if is_custom_key(key):
+        return (order.index("__custom__"), _custom_index(key))
+    if key in order:
+        return (order.index(key), 0)
+    return (order.index("hardware") - 1, 500)
+
+
+def module_defs_for(league: League, issue_key: str,
+                    saved: dict | None = None) -> list[tuple[str, str, str]]:
+    """The sections this issue is made of, in running order.
+
+    `saved` is the issue's stored module rows. It is what makes custom
+    sections real: they are not in the static registry, because a custom
+    section exists only once the Commissioner has created one, and creating
+    one is exactly what writing that row does. A retired module still in
+    an issue's saved rows is kept for the same reason -- the issue has one,
+    so the issue keeps it -- while never being offered on a new issue.
+    """
+    saved = saved or {}
+    order = DRAFT_ORDER if issue_key == "draft" else WEEKLY_ORDER
     default = DRAFT_DEFAULT if issue_key == "draft" else WEEKLY_DEFAULT
     out = []
     for key, title, leagues, kind in MODULE_DEFS:
-        if league.slug in leagues and key in default:
+        if league.slug not in leagues:
+            continue
+        if is_custom_key(key):
+            continue                      # custom sections come from `saved`
+        if key in RETIRED_MODULES:
+            # An issue that already carries a retired section keeps it, so
+            # that prose still publishes -- Week 1's Force Flow was written
+            # before it stopped being a weekly section, and dropping it here
+            # would take that writing out of the paper. One he already
+            # excluded is simply gone; there is nothing to preserve.
+            if (saved.get(key) or {}).get("included"):
+                out.append((key, title, kind))
+            continue
+        if key in default or key in saved:
             out.append((key, title, kind))
+    for key in saved:
+        if not is_custom_key(key):
+            continue
+        title = (saved[key] or {}).get("custom_title") or CUSTOM_DEFAULT_TITLE
+        out.append((key, title, "section"))
+    out.sort(key=lambda d: _order_rank(d[0], order))
     return out
 
 
@@ -214,7 +323,7 @@ def module_states(
                                     base_dir=base_dir)
 
     out = []
-    for position, (key, title, kind) in enumerate(module_defs_for(league, issue_key)):
+    for position, (key, title, kind) in enumerate(module_defs_for(league, issue_key, saved)):
         row = saved.get(key) or {}
         kids = children if kind == "ctp" else []
         default_included = 0 if (key in OPT_IN_MODULES and not row) else 1
@@ -270,6 +379,16 @@ def module_states(
         saved_pos = row.get("position")
         out.append({
             "module_key": key, "kind": kind,
+            "custom": is_custom_key(key),
+            # Masthead publishes but is not something he writes, so it is
+            # not one of the week's tasks and does not count toward being
+            # finished.
+            # On the weekly checklist, and counted toward being finished.
+            # Masthead publishes without being written; a retired section
+            # that survives inside an old issue still publishes but is no
+            # longer one of the week's jobs.
+            "checklist": key not in NOT_A_WRITING_TASK and key not in RETIRED_MODULES,
+            "retired": key in RETIRED_MODULES,
             "children": kids,
             "children_approved": sum(1 for c in kids if c["approved"]),
             "children_total": len(kids),
@@ -288,8 +407,16 @@ def module_states(
             "empty": bool(included and kind not in ("auto", "ctp")
                           and status == "not_ready"),
         })
-    # explicit commissioner positions win ties against defaults
-    out.sort(key=lambda m: (m["position"], not m["_explicit_pos"], m["_registry_index"]))
+    # Running order comes from the registry, and Weekly Hardware closes the
+    # issue. A saved `position` used to win outright, which meant a row
+    # written before Hardware was pinned last could still float it back into
+    # the middle of the paper. Explicit positions now order custom sections
+    # against each other -- the one place the Commissioner sets them -- and
+    # nothing else.
+    order = DRAFT_ORDER if issue_key == "draft" else WEEKLY_ORDER
+    out.sort(key=lambda m: (_order_rank(m["module_key"], order),
+                            m["position"] if m["_explicit_pos"] else 0,
+                            m["_registry_index"]))
     return out
 
 

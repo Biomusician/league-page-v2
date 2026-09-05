@@ -97,6 +97,14 @@ def test_lowdown_rough_cannot_approve_and_final_can(env):
 
 
 def test_module_ordering_omission_and_retitle(env):
+    """Exclusion and retitling still work; running order does not bend.
+
+    A saved `position` used to win outright, so any row written at any time
+    could put any section anywhere -- including in front of Weekly Hardware,
+    which now closes every issue. Position orders custom sections against
+    each other, which is the one place he sets it, and the paper's order is
+    the paper's order.
+    """
     client, db, league, _ = env
     client.post("/commissioner/surfeit/2026/issue/week-01/builder/module",
                 data={"module_key": "fades", "action": "exclude"})
@@ -108,9 +116,13 @@ def test_module_ordering_omission_and_retitle(env):
     with Storage(db) as s:
         modules = module_states(s, league, "2026", "week-01", week=1)
     by_key = {m["module_key"]: m for m in modules}
+    keys = [m["module_key"] for m in modules]
     assert by_key["fades"]["included"] is False
-    assert modules[1]["module_key"] == "blackbox"  # position 1, behind pos-0 masthead
     assert by_key["custom"]["title"] == "Side Bet Status"
+    assert keys[-1] == "hardware", "Weekly Hardware closes the issue"
+    assert keys.index("lowdown") < keys.index("ctp") < keys.index("custom")
+    assert keys.index("custom") < keys.index("blackbox"), (
+        "a stray saved position must not reorder the paper")
 
 
 def test_intel_module_omits_itself_early(env):

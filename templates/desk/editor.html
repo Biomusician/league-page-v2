@@ -16,6 +16,15 @@
   .blockers ul { margin:.3rem 0 .2rem; padding-left:1.2rem; }
   .ready { border:2px solid #2f6b2f; background:#eef7ee; color:#2f6b2f; font-weight:bold; }
   details.sec { margin:.8rem 0; }
+  h2.adminhead { margin:2.4rem 0 .6rem; font-size:.9rem; text-transform:uppercase;
+                 letter-spacing:.14em; color:var(--muted);
+                 border-top:1px solid var(--line); padding-top:1.4rem; }
+  details.sec.admin { background:#faf9f5; }
+  details.sec.admin > summary { font-size:.95rem; font-weight:normal; }
+  .chip.retired { background:#eee; border-color:#ccc; color:#666; }
+  .addcustom { margin:1.2rem 0 .4rem; display:flex; gap:.6rem; align-items:center;
+               flex-wrap:wrap; }
+  .sitelink { margin-top:1.6rem; }
   /* Nesting is structural: these cards live inside the parent's <details>,
      so they close with it and Expand All reaches them. The rule below only
      makes that visible. */
@@ -120,49 +129,19 @@
 
 {% include "desk/_takes_panel.html" %}
 
-{% set neutral = name_rows | selectattr("neutral") | list %}
-{% set renamed = name_rows | selectattr("renamed_on_sleeper") | list %}
-<details class="sec card" id="sec-team-names" {% if neutral or renamed %}open{% endif %}>
-  <summary>Team names
-    <span class="chip {% if neutral %}edited{% else %}approved{% endif %}">{{ neutral|length }} unresolved</span>
-    {% if renamed %}<span class="chip stale">{{ renamed|length }} renamed on Sleeper</span>{% endif %}
-  </summary>
-  <p class="meta">Sleeper team names apply automatically; an override only exists where you
-    set one. Manager context below is PRIVATE Desk-only help and never publishes.</p>
-  <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/team-names">
-    <input type="hidden" name="back" value="{{ edit_base }}#sec-team-names">
-    <table class="namegrid" data-sortable>
-      <tr><th data-sort-type="number">#</th><th data-sort-type="text">Sleeper team</th>
-          <th data-sort-type="text">Private manager context</th>
-          <th data-sort-type="text">Public name</th><th data-nosort>Override</th></tr>
-      {% for r in name_rows %}
-      <tr>
-        <td>{{ r.roster_id }}</td>
-        <td>{{ r.sleeper_name or "—" }}</td>
-        <td class="meta">{{ r.owners | join(" + ") }}{% if r.co_managed %} (co-managed){% endif %}
-          · slot {{ r.draft_slot or "?" }}<br>{{ r.top_players | join(", ") }}</td>
-        <td><b>{{ r.public_name or "—" }}</b> <span class="meta">({{ r.source or "unresolved" }})</span>
-          {% if r.renamed_on_sleeper %}<br><span class="chip stale">Sleeper now says
-            “{{ r.sleeper_name }}”</span>{% endif %}</td>
-        <td><input type="text" name="name_{{ r.roster_id }}"
-                   placeholder="{% if r.neutral %}set a public name{% else %}override{% endif %}"></td>
-      </tr>
-      {% endfor %}
-    </table>
-    <div class="cardctl"><button class="primary">Save overrides</button>
-      <span class="meta">Blank fields change nothing. Handles never become public names.</span></div>
-  </form>
-  {% for r in name_rows %}{% if r.override and r.sleeper_name %}
-    <form method="post" action="{{ edit_base }}/use-sleeper-name" class="inline">
-      <input type="hidden" name="roster_id" value="{{ r.roster_id }}">
-      <button>Roster {{ r.roster_id }}: use Sleeper name “{{ r.sleeper_name }}”</button>
-    </form>
-  {% endif %}{% endfor %}
-</details>
+{#  The week's writing, in the order the paper runs: the Lowdown, the
+    matchups, the special sections, then everything standing, and Weekly
+    Hardware last. Sections that are not writing tasks -- the masthead,
+    and anything retired that an old issue still carries -- are held back
+    for the administrative group at the foot of the page.
 
-{% for c in cards %}
-<details class="sec card" id="sec-{{ c.module_key }}"
-         {% if c.included and not c.approved and c.kind != "auto" %}open{% endif %}>
+    Everything starts closed. A page that opens eleven sections because
+    eleven sections are unapproved is a page he has to close before he can
+    read it, and "has a warning" is not a reason to seize the screen. #}
+{% set weekly = cards | selectattr("checklist") | list %}
+{% set admin = cards | rejectattr("checklist") | list %}
+{% for c in weekly %}
+<details class="sec card" id="sec-{{ c.module_key }}">
   <summary>
     {{ c.title }}
     {% if not c.included %}<span class="chip excluded">excluded</span>{% endif %}
@@ -188,6 +167,19 @@
   </summary>
 
   <div class="cardctl">
+    {% if c.custom %}
+    {#  A special section's title is the only thing about it that is not
+        shared with every other section, so it is edited in place here
+        rather than in a settings screen somewhere else. #}
+    <form method="post" action="{{ edit_base }}/custom" class="inline">
+      <input type="hidden" name="action" value="rename">
+      <input type="hidden" name="module_key" value="{{ c.module_key }}">
+      <label class="visually-hidden" for="title-{{ c.module_key }}">Section title</label>
+      <input type="text" id="title-{{ c.module_key }}" name="title"
+             value="{{ c.title }}" size="24" maxlength="80">
+      <button>Rename</button>
+    </form>
+    {% endif %}
     <form method="post" action="{{ edit_base }}/module" class="inline">
       <input type="hidden" name="module_key" value="{{ c.module_key }}">
       {% if c.included %}<button name="action" value="exclude">Exclude from issue</button>
@@ -271,7 +263,7 @@ words replace this)</span>{{ c.brief.text }}</div>
     <div class="revlist" id="revs-{{ c.module_key }}" hidden></div>
   {% elif c.kind == "power" %}
     {% if c.brief and c.brief.text %}
-    <details class="evd" open><summary>System recommendation (yours to overrule)</summary>
+    <details class="evd"><summary>System recommendation (yours to overrule)</summary>
       <div class="briefpanel">{{ c.brief.text }}</div>
     </details>
     {% endif %}
@@ -311,6 +303,84 @@ words replace this)</span>{{ c.brief.text }}</div>
   {% endif %}
 </details>
 {% endfor %}
+
+<form method="post" action="{{ edit_base }}/custom" class="addcustom">
+  <input type="hidden" name="action" value="add">
+  <button>+ Add custom section</button>
+  <span class="meta">A special section for this issue only. It appears after
+    the matchups and before Weekly Hardware.</span>
+</form>
+
+{#  Below the line: things that are not this week's writing. They are here
+    because he occasionally needs them, not because the week is waiting on
+    them, and nothing in this group counts toward the issue being done. #}
+<h2 class="adminhead">Administration</h2>
+{% set neutral = name_rows | selectattr("neutral") | list %}
+{% set renamed = name_rows | selectattr("renamed_on_sleeper") | list %}
+<details class="sec card admin" id="sec-team-names">
+  <summary>Team names
+    <span class="chip {% if neutral %}edited{% else %}approved{% endif %}">{{ neutral|length }} unresolved</span>
+    {% if renamed %}<span class="chip stale">{{ renamed|length }} renamed on Sleeper</span>{% endif %}
+  </summary>
+  <p class="meta">Sleeper team names apply automatically; an override only exists where you
+    set one. Manager context below is PRIVATE Desk-only help and never publishes.</p>
+  <form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/team-names">
+    <input type="hidden" name="back" value="{{ edit_base }}#sec-team-names">
+    <table class="namegrid" data-sortable>
+      <tr><th data-sort-type="number">#</th><th data-sort-type="text">Sleeper team</th>
+          <th data-sort-type="text">Private manager context</th>
+          <th data-sort-type="text">Public name</th><th data-nosort>Override</th></tr>
+      {% for r in name_rows %}
+      <tr>
+        <td>{{ r.roster_id }}</td>
+        <td>{{ r.sleeper_name or "—" }}</td>
+        <td class="meta">{{ r.owners | join(" + ") }}{% if r.co_managed %} (co-managed){% endif %}
+          · slot {{ r.draft_slot or "?" }}<br>{{ r.top_players | join(", ") }}</td>
+        <td><b>{{ r.public_name or "—" }}</b> <span class="meta">({{ r.source or "unresolved" }})</span>
+          {% if r.renamed_on_sleeper %}<br><span class="chip stale">Sleeper now says
+            “{{ r.sleeper_name }}”</span>{% endif %}</td>
+        <td><input type="text" name="name_{{ r.roster_id }}"
+                   placeholder="{% if r.neutral %}set a public name{% else %}override{% endif %}"></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div class="cardctl"><button class="primary">Save overrides</button>
+      <span class="meta">Blank fields change nothing. Handles never become public names.</span></div>
+  </form>
+  {% for r in name_rows %}{% if r.override and r.sleeper_name %}
+    <form method="post" action="{{ edit_base }}/use-sleeper-name" class="inline">
+      <input type="hidden" name="roster_id" value="{{ r.roster_id }}">
+      <button>Roster {{ r.roster_id }}: use Sleeper name “{{ r.sleeper_name }}”</button>
+    </form>
+  {% endif %}{% endfor %}
+</details>
+
+{% for c in admin %}
+<details class="sec card admin" id="sec-{{ c.module_key }}">
+  <summary>{{ c.title }}
+    {% if c.retired %}<span class="chip retired">no longer a weekly section</span>
+    {% elif c.kind == "auto" %}<span class="chip approved">automatic</span>{% endif %}
+    {% if not c.included %}<span class="chip excluded">excluded</span>{% endif %}
+  </summary>
+  {% if c.retired %}
+  <p class="meta">This issue still carries it, so it still publishes and the
+    prose is untouched. It is no longer part of the weekly workflow and does
+    not count toward the issue being finished.</p>
+  <div class="cardctl">
+    <form method="post" action="{{ edit_base }}/module" class="inline">
+      <input type="hidden" name="module_key" value="{{ c.module_key }}">
+      <input type="hidden" name="position" value="">
+      {% if c.included %}<button name="action" value="exclude">Exclude from issue</button>
+      {% else %}<button name="action" value="include">Include in issue</button>{% endif %}
+    </form>
+  </div>
+  {% else %}
+  <p class="meta">{{ c.detail or "Rendered automatically; nothing to write." }}</p>
+  {% endif %}
+</details>
+{% endfor %}
+
+<p class="meta sitelink"><a href="/commissioner/site/about">Site &rarr; Edit About page</a></p>
 
 <script>
 const EDIT = {{ edit_base | tojson }};
