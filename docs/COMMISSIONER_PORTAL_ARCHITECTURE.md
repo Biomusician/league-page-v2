@@ -44,17 +44,24 @@ approval bound to content, provenance recorded rather than inferred.
    so they cannot create a split brain, but they would need migrating
    before they are useful again after a cutover.
 2. ~~**Jobs are process globals.**~~ **Done, 2026-09-05.** Job state is
-   durable and leased (see *Durable jobs*, below). What remains of this
-   blocker is smaller and separate: the auth rate-limit dictionaries
-   (`auth._LOGIN_ATTEMPTS`, `_USED_LOGIN_JTI`, `_EPHEMERAL`) are still
-   per-process, so login throttling resets on a restart and a one-time
-   login token could be replayed against a second instance. Those belong
-   with identity, not with jobs.
+   durable and leased (see *Durable jobs*, below). ~~What remains is the
+   auth dictionaries.~~ **Analysed and closed, 2026-09-06** — see *The
+   auth residual*, below. `_EPHEMERAL` already fails closed; the rate
+   limiter is a courtesy brake in front of Supabase's own; and the one
+   real property, single-use redemption, was unreachable hosted and is
+   now refused outright rather than left to an implicit invariant.
 3. **The build reads the private database.** `dist/` is produced from
    SQLite and `editorial/`, which is why Vercel never rebuilds and only
    ever receives an audited artifact.
 4. **`app_commissioners` is empty.** RLS is forced on that table and its
    policy requires membership, so the app cannot seed its own allowlist.
+   Confirmed live 2026-09-06: anon gets 42501 on all sixteen tables that
+   exist, which is the intended answer and also the reason the app cannot
+   bootstrap itself.
+5. **Editorial state is in two databases.** Prose can move to Postgres;
+   the seven pieces of metadata that a single Commissioner click writes
+   alongside it cannot yet. This is the live blocker and it is why the
+   filesystem is still authoritative — see *The cutover boundary*, below.
 
 ---
 
@@ -242,6 +249,112 @@ Postgres backend that cannot be reached raises rather than writing to disk.
 
 `verify` prints keys, hashes and versions and never the prose.
 
+### The cutover boundary: what must commit together
+
+Determined 2026-09-06 by reading the code, so it does not depend on
+reaching a database. **This is the finding that decided the prose
+cutover.**
+
+Prose is one object in one store. Every Commissioner action that touches
+prose also writes editorial metadata that is *not* in that store, and the
+two are not one transaction. Moving prose alone does not create a hosted
+Desk; it creates two databases that can disagree about the same click.
+
+**What one click writes**
+
+| operation | prose | editorial metadata | disk |
+| --- | --- | --- | --- |
+| **Save** | `put` + a revision | `prose_provenance` (first write only), `section_prose_state`, `issue_modules.approved = 0` **or** `matchup_state.status`, `meta` staleness | — |
+| **Accept proposal** | `put` + a revision, then `delete` of a second object | `prose_provenance`, `section_prose_state`, approval, `meta`, `issue_revision_requests` → done | rewrites `REVISION_REQUESTS.md` |
+| **Discard proposal** | `delete` | `prose_provenance` assistance, `issue_revision_requests` → withdrawn | rewrites `REVISION_REQUESTS.md` |
+| **Restore** | reads a revision, then `put` + a revision | `section_prose_state`, approval, `meta` | — |
+| **Reset generated** | `put` + a revision | `prose_provenance`, `section_prose_state = generated`, approval, `meta` | **reads** `rough-lowdown.md` |
+| **Replace with my copy** | `put("")` + a revision | `provenance.mark_commissioner`, `section_prose_state`, approval, `meta` | — |
+| **Approve / unapprove** | reads it, to refuse an empty or marked section; CTP reads every preview to sign | `issue_modules(approved, approved_sha)` **or** `matchup_state.status`, `meta` cleared | — |
+| **Matchup edit** | `put` + a revision | `matchup_state.status → edited`, `meta` for that matchup **and** for `ctp` | — |
+| **Request rewrite** | — | `issue_revision_requests` insert | rewrites `REVISION_REQUESTS.md` |
+
+Read it as: every row but the last spans two stores, and three of them
+also touch the filesystem.
+
+**The state that must move with prose**
+
+| table | what it holds | in `migrations/`? |
+| --- | --- | --- |
+| `prose_revisions` | undo history | yes (0001) |
+| `section_prose_state` | generated vs commissioner-edited | **no table** |
+| `prose_provenance` | the authorship claim | **no table** |
+| `issue_modules` | approval, inclusion, order, title | yes, but **without `approved_sha`** |
+| `matchup_state` | a preview's approval and angle | yes, but without `revision_requests` |
+| `issue_revision_requests` | the rewrite queue | yes (0001) |
+| `meta`, `stale:` prefix | changed-since-approval | `editorial_meta` exists; **nothing routes to it** |
+
+Ten further editorial tables (`story_decisions`, `award_decisions`,
+`takes`, `force_flow_notes`, `team_names`, `issues`, `bit_usage`,
+`editorial_usage`, `power_rankings`, `sync_snapshots`) a hosted Desk
+needs but no single prose action writes, so they can move on their own
+schedule. `tests/test_schema_parity.py` compares the two schemas
+statically and declares every gap with its reason; it needs no database.
+
+**The two deterministic breaks, and where they stand**
+
+1. ~~**History and Restore read SQLite directly.**~~ **Fixed 2026-09-06.**
+   Four reads of `prose_revisions` went around `ProseRepository`. Under
+   the filesystem backend that was indistinguishable from correct,
+   because that backend keeps its revisions in SQLite; under Postgres the
+   History panel would have emptied and Restore would have had nothing to
+   restore. All four now go through the contract, and
+   `revision_counts()` answers for a whole issue in one call instead of
+   one connection per card.
+2. **Approval is a flag, not a signature.** `issue_modules.approved` and
+   `matchup_state.status` are bare values cleared by the save route
+   *after* the prose write. Every path through the Desk clears them, so
+   the Desk is right; the storage layer is not, because there is no
+   shared transaction. A prose write that lands beside a metadata write
+   that does not leaves a green approval chip over text nobody approved.
+   **This one is unfixed and it is the cutover blocker.**
+
+`prose_provenance` is the model to copy: it stores a hash of the text it
+describes, so a write that lands without it claims nothing rather than
+claiming something false. Common Tactical Picture already works this way
+(`approved_sha`) — and that column does not exist in the Postgres schema,
+so today the one correct mechanism is the one that could not migrate.
+
+**Five more of the same class**, all read-and-write coupling rather than
+outright breakage:
+
+| # | risk | effect after a cutover |
+| --- | --- | --- |
+| 1 | `section_prose_state` written after the prose write, and absent from Postgres | the generated/edited chip and `_authority` disagree with the text |
+| 2 | `meta` staleness read with a raw `LIKE` through `s._conn` | the changed-since-approval banner silently stops working |
+| 3 | accept = `put` target then `delete` proposal, two objects | a crash between them re-shows an accepted proposal |
+| 4 | `REVISION_REQUESTS.md` written inside the proposal action | a read-only serverless filesystem fails the whole action |
+| 5 | `reset-generated`, `_ai_help_present` and `lowdown_state` read `rough-lowdown.md` from disk | no generated version, no assistance record, wrong workflow status |
+
+### The auth residual
+
+Analysed 2026-09-06. Three pieces of per-process state in `auth.py`,
+which the roadmap had carried as one item. They are not one item.
+
+| state | class | hosted verdict |
+| --- | --- | --- |
+| `_EPHEMERAL` (auth.py:83) | hosted-required | **already closed.** With `LEAGUEPAGE_AUTH_MODE=required`, `_secret()` raises rather than minting a per-process key. The path is dead hosted. |
+| `_LOGIN_ATTEMPTS` (auth.py:45) | hosted-required | **low, and leave it.** N workers means N × 5 attempts per window and a restart resets the count. What it throttles is a magic-link request and an OTP verify against an allowlist of one address. Supabase applies its own OTP rate limit, which is the one that matters; a shared counter would buy a round trip per attempt and no security. |
+| `_USED_LOGIN_JTI` (auth.py:46) | local fallback only | **the only real property, and it was unreachable hosted.** `/auth/callback` is reached only by a token minted at `desk.py`, and that branch runs only when Supabase is *not* configured. Hosted means configured, so hosted mints six-digit OTPs and never a redeemable link. |
+
+What Supabase OTP makes unnecessary remotely: single-use redemption,
+expiry and delivery are the provider's, and the allowlist is re-checked
+against the address *Supabase returns*, never the posted field.
+
+**Smallest hosted-safe solution — implemented 2026-09-06.** No shared
+store. The only property that needed to survive a restart was single-use
+redemption, and hosted does not mint redeemable links, so the fix was to
+enforce that invariant instead of relying on it: a Desk with
+`auth_required()` and no OTP provider **refuses to mint a local magic
+link**, logs why, and returns the same reply a stranger gets. One
+condition, no infrastructure. If a shared store is ever wanted anyway,
+the jti set is the only one worth a table; the rate limiter is not.
+
 ### Research stays out, and needs its own answer
 
 Reconfirmed after the migration. These are evidence, not publication state,
@@ -260,8 +373,41 @@ files, so each needs a classification before the cloud tranche:
 | `REVISION_REQUESTS.md` | **A** local only | a convenience file for a local Claude session; the queue itself is in `issue_revision_requests` |
 
 Only the two **C** rows are real work, and both are "AI drafts and private
-notes that arrive from outside the Desk". That is the shape of the next
-research-store decision; it is not solved here.
+notes that arrive from outside the Desk".
+
+#### The two C rows, traced (2026-09-06)
+
+| | `lowdown/{themes,outline,rough-lowdown}.md` | `matchups/<slug>/commissioner_notes.md` |
+| --- | --- | --- |
+| **written by** | a Claude Code session on this machine, following the brief in `issue_builder` | seeded once by `matchup_packet.build` and never overwritten; after that, only by Jonathan |
+| **read by** | the Desk Lowdown screen (all three); `review_packet` (themes as alternates, rough as a status line); `issue_builder.lowdown_state`; `desk_editor._ai_help_present`; `reset-generated`; `_take_candidates` | `matchup_packet._authoring_md` **only** — pasted into that matchup's AUTHORING brief, which is what the next Claude Code run reads |
+| **scope** | one issue | one matchup |
+| **privacy** | private; named in `privacy.py` and `audit_repo_privacy.py` | private, and stronger: his unfiltered reading of a real person's team. Stripped from all git history on 2026-08-31 |
+| **retention** | the life of the issue, and longer: the rough draft is the evidence behind a provenance claim | indefinite, by design |
+| **why not recomputable** | a writer's judgment, not a derivation. Nothing in the database knows which three frames were proposed or which he chose | they are his own words |
+
+Two consequences the class-C label alone did not make explicit:
+
+- **`rough-lowdown.md` is not only research.** Its *existence* decides the
+  Lowdown's workflow status (`drafting` vs `ready`) and decides whether
+  provenance records that AI assistance reached the section. A published
+  authorship claim depends on a file a hosted Desk cannot see.
+- **`commissioner_notes.md` is an authoring input, not a note to self.**
+  It reaches the next draft through the AUTHORING brief. Losing it does
+  not lose a note; it silently removes his steer from the writing.
+
+**Smallest durable representation.** Not a research database, and not a
+second `ProseRepository`:
+
+    research_artifacts(league_slug, season, issue_key, scope, name,
+                       body, updated_at)
+      primary key (league_slug, season, issue_key, scope, name)
+
+`scope` is `lowdown` or `matchup:<slug>`; `name` is the filename. Five
+named artifacts per issue, one writer and one reader each. Deliberately
+not versioned, not searchable, and with no undo: this is evidence, and
+giving it undo semantics would mean deciding whose undo it is. The class-B
+files stay out — a worker regenerates those.
 
 ### Portability seams
 
@@ -299,13 +445,30 @@ change the facts.
 
 ## Manual gates — only Jonathan can do these
 
+0. **Apply the pending migrations.** Verified live 2026-09-06 from the
+   anon path: `0001` and `0003` are applied; **`0002_change_inbox.sql` and
+   `0004_durable_jobs.sql` are not** (`change_inbox`, `sync_snapshots` and
+   `job_events` answer PGRST205), and `0005_prose_keys.sql` cannot be
+   confirmed either way from anon because it alters a column list. Paste
+   each into the SQL Editor as the database owner, in order; 0005 guards
+   itself and is safe to re-run.
 1. **Seed `app_commissioners`.** Run
    `.venv/Scripts/python.exe scripts/make_commissioner_seed.py`, then run the
    emitted SQL in the Supabase dashboard's SQL Editor as the database owner.
    RLS is forced on that table and its policy requires membership, so the
-   application cannot insert its own first row — verified 2026-08-31: the
-   publishable key gets 401. The email must match
-   `LEAGUEPAGE_COMMISSIONER_EMAILS`. **Everything hosted is blocked on this.**
+   application cannot insert its own first row — verified 2026-08-31 and
+   again 2026-09-06: anon gets 42501 on every table that exists. The email
+   must match `LEAGUEPAGE_COMMISSIONER_EMAILS`. **Everything hosted is
+   blocked on this.**
+1b. **Put `DATABASE_URL` in `.env`** if the Postgres backend is to be
+   proved. It is unset today, and the Postgres repository connects by DSN
+   and refuses to fall back, so without it the thirteen Postgres contract
+   tests, `prose_tool import` and `prose_tool verify` cannot run at all.
+   It is used by migration tooling only — the application talks to
+   Supabase over PostgREST with the signed-in Commissioner's token — and
+   it never leaves `.env`. Note that a DSN connects as the owner and
+   therefore **bypasses RLS**: it can prove the repository contract, and
+   it can never prove an authorization rule.
 2. **Create the private Vercel project** for the Desk and set its
    environment variables (`LEAGUEPAGE_AUTH_MODE=required`,
    `LEAGUEPAGE_SECRET_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,

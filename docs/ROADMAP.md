@@ -4,7 +4,7 @@ Ranked product roadmap. **Future work only** — what exists today is in
 `docs/HANDOFF.md`, and why it was built that way is in `docs/DECISIONS.md`.
 Keep those three separate: HANDOFF gets stale if it doubles as a wish list.
 
-Reviewed 2026-09-03.
+Reviewed 2026-09-06.
 
 ## The product rule
 
@@ -31,15 +31,43 @@ Target architecture, transition order and the manual gates live in
 | 4 | Durable jobs table | 13 | `shipped` 2026-09-05 |
 | 5 | AI WritingPacket + proposal queue UX | 10 | `partial` — the packet exists; the queue does not |
 | 6 | Prose repository boundary | 10 | `shipped` 2026-09-05 |
-| 7 | Cloud persistence (Supabase Postgres) | 9 | `planned` |
+| 7 | **Unified cloud editorial state** | 9 | `next` — scoped 2026-09-06 |
 | 8 | Hosted private beta | 5 | blocked on the manual gate |
 | 9 | Cloud publication worker (GitHub Actions) | 2.4 | `deferred` until 6 and 7 |
 | 10 | Portability / onboarding | 1 | seams only, no SaaS |
 
 Durable jobs outranked the prose repository because it paid off locally on
 its own, and it did: a publish now survives a Desk restart, and a publish
-that does not survive says so instead of vanishing. The prose repository is
-next, and its inventory is in the architecture doc.
+that does not survive says so instead of vanishing.
+
+**Tranche 7 was rescoped on 2026-09-06 and renamed.** It was "cloud
+persistence", which read as "point the app at Postgres". The live
+validation tranche established that the hard part is not persistence: it
+is that a single Commissioner click writes prose *and* seven pieces of
+editorial metadata with no shared transaction. Moving prose alone produces
+two databases that disagree about the same click. See
+`docs/DECISIONS.md`, 2026-09-06.
+
+**Tranche 7 — unified cloud editorial state.** In order:
+
+1. **Make approval content-bound.** `issue_modules.approved` and
+   `matchup_state.status` become signatures over the text they cover, the
+   way `approved_sha` already works for Common Tactical Picture. This is
+   the cutover blocker and it is worth doing on SQLite first, where it is
+   observable.
+2. **Close the schema gaps.** `section_prose_state` and `prose_provenance`
+   have no Postgres table; `issue_modules.approved_sha`, `issues.theme`
+   and `matchup_state.revision_requests` have no Postgres column.
+   `tests/test_schema_parity.py` declares all of them and will tell you
+   when the list is empty.
+3. **Route the staleness flags.** `_changed_since_approval` reads `meta`
+   with a raw `LIKE` through `s._conn`. `editorial_meta` exists in
+   Postgres; nothing addresses it.
+4. **One transaction per Commissioner action**, then the supervised
+   cutover, which is a data decision at that point rather than an
+   architectural one.
+5. **The research store** (see below) — needed for hosted authoring, not
+   for the cutover.
 
 ## Sequencing gate: remote authoring
 
@@ -55,32 +83,58 @@ because Tier 1 adds **no filesystem state**: its durable state is rows in
 `migrations/`, in the export/import bundle, and in the schema verifier, so the
 cutover surface did not grow.
 
+Live findings, 2026-09-06 (anon PostgREST, read-only, no mutation):
+
+- RLS is doing its job. All sixteen tables that exist answer 42501 to the
+  publishable key. Nothing is exposed.
+- **Migrations `0002` and `0004` have not been applied** — `change_inbox`,
+  `sync_snapshots` and `job_events` answer PGRST205. `0005` cannot be
+  confirmed from anon, and is safe to re-run.
+- **`DATABASE_URL` is not set.** The Postgres prose repository connects by
+  DSN and refuses to fall back, so the thirteen Postgres contract tests,
+  the import and the verifier cannot run at all without it.
+
 Structural blockers still open, in order:
 
-1. **Seed `app_commissioners`** — Jonathan, once. Blocks proving anything below.
+1. **Apply 0002, 0004, 0005, then seed `app_commissioners`** — Jonathan,
+   once, in the Supabase SQL Editor as database owner. Blocks proving
+   anything below.
 2. ~~**Prose repository**~~ — done 2026-09-05. `ProseKey` and
    `ProseRepository` (`leaguepage/prose_store.py`); the filesystem backend is
    authoritative and a Postgres one implementing the same contract exists,
    unused, behind `LEAGUEPAGE_PROSE_BACKEND`. Optimistic concurrency is real:
    an autosave that names no version is refused rather than overwriting.
-   **What remains is the supervised cutover**, which is the next tranche and
-   which nothing in the code will perform on its own.
+   ~~**What remains is the supervised cutover.**~~ Rescoped 2026-09-06:
+   what remains is tranche 7 above, and *then* the cutover. Nothing in the
+   code will perform it on its own.
 3. ~~**Durable jobs table**~~ — done 2026-09-05. `_JOB`, `_JOBS` and
    `_ACTIVE` are gone; job state is leased rows in `jobs` + `job_events`
    (`leaguepage/jobs.py`), and `migrations/0004_durable_jobs.sql` is written
-   and waiting on the Supabase gate. **Still open, and separated out because
-   it belongs with identity rather than with jobs:** the login rate-limit
-   dictionaries in `auth.py` (`_LOGIN_ATTEMPTS`, `_USED_LOGIN_JTI`,
-   `_EPHEMERAL`) are still per-process, so throttling resets on a restart and
-   a one-time login token could be replayed against a second instance.
+   and **still waiting on the Supabase gate** (verified not applied,
+   2026-09-06). ~~The auth dictionaries.~~ **Closed 2026-09-06.** They were
+   three separate questions, not one: `_EPHEMERAL` already fails closed
+   when auth is required; `_LOGIN_ATTEMPTS` throttles an allowlist of one
+   address in front of Supabase's own OTP limit and is not worth a shared
+   store; and `_USED_LOGIN_JTI` guards a link a hosted Desk never mints —
+   now enforced rather than assumed, since a hosted Desk with no OTP
+   provider refuses to mint one.
 4. **Filesystem write sites** — the prose ones are gone: nine production
    write sites became repository calls, and the four CLI correction scripts
    that still edit Markdown refuse to run unless the filesystem is
    authoritative. What is left is research and build output, classified in
    the architecture doc: almost all of it recomputable, and exactly two
-   shapes (`themes/outline/rough-lowdown.md` and `commissioner_notes.md`)
-   that arrive from outside the Desk and would need a durable research store
-   before hosted authoring is complete.
+   shapes that are not. Traced fully on 2026-09-06, with two findings that
+   change their priority: `rough-lowdown.md`'s *existence* decides both the
+   Lowdown's workflow status and whether a provenance record claims AI
+   assistance, so a published authorship claim depends on a file a hosted
+   Desk cannot see; and `commissioner_notes.md` is an authoring input that
+   reaches the next draft through the AUTHORING brief, not a note to self.
+   The proposal is one seven-column `research_artifacts` table — not a
+   research database, not a second prose repository, no undo.
+   One filesystem write is still inside a Commissioner action:
+   `REVISION_REQUESTS.md` is rewritten whenever a rewrite request is made
+   or a proposal is resolved, which a read-only serverless filesystem would
+   fail.
 5. **Private Vercel project + env vars.**
 
 ## Status key

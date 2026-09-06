@@ -1297,3 +1297,81 @@ first comparison showed one difference, which turned out to be the harness:
 it. Pointing both trees at the one real editorial directory made the
 difference disappear, which is worth writing down because the same trap is
 waiting for the next person who diffs two checkouts of this repository.
+
+## 2026-09-06 — The filesystem stays authoritative: prose does not cut over yet
+
+The Supabase live-validation tranche was scoped to decide, on evidence,
+whether Postgres prose could become authoritative that day. The answer is
+no, and the reason is not connectivity.
+
+Moving prose to Postgres does not move a Commissioner action to Postgres.
+Every editor operation but *request rewrite* writes prose **and** editorial
+metadata that is in a different database, with no shared transaction: a
+save writes provenance, prose state, an approval flag and a staleness key;
+accepting a proposal additionally resolves the rewrite queue and rewrites a
+file on disk. The full map is in the architecture doc.
+
+Two of those were deterministic breaks rather than race windows.
+
+1. **History and Restore read `prose_revisions` out of SQLite directly.**
+   Under the filesystem backend that is the same store the repository
+   writes to, so nothing was visibly wrong. Under Postgres the History
+   panel empties and Restore has nothing to restore. **Fixed in this
+   tranche** — all four reads go through `ProseRepository`, which already
+   had `history()` and `revision()` that nothing called.
+2. **An ordinary approval is a flag, not a signature.**
+   `issue_modules.approved` is a boolean cleared by the save route *after*
+   the prose write. Every path through the Desk clears it, so the Desk is
+   right; the storage layer is not. A prose write that lands beside a
+   metadata write that does not leaves a green approval chip standing over
+   text nobody approved — which is the one failure the whole editor exists
+   to prevent. This is unfixed, and it is the blocker.
+
+Common Tactical Picture already solves it properly: its approval carries
+`approved_sha`, a hash of the text it covers, so it retires itself with
+nothing having to notice. That column **does not exist in the Postgres
+schema** — the one correct mechanism is the one that could not migrate.
+Two whole tables in the boundary (`section_prose_state`,
+`prose_provenance`) have no Postgres table at all.
+
+**Why not cut over anyway and fix it after.** Because the failure is
+silent and it is about publication. A split-brain approval does not throw;
+it publishes. Nothing in the Desk would report it, and the artifact it
+produces is the product.
+
+**Why not dual-write.** Two authoritative stores is the failure this
+avoids, not a mitigation for it.
+
+The alternative considered and rejected was a narrower cutover: prose in
+Postgres, metadata in SQLite, accepting the window. That is exactly the
+split brain, and it trades a bounded delay for an unbounded and undetectable
+class of error.
+
+Consequence: `LEAGUEPAGE_PROSE_BACKEND` stays `filesystem`. The Postgres
+backend remains implemented, contract-tested and unused. The next tranche
+is **unified cloud editorial state** — move the seven boundary tables and
+make approval content-bound — and only then does the cutover become a
+decision about data rather than about architecture.
+
+A successful outcome here was always allowed to be "validated, populated,
+not authoritative." It is preferable to a successful-looking split brain.
+
+## 2026-09-06 — A hosted Desk refuses to mint a local magic link
+
+The local magic link is single-use only within the process that minted it:
+the jti set is a module-level dict. On localhost, where the link is written
+to this machine's own console, that is proportionate. Hosted, a captured
+link would be honoured again by a second instance, or by the same one after
+a restart.
+
+It was already unreachable hosted — the route mints a link only when
+Supabase is *not* configured, and hosted means configured — so the
+correct fix was to enforce the invariant rather than rely on it. With
+`auth_required()` and no OTP provider, the Desk refuses, logs why, and
+returns the identical reply a stranger gets.
+
+Chosen over putting the jti set in Postgres, which would have added a round
+trip on every redemption to protect a path that hosted never takes. The
+login rate limiter stays per-process for the same reason: it throttles
+requests against an allowlist of one address, in front of Supabase's own
+OTP rate limit.

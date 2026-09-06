@@ -1,10 +1,129 @@
 # HANDOFF
 
-Updated 2026-09-05, end of the prose repository tranche. Companions:
+Updated 2026-09-06, end of the Supabase live-validation tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Commissioner Portal, tranche 4 — Supabase live validation (2026-09-06)
+
+**Status: no cutover. `LEAGUEPAGE_PROSE_BACKEND` is still `filesystem` and
+the filesystem is still authoritative. No Supabase mutation, no migration
+applied, no seed, no publication, no deployment, and `.env` untouched. The
+live work is blocked on a manual gate that turned out to be wider than the
+brief assumed.**
+
+The tranche was scoped to decide whether Postgres prose could become
+authoritative. It can't, and the reason is architectural rather than
+operational, so the answer did not depend on reaching the database.
+
+### Live preflight (read-only, publishable key, no rows fetched)
+
+Anon is granted nothing, so an existing table answers 42501 and a missing
+one answers PGRST205. That distinction is all this probe reads.
+
+| finding | result |
+| --- | --- |
+| Supabase reachable | yes |
+| tables present and refusing anon | 16/16 — **nothing exposed** |
+| `migrations/0002_change_inbox.sql` | **not applied** (`change_inbox`, `sync_snapshots` missing) |
+| `migrations/0004_durable_jobs.sql` | **not applied** (`job_events` missing) |
+| `migrations/0005_prose_keys.sql` | unverifiable from anon; alters a column list. Guarded, safe to re-run |
+| `app_commissioners` | exists, empty, and cannot seed itself by design |
+| `DATABASE_URL` | **not set**; `SUPABASE_SECRET_KEY` not set; `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` set |
+
+`DATABASE_URL` is the binding one: the Postgres repository connects by DSN
+and refuses to fall back, so the 13 Postgres contract tests, `prose_tool
+import` and `prose_tool verify` cannot run at all without it. A DSN also
+connects as the owner and therefore bypasses RLS — it can prove the
+repository contract and can never prove an authorization rule.
+
+**Backups taken before anything else** (kept out of git): the SQLite
+database copied and read back clean (4 issues, 650 prose revisions), all
+34 prose objects exported through the repository, and a BEFORE manifest of
+34 prose content hashes plus 9 published-snapshot hashes. HEAD at the time
+was `a8ca804`.
+
+### The cutover decision: filesystem stays authoritative
+
+Full reasoning in `docs/DECISIONS.md` (2026-09-06); the map is in
+`docs/COMMISSIONER_PORTAL_ARCHITECTURE.md` under *The cutover boundary*.
+In short: every editor operation but *request rewrite* writes prose **and**
+editorial metadata in a second database with no shared transaction.
+
+Two deterministic breaks were identified. One is fixed here:
+
+- ~~**History and Restore read `prose_revisions` out of SQLite directly.**~~
+  **Fixed.** Four call sites went around `ProseRepository`, which already
+  had `history()` and `revision()` that nothing called. Invisible under the
+  filesystem backend, since that backend keeps revisions in SQLite; after a
+  cutover the History panel empties and Restore has nothing to restore. The
+  counts are now one `revision_counts()` call for a whole issue instead of
+  one connection per card, so the editor page also got faster.
+- **An ordinary approval is a flag, not a signature.** Unfixed, and the
+  blocker. `issue_modules.approved` is a boolean cleared by the save route
+  *after* the prose write. Common Tactical Picture does it correctly with
+  `approved_sha` — and that column does not exist in the Postgres schema.
+
+`tests/test_schema_parity.py` is new and static (no database, no network).
+It compares `storage.SCHEMA` plus the additive columns against
+`migrations/*.sql` and declares every gap with its reason. It found three
+missing tables (`section_prose_state`, `prose_provenance`,
+`force_flow_notes`) and four missing columns, of which `issue_modules.
+approved_sha`, `issues.theme` and `matchup_state.revision_requests` are
+real and `issues.source_path`/`published_path` are deliberate.
+
+### Hosted-beta readiness
+
+**PASS** verified working in the shape it ships · **READY** built and
+tested, waiting on a gate · **MANUAL** waiting on Jonathan · **BLOCKED**
+needs work or a prerequisite · **DEFERRED** deliberately out of scope.
+
+| area | status | basis |
+| --- | --- | --- |
+| Auth / RLS | **MANUAL** | RLS forced and verified refusing anon on all 16 live tables. Allowlist, OTP exchange and the private-route audit are green. Blocked only on the `app_commissioners` seed, which needs owner rights. |
+| Prose | **READY** | One contract, two backends. 32 contract tests green on the filesystem; 13 Postgres ones BLOCKED on `DATABASE_URL`. Import is dry-run until told otherwise; verify never prints prose. |
+| Concurrency | **PASS** | Enforced on every write path. A save that names no version is refused; 409 carries both versions and the stored text; nothing merges. Proved on the live filesystem backend. |
+| Durable jobs | **READY** | Leased rows, heartbeats, atomic claim, four-source recovery — all exercised locally. `0004` is written and **not applied** to Supabase. |
+| Other editorial state | **BLOCKED** | Seven tables/prefixes must commit with prose and do not. Three have no Postgres table. This is tranche 7. |
+| Research inputs | **BLOCKED** | Two unrecomputable shapes, and both decide more than they look like they decide: `rough-lowdown.md`'s existence decides workflow status *and* whether provenance claims AI assistance. Proposal is one `research_artifacts` table. |
+| Serverless filesystem writes | **BLOCKED** | `REVISION_REQUESTS.md` is rewritten inside the proposal action; `reset-generated`, `_ai_help_present` and `lowdown_state` read research files from disk. |
+| Private Vercel config | **MANUAL** | Project not created, env vars not set. |
+| Publication worker | **DEFERRED** | Out of scope by instruction. The build reads SQLite and `editorial/`; publication stays local and approved. |
+
+### Auth residual, closed
+
+Three separate questions, not one roadmap item. `_EPHEMERAL` already fails
+closed when auth is required. `_LOGIN_ATTEMPTS` throttles an allowlist of
+one address in front of Supabase's own OTP limit, and a shared counter
+would buy a round trip and no security. `_USED_LOGIN_JTI` guards the only
+real property — single-use redemption — on a path a hosted Desk never
+takes, because a link is minted only when Supabase is *not* configured.
+
+Fixed by enforcing that invariant instead of relying on it: a Desk with
+`auth_required()` and no OTP provider refuses to mint a local magic link,
+logs why, and returns the identical reply a stranger gets. One condition,
+no infrastructure.
+
+### Gates (code-only; live gates blocked, not failed)
+
+| gate | result |
+| --- | --- |
+| pytest | see the closing note below |
+| Postgres contract tests | **SKIPPED** — `DATABASE_URL` unset, by design rather than by failure |
+| live Supabase validation, import, parity, cutover proofs | **BLOCKED** on the manual gate |
+
+### Still waiting on Jonathan
+
+1. Apply `0002_change_inbox.sql`, `0004_durable_jobs.sql`,
+   `0005_prose_keys.sql` in the Supabase SQL Editor as database owner.
+2. Run `scripts/make_commissioner_seed.py` and apply its statement.
+3. Optionally set `DATABASE_URL` in `.env` — required before any Postgres
+   contract test, import or verify can run, and it does both jobs at once
+   because the seed script applies itself when it is present.
+
+Nothing downstream of that gate was simulated, assumed or reported as done.
 
 ## Commissioner Portal, tranche 3 — prose repository (2026-09-05)
 
