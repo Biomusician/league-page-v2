@@ -271,6 +271,20 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                     # logged, never surfaced: a provider error would reveal
                     # whether the address exists
                     print(f"  [auth] supabase otp failed: {exc}", flush=True)
+            elif authmod.auth_required():
+                # Hosted, and no OTP provider configured. The local magic
+                # link is single-use only within the process that minted it
+                # -- the jti set is a module dict -- so a second instance,
+                # or the same one after a restart, would honour a captured
+                # link again. That is acceptable on localhost, where the
+                # link is written to this machine's own console, and it is
+                # not acceptable on a hosted Desk. Refusing is the failure
+                # that cannot be exploited.
+                #
+                # Logged, never surfaced: the browser gets the same reply
+                # for every address, as everywhere else on this route.
+                print("  [auth] refusing to mint a local magic link: auth is "
+                      "required and no OTP provider is configured", flush=True)
             else:
                 token = authmod.issue_login_token(email)
                 base = str(request.base_url).rstrip("/")

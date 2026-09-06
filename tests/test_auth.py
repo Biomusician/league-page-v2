@@ -34,6 +34,23 @@ PUBLIC_PATHS = {
 
 
 @pytest.fixture
+def local(tmp_path, monkeypatch):
+    """The localhost Desk: no auth mode, so sign-in still works through the
+    locally-signed magic link that needs no provider at all."""
+    monkeypatch.setenv("LEAGUEPAGE_AUTH_MODE", "off")
+    monkeypatch.setenv("LEAGUEPAGE_COMMISSIONER_EMAILS", COMMISH)
+    monkeypatch.setenv("LEAGUEPAGE_MAIL_PROVIDER", "log")
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    auth._USED_LOGIN_JTI.clear()
+    auth._LOGIN_ATTEMPTS.clear()
+    db = tmp_path / "d.sqlite3"
+    with Storage(db) as s:
+        populate_league(s, get_league("surfeit"), teams=10, rounds=3)
+        s.set_meta("current_week", "1")
+    return TestClient(create_app(db), follow_redirects=False)
+
+
+@pytest.fixture
 def secure(tmp_path, monkeypatch):
     monkeypatch.setenv("LEAGUEPAGE_AUTH_MODE", "required")
     monkeypatch.setenv("LEAGUEPAGE_COMMISSIONER_EMAILS", COMMISH)
@@ -110,14 +127,14 @@ def test_allowlisted_email_can_sign_in_and_reach_the_desk(secure):
     assert "Commissioner's Desk" in r.text
 
 
-def test_stranger_learns_nothing_and_gets_no_link(secure, monkeypatch):
+def test_stranger_learns_nothing_and_gets_no_link(local, monkeypatch):
     sent = []
     import leaguepage.mailer as mailer
     monkeypatch.setattr(mailer, "send_mail",
                         lambda *a, **k: sent.append(a) or "log")
 
-    good = secure.post("/auth/request", data={"email": COMMISH})
-    bad = secure.post("/auth/request", data={"email": STRANGER})
+    good = local.post("/auth/request", data={"email": COMMISH})
+    bad = local.post("/auth/request", data={"email": STRANGER})
     # identical response: no disclosure of who is on the allowlist. The
     # redirect carries no email at all (it lives in a signed cookie), so the
     # two responses are byte-identical.
@@ -125,6 +142,27 @@ def test_stranger_learns_nothing_and_gets_no_link(secure, monkeypatch):
     assert good.headers["location"] == bad.headers["location"]
     assert "@" not in good.headers["location"]
     assert len(sent) == 1 and sent[0][0] == COMMISH
+
+
+def test_a_hosted_desk_mints_no_local_magic_link(secure, monkeypatch):
+    """The local magic link is single-use only inside the process that
+    minted it: the jti set is a module dict. On one machine, with the link
+    written to that machine's own console, that is proportionate. Hosted,
+    a captured link would be honoured again by a second instance or by the
+    same one after a restart, so a hosted Desk with no OTP provider
+    refuses to mint one rather than minting a replayable one.
+
+    The browser is told nothing either way -- the reply is the same reply
+    a stranger gets, which is the whole point of this route.
+    """
+    sent = []
+    import leaguepage.mailer as mailer
+    monkeypatch.setattr(mailer, "send_mail",
+                        lambda *a, **k: sent.append(a) or "log")
+
+    r = secure.post("/auth/request", data={"email": COMMISH})
+    assert r.status_code == 303
+    assert sent == []
 
 
 def test_login_token_is_single_use(secure):
