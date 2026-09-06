@@ -30,7 +30,7 @@ Target architecture, transition order and the manual gates live in
 | 3 | CTP single approval | 16 | `shipped` |
 | 4 | Durable jobs table | 13 | `shipped` 2026-09-05 |
 | 5 | AI WritingPacket + proposal queue UX | 10 | `partial` — the packet exists; the queue does not |
-| 6 | Prose repository boundary | 10 | `planned` |
+| 6 | Prose repository boundary | 10 | `shipped` 2026-09-05 |
 | 7 | Cloud persistence (Supabase Postgres) | 9 | `planned` |
 | 8 | Hosted private beta | 5 | blocked on the manual gate |
 | 9 | Cloud publication worker (GitHub Actions) | 2.4 | `deferred` until 6 and 7 |
@@ -58,8 +58,13 @@ cutover surface did not grow.
 Structural blockers still open, in order:
 
 1. **Seed `app_commissioners`** — Jonathan, once. Blocks proving anything below.
-2. **Prose repository** — `editorial/**/*.md` behind a repository interface so
-   Postgres is a drop-in. Four path shapes. The last structural blocker.
+2. ~~**Prose repository**~~ — done 2026-09-05. `ProseKey` and
+   `ProseRepository` (`leaguepage/prose_store.py`); the filesystem backend is
+   authoritative and a Postgres one implementing the same contract exists,
+   unused, behind `LEAGUEPAGE_PROSE_BACKEND`. Optimistic concurrency is real:
+   an autosave that names no version is refused rather than overwriting.
+   **What remains is the supervised cutover**, which is the next tranche and
+   which nothing in the code will perform on its own.
 3. ~~**Durable jobs table**~~ — done 2026-09-05. `_JOB`, `_JOBS` and
    `_ACTIVE` are gone; job state is leased rows in `jobs` + `job_events`
    (`leaguepage/jobs.py`), and `migrations/0004_durable_jobs.sql` is written
@@ -68,10 +73,14 @@ Structural blockers still open, in order:
    dictionaries in `auth.py` (`_LOGIN_ATTEMPTS`, `_USED_LOGIN_JTI`,
    `_EPHEMERAL`) are still per-process, so throttling resets on a restart and
    a one-time login token could be replayed against a second instance.
-4. **Filesystem write sites** — measured 2026-09-05: 62 in `leaguepage/`, of
-   which ~24 are persistent editorial state a read-only serverless runtime
-   rejects. The rest are build artifacts, immutable publication records, or
-   recomputable research, and do not all need a database.
+4. **Filesystem write sites** — the prose ones are gone: nine production
+   write sites became repository calls, and the four CLI correction scripts
+   that still edit Markdown refuse to run unless the filesystem is
+   authoritative. What is left is research and build output, classified in
+   the architecture doc: almost all of it recomputable, and exactly two
+   shapes (`themes/outline/rough-lowdown.md` and `commissioner_notes.md`)
+   that arrive from outside the Desk and would need a durable research store
+   before hosted authoring is complete.
 5. **Private Vercel project + env vars.**
 
 ## Status key

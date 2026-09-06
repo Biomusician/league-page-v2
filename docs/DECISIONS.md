@@ -1213,3 +1213,87 @@ actually bites here.
 contract. Timestamps stay UTC, second-resolution, fixed width, because
 SQLite compares them as text and Postgres as timestamps, and that is only
 safe while every one of them looks the same; a test pins it.
+
+## 2026-09-05 — Prose has an identity, a version, and exactly one home
+
+**Six places built the path to a Markdown file, and two of them
+disagreed.** The Lowdown lived at
+`editorial/{season}/{league}/{issue}/lowdown/lowdown.md`, and every module
+that wanted it spelled that out again. A matchup draft had two spellings,
+one keyed by week and one by issue, which coincided only because weekly
+issues are named `week-NN`. Exactly one of the six checked that the result
+stayed inside the editorial tree. That is workable while the only machine
+editing prose is this one, and it was the last thing between here and a
+Desk he can open from a phone.
+
+**So prose is addressed logically.** `ProseKey(league, season, issue,
+kind, name)` names one editable object, and `ProseRepository` is the only
+way to read or write it. Four kinds and no more: `section` (the Lowdown
+and every module's copy), `matchup` (the previews he writes by product
+rule), `proposal` (what Claude Code and ChatGPT hand back). Research is
+deliberately outside it — briefs, prep, command briefs, generated packets
+and caches are evidence, not publication state, and absorbing them would
+have turned "stop writing prose to disk" into "put every generated file in
+a database".
+
+The key is not a new vocabulary. `section_id` is the same string
+`prose_revisions`, `section_prose_state`, `prose_provenance` and
+`issue_modules` have always used, matchups included (`matchup:<slug>`).
+The words move; their history and provenance keep their existing
+addresses. This is not a metadata migration.
+
+**Version and content hash are different facts, and the split is
+load-bearing.** The version is a storage token: it changes when the stored
+bytes change, and it is what an edit must be based on. The content hash is
+editorial identity, normalised the way provenance has always normalised it
+(comments stripped, line endings unified, outer whitespace dropped), and
+it is what approval, provenance and "changed since published" ask. A
+trailing newline is a new version and the same content. A test pins both
+halves of that.
+
+**The filesystem backend derives its version from the bytes rather than
+counting mutations,** which is a deliberate divergence from the integer
+`version` the Postgres `sections` table carries. `editorial/` is a git
+working tree that Jonathan edits in a text editor and Claude Code writes
+proposals into. A counter kept beside a file cannot notice an edit that did
+not come through the Desk, so a stale save would silently destroy one. A
+token derived from the content notices every change whoever made it.
+Postgres has no such back door, so it counts, which is cheaper. Callers
+never interpret either: they read a version and hand it back.
+
+**Optimistic concurrency is now real rather than advisory.** The old check
+was `if base_sha and base_sha != current`, so a client that sent no
+`base_sha` — or sent an empty one — overwrote whatever was there. Autosave
+is the automatic path and may never write blind: a save that names no
+version is claiming the section does not exist yet, and is refused if it
+does. The deliberate, confirmed actions (restore, reset-to-generated,
+replace-with-my-copy, accept-proposal) are guarded whenever the page says
+what it was looking at, which the Desk's own client always does.
+
+A refusal returns 409 with both sides: the version he was editing, the
+version stored now, and the stored text. Nothing is merged. The room shows
+him the two and he picks; "reload the page" was the old advice and it threw
+away what he had just typed.
+
+**Exactly one backend is authoritative at runtime.** `LEAGUEPAGE_PROSE_BACKEND`
+selects it, the default is `filesystem`, and there is no dual-write and no
+fallback. If Postgres is selected and unreachable the Desk raises rather
+than quietly writing to disk, because a silent fallback is precisely how
+two half-populated sources of truth are made. `/health` says which store is
+live, and says it without a path, a host or a DSN.
+
+**Nothing cut over.** `scripts/prose_tool.py` imports (dry run by default),
+exports back to a repository-shaped Markdown tree, and verifies the two
+backends key by key using hashes and versions — never the prose itself.
+The four CLI correction scripts that edit Markdown directly now refuse to
+run when the filesystem is not authoritative, so a stale tool cannot create
+the split brain by itself.
+
+Parity was measured rather than asserted: every issue assembles to
+byte-identical module content against the pre-refactor commit in a git
+worktree, and all 35 real prose objects round-trip through export. The
+first comparison showed one difference, which turned out to be the harness:
+`managers.json` is gitignored, so the worktree scored the league without
+it. Pointing both trees at the one real editorial directory made the
+difference disappear, which is worth writing down because the same trap is
+waiting for the next person who diffs two checkouts of this repository.

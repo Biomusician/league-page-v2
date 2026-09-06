@@ -1,10 +1,66 @@
 # HANDOFF
 
-Updated 2026-09-05, end of the durable jobs tranche. Companions:
+Updated 2026-09-05, end of the prose repository tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Commissioner Portal, tranche 3 — prose repository (2026-09-05)
+
+**Status: 1,354 tests green (15 skipped: 13 are the Postgres contract, which
+cannot be reached from this machine), real-data parity proved against the
+pre-refactor commit, build clean, both privacy audits clean. Nothing
+published, no snapshot touched, and the authoritative prose store is still
+the filesystem. No cutover was performed and none will happen by itself.**
+
+The application no longer knows that prose is a Markdown file.
+
+- **`leaguepage/prose_store.py`** — `ProseKey(league, season, issue, kind,
+  name)`, `Prose`, the `ProseRepository` protocol and the filesystem
+  backend. Four kinds: `section`, `matchup`, `proposal`. One path builder
+  where there were six, including the containment check only one of them
+  used to do.
+- **`leaguepage/prose_postgres.py`** — the same contract over the
+  `sections` table. Writes are one guarded statement
+  (`update ... where version = %s`); prose and its revision are one
+  transaction. `migrations/0005_prose_keys.sql` adds the `kind` column it
+  needs. **Never exercised against a live database:** `DATABASE_URL` is
+  unset here, so its behavioural tests skip and only its SQL shape is
+  pinned. That boundary is untested and is named as such.
+- **Optimistic concurrency, made real.** The old check was
+  `if base_sha and base_sha != current`, so a client that sent nothing
+  overwrote whatever was there. Autosave may no longer write blind; a
+  refusal returns 409 carrying the version he had, the version stored, and
+  the stored text. The room shows both and he picks. Nothing merges.
+- **Backend selection** via `LEAGUEPAGE_PROSE_BACKEND` (default
+  `filesystem`), fail-closed, reported by `/health`.
+- **`scripts/prose_tool.py`** — inventory, export, import (dry run by
+  default), verify (nonzero on mismatch, and it never prints prose).
+
+Measured, not asserted:
+
+| check | result |
+| --- | --- |
+| assembly vs commit `7356f57` | 27/27 module hashes identical |
+| export round-trip | 35/35 prose objects identical |
+| published snapshots | 9 files, hashes unchanged |
+
+Deliberate limits, so they are not mistaken for oversights:
+
+- **The filesystem is still the source of truth.** Changing it is a
+  supervised operation, not a side effect of pulling main.
+- **Research stayed out.** Briefs, prep, command briefs and generated
+  packets are evidence, not publication state. The architecture doc
+  classifies each for the cloud tranche; only two shapes
+  (`themes/outline/rough-lowdown.md`, `commissioner_notes.md`) will need a
+  durable store, because they arrive from outside the Desk.
+- **Four CLI correction scripts still edit Markdown directly.** They now
+  refuse to run unless the filesystem is authoritative, so they cannot
+  create a split brain; they would need migrating to be useful after a
+  cutover.
+- **Auth is still process-local** (`_LOGIN_ATTEMPTS`, `_USED_LOGIN_JTI`,
+  `_EPHEMERAL`). Unchanged by this tranche and still a hosted blocker.
 
 ## Commissioner Portal, tranche 2 — durable jobs (2026-09-05)
 

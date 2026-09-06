@@ -22,7 +22,7 @@ SQLite database and a tree of Markdown files.
 | Authorization | Local allowlist (`LEAGUEPAGE_COMMISSIONER_EMAILS`) plus the Postgres `app_commissioners` table that RLS checks |
 | Sessions | HMAC-signed cookies, `LEAGUEPAGE_SECRET_KEY` |
 | CSRF | Middleware over every mutating method; token in a `<meta>` tag, attached centrally by `static/desk.js` |
-| Prose | `editorial/**/*.md` on disk |
+| Prose | Behind `ProseRepository` (`leaguepage/prose_store.py`). Filesystem backend authoritative; Postgres implemented and not live |
 | Editorial state | SQLite: decisions, approvals, provenance, prose revisions, takes, notes |
 | Jobs | Durable `jobs` + `job_events` rows with leases (`leaguepage/jobs.py`); a local daemon thread is one possible worker, not the record |
 | Publication | Immutable JSON snapshots in `published/`, corrections as sibling revisions |
@@ -34,9 +34,15 @@ approval bound to content, provenance recorded rather than inferred.
 
 ### What blocks a hosted deployment today
 
-1. **Prose is filesystem state.** Roughly 24 write sites under `leaguepage/`
-   put editorial state on disk. A read-only serverless runtime rejects all
-   of them.
+1. ~~**Prose is filesystem state.**~~ **Done, 2026-09-05.** Every
+   Commissioner-editable prose read and write goes through
+   `ProseRepository`. Nine production write sites became repository calls;
+   the filesystem backend is still authoritative, and a Postgres backend
+   implementing the same contract exists and is not live. What remains of
+   this blocker is the four CLI correction scripts that edit Markdown
+   directly: they now refuse to run unless the filesystem is authoritative,
+   so they cannot create a split brain, but they would need migrating
+   before they are useful again after a cutover.
 2. ~~**Jobs are process globals.**~~ **Done, 2026-09-05.** Job state is
    durable and leased (see *Durable jobs*, below). What remains of this
    blocker is smaller and separate: the auth rate-limit dictionaries
@@ -191,47 +197,71 @@ conflict when that version has moved — this exists now (`base_sha`, 409)
 and must survive the repository cutover. Approval binds to a content
 signature for the same reason; CTP already works this way.
 
-### Where prose lives, before it moves
+### Where prose lives
 
-A read-only inventory taken 2026-09-05, after the jobs work and before any
-`ProseRepository` exists. This is the shape such a repository would have to
-cover; nothing here has been changed.
+Built 2026-09-05. `leaguepage/prose_store.py` is the contract and the
+filesystem backend; `leaguepage/prose_postgres.py` is the Postgres one.
 
-**On disk**, under `editorial/{season}/{league}/{issue}/`:
+**A key, not a path.** `ProseKey(league, season, issue, kind, name)` names
+one editable object. Four kinds:
 
-| Path | Holds |
-| --- | --- |
-| `lowdown/lowdown.md` | The commissioner-owned Lowdown |
-| `sections/<module>.md` | Section prose |
-| `matchups/<slug>/draft.md` | Weekly matchup previews |
-| `proposals/<section>.md` | Assistant drafts awaiting accept or discard |
-| `sections/AUTHORING-<section>.md`, `generated/` | Research briefs, never published |
+| kind | what it is | filesystem shape |
+| --- | --- | --- |
+| `section` | the Lowdown and every module's copy | `lowdown/lowdown.md`, `sections/<key>.md` |
+| `matchup` | a week's previews, Commissioner-written by product rule | `matchups/<slug>/draft.md` |
+| `proposal` | what Claude Code or ChatGPT handed back | `proposals/<section>.md` |
 
-Seven write sites in `desk_editor.py` reach the first four
-(`path.write_text` at the save, restore, reset, clear, accept-proposal,
-apply-fix and request-queue routes). Reads go through one helper,
-`_section_path`, which is the natural place for a repository to take over.
+`key.section_id` is the string the editorial metadata tables have always
+used (`matchup:<slug>` included), so `prose_revisions`,
+`section_prose_state`, `prose_provenance` and `issue_modules` keep their
+existing addresses. Moving prose was not a metadata migration.
 
-**In SQLite**, already the right shape for Postgres:
+**Version vs content hash.** The version is a storage token: it moves when
+the stored bytes move, and an edit must be based on one. The content hash
+is editorial identity, normalised as provenance has always normalised it,
+and is what approval and "changed since published" ask. A trailing newline
+is a new version and the same content.
 
-| Table | Holds |
-| --- | --- |
-| `prose_revisions` | Undo history, trimmed per section |
-| `section_prose_state` | generated vs commissioner-edited |
-| `prose_provenance` | origin, assistance, generated hash, private baseline text |
-| `issue_modules` | Inclusion, approval, and `approved_sha` |
+The filesystem backend derives its version from the content because
+`editorial/` is a working tree edited outside the Desk; a counter beside
+the file could not see those edits and a stale save would destroy one.
+Postgres counts, because nothing but the application writes that table.
+Callers never interpret either token.
 
-**In Postgres already**, unused: `sections` from `0001` (content, state,
-`version` for optimistic concurrency, primary-keyed by league/season/issue/
-section). It is the destination, and its `version` column is the existing
-409-conflict rule expressed in the schema.
+**One authoritative backend, always.** `LEAGUEPAGE_PROSE_BACKEND` selects
+it; the default is `filesystem`. There is no dual-write and no fallback: a
+Postgres backend that cannot be reached raises rather than writing to disk.
+`/health` reports which store is live, with no path, host or DSN in it.
 
-The order that follows from this: a `ProseRepository` fronts `_section_path`
-and the seven write sites first, keeping the filesystem as its
-implementation; only then does a Postgres implementation become a swap
-rather than a rewrite. The private research layer (`AUTHORING-*.md`,
-`generated/`) stays on disk and out of any repository that a hosted runtime
-can read, because it is the material that must never travel.
+**Cutover tooling**, none of which changes the authoritative backend:
+
+    scripts/prose_tool.py inventory        every key, and its path
+    scripts/prose_tool.py export --to DIR  authoritative store -> Markdown
+    scripts/prose_tool.py import           filesystem -> postgres (dry run)
+    scripts/prose_tool.py verify           compare; nonzero on any mismatch
+
+`verify` prints keys, hashes and versions and never the prose.
+
+### Research stays out, and needs its own answer
+
+Reconfirmed after the migration. These are evidence, not publication state,
+and none of them is in `ProseRepository`. A hosted Desk cannot read local
+files, so each needs a classification before the cloud tranche:
+
+| artifact | class | why |
+| --- | --- | --- |
+| `sections/AUTHORING-*.md`, `lowdown/AUTHORING.md` | **B** recomputable | `issue_builder` writes them from the database; a hosted worker can regenerate on demand |
+| `lowdown/PREP.md` | **B** recomputable | same builder, same inputs |
+| `COMMAND_BRIEF.md`, `REVIEW_PACKET` | **B** recomputable | derived views, rebuilt per issue |
+| `matchups/<slug>/generated/**` | **B** recomputable | `matchup_packet` rebuilds from synced data |
+| `generated/week.json`, `generated/team_dossiers/**` | **B** recomputable | build artifacts |
+| `lowdown/{themes,outline,rough-lowdown}.md` | **C** needs a store | written by a Claude Code session on this machine, read by the Desk. Nothing can recompute them, and a hosted Desk cannot see them |
+| `matchups/<slug>/commissioner_notes.md` | **C** needs a store | his own notes; seeded once and then his |
+| `REVISION_REQUESTS.md` | **A** local only | a convenience file for a local Claude session; the queue itself is in `issue_revision_requests` |
+
+Only the two **C** rows are real work, and both are "AI drafts and private
+notes that arrive from outside the Desk". That is the shape of the next
+research-store decision; it is not solved here.
 
 ### Portability seams
 
