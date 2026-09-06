@@ -1334,6 +1334,21 @@ class Storage:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    def prose_revision_counts(self, league_slug: str, season: str,
+                              issue_key: str) -> dict[str, int]:
+        """How many undo steps each section of one issue has.
+
+        One query for the whole issue. The editor page needs this for every
+        card at once, and asking per section opened a connection per
+        section.
+        """
+        rows = self._conn.execute(
+            "SELECT section, COUNT(*) AS n FROM prose_revisions "
+            "WHERE league_slug=? AND season=? AND issue_key=? GROUP BY section",
+            (league_slug, season, issue_key),
+        ).fetchall()
+        return {r["section"]: r["n"] for r in rows}
+
     def get_prose_revision(self, revision_id: int) -> dict | None:
         row = self._conn.execute(
             "SELECT * FROM prose_revisions WHERE id=?", (revision_id,)).fetchone()

@@ -263,6 +263,15 @@ class ProseRepository(Protocol):
 
     def revision(self, revision_id: int) -> dict | None: ...
 
+    def revision_counts(self, league: str, season: str,
+                        issue: str) -> dict[str, int]:
+        """{section_id: how many undo steps} for one issue, in one pass.
+
+        Part of the contract rather than a caller's loop: the editor page
+        needs a count on every card, and a per-section call is a query per
+        card against whichever store is live.
+        """
+
     def health(self) -> dict:
         """Safe status facts for diagnostics: reachable, schema current.
         Never a path, a host, a DSN or a credential."""
@@ -437,6 +446,11 @@ class FilesystemProseRepository:
     def revision(self, revision_id: int) -> dict | None:
         with self._storage() as s:
             return s.get_prose_revision(revision_id)
+
+    def revision_counts(self, league: str, season: str,
+                        issue: str) -> dict[str, int]:
+        with self._storage() as s:
+            return s.prose_revision_counts(league, season, issue)
 
     # -- internals -----------------------------------------------------
 

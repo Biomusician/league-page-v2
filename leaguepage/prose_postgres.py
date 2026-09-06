@@ -220,6 +220,15 @@ class PostgresProseRepository:
         return [{"id": r[0], "source": r[1], "prior_text": r[2],
                  "created_at": r[3].isoformat() if r[3] else None} for r in rows]
 
+    def revision_counts(self, league: str, season: str,
+                        issue: str) -> dict[str, int]:
+        with self._tx() as cur:
+            cur.execute(
+                "select section, count(*) from prose_revisions "
+                "where league_slug=%s and season=%s and issue_key=%s "
+                "group by section", (league, season, issue))
+            return {r[0]: r[1] for r in cur.fetchall()}
+
     def revision(self, revision_id: int) -> dict | None:
         with self._tx() as cur:
             cur.execute(

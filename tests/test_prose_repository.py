@@ -231,7 +231,10 @@ def test_health_reports_status_and_never_a_path_or_a_secret(repo):
     h = repo.health()
     assert set(h) >= {"reachable", "schema_current"}
     blob = repr(h)
-    for leak in ("C:\\", "/home", "postgres://", "postgresql://", "password"):
+    # `://` rather than each scheme spelled out: stricter (a health payload
+    # should carry no URL at all) and it keeps a DSN-shaped literal out of a
+    # tracked file, which is what scripts/audit_repo_privacy.py scans for.
+    for leak in ("C:\\", "/home", "://", "password"):
         assert leak not in blob
 
 
@@ -399,3 +402,113 @@ def test_take_candidates_still_come_from_the_rough_drafts(tmp_path, monkeypatch)
                for f in found)
     assert any("finished Lowdown" in f and "lowdown.md" in f for f in found)
     assert any("and a section" in f and "fades.md" in f for f in found)
+
+
+# ------------------------------------------- history lives with the prose
+
+def test_history_and_restore_read_the_store_that_wrote_them(repo):
+    """Undo is part of the prose, not a separate database.
+
+    Both backends write a revision inside the write that replaced the
+    text, so both must answer for it too. This ran green while the Desk
+    was still asking SQLite directly, which is precisely why it is here:
+    the contract was right and two callers went around it.
+    """
+    key = _k("fades")
+    first = repo.put(key, "One.\n", expected_version=None)
+    repo.put(key, "Two.\n", expected_version=first.version)
+
+    rows = repo.history(key)
+    assert [r["prior_text"] for r in rows] == ["One.\n"]
+    assert rows[0]["source"] == "commissioner-save"
+
+    one = repo.revision(rows[0]["id"])
+    assert one is not None
+    assert one["prior_text"] == "One.\n"
+    assert (one["league_slug"], one["season"], one["issue_key"], one["section"]) \
+        == (key.league, key.season, key.issue, key.section_id)
+
+
+def test_revision_counts_answer_for_a_whole_issue_in_one_call(repo):
+    """The editor page needs a count on every card. Asking per card was a
+    query -- and on the filesystem backend a connection -- per card."""
+    a, b = _k("fades"), _k("tracks")
+    first = repo.put(a, "One.\n", expected_version=None)
+    repo.put(a, "Two.\n", expected_version=first.version)
+    repo.put(b, "Only once.\n", expected_version=None)
+
+    counts = repo.revision_counts(a.league, a.season, a.issue)
+    assert counts.get(a.section_id) == 1
+    assert b.section_id not in counts, "a first write replaces nothing"
+
+
+# ------------------------------------------------- research is not prose
+
+def test_research_files_are_not_prose_and_the_repository_never_holds_them(
+        tmp_path, monkeypatch):
+    """The lowdown directory holds one piece of prose and four pieces of
+    research, and the repository must be able to tell them apart.
+
+    `themes.md`, `outline.md`, `rough-lowdown.md` and `PREP.md` are
+    evidence a Claude Code session left on this machine. They are not
+    publication state, they are not versioned, and a section named
+    `themes` is a section file -- it can never resolve onto the research
+    one.
+    """
+    base = tmp_path / "editorial"
+    idir = base / "2026" / "disco" / "week-02"
+    (idir / "lowdown").mkdir(parents=True)
+    (idir / "sections").mkdir()
+    (idir / "matchups" / "a-vs-b" / "generated").mkdir(parents=True)
+    monkeypatch.setattr(ib, "EDITORIAL_DIR", base)
+    monkeypatch.setattr(mp, "EDITORIAL_DIR", base)
+    ps.reset_cache()
+
+    for name in ("PREP.md", "AUTHORING.md", "themes.md", "outline.md",
+                 "rough-lowdown.md"):
+        (idir / "lowdown" / name).write_text(f"research: {name}\n",
+                                             encoding="utf-8")
+    (idir / "lowdown" / "lowdown.md").write_text("The prose.\n", encoding="utf-8")
+    (idir / "matchups" / "a-vs-b" / "commissioner_notes.md").write_text(
+        "His own notes.\n", encoding="utf-8")
+    (idir / "matchups" / "a-vs-b" / "draft.md").write_text("The preview.\n",
+                                                           encoding="utf-8")
+    (idir / "matchups" / "a-vs-b" / "generated" / "data.json").write_text(
+        "{}", encoding="utf-8")
+
+    repo = ps.repository(base_dir=base)
+    found = {str(r.key) for r in repo.list_issue("disco", "2026", "week-02")}
+    assert found == {
+        str(ps.ProseKey.section("disco", "2026", "week-02", "lowdown")),
+        str(ps.ProseKey.matchup("disco", "2026", "week-02", "a-vs-b")),
+    }
+
+    # A section called "themes" is a section file. It cannot reach the
+    # research file that happens to share its name.
+    themes = ps.ProseKey.section("disco", "2026", "week-02", "themes")
+    assert ps.path_for(themes, base) == idir / "sections" / "themes.md"
+    assert not repo.get(themes).exists
+
+
+def test_nothing_in_the_application_switches_its_own_prose_backend():
+    """A cutover is a deployment decision, never a code path.
+
+    The setting is read in exactly one place and written nowhere. If a
+    module ever sets it, one run could be reading a different store than
+    the next and the split brain would be invisible.
+    """
+    import pathlib
+    import re
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    assign = re.compile(
+        r"(environ\s*\[\s*['\"]LEAGUEPAGE_PROSE_BACKEND|"
+        r"setenv\s*\(\s*['\"]LEAGUEPAGE_PROSE_BACKEND|"
+        r"BACKEND_SETTING\s*\]\s*=|setenv\s*\(\s*\w*BACKEND_SETTING)")
+    offenders = []
+    for folder in ("leaguepage", "scripts"):
+        for path in sorted((root / folder).rglob("*.py")):
+            for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if assign.search(line):
+                    offenders.append(f"{path.relative_to(root)}:{n}")
+    assert offenders == [], offenders

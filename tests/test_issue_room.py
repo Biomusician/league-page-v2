@@ -295,8 +295,10 @@ def test_a_conflict_carries_both_sides_so_neither_is_lost(env):
 
 
 def test_a_refused_save_leaves_the_approval_describing_the_stored_text(env):
-    """Approval is bound to content. A conflict is not an edit, so it must
-    not retire a sign-off that still describes what is actually stored."""
+    """An approval must describe the stored text. A conflict is not an
+    edit, so it must not retire a sign-off that still describes what is
+    actually stored. (What binds it is the save route, not a signature --
+    see `test_ordinary_approval_is_a_flag_and_not_a_signature`.)"""
     client, db, _idir = env
     state = client.get(f"{BASE}/edit/section-state",
                        params={"section": "lowdown"}).json()
@@ -409,3 +411,110 @@ def test_clearing_a_section_still_moves_its_version(env):
                         json={"section": "lowdown", "text": "Old words return.\n",
                               "expected_version": before})
     assert stale.status_code == 409
+
+
+def test_the_history_panel_asks_the_repository_and_not_the_database(env,
+                                                                    monkeypatch):
+    """Whichever store holds the prose holds its undo history.
+
+    Both of these routes used to read `prose_revisions` out of SQLite
+    directly. That was indistinguishable from correct while the
+    filesystem backend was authoritative, because the filesystem backend
+    keeps its revisions in SQLite -- and it would have emptied the History
+    panel the day a Postgres cutover happened.
+    """
+    from leaguepage import prose_store
+
+    client, _db, _idir = env
+    save_section(client, f"{BASE}/edit", "lowdown", "One.\n")
+    save_section(client, f"{BASE}/edit", "lowdown", "Two.\n")
+
+    seen = {}
+
+    def fake_history(self, key, limit=10):
+        seen["key"] = str(key)
+        return [{"id": 4242, "source": "commissioner-save",
+                 "prior_text": "from the repository", "created_at": "2026-01-01"}]
+
+    monkeypatch.setattr(prose_store.FilesystemProseRepository, "history",
+                        fake_history)
+    body = client.get(f"{BASE}/edit/revisions",
+                      params={"section": "lowdown"}).json()
+    assert [r["id"] for r in body["revisions"]] == [4242]
+    assert body["revisions"][0]["preview"] == "from the repository"
+    assert "lowdown" in seen["key"]
+
+
+def test_restore_reads_the_revision_through_the_repository(env, monkeypatch):
+    """Same coupling, other half: Restore fetched the row from SQLite."""
+    from leaguepage import prose_store
+
+    client, _db, _idir = env
+    save_section(client, f"{BASE}/edit", "lowdown", "One.\n")
+    save_section(client, f"{BASE}/edit", "lowdown", "Two.\n")
+
+    asked = []
+    real = prose_store.FilesystemProseRepository.revision
+
+    def watched(self, revision_id):
+        asked.append(revision_id)
+        return real(self, revision_id)
+
+    monkeypatch.setattr(prose_store.FilesystemProseRepository, "revision",
+                        watched)
+    rows = client.get(f"{BASE}/edit/revisions",
+                      params={"section": "lowdown"}).json()["revisions"]
+    state = client.get(f"{BASE}/edit/section-state",
+                       params={"section": "lowdown"}).json()
+    # newest first, so rows[0] is the text the second save replaced
+    r = client.post(f"{BASE}/edit/restore",
+                    json={"section": "lowdown", "revision_id": rows[0]["id"],
+                          "expected_version": state["version"]})
+    assert r.status_code == 200, r.text
+    assert asked == [rows[0]["id"]]
+    assert client.get(f"{BASE}/edit/section-state",
+                      params={"section": "lowdown"}).json()["text"] == "One.\n"
+
+
+def test_ordinary_approval_is_a_flag_and_not_a_signature(env):
+    """A known gap, pinned here so it cannot be quietly lost.
+
+    Common Tactical Picture signs its approval over the exact text it
+    covers, so editing any preview retires that sign-off with nothing
+    having to notice. An ordinary section's approval is a boolean in
+    `issue_modules`, and the save route clears it AFTER the prose write.
+
+    Every path through the Desk clears it, so the Desk is right today.
+    What is not proved is the storage layer: prose and approval live in
+    two stores with no shared transaction, so a prose write that lands
+    beside a metadata write that does not leaves `approved = 1` standing
+    over text nobody approved. This is one of the two reasons the Postgres
+    prose backend is not authoritative.
+
+    When approval becomes content-bound, this test should fail, and
+    `docs/COMMISSIONER_PORTAL_ARCHITECTURE.md` should change with it.
+    """
+    client, db, _idir = env
+    save_section(client, f"{BASE}/edit", "lowdown", "Approved words.\n")
+    assert client.post(f"{BASE}/edit/approve",
+                       json={"section": "lowdown",
+                             "action": "approve"}).status_code == 200
+
+    def module_row():
+        with Storage(db) as s:
+            return s.get_issue_modules("surfeit", SEASON, "week-01").get("lowdown") or {}
+
+    assert module_row().get("approved")
+    # Exactly the partial write the two stores allow: the prose moves and
+    # the metadata write that follows it never runs.
+    from leaguepage import prose_store
+
+    repo = prose_store.repository(db)
+    key = prose_store.ProseKey.section("surfeit", SEASON, "week-01", "lowdown")
+    repo.put(key, "Different words nobody signed off.\n",
+             expected_version=repo.get(key).version)
+
+    row = module_row()
+    assert row.get("approved"), "pinning the gap, not endorsing it"
+    assert row.get("approved_sha") in (None, ""), \
+        "an ordinary approval carries no signature over its text"

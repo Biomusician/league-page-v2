@@ -423,8 +423,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             blockers = _blockers(s, league, season, issue_key, modules)
             qa = pubqa.check_issue(s, league, season, issue_key, week=week)
             open_requests = s.list_rewrite_requests(league_slug, season, issue_key)
-            rev_counts = {sec: len(s.get_prose_revisions(league_slug, season, issue_key, sec, limit=50))
-                          for sec in set(prose_states) | {m["module_key"] for m in modules}}
+            # Through the repository, because history belongs to whichever
+            # store holds the prose. Asking SQLite directly was correct only
+            # for as long as those were the same store.
+            rev_counts = _repo().revision_counts(league_slug, season, issue_key)
             label = "preseason" if week is None else issue_key
             rankings = s.get_power_rankings(league_slug, season, label)
             stale = _changed_since_approval(s, league_slug, season, issue_key)
@@ -480,8 +482,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                         "angle": st.get("custom_angle") or st.get("selected_angle_id") or "(no angle)",
                         "brief": _brief(section),
                         "proposal": _proposal_text(league, season, issue_key, section),
-                        "revisions": len(s.get_prose_revisions(
-                            league_slug, season, issue_key, section, limit=50)),
+                        "revisions": rev_counts.get(section, 0),
                     }
             briefs = {m["module_key"]: _brief(m["module_key"])
                       for m in modules
@@ -943,8 +944,12 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/revisions")
     def editor_revisions(league_slug: str, season: str, issue_key: str, section: str):
-        with storage() as s:
-            revs = s.get_prose_revisions(league_slug, season, issue_key, section, limit=15)
+        league = get_league(league_slug)
+        key = _key(league, season, issue_key, section)
+        if key is None:
+            return JSONResponse({"ok": False, "error": "unknown section"},
+                                status_code=400)
+        revs = _repo().history(key, limit=15)
         return JSONResponse({"ok": True, "revisions": [
             {"id": r["id"], "created_at": r["created_at"], "source": r["source"],
              "preview": r["prior_text"][:160], "chars": len(r["prior_text"])}
@@ -959,11 +964,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
         repo = _repo()
-        with storage() as s:
-            rev = s.get_prose_revision(int(body.get("revision_id") or 0))
-            if not rev or (rev["league_slug"], rev["season"], rev["issue_key"], rev["section"]) \
-                    != (league_slug, season, issue_key, section):
-                return JSONResponse({"ok": False, "error": "unknown revision"}, status_code=404)
+        rev = repo.revision(int(body.get("revision_id") or 0))
+        if not rev or (rev["league_slug"], rev["season"], rev["issue_key"], rev["section"]) \
+                != (league_slug, season, issue_key, section):
+            return JSONResponse({"ok": False, "error": "unknown revision"}, status_code=404)
         try:
             # A deliberate, confirmed action rather than an autosave, so the
             # version is enforced when the page says what it was looking at
