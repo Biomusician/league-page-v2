@@ -494,8 +494,12 @@ def build_league(
         order = ("FEATURE", "MAJOR", "STANDARD", "CAPSULE")
         for sm in computed["scored"]:
             m = sm["matchup"]
-            draft_path = root / "matchups" / m["matchup_slug"] / "draft.md"
-            text = draft_path.read_text(encoding="utf-8") if draft_path.exists() else ""
+            from leaguepage import prose_store
+
+            text = prose_store.repository(base_dir=root.parent.parent.parent).get(
+                prose_store.ProseKey.matchup(
+                    league.slug, season, f"week-{week:02d}",
+                    m["matchup_slug"])).text
             status = matchup_status(sm["state"], bool(text))
             approved = (status in ("approved", "locked") and text
                         and not any(b in text for b in BLOCKED_MARKERS))

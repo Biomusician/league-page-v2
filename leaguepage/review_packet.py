@@ -28,14 +28,36 @@ NAME_SUGGESTIONS = {
 
 
 def _take_candidates(idir: Path) -> list[str]:
+    """Lines marked TAKE CANDIDATE, from everything he might have marked.
+
+    Deliberately two sources, because the candidates live in both. The
+    published prose comes from the repository, wherever that keeps it. The
+    rough draft, the prep and the outline are research: Claude Code leaves
+    them on disk for him to read, they are not publication state, and they
+    are where most candidates are actually flagged -- which is why the
+    packet's own heading says "flagged in the rough drafts".
+
+    Reading only the prose would have quietly emptied this section.
+    """
+    from leaguepage import prose_store
+
+    league, season, issue = idir.parent.name, idir.parent.parent.name, idir.name
+    repo = prose_store.repository(base_dir=idir.parent.parent.parent)
+    sources: list[tuple[str, str]] = []
+    # Research files first, as the old directory glob had them, with the
+    # Lowdown itself taken from the repository rather than from the tree.
+    for path in sorted((idir / "lowdown").glob("*.md")):
+        if path.name != "lowdown.md":
+            sources.append((path.name, path.read_text(encoding="utf-8")))
+    for rec in repo.list_issue(league, season, issue,
+                               kinds=(prose_store.SECTION,)):
+        sources.append((f"{rec.key.name}.md", rec.text))
     out = []
-    for path in list((idir / "lowdown").glob("*.md")) + list((idir / "sections").glob("*.md")):
-        if not path.exists():
-            continue
-        for line in path.read_text(encoding="utf-8").splitlines():
+    for label, text in sources:
+        for line in text.splitlines():
             m = re.match(r"\s*TAKE CANDIDATE:\s*(.+)", line)
             if m:
-                out.append(f"{m.group(1).strip()}  (from {path.name})")
+                out.append(f"{m.group(1).strip()}  (from {label})")
     return out
 
 

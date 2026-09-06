@@ -409,6 +409,18 @@ def render_league_home(storage: Storage, league: League, *, site_dir: Path | Non
     return out
 
 
+def _matchup_prose(league, season: str, week: int, slug: str, root) -> str:
+    """A matchup preview, from wherever prose is kept.
+
+    `root` is still the week's research directory and still says which
+    issue this is; it no longer says where the words live.
+    """
+    from leaguepage import prose_store
+
+    key = prose_store.ProseKey.matchup(league.slug, season, f"week-{week:02d}", slug)
+    return prose_store.repository(base_dir=root.parent.parent.parent).get(key).text
+
+
 def render_week(
     storage: Storage,
     league: League,
@@ -444,8 +456,7 @@ def render_week(
     for sm in computed["scored"]:
         m = sm["matchup"]
         slug = m["matchup_slug"]
-        draft_path = root / "matchups" / slug / "draft.md"
-        text = draft_path.read_text(encoding="utf-8") if draft_path.exists() else ""
+        text = _matchup_prose(league, season, week, slug, root)
         status = matchup_status(sm["state"], bool(text))
         approved = (status in ("approved", "locked") and text
                     and not any(b in text for b in BLOCKED_MARKERS))

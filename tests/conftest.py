@@ -35,6 +35,60 @@ def isolate_config(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "_loaded", False)
 
 
+@pytest.fixture(autouse=True)
+def isolate_editorial_tree(monkeypatch, tmp_path):
+    """No test writes into the real `editorial/`.
+
+    One test used to isolate itself by patching `desk.week_dir`, which was
+    the module that happened to build the path it wrote through. When prose
+    moved behind a repository that resolves the location in one place, that
+    patch stopped covering the write and a synthetic matchup draft landed in
+    the Commissioner's actual tree. Isolating the root here makes it
+    structural: a test that forgets to point somewhere fails its own
+    assertions instead of editing real work.
+
+    Tests that want a populated tree still set these themselves; this only
+    changes where "unset" points.
+    """
+    import leaguepage.issue_builder as ib
+    import leaguepage.matchup_packet as mp
+    from leaguepage import prose_store
+
+    root = tmp_path / "editorial-default"
+    monkeypatch.setattr(ib, "EDITORIAL_DIR", root)
+    monkeypatch.setattr(mp, "EDITORIAL_DIR", root)
+    prose_store.reset_cache()
+    yield
+    prose_store.reset_cache()
+
+
+@pytest.fixture(autouse=True)
+def isolate_editorial_tree(monkeypatch, tmp_path):
+    """No test writes into the real `editorial/`.
+
+    One test used to isolate itself by patching `desk.week_dir`, which was
+    the module that happened to build the path it wrote through. When prose
+    moved behind a repository that resolves the location in one place, that
+    patch stopped covering the write and a synthetic matchup draft landed in
+    the Commissioner's actual tree. Isolating the root here makes it
+    structural: a test that forgets to point somewhere fails its own
+    assertions instead of editing real work.
+
+    Tests that want a populated tree still set these themselves; this only
+    changes where "unset" points.
+    """
+    import leaguepage.issue_builder as ib
+    import leaguepage.matchup_packet as mp
+    from leaguepage import prose_store
+
+    root = tmp_path / "editorial-default"
+    monkeypatch.setattr(ib, "EDITORIAL_DIR", root)
+    monkeypatch.setattr(mp, "EDITORIAL_DIR", root)
+    prose_store.reset_cache()
+    yield
+    prose_store.reset_cache()
+
+
 @pytest.fixture
 def storage(tmp_path):
     with Storage(tmp_path / "test.sqlite3") as s:

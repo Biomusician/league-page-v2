@@ -28,7 +28,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from leaguepage import pubqa
 from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, SITE_URL, get_league
-from leaguepage import prose, provenance, section_defaults
+from leaguepage import prose, prose_store, provenance, section_defaults
 from leaguepage.issue_builder import (
     BLOCKED_MARKERS, BLURB_MODULES, CUSTOM_DEFAULT_TITLE, WRITING_SKILL,
     assemble_issue, _custom_index, is_custom_key, issue_dir,
@@ -140,34 +140,108 @@ def _strip_draft_markers(text: str) -> str:
 def register_editor(app, storage, templates) -> None:  # noqa: C901 - route registry
     """Attach editor routes. `storage` is the desk's Storage factory."""
 
+    _db_path: list = []
+
+    def _repo():
+        """The one authoritative prose store for this run.
+
+        Which backend that is comes from configuration, and there is only
+        ever one; nothing here knows or cares whether the words are in a
+        file or a table.
+        """
+        if not _db_path:
+            with storage() as s:
+                _db_path.append(s.db_path)
+        return prose_store.repository(_db_path[0])
+
+    def _key(league, season: str, issue_key: str, section: str):
+        """A section string from the Desk to a logical prose key, or None
+        if it names nothing this issue can hold."""
+        try:
+            return prose_store.ProseKey.for_section(
+                league.slug, season, issue_key, section)
+        except prose_store.ProseError:
+            return None
+
+    def _prop_key(league, season: str, issue_key: str, section: str):
+        try:
+            return prose_store.ProseKey.proposal(
+                league.slug, season, issue_key, section)
+        except prose_store.ProseError:
+            return None
+
+    def _get(league, season: str, issue_key: str, section: str):
+        """The stored record for a section: text, version, content hash."""
+        key = _key(league, season, issue_key, section)
+        return _repo().get(key) if key else None
+
+    def _text_of(league, season: str, issue_key: str, section: str) -> str | None:
+        """Current text, or None when the section has never been written.
+        The `None` is meaningful: several callers distinguish an empty
+        section from one that does not exist."""
+        rec = _get(league, season, issue_key, section)
+        return rec.text if (rec is not None and rec.exists) else None
+
+    def _proposal_text(league, season: str, issue_key: str, section: str) -> str | None:
+        key = _prop_key(league, season, issue_key, section)
+        if key is None:
+            return None
+        rec = _repo().get(key)
+        return rec.text if rec.exists else None
+
+    def _conflict(exc, section: str):
+        """One shape for every refused write, so the browser can tell the
+        Commissioner what happened without guessing.
+
+        It carries both sides deliberately: the version he started from,
+        the version that is stored now, and the stored text. Nothing is
+        merged and nothing of his is thrown away here.
+        """
+        return JSONResponse(
+            {"ok": False, "error": "conflict", "section": section,
+             "expected_version": exc.expected, "current_version": exc.actual,
+             "current_text": exc.current_text,
+             "message": "This section changed elsewhere after you opened it."},
+            status_code=409)
+
+    def _expected(body: dict, key_name: str = "expected_version"):
+        """The version an edit claims to be based on.
+
+        Absent is not "overwrite whatever is there": it means the caller
+        believes nothing is stored yet. A save that skipped this check is
+        how a phone silently replaces a laptop.
+        """
+        value = body.get(key_name)
+        return str(value) if value not in (None, "") else None
+
     def _paths(league, season: str, issue_key: str):
         idir = issue_dir(league, season, issue_key)
         return idir, idir / "proposals"
 
+    # Both of these used to be the authority on where prose lives. They
+    # are now thin views onto the repository's own mapping, and they
+    # survive only because a couple of callers legitimately want to SHOW a
+    # path (the Claude Code handoff names files for it to open). Nothing
+    # reads or writes content through them any more.
+
     def _proposal_path(idir: Path, section: str) -> Path:
-        # ':' is illegal in Windows filenames; matchup sections map to '--'
-        return idir / "proposals" / f"{section.replace(':', '--')}.md"
+        league_slug, season, issue_key = (idir.parent.name, idir.parent.parent.name,
+                                          idir.name)
+        return prose_store.path_for(prose_store.ProseKey.proposal(
+            league_slug, season, issue_key, section))
 
     def _section_path(league, season: str, issue_key: str, section: str) -> Path | None:
-        idir = issue_dir(league, season, issue_key)
-        m = _MATCHUP_RE.match(section)
-        if m:
-            week = _week_of(issue_key)
-            if week is None:
-                return None
-            p = week_dir(league, season, week) / "matchups" / m.group(1) / "draft.md"
-        elif section == "lowdown":
-            p = idir / "lowdown" / "lowdown.md"
-        elif _SECTION_RE.match(section):
-            p = idir / "sections" / f"{section}.md"
-        else:
+        key = _key(league, season, issue_key, section)
+        if key is None:
             return None
-        base = idir.parent.parent.parent.resolve()  # editorial/
-        if not p.resolve().is_relative_to(base):
+        try:
+            return prose_store.path_for(key)
+        except prose_store.ProseError:
             return None
-        return p
 
     def _read(p: Path | None) -> str | None:
+        """Left for the research files (briefs, rough drafts, prep) that
+        are not prose and deliberately stay on disk."""
         return p.read_text(encoding="utf-8") if p and p.exists() else None
 
     def _authority(prov_row: dict | None, text: str, prose_state: str,
@@ -194,7 +268,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         for the section, or the Lowdown's rough draft. Presence on the
         Desk at the moment he saves, nothing inferred later."""
         idir = issue_dir(league, season, issue_key)
-        if _proposal_path(idir, section).exists():
+        key = _prop_key(league, season, issue_key, section)
+        if key is not None and _repo().exists(key):
             return True
         return section == "lowdown" and (idir / "lowdown" / "rough-lowdown.md").exists()
 
@@ -393,18 +468,18 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             if week is not None:
                 for child in next((m["children"] for m in modules
                                    if m["kind"] == "ctp"), []):
-                    dpath = (week_dir(league, season, week) / "matchups"
-                             / child["slug"] / "draft.md")
-                    text = _read(dpath) or ""
+                    section = child["section"]
+                    rec = _get(league, season, issue_key, section)
+                    text = rec.text if rec else ""
                     st = s.get_matchup_state(league_slug=league_slug, season=season,
                                              week=week, matchup_slug=child["slug"]) or {}
-                    section = child["section"]
                     matchup_editing[section] = {
                         **child,
                         "text": text, "sha": _sha(text),
+                        "version": rec.version if rec else None,
                         "angle": st.get("custom_angle") or st.get("selected_angle_id") or "(no angle)",
                         "brief": _brief(section),
-                        "proposal": _read(_proposal_path(idir, section)),
+                        "proposal": _proposal_text(league, season, issue_key, section),
                         "revisions": len(s.get_prose_revisions(
                             league_slug, season, issue_key, section, limit=50)),
                     }
@@ -435,18 +510,22 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     "changed_since_approval": bool(stale.get(key)),
                     "brief": briefs.get(key)}
             if kind in EDITABLE_KINDS:
-                path = _section_path(league, season, issue_key, key)
-                text = _read(path)
+                rec = _get(league, season, issue_key, key)
+                text = rec.text if (rec and rec.exists) else None
                 card["editable"] = True
                 card["not_written"] = not (text or "").strip()
                 text = text or ""
+                # The version an edit to this card must be based on. The
+                # per-chunk sha below still says WHICH chunk; this says the
+                # whole object has not moved underneath him.
+                card["version"] = rec.version if rec else None
                 card["file_sha"] = _sha(text)
                 chunks = _split_chunks(text) if kind != "lowdown" else [text]
                 card["chunks"] = [{"index": i, "text": c, "sha": _sha(c),
                                    "heading": _chunk_heading(c) if len(chunks) > 1 else None}
                                   for i, c in enumerate(chunks)]
                 card["chunk_count"] = len(chunks)
-                card["proposal"] = _read(_proposal_path(idir, key))
+                card["proposal"] = _proposal_text(league, season, issue_key, key)
                 card["authority"] = _authority(prov_rows.get(key), text,
                                                card["prose_state"],
                                                card["not_written"])
@@ -458,11 +537,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 # it. Same file, same autosave, same history as any written
                 # section, so the card offers the same controls and the
                 # section keeps its own readiness rules.
-                text = _read(_section_path(league, season, issue_key, key)) or ""
+                rec = _get(league, season, issue_key, key)
+                text = rec.text if rec else ""
+                card["version"] = rec.version if rec else None
                 card["blurb"] = {
                     "text": text, "sha": _sha(text),
                     "written": bool(text.strip()),
-                    "proposal": _read(_proposal_path(idir, key)),
+                    "proposal": _proposal_text(league, season, issue_key, key),
                 }
             if key in section_defaults.GENERATED_DEFAULTS:
                 card["generated_available"] = bool(
@@ -586,11 +667,30 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             return JSONResponse({"error": "unknown asset"}, status_code=404)
         return FileResponse(f)
 
+    @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/section-state")
+    def section_state(league_slug: str, season: str, issue_key: str, section: str):
+        """What is stored for one section, and the version to edit it from.
+
+        The read half of optimistic concurrency. A page that has been open
+        a while can refresh a single section without reloading, and a
+        client that means to write can find out what it would be writing
+        over.
+        """
+        league = get_league(league_slug)
+        key = _key(league, season, issue_key, section)
+        if key is None:
+            return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        rec = _repo().get(key)
+        return JSONResponse({"ok": True, "section": section, "exists": rec.exists,
+                             "text": rec.text, "version": rec.version,
+                             "sha": _sha(rec.text),
+                             "content_hash": rec.content_hash,
+                             "updated_at": rec.updated_at})
+
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/preview-section")
     def preview_section(league_slug: str, season: str, issue_key: str, section: str):
         league = get_league(league_slug)
-        path = _section_path(league, season, issue_key, section)
-        text = _read(path)
+        text = _text_of(league, season, issue_key, section)
         if text is None:
             return JSONResponse({"ok": False, "error": "no content"}, status_code=404)
         return JSONResponse({"ok": True, "html": prose.render(text)})
@@ -599,19 +699,33 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/save")
     async def editor_save(request: Request, league_slug: str, season: str, issue_key: str):
+        """Save a section, or refuse because it moved.
+
+        This is the automatic path: autosave fires while he types, from
+        whichever device he happens to have open. It therefore may never
+        write blind. `expected_version` says which stored version he is
+        editing, and a save that does not name one is claiming the section
+        does not exist yet. There is no "just overwrite it" here, because
+        that is precisely how a phone replaces a laptop mid-sentence.
+
+        `base_sha` still guards a CHUNK, which is a different question:
+        the version says the object has not moved, the chunk sha says
+        which piece of it this box holds.
+        """
         body = await request.json()
         section = str(body.get("section") or "")
         text = str(body.get("text") or "").replace("\r\n", "\n")
         base_sha = str(body.get("base_sha") or "")
+        expected = _expected(body)
         chunk_index = body.get("chunk_index")
         league = get_league(league_slug)
-        path = _section_path(league, season, issue_key, section)
-        if path is None:
+        key = _key(league, season, issue_key, section)
+        if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
-        current = _read(path) or ""
+        repo = _repo()
+        rec = repo.get(key)
+        current = rec.text
         if chunk_index is None:
-            if base_sha and base_sha != _sha(current):
-                return JSONResponse({"ok": False, "error": "conflict"}, status_code=409)
             new_text = text
         else:
             chunks = _split_chunks(current)
@@ -622,22 +736,33 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 return JSONResponse({"ok": False, "error": "conflict"}, status_code=409)
             chunks[i] = text
             new_text = "".join(chunks)
-        if new_text == current:
-            return JSONResponse({"ok": True, "sha": _sha(text), "unchanged": True})
-        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            saved = repo.put(key, new_text, expected_version=expected,
+                             source="commissioner-save")
+        except prose_store.ProseConflict as exc:
+            # Nothing was written, so nothing downstream of the write runs:
+            # no revision, no provenance, and the approval still describes
+            # the text that is actually stored.
+            return _conflict(exc, section)
+        if saved.version == rec.version:
+            # The same bytes saved twice. Not an edit, so history, origin
+            # and approval are all left exactly as they were.
+            return JSONResponse({"ok": True, "sha": _sha(text), "unchanged": True,
+                                 "version": saved.version})
         with storage() as s:
-            if current:
-                s.add_prose_revision(league_slug, season, issue_key, section,
-                                     current, "commissioner-save")
+            # After the write rather than before it. The old order recorded
+            # who wrote text that a failure could then leave unsaved; this
+            # order can only ever leave origin unrecorded, which reads as
+            # "unknown" and claims nothing.
             _record_origin_on_save(s, league, season, issue_key, section, current)
-            path.write_text(new_text, encoding="utf-8")
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
             # This used to be a comment and a `pass`. Approval survived every
             # edit, so a section could publish text nobody had signed off
             # while the Desk showed a green chip saying otherwise.
             _invalidate_approval(s, league, season, issue_key, section)
         return JSONResponse({"ok": True, "sha": _sha(text),
-                             "file_sha": _sha(new_text), "state": "commissioner-edited"})
+                             "file_sha": _sha(new_text), "version": saved.version,
+                             "state": "commissioner-edited"})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/approve")
     async def editor_approve(request: Request, league_slug: str, season: str, issue_key: str):
@@ -697,7 +822,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                   + ("…" if len(left) > 3 else "")},
                         status_code=400)
             elif action == "approve" and kind in ("lowdown", "section", "all-city"):
-                text = _read(_section_path(league, season, issue_key, section)) or ""
+                text = _text_of(league, season, issue_key, section) or ""
                 bad = [mk for mk in BLOCKED_MARKERS if mk in text]
                 if not text.strip():
                     return JSONResponse({"ok": False, "error": "section is empty"},
@@ -830,22 +955,29 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         body = await request.json()
         section = str(body.get("section") or "")
         league = get_league(league_slug)
-        path = _section_path(league, season, issue_key, section)
-        if path is None:
+        key = _key(league, season, issue_key, section)
+        if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        repo = _repo()
         with storage() as s:
             rev = s.get_prose_revision(int(body.get("revision_id") or 0))
             if not rev or (rev["league_slug"], rev["season"], rev["issue_key"], rev["section"]) \
                     != (league_slug, season, issue_key, section):
                 return JSONResponse({"ok": False, "error": "unknown revision"}, status_code=404)
-            current = _read(path) or ""
-            if current:
-                s.add_prose_revision(league_slug, season, issue_key, section, current, "restore")
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(rev["prior_text"], encoding="utf-8")
+        try:
+            # A deliberate, confirmed action rather than an autosave, so the
+            # version is enforced when the page says what it was looking at
+            # and falls back to the stored one when it cannot. The Desk's own
+            # client always says.
+            saved = repo.put(key, rev["prior_text"],
+                             expected_version=_expected(body) or repo.get(key).version,
+                             source="restore")
+        except prose_store.ProseConflict as exc:
+            return _conflict(exc, section)
+        with storage() as s:
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
             _invalidate_approval(s, league, season, issue_key, section)
-        return JSONResponse({"ok": True})
+        return JSONResponse({"ok": True, "version": saved.version})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/reset-generated")
     async def editor_reset_generated(request: Request, league_slug: str, season: str, issue_key: str):
@@ -874,9 +1006,10 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                 status_code=400)
         league = get_league(league_slug)
         idir = issue_dir(league, season, issue_key)
-        path = _section_path(league, season, issue_key, section)
-        if path is None:
+        key = _key(league, season, issue_key, section)
+        if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        repo = _repo()
         composed = None
         with storage() as s:
             if section == "lowdown":
@@ -891,12 +1024,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             if generated is None:
                 return JSONResponse({"ok": False, "error": "no generated draft exists"},
                                     status_code=404)
-            current = _read(path) or ""
-            if current:
-                s.add_prose_revision(league_slug, season, issue_key, section,
-                                     current, "restore")
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(generated, encoding="utf-8")
+        try:
+            repo.put(key, generated,
+                     expected_version=_expected(body) or repo.get(key).version,
+                     source="restore")
+        except prose_store.ProseConflict as exc:
+            return _conflict(exc, section)
+        with storage() as s:
             s.set_prose_state(league_slug, season, issue_key, section, "generated")
             if composed is not None:
                 provenance.record(
@@ -928,21 +1062,24 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             return JSONResponse({"ok": False, "error": "confirmation required"},
                                 status_code=400)
         league = get_league(league_slug)
-        path = _section_path(league, season, issue_key, section)
-        if path is None:
+        key = _key(league, season, issue_key, section)
+        if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        repo = _repo()
         with storage() as s:
             row = s.get_prose_provenance(league_slug, season, issue_key, section)
             origin = provenance.origin_of(row)
             if origin not in ("ai", "deterministic"):
                 return JSONResponse({"ok": False, "error": "this section is not "
                                      "generated in origin"}, status_code=400)
-            current = _read(path) or ""
-            if current:
-                s.add_prose_revision(league_slug, season, issue_key, section,
-                                     current, "replace-with-my-copy")
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("", encoding="utf-8")
+        try:
+            # Clearing is storing empty text, not deleting the object: the
+            # section still exists, he is simply about to write it himself.
+            repo.put(key, "", expected_version=_expected(body) or repo.get(key).version,
+                     source="replace-with-my-copy")
+        except prose_store.ProseConflict as exc:
+            return _conflict(exc, section)
+        with storage() as s:
             provenance.mark_commissioner(
                 s, league_slug=league_slug, season=season, issue_key=issue_key,
                 section=section, assistance="ai-writing" if origin == "ai" else None,
@@ -1034,17 +1171,24 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         section = str(body.get("section") or "")
         action = str(body.get("action") or "")
         league = get_league(league_slug)
-        idir = issue_dir(league, season, issue_key)
-        ppath = _proposal_path(idir, section)
-        target = _section_path(league, season, issue_key, section)
-        if target is None or not ppath.exists():
+        repo = _repo()
+        target_key = _key(league, season, issue_key, section)
+        prop_key = _prop_key(league, season, issue_key, section)
+        if target_key is None or prop_key is None:
+            return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        proposal = repo.get(prop_key)
+        if not proposal.exists:
             return JSONResponse({"ok": False, "error": "no proposal"}, status_code=404)
+        # A proposal can be rewritten by a second Claude run while the
+        # review page is open. If the page said which one it was reading,
+        # accepting a different one is refused rather than silently
+        # publishing text he never saw.
+        seen = _expected(body, "proposal_version")
+        if seen and seen != proposal.version:
+            return _conflict(prose_store.ProseConflict(
+                prop_key, seen, proposal.version, proposal.text), section)
         with storage() as s:
             if action == "accept":
-                current = _read(target) or ""
-                if current:
-                    s.add_prose_revision(league_slug, season, issue_key, section,
-                                         current, "proposal-accept")
                 # The draft marker is scaffolding, not prose: it exists so
                 # unreviewed text cannot publish. Accepting IS the review,
                 # so it comes off here rather than being left for him to
@@ -1052,9 +1196,14 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 # retire a provenance claim that was true. Left in, the
                 # marker also blocks approval and publication outright, so
                 # no accepted proposal could ever reach a page labelled.
-                accepted = _strip_draft_markers(ppath.read_text(encoding="utf-8"))
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(accepted, encoding="utf-8")
+                accepted = _strip_draft_markers(proposal.text)
+                try:
+                    repo.put(target_key, accepted,
+                             expected_version=_expected(body)
+                             or repo.get(target_key).version,
+                             source="proposal-accept")
+                except prose_store.ProseConflict as exc:
+                    return _conflict(exc, section)
                 # Remember what was accepted, so the page can say so honestly
                 # for as long as it is still exactly this. The moment he
                 # edits a character the hash stops matching and the claim
@@ -1080,7 +1229,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                             else "section-brief"))
             else:
                 return JSONResponse({"ok": False, "error": "bad action"}, status_code=400)
-            ppath.unlink()
+            repo.delete(prop_key)
             s.resolve_rewrite_requests(league_slug, season, issue_key, section,
                                        "done" if action == "accept" else "withdrawn")
             _write_requests_file(s, league, season, issue_key)
@@ -1156,7 +1305,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
         # Is this the published text, unchanged? Compare against the section
         # source rather than trusting a checkbox.
-        source = _read(_section_path(league, season, issue_key, section)) or ""
+        source = _text_of(league, season, issue_key, section) or ""
         verbatim = bool(quote) and " ".join(quote.split()) in " ".join(source.split())
 
         subject_rid = body.get("subject_roster_id")
@@ -1292,19 +1441,21 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             if not found.get("fix_from") or not found.get("fix_to"):
                 return JSONResponse({"ok": False, "error": "no mechanical fix for this finding"},
                                     status_code=400)
-            path = _section_path(league, season, issue_key, found["module_key"] or "")
-            current = _read(path) if path else None
-            if current is None:
+            key = _key(league, season, issue_key, found["module_key"] or "")
+            rec = _repo().get(key) if key else None
+            if rec is None or not rec.exists:
                 return JSONResponse({"ok": False, "error": "section not found"},
                                     status_code=404)
-            if current.count(found["fix_from"]) != 1:
+            if rec.text.count(found["fix_from"]) != 1:
                 return JSONResponse(
                     {"ok": False, "error": "the text moved since the check ran; "
                                            "reload and try again"}, status_code=409)
-            s.add_prose_revision(league_slug, season, issue_key, found["module_key"],
-                                 current, "qa-suggestion-accepted")
-            path.write_text(current.replace(found["fix_from"], found["fix_to"], 1),
-                            encoding="utf-8")
+            fixed = rec.text.replace(found["fix_from"], found["fix_to"], 1)
+            try:
+                _repo().put(key, fixed, expected_version=rec.version,
+                            source="qa-suggestion-accepted")
+            except prose_store.ProseConflict as exc:
+                return _conflict(exc, found["module_key"] or "")
             s.set_prose_state(league_slug, season, issue_key, found["module_key"],
                               "commissioner-edited")
         return JSONResponse({"ok": True})

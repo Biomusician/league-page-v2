@@ -16,7 +16,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from leaguepage.adp import load_adp_for_league
-from leaguepage import prose
+from leaguepage import prose, prose_store
 from leaguepage.config import DB_PATH, LEAGUES, TEMPLATES_DIR, get_league
 from leaguepage.draft_analysis import analyze_league_draft
 from leaguepage.draft_awards import draft_award_nominations
@@ -427,6 +427,19 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 for lg in LEAGUES:
                     data = s.get_league(lg.league_id) or {}
                     season = season or data.get("season")
+            # Which store his words are actually in. He is about to be
+            # able to edit from a phone, and "am I writing to the same
+            # place I was this morning" must be answerable without reading
+            # the configuration file.
+            backend = prose_store.backend_name()
+            prose_health = {"prose_backend": backend}
+            if backend != prose_store.FILESYSTEM:
+                try:
+                    prose_health.update(prose_store.repository(db_path).health())
+                except Exception as exc:                        # noqa: BLE001
+                    # Safe facts only: never the DSN, the host or a credential.
+                    prose_health.update({"reachable": False,
+                                         "error": type(exc).__name__})
             return {
                 "status": "ok",
                 "app": "commissioner-desk",
@@ -434,6 +447,7 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 "season": season,
                 "leagues_loaded": leagues_loaded,
                 "leagues_configured": len(LEAGUES),
+                **prose_health,
             }
         except Exception as exc:
             return {"status": "error", "app": "commissioner-desk",
@@ -659,7 +673,18 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         return league, computed
 
     def _mdir(league, season: str, week: int, slug: str) -> Path:
+        """The matchup's research directory. Its draft is prose and comes
+        from the repository; the generated packet beside it does not."""
         return week_dir(league, season, week) / "matchups" / slug
+
+    def _draft_key(league, season: str, week: int, slug: str):
+        return prose_store.ProseKey.matchup(league.slug, season,
+                                            f"week-{week:02d}", slug)
+
+    def _draft(league, season: str, week: int, slug: str) -> str:
+        with storage() as st:
+            repo = prose_store.repository(st.db_path)
+        return repo.get(_draft_key(league, season, week, slug)).text
 
     @app.get("/commissioner/{league_slug}/{season}/week/{week}/matchups")
     def matchup_queue(request: Request, league_slug: str, season: str, week: int):
@@ -668,11 +693,11 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         if computed:
             for sm in computed["scored"]:
                 slug = sm["matchup"]["matchup_slug"]
-                draft_path = _mdir(league, season, week, slug) / "draft.md"
                 rows.append({
                     **sm,
                     "slug": slug,
-                    "status": matchup_status(sm["state"], draft_path.exists()),
+                    "status": matchup_status(
+                        sm["state"], bool(_draft(league, season, week, slug))),
                     "effective_prominence": (sm["state"] or {}).get("prominence_override")
                                             or sm["recommended_prominence"],
                 })
@@ -686,8 +711,7 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         league, computed = _week_board(league_slug, week)
         sm = next((x for x in (computed or {}).get("scored", [])
                    if x["matchup"]["matchup_slug"] == slug), None)
-        draft_path = _mdir(league, season, week, slug) / "draft.md"
-        draft_text = draft_path.read_text(encoding="utf-8") if draft_path.exists() else ""
+        draft_text = _draft(league, season, week, slug)
         with storage() as s:
             angle_decisions = s.get_story_decisions(league_slug, season, f"week-{week:02d}")
         return templates.TemplateResponse(request, "desk/matchup_detail.html", {
@@ -751,10 +775,15 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         league_slug: str, season: str, week: int, slug: str, draft_text: str = Form(...),
     ):
         league = get_league(league_slug)
-        path = _mdir(league, season, week, slug) / "draft.md"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(draft_text.replace("\r\n", "\n"), encoding="utf-8")
+        key = _draft_key(league, season, week, slug)
         with storage() as s:
+            repo = prose_store.repository(s.db_path)
+            # This form has no version field and one Commissioner at a
+            # keyboard, so it writes against what is stored right now. The
+            # Issue Room is the surface that carries a version through.
+            repo.put(key, draft_text.replace("\r\n", "\n"),
+                     expected_version=repo.get(key).version,
+                     source="matchup-screen-save")
             s.set_matchup_state(league_slug=league_slug, season=season, week=week,
                                 matchup_slug=slug, status="edited")
         return _back(league_slug, season, week, slug, "#draft")
@@ -764,8 +793,7 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         league_slug: str, season: str, week: int, slug: str, action: str = Form(...),
     ):
         league = get_league(league_slug)
-        draft_path = _mdir(league, season, week, slug) / "draft.md"
-        text = draft_path.read_text(encoding="utf-8") if draft_path.exists() else ""
+        text = _draft(league, season, week, slug)
         transitions = {"approve": "approved", "unapprove": "edited", "lock": "locked",
                        "reject": "rejected", "requeue": "ready_to_draft"}
         status = transitions.get(action)
@@ -974,10 +1002,16 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         league = get_league(league_slug)
         idir = issue_dir(league, season, issue_key)
         files = {}
+        # Everything here but the Lowdown itself is research that Claude
+        # Code leaves on disk for him to read; only the last one is prose.
         for name in ("PREP.md", "AUTHORING.md", "themes.md", "outline.md",
-                     "rough-lowdown.md", "lowdown.md"):
+                     "rough-lowdown.md"):
             p = idir / "lowdown" / name
             files[name] = p.read_text(encoding="utf-8") if p.exists() else None
+        with storage() as s:
+            lowdown = prose_store.repository(s.db_path).get(
+                prose_store.ProseKey.section(league_slug, season, issue_key, "lowdown"))
+        files["lowdown.md"] = lowdown.text if lowdown.exists else None
         ctx = _workspace_context(league_slug, season, issue_key)
         ctx["files"] = files
         ctx["lowdown_dir"] = (idir / "lowdown").as_posix()
@@ -988,14 +1022,16 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         league_slug: str, season: str, issue_key: str,
         lowdown_text: str = Form(""), action: str = Form("save"),
     ):
-        league = get_league(league_slug)
-        path = issue_dir(league, season, issue_key) / "lowdown" / "lowdown.md"
+        get_league(league_slug)   # 404s an unknown league before writing
+        key = prose_store.ProseKey.section(league_slug, season, issue_key, "lowdown")
         with storage() as s:
+            repo = prose_store.repository(s.db_path)
             if action == "save" and lowdown_text.strip():
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(lowdown_text.replace("\r\n", "\n"), encoding="utf-8")
+                repo.put(key, lowdown_text.replace("\r\n", "\n"),
+                         expected_version=repo.get(key).version,
+                         source="lowdown-screen-save")
             elif action == "approve":
-                text = path.read_text(encoding="utf-8") if path.exists() else ""
+                text = repo.get(key).text
                 if text and ROUGH_DRAFT_MARKER not in text:
                     s.set_issue_module(league_slug=league_slug, season=season,
                                        issue_key=issue_key, module_key="lowdown", approved=1)

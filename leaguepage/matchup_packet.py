@@ -385,8 +385,12 @@ def build_weekly_packet(
         _write(gen / "AUTHORING.md",
                _authoring_md(league, matchup, s, state, s["angles"], notes_text))
 
-        draft_path = mdir / "draft.md"
-        status = matchup_status(state, draft_path.exists())
+        from leaguepage import prose_store
+
+        has_draft = prose_store.repository(base_dir=root.parent.parent.parent).exists(
+            prose_store.ProseKey.matchup(league.slug, season,
+                                         f"week-{week:02d}", slug))
+        status = matchup_status(state, has_draft)
         queue.append({
             "matchup_slug": slug,
             "teams": [t["team_slug"] for t in matchup["teams"]],
@@ -398,7 +402,7 @@ def build_weekly_packet(
             "selected_angle_id": (state or {}).get("selected_angle_id"),
             "custom_angle": bool((state or {}).get("custom_angle")),
             "status": status,
-            "has_draft": draft_path.exists(),
+            "has_draft": has_draft,
         })
 
     _write(root / "generated" / "week.json", json.dumps({

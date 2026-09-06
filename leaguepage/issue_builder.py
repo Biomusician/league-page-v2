@@ -210,7 +210,27 @@ def issue_dir(league: League, season: str, issue_key: str, base_dir: Path | None
 
 
 def _read(path: Path) -> str | None:
+    """For research files: prep, rough drafts, briefs. Not for prose."""
     return path.read_text(encoding="utf-8") if path.exists() else None
+
+
+def _prose_of(idir: Path, section: str) -> str | None:
+    """The stored prose for one section of the issue this directory names.
+
+    The directory still says WHICH issue; it no longer decides where the
+    words are. `issue_dir` builds it as <base>/<season>/<league>/<issue>,
+    so the logical key is already in it and every existing signature here
+    could keep taking an `idir` while the storage underneath changed.
+    """
+    from leaguepage import prose_store
+
+    try:
+        key = prose_store.ProseKey.for_section(
+            idir.parent.name, idir.parent.parent.name, idir.name, section)
+    except prose_store.ProseError:
+        return None
+    rec = prose_store.repository(base_dir=idir.parent.parent.parent).get(key)
+    return rec.text if rec.exists else None
 
 
 def _clean(text: str | None) -> bool:
@@ -219,7 +239,7 @@ def _clean(text: str | None) -> bool:
 
 def lowdown_state(idir: Path) -> tuple[str, str]:
     """(status, detail) for the commissioner-owned Lowdown."""
-    final = _read(idir / "lowdown" / "lowdown.md")
+    final = _prose_of(idir, "lowdown")
     rough = _read(idir / "lowdown" / "rough-lowdown.md")
     prep = _read(idir / "lowdown" / "PREP.md")
     if final and _clean(final):
@@ -251,7 +271,7 @@ def all_city_state(league: League, season: str, issue_key: str, idir: Path,
     errors = all_city.validate_edition(edition)
     if errors:
         return "needs_review", f"edition '{edition['edition']}' has {len(errors)} problem(s): {errors[0]}"
-    prose = _read(idir / "sections" / f"{module_key}.md")
+    prose = _prose_of(idir, module_key)
     if prose is None:
         return "ready", f"edition '{edition['edition']}' validates; section copy not written yet"
     if not _clean(prose):
@@ -337,10 +357,10 @@ def ctp_signature(
     parts = []
     for child in matchup_children(storage, league, season, issue_key, week,
                                   base_dir=base_dir):
-        draft = _read(idir / "matchups" / child["slug"] / "draft.md")
+        draft = _prose_of(idir, f"matchup:{child['slug']}")
         if draft and draft.strip() and _clean(draft):
             parts.append(f"{child['slug']}:{provenance.text_sha(draft)}")
-    parts.append("intro:" + provenance.text_sha(_read(idir / "sections" / "ctp.md")))
+    parts.append("intro:" + provenance.text_sha(_prose_of(idir, "ctp")))
     return provenance.text_sha("\n".join(parts))
 
 
@@ -446,7 +466,7 @@ def module_states(
             else:
                 status, detail = "ready", "leverage data available; scenario engine is a later phase"
         else:  # section
-            text = _read(idir / "sections" / f"{key}.md")
+            text = _prose_of(idir, key)
             if text is None:
                 status, detail = "not_ready", "no section copy yet"
             elif not _clean(text):
@@ -517,7 +537,7 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
     if kind == "auto":
         return None  # masthead renders in the template
     if kind == "lowdown":
-        return _read(idir / "lowdown" / "lowdown.md")
+        return _prose_of(idir, "lowdown")
     if kind == "ctp":
         from leaguepage.matchup_interest import PROMINENCE_LEVELS
         from leaguepage.matchup_packet import compute_week, matchup_status
@@ -533,7 +553,7 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
                          key=lambda s: PROMINENCE_LEVELS.index(
                              (s["state"] or {}).get("prominence_override") or s["recommended_prominence"])):
             m = sm["matchup"]
-            draft = _read(idir / "matchups" / m["matchup_slug"] / "draft.md")
+            draft = _prose_of(idir, f"matchup:{m['matchup_slug']}")
             # Every written preview belongs to the section. Individual
             # sign-off used to decide membership, which meant an unapproved
             # preview vanished from the page silently; the published unit is
@@ -554,7 +574,7 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
         # His optional lead-in, above the previews. Only when there is
         # something for it to lead into: the parent is exactly its children,
         # so a blurb standing alone is not a Common Tactical Picture.
-        blurb = _read(idir / "sections" / "ctp.md")
+        blurb = _prose_of(idir, "ctp")
         if blurb and _clean(blurb):
             line = provenance.inline_html(provenance.state_for(
                 storage, league_slug=league.slug, season=season, issue_key=issue_key,
@@ -569,7 +589,7 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
         tiers = {1: "Peer Competition", 2: "Near-Peer Competition",
                  3: "Competitive but Flawed", 4: "Strategic Reassessment Required"}
         lines = []
-        blurb = _read(idir / "sections" / "power.md")
+        blurb = _prose_of(idir, "power")
         if blurb and _clean(blurb):
             lines.append(blurb.strip())
             lines.append("")
@@ -587,12 +607,12 @@ def _module_content_md(storage: Storage, league: League, season: str, issue_key:
                                         feature_key=key)
         if edition is None or all_city.validate_edition(edition):
             return None  # unbound or broken edition: assemble_issue warns and blocks
-        return all_city.render_section(edition, _read(idir / "sections" / f"{key}.md"))
+        return all_city.render_section(edition, _prose_of(idir, key))
     if kind == "intel":
         return None  # scenario engine is a later phase; module self-omits
     # Rough/test content is returned so the commissioner preview can show it;
     # assemble() records marker warnings and enforce=True blocks publication.
-    text = _read(idir / "sections" / f"{key}.md")
+    text = _prose_of(idir, key)
     return text.strip() if text else None
 
 

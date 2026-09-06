@@ -293,12 +293,12 @@ def build(
     except Exception:
         pass
 
+    from leaguepage import prose_store
+
     idir = issue_dir(league, season, issue_key, base_dir)
-    path = (idir / "matchups" / section.split(":", 1)[1] / "draft.md"
-            if section.startswith("matchup:")
-            else idir / "lowdown" / "lowdown.md" if section == "lowdown"
-            else idir / "sections" / f"{section}.md")
-    current = path.read_text(encoding="utf-8") if path.exists() else ""
+    current = prose_store.repository(base_dir=base_dir).get(
+        prose_store.ProseKey.for_section(
+            league.slug, season, issue_key, section)).text
 
     note = ""
     if prov_row:

@@ -260,12 +260,16 @@ def _other_league_text(league: League, season: str, issue_key: str) -> tuple[set
     other = next((lg for lg in _cfg.LEAGUES if lg.slug != league.slug), None)
     if other is None:
         return set(), None
+    from leaguepage import prose_store
+
     texts: list[str] = []
-    idir = issue_dir(other, season, issue_key)
-    for path in ([idir / "lowdown" / "lowdown.md"] + sorted(idir.glob("sections/*.md"))
-                 + sorted(idir.glob("matchups/*/draft.md"))):
-        if path.exists():
-            texts.append(path.read_text(encoding="utf-8"))
+    # Everything the other league has written this issue, whatever backend
+    # holds it. One enumeration instead of three globs that had to agree
+    # with the six path builders.
+    for rec in prose_store.repository().list_issue(
+            other.slug, season, issue_key,
+            kinds=(prose_store.SECTION, prose_store.MATCHUP)):
+        texts.append(rec.text)
     for path in sorted(glob.glob(str(_cfg.PUBLISHED_DIR / other.slug / season / f"{issue_key}*.json"))):
         try:
             snap = json.loads(_read_text(path))
