@@ -43,7 +43,29 @@ def _source_path(league_slug: str, season: str, issue_key: str,
     return base / "sections" / f"{module_key}.md"
 
 
+
+def refuse_unless_filesystem_is_authoritative() -> None:
+    """This tool edits `editorial/**/*.md` directly.
+
+    That is correct while the filesystem is the authoritative prose store
+    and actively harmful the moment it is not: the Desk would be reading
+    Postgres while this rewrote files nobody looks at any more, which is
+    the split brain the cutover design exists to prevent. So it refuses
+    rather than writing somewhere that is no longer the truth.
+    """
+    from leaguepage import prose_store
+
+    backend = prose_store.backend_name()
+    if backend != prose_store.FILESYSTEM:
+        raise SystemExit(
+            f"refusing to run: prose is stored in {backend!r}, not on the "
+            f"filesystem. This tool edits Markdown files directly, so running "
+            f"it now would change something nothing reads. Use the Desk, or "
+            f"export first (scripts/prose_tool.py export --to DIR).")
+
+
 def main() -> int:
+    refuse_unless_filesystem_is_authoritative()
     ap = argparse.ArgumentParser()
     ap.add_argument("--league", required=True)
     ap.add_argument("--issue", default="draft")
