@@ -20,12 +20,12 @@ from fastapi.testclient import TestClient
 import leaguepage.config as cfg
 import leaguepage.issue_builder as ib
 import leaguepage.matchup_packet as mp
-from leaguepage.config import get_league
+from leaguepage.config import REPO_ROOT, get_league
 from leaguepage.desk import create_app
 from leaguepage.desk_editor import _rail_state
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups
+from fixtures import populate_league, populate_matchups, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -165,9 +165,7 @@ def test_the_room_writes_through_the_same_endpoints(env):
     approval behave exactly as they do from the editor."""
     client, db, idir = env
     _room(client)
-    r = client.post(f"{BASE}/edit/save",
-                    json={"section": "lowdown", "text": "Rewritten in the room.\n",
-                          "base_sha": ""})
+    r = save_section(client, f"{BASE}/edit", "lowdown", "Rewritten in the room.\n")
     assert r.status_code == 200, r.text
     assert (idir / "lowdown" / "lowdown.md").read_text(encoding="utf-8") == "Rewritten in the room.\n"
     revs = client.get(f"{BASE}/edit/revisions", params={"section": "lowdown"}).json()
@@ -179,11 +177,10 @@ def test_a_stale_box_in_a_second_tab_cannot_overwrite_newer_prose(env):
     """Two devices, one Commissioner. The room uses the same conflict
     check the editor does, so last-write-wins never happens silently."""
     client, _db, _idir = env
-    client.post(f"{BASE}/edit/save",
-                json={"section": "lowdown", "text": "First.\n", "base_sha": ""})
+    save_section(client, f"{BASE}/edit", "lowdown", "First.\n")
     stale = client.post(f"{BASE}/edit/save",
                         json={"section": "lowdown", "text": "From the other tab.\n",
-                              "base_sha": "0" * 64})
+                              "expected_version": "fs1:0000000000000000"})
     assert stale.status_code == 409 and stale.json()["error"] == "conflict"
 
 
@@ -276,3 +273,139 @@ def test_the_publish_drawer_is_covered_by_the_central_csrf_wiring(env):
     assert 'action="' in drawer and "csrf_token" not in drawer
     js = pathlib.Path("static/desk.js").read_text(encoding="utf-8")
     assert 'document.addEventListener("submit"' in js
+
+
+# ------------------------------------------------- two devices, one issue
+
+def test_a_conflict_carries_both_sides_so_neither_is_lost(env):
+    """"Reload the page" used to be the whole answer, and it threw away
+    whatever he had just typed. The refusal now says what he was editing,
+    what is stored, and what the stored text actually is."""
+    client, _db, _idir = env
+    save_section(client, f"{BASE}/edit", "lowdown", "First from the laptop.\n")
+    stale = client.post(f"{BASE}/edit/save",
+                        json={"section": "lowdown", "text": "From the phone.\n",
+                              "expected_version": "fs1:" + "0" * 16})
+    assert stale.status_code == 409
+    body = stale.json()
+    assert body["expected_version"] == "fs1:" + "0" * 16
+    assert body["current_version"] and body["current_version"] != body["expected_version"]
+    assert body["current_text"] == "First from the laptop.\n"
+    assert "changed elsewhere" in body["message"]
+
+
+def test_a_refused_save_leaves_the_approval_describing_the_stored_text(env):
+    """Approval is bound to content. A conflict is not an edit, so it must
+    not retire a sign-off that still describes what is actually stored."""
+    client, db, _idir = env
+    state = client.get(f"{BASE}/edit/section-state",
+                       params={"section": "lowdown"}).json()
+    r = client.post(f"{BASE}/edit/approve",
+                    json={"section": "lowdown", "action": "approve"})
+    assert r.status_code == 200, r.text
+
+    def approved():
+        with Storage(db) as s:
+            row = s.get_issue_modules("surfeit", SEASON, "week-01").get("lowdown") or {}
+        return bool(row.get("approved"))
+
+    assert approved()
+    stale = client.post(f"{BASE}/edit/save",
+                        json={"section": "lowdown", "text": "Rewritten elsewhere.\n",
+                              "expected_version": "fs1:" + "0" * 16})
+    assert stale.status_code == 409
+    assert approved(), "a save that never happened cannot retire an approval"
+    # and the real edit still does
+    save_section(client, f"{BASE}/edit", "lowdown", "Rewritten properly.\n")
+    assert not approved()
+    assert state["version"]
+
+
+def test_a_refused_save_writes_no_history_and_no_provenance(env):
+    """Nothing downstream of the write runs when the write is refused."""
+    client, db, _idir = env
+    save_section(client, f"{BASE}/edit", "lowdown", "One.\n")
+    before = client.get(f"{BASE}/edit/revisions", params={"section": "lowdown"}).json()
+    client.post(f"{BASE}/edit/save",
+                json={"section": "lowdown", "text": "Two.\n",
+                      "expected_version": "fs1:" + "0" * 16})
+    after = client.get(f"{BASE}/edit/revisions", params={"section": "lowdown"}).json()
+    assert len(after["revisions"]) == len(before["revisions"])
+
+
+def test_the_editor_carries_a_version_into_every_box_and_back(env):
+    """The browser cannot base a save on a version the page never gave it."""
+    client, _db, _idir = env
+    html = client.get(f"{BASE}/room").text
+    assert 'data-version="fs1:' in html
+    js = (REPO_ROOT / "static" / "desk-editor.js").read_text(encoding="utf-8")
+    assert "expected_version: ta.dataset.version" in js
+    # A save that succeeds hands back the next version, or the autosave a
+    # second later would be refused by the store it had just written to.
+    assert "if (data.version) ta.dataset.version = data.version;" in js
+    # And a refused one stops the timer rather than retrying forever.
+    assert "if (ta.dataset.conflict) return false;" in js
+    assert "filter((ta) => !ta.dataset.conflict)" in js
+    assert "showConflict" in js
+
+
+def test_accepting_a_proposal_that_changed_under_review_is_refused(env):
+    """A second Claude run can rewrite the proposal while the review page
+    is open. Accepting must publish what he read, or refuse."""
+    client, _db, idir = env
+    (idir / "proposals" / "lowdown.md").write_text("The draft he read.\n",
+                                                   encoding="utf-8")
+    seen = client.get(f"{BASE}/edit/section-state", params={"section": "lowdown"})
+    assert seen.status_code == 200
+    (idir / "proposals" / "lowdown.md").write_text("A different draft entirely.\n",
+                                                   encoding="utf-8")
+    r = client.post(f"{BASE}/edit/proposal",
+                    json={"section": "lowdown", "action": "accept",
+                          "proposal_version": "fs1:" + "0" * 16})
+    assert r.status_code == 409
+    assert client.get(f"{BASE}/edit/section-state",
+                      params={"section": "lowdown"}).json()["text"] \
+        == "# The Lowdown\n\nOriginal words.\n"
+
+
+def test_accepting_a_proposal_retires_another_tabs_version(env):
+    """Accepting replaces the section outright. A tab that was editing the
+    old text must be refused rather than quietly undoing the acceptance."""
+    client, _db, idir = env
+    edit = f"{BASE}/edit"
+    open_tab = client.get(f"{edit}/section-state",
+                          params={"section": "lowdown"}).json()["version"]
+    (idir / "proposals" / "lowdown.md").write_text("Claude's draft.\n",
+                                                   encoding="utf-8")
+    r = client.post(f"{edit}/proposal",
+                    json={"section": "lowdown", "action": "accept"})
+    assert r.status_code == 200, r.text
+
+    def stored():
+        return client.get(f"{edit}/section-state",
+                          params={"section": "lowdown"}).json()["text"].strip()
+
+    # Accepting strips the draft scaffolding, trailing newline included.
+    assert stored() == "Claude's draft."
+    stale = client.post(f"{edit}/save",
+                        json={"section": "lowdown", "text": "From the old tab.\n",
+                              "expected_version": open_tab})
+    assert stale.status_code == 409
+    assert stored() == "Claude's draft."
+
+
+def test_clearing_a_section_still_moves_its_version(env):
+    """Emptying the box is a change like any other. Another tab holding
+    the old version must not be able to put the old text back."""
+    client, _db, _idir = env
+    edit = f"{BASE}/edit"
+    before = client.get(f"{edit}/section-state",
+                        params={"section": "lowdown"}).json()["version"]
+    save_section(client, edit, "lowdown", "")
+    after = client.get(f"{edit}/section-state",
+                       params={"section": "lowdown"}).json()
+    assert after["exists"] and after["text"] == "" and after["version"] != before
+    stale = client.post(f"{edit}/save",
+                        json={"section": "lowdown", "text": "Old words return.\n",
+                              "expected_version": before})
+    assert stale.status_code == 409

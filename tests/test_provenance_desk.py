@@ -23,7 +23,7 @@ from leaguepage.desk import create_app
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups
+from fixtures import populate_league, populate_matchups, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -53,7 +53,7 @@ def env(tmp_path, monkeypatch):
 
 
 def _save(client, section, text):
-    r = client.post(f"{EDIT}/save", json={"section": section, "text": text, "base_sha": ""})
+    r = save_section(client, EDIT, section, text)
     assert r.status_code == 200, r.text
     return r
 

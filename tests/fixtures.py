@@ -1,6 +1,20 @@
 """Synthetic league/draft builders — no network, deterministic."""
 from __future__ import annotations
 
+
+def save_section(client, edit_base, section, text, **extra):
+    """Save prose the way the Desk's own client does.
+
+    Read what is stored, then write against that version. Saves are
+    version-guarded, so a test that means to edit an existing section has
+    to say which one it is editing, exactly as a browser does.
+    """
+    state = client.get(f"{edit_base}/section-state",
+                       params={"section": section}).json()
+    body = {"section": section, "text": text,
+            "expected_version": state.get("version"), **extra}
+    return client.post(f"{edit_base}/save", json=body)
+
 from leaguepage.adp import ADPSource
 from leaguepage.config import League
 

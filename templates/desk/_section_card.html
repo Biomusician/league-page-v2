@@ -182,7 +182,8 @@
     {% endif %}
     <div class="editwrap {% if c.blurb.written %}has-content{% endif %}">
       <textarea class="prose autosave" data-section="{{ c.module_key }}"
-                data-sha="{{ c.blurb.sha }}" rows="4">{{ c.blurb.text }}</textarea>
+                data-sha="{{ c.blurb.sha }}" data-version="{{ c.version or '' }}"
+                rows="4">{{ c.blurb.text }}</textarea>
     </div>
     <div class="previewbox" id="preview-{{ c.module_key }}" hidden></div>
     <div class="revlist" id="revs-{{ c.module_key }}" hidden></div>
@@ -205,7 +206,7 @@
 words replace this)</span>{{ c.brief.text }}</div>
           {% endif %}
           <textarea class="prose autosave" data-section="{{ c.module_key }}"
-                    data-sha="{{ ch.sha }}"
+                    data-sha="{{ ch.sha }}" data-version="{{ c.version or '' }}"
                     {% if c.chunk_count > 1 %}data-chunk-index="{{ ch.index }}"
                     data-chunk-count="{{ c.chunk_count }}"{% endif %}
                     rows="{{ [(c.brief.text.count('\n') + 4) if (c.brief and not ch.text.strip() and c.chunk_count == 1) else 4, [ch.text.count('\n') + 2, 26] | min] | max }}">{{ ch.text }}</textarea>

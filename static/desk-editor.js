@@ -94,11 +94,61 @@ document.querySelectorAll("textarea.autosave").forEach(ta => {
   });
 });
 
+/* A refused save, shown as a choice rather than an instruction to reload.
+ *
+ * Reloading was the old advice and it threw away whatever he had just
+ * typed. Neither version is discarded here: his stays in the box, the
+ * stored one is shown beside it, and he says which survives. Nothing is
+ * merged automatically, because a merge nobody asked for is how a phone
+ * silently rewrites a laptop.
+ *
+ * Autosave stops for this section until he decides. A timer that keeps
+ * retrying a save the server has already refused burns the battery and
+ * hides the problem.
+ */
+function showConflict(ta, data) {
+  ta.dataset.conflict = "1";
+  dirty.delete(ta);
+  let box = ta.nextElementSibling;
+  if (!box || box.dataset.role !== "conflict") {
+    box = document.createElement("div");
+    box.className = "card bad";
+    box.dataset.role = "conflict";
+    ta.insertAdjacentElement("afterend", box);
+  }
+  const theirs = data.current_text || "";
+  box.innerHTML =
+    "<b>This section changed elsewhere after you opened it.</b>" +
+    '<p class="meta">Your version is still in the box above and has not been ' +
+    "saved. Nothing has been merged.</p>" +
+    '<details><summary class="meta">What is stored now</summary>' +
+    '<pre class="logtail"></pre></details>' +
+    '<p><button type="button" data-act="mine">Keep mine and overwrite</button> ' +
+    '<button type="button" data-act="theirs">Use the stored version</button></p>';
+  box.querySelector("pre").textContent = theirs;
+  const rebase = (text) => {
+    // Rebasing onto the stored version is the deliberate act: from here his
+    // next save is based on what is actually stored, so it is an ordinary
+    // edit rather than a blind overwrite.
+    ta.dataset.version = data.current_version || "";
+    delete ta.dataset.conflict;
+    if (text !== null) { ta.value = text; syncGhost(ta); }
+    box.remove();
+    dirty.set(ta, true);
+    saveAll();
+  };
+  box.querySelector('[data-act="mine"]').onclick = () => rebase(null);
+  box.querySelector('[data-act="theirs"]').onclick = () => rebase(theirs);
+  setState("error", "Conflict in " + (ta.dataset.section || "this section"));
+}
+
 async function saveOne(ta) {
+  if (ta.dataset.conflict) return false;     // waiting on him, not on a retry
   const body = {
     section: ta.dataset.section,
     text: ta.value,
     base_sha: ta.dataset.sha,
+    expected_version: ta.dataset.version || null,
   };
   if (ta.dataset.chunkIndex !== undefined) {
     body.chunk_index = parseInt(ta.dataset.chunkIndex);
@@ -106,10 +156,17 @@ async function saveOne(ta) {
   }
   const r = await fetch(EDIT + "/save", {method: "POST",
     headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
-  if (r.status === 409) { setState("error", "Conflict: this section changed elsewhere. Reload the page."); return false; }
+  if (r.status === 409) {
+    showConflict(ta, await r.json().catch(() => ({})));
+    return false;
+  }
   if (!r.ok) { setState("error", "Error saving — try Save All again."); return false; }
   const data = await r.json();
   ta.dataset.sha = data.sha;
+  // The version the NEXT save is based on. Without this, a second autosave
+  // a second later would still be claiming the version from page load and
+  // be refused by the store it had just written to.
+  if (data.version) ta.dataset.version = data.version;
   dirty.delete(ta);
   const chip = document.querySelector(`[data-role="state-chip"][data-section="${ta.dataset.section}"]`);
   if (chip && data.state) { chip.textContent = data.state; chip.classList.add("edited"); }
@@ -117,7 +174,7 @@ async function saveOne(ta) {
 }
 
 async function saveAll() {
-  const pending = [...dirty.keys()];
+  const pending = [...dirty.keys()].filter((ta) => !ta.dataset.conflict);
   if (!pending.length) { setState("", "All changes saved"); return; }
   setState("dirty", "Saving…");
   let ok = true;

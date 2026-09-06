@@ -15,7 +15,7 @@ from leaguepage.desk import create_app
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER
 from leaguepage.storage import Storage
 
-from fixtures import populate_league
+from fixtures import populate_league, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -50,8 +50,12 @@ EDIT = f"/commissioner/surfeit/{SEASON}/issue/draft/edit"
 
 
 def _save(client, section, text, sha="", **kw):
-    return client.post(f"{EDIT}/save", json={"section": section, "text": text,
-                                             "base_sha": sha, **kw})
+    """Save as the browser does: against the version currently stored,
+    unless the test is deliberately claiming a different one."""
+    if "expected_version" in kw:
+        return client.post(f"{EDIT}/save", json={"section": section, "text": text,
+                                                 "base_sha": sha, **kw})
+    return save_section(client, EDIT, section, text, base_sha=sha, **kw)
 
 
 def test_editor_page_loads_with_cards(env):
@@ -76,9 +80,16 @@ def test_save_reload_revision_and_state(env):
 
 
 def test_stale_sha_conflicts_and_preserves_file(env):
+    """A save that names a version the store has moved past is refused,
+    and the stored text is untouched."""
     client, db, idir = env
-    r = _save(client, "lowdown", "clobber", "0" * 16)
+    r = _save(client, "lowdown", "clobber", expected_version="fs1:" + "0" * 16)
     assert r.status_code == 409
+    body = r.json()
+    # The refusal carries both sides, so the page can show him what he was
+    # editing and what is stored without a second request.
+    assert body["expected_version"] == "fs1:" + "0" * 16
+    assert body["current_version"] and "Original words." in body["current_text"]
     assert "Original words." in (idir / "lowdown" / "lowdown.md").read_text(encoding="utf-8")
 
 
@@ -368,13 +379,21 @@ def test_timeout_fails_stage_instead_of_hanging(jobs_env, monkeypatch):
 
 
 def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
+    """The second click joins the first job rather than starting a second.
+
+    The job is held open by an event the test releases, not by a deadline:
+    it used to give the build stage 0.6 seconds of wall clock and assert
+    that the job was still running, which is a race with the fixture on a
+    busy machine and failed as one.
+    """
+    import threading
+
     client, db, idir, calls = jobs_env
     _approve_only_lowdown(db)
-    gate = time.time() + 0.6
+    gate = threading.Event()
 
     def slow_run(ctx, cmd, *, cwd, timeout, env=None):
-        while time.time() < gate:
-            time.sleep(0.02)
+        gate.wait(20)
         import subprocess
         return subprocess.CompletedProcess(cmd, 0, "ok", "")
 
@@ -382,6 +401,7 @@ def test_duplicate_click_reuses_running_job(jobs_env, monkeypatch):
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
     client.post(f"{EDIT}/publish-start", data={"mode": "local", "confirm": "yes"})
     assert len(_live_jobs(db)) == 1   # second click joined the running job
+    gate.set()
     data = _wait_job(client)
     assert data["job"]["state"] == "succeeded"
     # refresh recovery: status still reports the finished job afterwards

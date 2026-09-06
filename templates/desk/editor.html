@@ -244,7 +244,7 @@
         {% if ch.heading %}<h4>{{ ch.heading }}</h4>{% endif %}
         <div class="editwrap {% if ch.text.strip() %}has-content{% endif %}">
           <textarea class="prose autosave" data-section="{{ c.module_key }}"
-                    data-sha="{{ ch.sha }}"
+                    data-sha="{{ ch.sha }}" data-version="{{ c.version or '' }}"
                     {% if c.chunk_count > 1 %}data-chunk-index="{{ ch.index }}"
                     data-chunk-count="{{ c.chunk_count }}"{% endif %}
                     rows="{{ [4, [ch.text.count('\n') + 2, 26] | min] | max }}">{{ ch.text }}</textarea>

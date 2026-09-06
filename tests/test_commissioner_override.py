@@ -33,7 +33,7 @@ from leaguepage.desk import create_app
 from leaguepage.issue_builder import assemble_issue, module_states
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups
+from fixtures import populate_league, populate_matchups, save_section
 
 SEASON = "2026"
 LG = get_league("surfeit")
@@ -147,8 +147,9 @@ def _first_child(db):
 
 
 def _save(client, section, text, sha=""):
-    return client.post(f"{EDIT}/save",
-                       json={"section": section, "text": text, "base_sha": sha})
+    """Saves are version-guarded, so editing an existing section means
+    saying which version is being edited, exactly as the browser does."""
+    return save_section(client, EDIT, section, text, base_sha=sha)
 
 
 # =================================================== the screenshot, expanded

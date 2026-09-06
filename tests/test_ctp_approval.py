@@ -23,7 +23,7 @@ from leaguepage.issue_builder import (assemble_issue, ctp_approved, ctp_signatur
                                       matchup_children, module_states)
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups
+from fixtures import populate_league, populate_matchups, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -120,9 +120,8 @@ def test_editing_any_preview_makes_the_approval_stale(env):
     client, db, idir, kids = env
     _approve_ctp(client)
     assert _approved(db)
-    r = client.post(f"{EDIT}/save",
-                    json={"section": kids[2]["section"], "base_sha": "",
-                          "text": "Preview number 2, rewritten on Saturday.\n"})
+    r = save_section(client, EDIT, kids[2]["section"],
+                     "Preview number 2, rewritten on Saturday.\n")
     assert r.status_code == 200, r.text
     assert not _approved(db), "the section no longer matches what was signed off"
     assert _ctp(db)["status"] == "edited"
@@ -132,8 +131,7 @@ def test_editing_any_preview_makes_the_approval_stale(env):
 def test_editing_the_opening_remarks_makes_it_stale_too(env):
     client, db, _idir, _kids = env
     _approve_ctp(client)
-    client.post(f"{EDIT}/save",
-                json={"section": "ctp", "text": "One game matters.\n", "base_sha": ""})
+    save_section(client, EDIT, "ctp", "One game matters.\n")
     assert not _approved(db)
     _approve_ctp(client)
     assert _approved(db)
@@ -145,11 +143,9 @@ def test_restoring_the_exact_text_makes_the_approval_true_again(env):
     client, db, idir, kids = env
     original = (idir / "matchups" / kids[0]["slug"] / "draft.md").read_text(encoding="utf-8")
     _approve_ctp(client)
-    client.post(f"{EDIT}/save", json={"section": kids[0]["section"],
-                                      "text": "Something else entirely.\n", "base_sha": ""})
+    save_section(client, EDIT, kids[0]["section"], "Something else entirely.\n")
     assert not _approved(db)
-    client.post(f"{EDIT}/save", json={"section": kids[0]["section"],
-                                      "text": original, "base_sha": ""})
+    save_section(client, EDIT, kids[0]["section"], original)
     assert _approved(db)
 
 
@@ -175,8 +171,7 @@ def test_publication_is_refused_while_the_approval_is_stale(env):
         assembled = assemble_issue(s, LG, SEASON, "week-01", week=1)
     assert not [w for w in assembled["warning_rows"]
                 if w["module_key"] == "ctp" and w["kind"] == "unapproved"]
-    client.post(f"{EDIT}/save", json={"section": kids[3]["section"],
-                                      "text": "Rewritten after sign-off.\n", "base_sha": ""})
+    save_section(client, EDIT, kids[3]["section"], "Rewritten after sign-off.\n")
     with Storage(db) as s:
         assembled = assemble_issue(s, LG, SEASON, "week-01", week=1)
     assert [w for w in assembled["warning_rows"]
