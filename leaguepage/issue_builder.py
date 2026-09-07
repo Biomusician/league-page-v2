@@ -216,7 +216,7 @@ def _read(path: Path) -> str | None:
     return path.read_text(encoding="utf-8") if path.exists() else None
 
 
-def _prose_of(idir: Path, section: str) -> str | None:
+def _prose_of(idir: Path, section: str, repo=None) -> str | None:
     """The stored prose for one section of the issue this directory names.
 
     The directory still says WHICH issue; it no longer decides where the
@@ -231,7 +231,12 @@ def _prose_of(idir: Path, section: str) -> str | None:
             idir.parent.name, idir.parent.parent.name, idir.name, section)
     except prose_store.ProseError:
         return None
-    rec = prose_store.repository(base_dir=idir.parent.parent.parent).get(key)
+    # `repo` is how a caller inside a transaction reads its OWN view.
+    # Without it this opens a second connection, which is fine for a
+    # screen that is only displaying something and wrong for a signature
+    # about to be written down as a claim.
+    rec = (repo or prose_store.repository(
+        base_dir=idir.parent.parent.parent)).get(key)
     return rec.text if rec.exists else None
 
 
@@ -342,6 +347,7 @@ def ctp_signature(
     week: int | None,
     *,
     base_dir: Path | None = None,
+    repo=None,
 ) -> str:
     """A hash over exactly what Common Tactical Picture would publish.
 
@@ -359,10 +365,10 @@ def ctp_signature(
     parts = []
     for child in matchup_children(storage, league, season, issue_key, week,
                                   base_dir=base_dir):
-        draft = _prose_of(idir, f"matchup:{child['slug']}")
+        draft = _prose_of(idir, f"matchup:{child['slug']}", repo)
         if draft and draft.strip() and _clean(draft):
             parts.append(f"{child['slug']}:{provenance.text_sha(draft)}")
-    parts.append("intro:" + provenance.text_sha(_prose_of(idir, "ctp")))
+    parts.append("intro:" + provenance.text_sha(_prose_of(idir, "ctp", repo)))
     return provenance.text_sha("\n".join(parts))
 
 
@@ -393,6 +399,8 @@ def module_signature(
     week: int | None,
     *,
     base_dir: Path | None = None,
+    repo=None,
+    rankings: list[dict] | None = None,
 ) -> str:
     """The identity of exactly what this module would publish.
 
@@ -407,23 +415,31 @@ def module_signature(
     Text composed from decisions -- Weekly Hardware's generated copy --
     is written INTO the prose when it is composed, so signing prose is
     signing what publishes.
+
+    `repo` and `rankings` are what a caller inside a transaction supplies
+    so the signature describes the state that transaction is about to
+    write into. Left out, both are read fresh, which is right for a
+    screen and wrong for an approval: a signature read on one connection
+    and written on another can record text that a save replaced in
+    between.
     """
     from leaguepage import provenance
 
     if kind == "ctp":
         return ctp_signature(storage, league, season, issue_key, week,
-                             base_dir=base_dir)
+                             base_dir=base_dir, repo=repo)
     if kind == "auto":
         # Rendered from data at publish time; there is nothing to approve
         # and nothing to sign.
         return ""
     if kind == "power":
-        label = "preseason" if issue_key == "draft" else issue_key
-        entries = storage.get_power_rankings(league.slug, season, label)
-        return provenance.text_sha(json.dumps(entries, sort_keys=True,
+        if rankings is None:
+            label = "preseason" if issue_key == "draft" else issue_key
+            rankings = storage.get_power_rankings(league.slug, season, label)
+        return provenance.text_sha(json.dumps(rankings, sort_keys=True,
                                               default=str))
     idir = issue_dir(league, season, issue_key, base_dir)
-    return provenance.text_sha(_prose_of(idir, module_key) or "")
+    return provenance.text_sha(_prose_of(idir, module_key, repo) or "")
 
 
 def module_approved(

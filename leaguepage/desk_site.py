@@ -13,7 +13,7 @@ from pathlib import Path
 from fastapi import Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from leaguepage import prose
+from leaguepage import auth, editorial_store, prose
 from leaguepage.config import EDITORIAL_DIR, LEAGUES, SEASON, get_league
 
 # Markdown on disk, beside the rest of the editorial source, so it diffs,
@@ -39,6 +39,17 @@ def write_about(text: str, path: Path | None = None) -> Path:
 
 
 def register_site(app, storage, templates) -> None:
+    _db_path: list = []
+
+    def _editorial():
+        """The one editorial store for this run. Same reasoning as the
+        editor's: a route that writes should not also decide what a
+        transaction is."""
+        if not _db_path:
+            with storage() as s:
+                _db_path.append(s.db_path)
+        return editorial_store.store(_db_path[0])
+
     @app.get("/commissioner/site/about")
     def about_editor(request: Request):
         return templates.TemplateResponse(request, "desk/about.html", {
@@ -75,13 +86,13 @@ def register_site(app, storage, templates) -> None:
         })
 
     @app.post("/commissioner/{league_slug}/{season}/force-flow/note")
-    def force_flow_note(league_slug: str, season: str,
+    def force_flow_note(request: Request, league_slug: str, season: str,
                         txn_id: str = Form(...), note: str = Form("")):
         """A blurb is optional everywhere. Saving an empty one removes it,
         which is how he takes a note back without a second control."""
-        with storage() as s:
-            s.set_force_flow_note(league_slug=league_slug, season=season,
-                                  txn_id=txn_id, note=note)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_force_flow_note(league=league_slug, season=season,
+                                          txn_id=txn_id, note=note)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/force-flow#txn-{txn_id}",
             status_code=303)

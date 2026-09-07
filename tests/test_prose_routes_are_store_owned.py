@@ -46,17 +46,30 @@ MARK = "ROUGH DRAFT - COMMISSIONER EDIT REQUIRED"
 MARK_LINE = f"<!-- {MARK} -->"
 SLUG = "team-1-vs-team-2"
 
-# The eight routes section 5 names. `lowdown_save` is listed as PARTIAL on
-# purpose: its save half is store-owned and its Approve half is not,
-# because approval signs a module and `module_signature` still reads
-# SQLite and the filesystem directly. Naming that here is the point --
-# a half-migrated route that goes unrecorded is exactly how an audit
-# starts lying.
-MOVED = ("editor_save", "editor_restore", "editor_reset_generated",
-         "editor_replace_origin", "proposal_action", "matchup_draft_save",
-         "qa_action")
-PARTIAL = {"lowdown_save": "approval signs a module; module_signature has "
-                           "not learned the port yet"}
+# Every route that has given up its own transaction. PARTIAL exists so a
+# half-migrated route can be recorded as half migrated rather than going
+# unmentioned, which is exactly how an audit starts lying; it is empty
+# because nothing is currently in that state, not because the idea was
+# abandoned.
+MOVED = (
+    # prose and what describes it
+    "editor_save", "editor_restore", "editor_reset_generated",
+    "editor_replace_origin", "proposal_action", "matchup_draft_save",
+    "lowdown_save", "qa_action",
+    # claims about writing, and the stages around them
+    "editor_approve", "editor_module", "editor_custom", "editor_rankings",
+    "issue_module_update", "set_theme", "rankings_save", "save_power",
+    "matchup_angle", "matchup_prominence", "matchup_revision",
+    "matchup_status_change",
+    # what he decided, and about whom
+    "story_decide", "decide_story", "inbox_decide", "award_decide",
+    "decide_award", "false_assumption_decide",
+    # the ledger, the names, the queue and the baseline
+    "track_take", "add_take", "take_action", "resolve_take",
+    "set_team_names", "use_sleeper_name", "request_rewrite",
+    "force_flow_note", "inbox_reviewed",
+)
+PARTIAL: dict[str, str] = {}
 
 # Substrings that mean "this route writes something authoritative itself".
 # Everything reached through `act.` is the store's write, not the route's.
@@ -70,6 +83,12 @@ FORBIDDEN = {
     "s.set_prose_assistance(": "writes provenance itself",
     "s.set_matchup_state(": "writes matchup state itself",
     "s.set_issue_module(": "writes the approval itself",
+    "s.set_issue_theme(": "writes the issue row itself",
+    "s.set_story_decision(": "writes a story decision itself",
+    "s.set_award_decision(": "writes an award decision itself",
+    "s.save_power_rankings(": "writes the rankings itself",
+    "s.log_editorial_usage(": "writes the repetition log itself",
+    "provenance.note_rankings(": "writes provenance itself",
     "repo.put(": "writes prose outside the action",
     "repo.delete(": "deletes prose outside the action",
     "_repo().put(": "writes prose outside the action",
@@ -108,19 +127,52 @@ def test_a_moved_route_goes_through_the_store(name):
         "nothing it does not belong in MOVED")
 
 
+def test_every_authoring_route_is_accounted_for():
+    """Nothing authoring is quietly outside this file.
+
+    A route that never appears in MOVED or PARTIAL is not "fine", it is
+    unexamined, and unexamined is how the first cutover analysis came to
+    describe a fifth of the surface.
+    """
+    from test_hosted_mutation_audit import CLAIMS
+
+    authoring = {n for n, c in CLAIMS.items() if c.kind == "authoring"}
+    unexamined = sorted(authoring - set(MOVED) - set(PARTIAL))
+    assert not unexamined, f"authoring route(s) never examined: {unexamined}"
+    assert not (set(MOVED) | set(PARTIAL)) - authoring, "a name that is not a route"
+
+
+def test_store_owned_is_not_the_same_claim_as_hosted_safe():
+    """The distinction the whole tranche turns on.
+
+    Every authoring route now expresses intent to the store instead of
+    holding a transaction. That is the shape a cutover needs and it is
+    not a cutover: the backend setting has not moved, no data has been
+    imported, and the writes still land on this machine. If this test
+    ever fails because a route claims hosted safety, the thing to do is
+    read the cutover gate, not delete this.
+    """
+    from test_hosted_mutation_audit import CLAIMS
+
+    for name in MOVED:
+        assert not CLAIMS[name].safe, (
+            f"{name} claims hosted safety merely for having moved")
+
+
 def test_a_half_migrated_route_is_recorded_as_half_migrated():
     """The check that stops this file from flattering itself.
 
-    `lowdown_save` calls the store and also writes an approval directly.
-    Both facts are true and the second is the one that matters, so it is
-    named rather than counted as moved.
+    A route that calls the store on one branch and writes directly on
+    another has not moved, and the dangerous version of that is the one
+    nobody wrote down. PARTIAL is where it goes; anything in it must
+    really still write for itself, or it belongs in MOVED.
     """
-    src = _route_sources()["lowdown_save"]
-    assert "_editorial().action(" in src, "its save half did move"
-    assert "s.set_issue_module(" in src, (
-        "its approve half no longer writes directly -- if that is real, "
-        "move it out of PARTIAL and into MOVED")
     assert set(PARTIAL) & set(MOVED) == set(), "a route is one or the other"
+    for name in PARTIAL:
+        src = _route_sources()[name]
+        assert any(token in src for token in FORBIDDEN), (
+            f"{name} writes nothing of its own any more -- move it into "
+            "MOVED rather than leaving it recorded as half migrated")
 
 
 # ----------------------------------------------------------- behavioural

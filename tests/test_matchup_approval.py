@@ -151,3 +151,58 @@ def test_storage_call_uses_keywords(env):
                     and node.func.attr in kwonly and node.args):
                 offenders.append(f"{f.name}:{node.lineno} {node.func.attr}()")
     assert offenders == [], offenders
+
+
+def test_a_port_method_sharing_a_storage_name_shares_its_convention():
+    """Why the check above keeps catching the editorial state port.
+
+    `EditorialState` deliberately mirrors several Storage method names,
+    because they mean the same thing. The AST walk cannot tell the two
+    apart -- it sees an attribute name -- so a port method that took
+    those arguments positionally would make the guard fire on correct
+    code, and the tempting fix would be to teach the guard an exception.
+
+    That would be the wrong fix. The reason Storage made them keyword-only
+    is that they are runs of interchangeable strings, and that reason
+    holds on the port too. So the rule is the simple one: same name, same
+    convention.
+    """
+    import inspect
+
+    from leaguepage import editorial_state as est
+    from leaguepage.storage import Storage
+
+    def no_positional_data(fn) -> bool:
+        """Nothing meaningful can be passed to it by position.
+
+        `**fields` counts: a method that takes only keyword arguments
+        cannot be called the wrong way round, which is the whole point.
+        """
+        sig = inspect.signature(fn)
+        return not [p for p in sig.parameters.values()
+                    if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD,
+                                  p.VAR_POSITIONAL)
+                    and p.name != "self"]
+
+    def kwonly(fn) -> bool:
+        return (no_positional_data(fn)
+                and any(p.kind == p.KEYWORD_ONLY
+                        for p in inspect.signature(fn).parameters.values()))
+
+    shared = []
+    for cls in (est.SqliteEditorialState, est.PostgresEditorialState,
+                est.EditorialState):
+        for name, fn in vars(cls).items():
+            if name.startswith("_") or not callable(fn):
+                continue
+            storage_fn = getattr(Storage, name, None)
+            if storage_fn is None or not kwonly(storage_fn):
+                continue
+            shared.append(f"{cls.__name__}.{name}")
+            assert no_positional_data(fn), (
+                f"{cls.__name__}.{name} shares a keyword-only Storage name "
+                "but takes positional arguments. Make it keyword-only, or "
+                "give it a different name -- do not teach the AST guard an "
+                "exception.")
+    assert shared, ("no port method shares a keyword-only Storage name any "
+                    "more; if that is deliberate, delete this test")

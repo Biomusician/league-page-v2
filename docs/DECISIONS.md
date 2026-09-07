@@ -1682,3 +1682,91 @@ compares it against what the migrations define. Table presence answers
 "did something run"; columns answer "did all of it run". It also reads
 `drop column`, because 0004 removes `jobs.stages` and a verifier that
 demanded it back would be inventing a gap.
+
+## 2026-09-07 — Every authoring route gave up its transaction; none became hosted
+
+Tranche 5C moved all 35 authoring routes onto `EditorialStore`. That is
+the whole of what 5B said blocked a cutover, and it changes the SHAPE
+without changing the ANSWER: the writes still land on this machine,
+because the backend setting has not moved and the data has not been
+imported.
+
+Those two facts are now recorded separately and cross-checked against
+each other, because conflating them is the failure mode this whole
+sequence has been avoiding. `owner="store"` is a structural claim,
+proved by reading each route's source and refusing it if it still writes
+anything itself. `safe=True` is a claim about where the write lands and
+remains false for all 35.
+
+Rejected: marking routes hosted-safe on the strength of having moved.
+The route table would read green and the product would still be writing
+to a laptop.
+
+## 2026-09-07 — The port carries intents, not a second Storage
+
+`EditorialState` grew from 12 operations to 30. The rule held: each one
+is something a route asks for, expressed the way the route asks for it.
+Nothing was added because a table existed.
+
+Two consequences worth writing down.
+
+`save_rankings` is on the action rather than in a route module, because
+three screens save rankings and all three must write the table and the
+claim about who wrote the notes together. A helper in one route file
+cannot do that for the other two, and three copies would drift.
+
+Port methods that share a keyword-only Storage name now share its
+calling convention. The AST guard in `tests/test_matchup_approval.py`
+cannot tell `EditorialState.set_force_flow_note` from
+`Storage.set_force_flow_note` -- it sees an attribute name -- so a
+positional call on the port made the guard fire on correct code. The
+tempting fix was to teach the guard an exception. The right one was to
+notice that the reason Storage made those keyword-only (runs of
+interchangeable strings) applies to the port too.
+
+## 2026-09-07 — What actually blocked the approval routes
+
+An earlier commit in this tranche said `module_signature` reads prose
+from SQLite and the filesystem, so approving through the store would
+sign what this machine says about text the cloud holds. That was wrong:
+`_prose_of` already goes through `prose_store.repository()`, so prose
+signatures were portable all along.
+
+Two things were genuinely true and neither was that one. The `power`
+module signs `storage.get_power_rankings(...)`, which lived only in
+SQLite -- fixed by putting rankings on the port. And every signature was
+computed on a connection other than the one recording it, so a save
+landing in between would be approved without ever having been read --
+fixed by reading it through the action.
+
+Recorded because the wrong reason was in the tree for a commit and the
+right one is more specific and more useful.
+
+## 2026-09-07 — Rollback is a setting, and that is a property to prove
+
+The import writes to the cloud and to nothing else, so the local store
+after an import is byte-identical to the local store before it and
+unsetting `LEAGUEPAGE_PROSE_BACKEND` returns to exactly the place that
+was left.
+
+That is only worth saying because it is checked:
+`tests/test_import_leaves_this_machine_alone.py` traces every SQLite
+statement and every write under the editorial tree while the import
+runs and requires zero. Not "no important writes". Zero. The trace is
+armed AFTER the Storage is opened, so the constructor's own
+`CREATE TABLE IF NOT EXISTS` bootstrap is not counted -- and DDL stays
+in the forbidden set, so an import that tried to ALTER anything would
+still fail it.
+
+## 2026-09-07 — `about_save` is an open gap, not reduced scope
+
+The About page's copy is the last authoritative prose outside the store,
+and it stays there for now. The blocker is specific: a `ProseKey` is
+(league, season, issue, section) and a site-wide page has none of those,
+so moving it needs either a new key shape or a table of its own.
+
+Deciding that inside a migration tranche is how a schema acquires a
+third way of storing words permanently. So it is recorded as a hosted
+gap with the blocker named -- on a hosted Desk the About editor would
+not work -- rather than reclassified as out of scope to keep a table
+green.

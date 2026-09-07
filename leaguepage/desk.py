@@ -568,7 +568,7 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/inbox/decide")
     def inbox_decide(
-        league_slug: str, season: str,
+        request: Request, league_slug: str, season: str,
         item_id: str = Form(...), decision: str = Form(...),
         route: str = Form(""), issue_key: str = Form(...), note: str = Form(""),
     ):
@@ -578,19 +578,19 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         inbox decision is the same decision the issue builder and the briefs
         already read. An empty decision clears the row: triage with no undo
         makes a misclick permanent."""
-        with storage() as s:
-            s.set_story_decision(
-                league_slug=league_slug, season=season, workflow=issue_key,
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_story_decision(
+                league=league_slug, season=season, workflow=issue_key,
                 candidate_id=item_id, decision=decision,
                 route=route.strip() or None, note=note.strip() or None)
         return RedirectResponse(f"/commissioner/inbox?league={league_slug}", status_code=303)
 
     @app.post("/commissioner/{league_slug}/{season}/inbox/reviewed")
-    def inbox_reviewed(league_slug: str, season: str):
+    def inbox_reviewed(request: Request, league_slug: str, season: str):
         """Pin the baseline forward: everything currently shown is now 'seen',
         and the next sync's inbox starts from here."""
-        with storage() as s:
-            s.mark_sync_reviewed(league_slug, season)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.mark_sync_reviewed(league_slug, season)
         return RedirectResponse(f"/commissioner/inbox?league={league_slug}", status_code=303)
 
     @app.get("/commissioner/{league_slug}/{season}/draft-review")
@@ -601,30 +601,29 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/draft-review/story")
     def decide_story(
-        league_slug: str, season: str,
+        request: Request, league_slug: str, season: str,
         candidate_id: str = Form(...), decision: str = Form(...), note: str = Form(""),
     ):
-        with storage() as s:
-            s.set_story_decision(
-                league_slug=league_slug, season=season, workflow="draft",
-                candidate_id=candidate_id, decision=decision, note=note.strip() or None,
-            )
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_story_decision(
+                league=league_slug, season=season, workflow="draft",
+                candidate_id=candidate_id, decision=decision,
+                note=note.strip() or None)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/draft-review#stories", status_code=303
         )
 
     @app.post("/commissioner/{league_slug}/{season}/draft-review/award")
     def decide_award(
-        league_slug: str, season: str,
+        request: Request, league_slug: str, season: str,
         award_key: str = Form(...), decision: str = Form(...),
         winner: str = Form(""), note: str = Form(""),
     ):
-        with storage() as s:
-            s.set_award_decision(
-                league_slug=league_slug, season=season, workflow="draft",
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_award_decision(
+                league=league_slug, season=season, workflow="draft",
                 award_key=award_key, decision=decision,
-                winner=winner.strip() or None, note=note.strip() or None,
-            )
+                winner=winner.strip() or None, note=note.strip() or None)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/draft-review#awards", status_code=303
         )
@@ -644,42 +643,46 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                     "tier": int(tier_raw) if tier_raw.isdigit() else None,
                     "note": str(form.get(f"note_{roster_id}", "")).strip() or None,
                 })
-        with storage() as s:
-            s.save_power_rankings(league_slug, season, "preseason", entries)
-            from leaguepage import provenance
-
-            provenance.note_rankings(s, league_slug=league_slug, season=season,
-                                     label="preseason", entries=entries)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.save_rankings(league_slug, season, "preseason", entries)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/draft-review#power", status_code=303
         )
 
     @app.post("/commissioner/{league_slug}/{season}/draft-review/take")
     def add_take(
-        league_slug: str, season: str,
+        request: Request, league_slug: str, season: str,
         subject: str = Form(...), quote: str = Form(...),
         topic: str = Form(""), players: str = Form(""), confidence: str = Form(""),
     ):
         player_list = [p.strip() for p in players.split(",") if p.strip()]
-        with storage() as s:
-            s.add_take(
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.add_take(
                 league_slug=league_slug, season=season, week=None,
                 context="draft", source="draft-review", author="commissioner",
                 subject=subject.strip(), quote=quote.strip(),
                 topic=topic.strip() or None, players=player_list or None,
-                confidence=confidence.strip() or None,
-            )
+                confidence=confidence.strip() or None)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/draft-review#takes", status_code=303
         )
 
     @app.post("/commissioner/{league_slug}/{season}/draft-review/take/{take_id}/resolve")
     def resolve_take(
-        league_slug: str, season: str, take_id: int,
+        request: Request, league_slug: str, season: str, take_id: int,
         status: str = Form(...), resolution: str = Form(""),
     ):
-        with storage() as s:
-            s.resolve_take(take_id, status, resolution.strip() or None)
+        if status == "open":
+            # `resolve_take` refused this and the port does not have the
+            # concept, so the refusal is stated here rather than relying
+            # on a helper that no longer exists: reopening a take is the
+            # verdict screen's job, not the resolution form's.
+            return RedirectResponse(
+                f"/commissioner/{league_slug}/{season}/draft-review#takes",
+                status_code=303)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_take_status(take_id, status,
+                                      resolution.strip() or None)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/draft-review#takes", status_code=303
         )
@@ -752,44 +755,54 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/week/{week}/matchups/{slug}/angle")
     def matchup_angle(
-        league_slug: str, season: str, week: int, slug: str,
+        request: Request, league_slug: str, season: str, week: int, slug: str,
         angle_id: str = Form(""), action: str = Form(...),
         custom_angle: str = Form(""), note: str = Form(""),
     ):
-        with storage() as s:
+        workflow = f"week-{week:02d}"
+        with _editorial().action(actor=auth.actor_of(request)) as act:
             if action == "select" and angle_id:
-                s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                    matchup_slug=slug, selected_angle_id=angle_id,
-                                    custom_angle=None, status="ready_to_draft")
-                s.set_story_decision(league_slug=league_slug, season=season,
-                                     workflow=f"week-{week:02d}", candidate_id=angle_id,
-                                     decision="include", note=note.strip() or None)
+                # Two writes, one intent. Selecting an angle and recording
+                # that the candidate was included are the same click, and
+                # a preview sitting at ready-to-draft with no decision
+                # behind it is how a story gets written twice.
+                act.state.set_matchup(league_slug, season, week, slug,
+                                      selected_angle_id=angle_id,
+                                      custom_angle=None, status="ready_to_draft")
+                act.state.set_story_decision(
+                    league=league_slug, season=season, workflow=workflow,
+                    candidate_id=angle_id, decision="include",
+                    note=note.strip() or None)
             elif action in ("save", "reject") and angle_id:
-                s.set_story_decision(league_slug=league_slug, season=season,
-                                     workflow=f"week-{week:02d}", candidate_id=angle_id,
-                                     decision="save" if action == "save" else "ignore",
-                                     note=note.strip() or None)
+                act.state.set_story_decision(
+                    league=league_slug, season=season, workflow=workflow,
+                    candidate_id=angle_id,
+                    decision="save" if action == "save" else "ignore",
+                    note=note.strip() or None)
             elif action == "custom" and custom_angle.strip():
-                s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                    matchup_slug=slug, custom_angle=custom_angle.strip(),
-                                    selected_angle_id=None, status="ready_to_draft")
+                act.state.set_matchup(league_slug, season, week, slug,
+                                      custom_angle=custom_angle.strip(),
+                                      selected_angle_id=None,
+                                      status="ready_to_draft")
             elif action == "note":
-                s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                    matchup_slug=slug, angle_note=note.strip() or None)
+                act.state.set_matchup(league_slug, season, week, slug,
+                                      angle_note=note.strip() or None)
             elif action == "stale" and angle_id:
-                s.set_story_decision(league_slug=league_slug, season=season,
-                                     workflow=f"week-{week:02d}", candidate_id=angle_id,
-                                     decision="ignore", note="marked stale")
+                act.state.set_story_decision(
+                    league=league_slug, season=season, workflow=workflow,
+                    candidate_id=angle_id, decision="ignore",
+                    note="marked stale")
         return _back(league_slug, season, week, slug, "#story")
 
     @app.post("/commissioner/{league_slug}/{season}/week/{week}/matchups/{slug}/prominence")
     def matchup_prominence(
-        league_slug: str, season: str, week: int, slug: str, prominence: str = Form(...),
+        request: Request, league_slug: str, season: str, week: int, slug: str,
+        prominence: str = Form(...),
     ):
         override = prominence if prominence in ("FEATURE", "MAJOR", "STANDARD", "CAPSULE") else None
-        with storage() as s:
-            s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                matchup_slug=slug, prominence_override=override)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_matchup(league_slug, season, week, slug,
+                                  prominence_override=override)
         return _back(league_slug, season, week, slug)
 
     @app.post("/commissioner/{league_slug}/{season}/week/{week}/matchups/{slug}/draft")
@@ -815,7 +828,8 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/week/{week}/matchups/{slug}/status")
     def matchup_status_change(
-        league_slug: str, season: str, week: int, slug: str, action: str = Form(...),
+        request: Request, league_slug: str, season: str, week: int, slug: str,
+        action: str = Form(...),
     ):
         league = get_league(league_slug)
         text = _draft(league, season, week, slug)
@@ -826,9 +840,9 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             # refuse to bless an empty or still-rough draft
             return _back(league_slug, season, week, slug, "#draft")
         if status:
-            with storage() as s:
-                s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                    matchup_slug=slug, status=status)
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                act.state.set_matchup(league_slug, season, week, slug,
+                                      status=status)
                 if status == "approved":
                     # feed the repetition log from the draft's usage comment
                     import re as _re
@@ -843,9 +857,14 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                                     "callback": "callback", "joke_family": "joke_family",
                                     "bit": "bit"}.get(key)
                             if kind and value and value.lower() != "none":
-                                s.log_editorial_usage(
-                                    league_slug=league_slug, season=season, week=week,
-                                    matchup_slug=slug, kind=kind, value=value,
+                                # Same transaction as the stage it is
+                                # logged on: a repetition log that
+                                # remembers a bit from an approval that
+                                # did not happen would suppress a joke he
+                                # never told.
+                                act.state.log_usage(
+                                    league_slug, season, week, kind, value,
+                                    matchup_slug=slug,
                                     note="logged on approval")
         return _back(league_slug, season, week, slug, "#draft")
 
@@ -926,19 +945,21 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     async def set_team_names(request: Request, league_slug: str, season: str):
         form = await request.form()
         back = str(form.get("back") or f"/commissioner/{league_slug}/{season}/issue/draft")
-        with storage() as s, s.transaction():
+        with _editorial().action(actor=auth.actor_of(request)) as act:
             # One click renames as many teams as the form carries, so it is
             # one transaction: half a rename is not a state he asked for.
             for key, value in form.items():
                 if key.startswith("name_") and str(value).strip():
-                    s.set_public_team_name(league_slug, int(key.removeprefix("name_")),
-                                           str(value))
+                    act.state.set_team_name(
+                        league_slug, int(key.removeprefix("name_")), str(value))
         return RedirectResponse(back, status_code=303)
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/theme")
-    def set_theme(league_slug: str, season: str, issue_key: str, theme: str = Form("")):
-        with storage() as s:
-            s.set_issue_theme(league_slug, season, issue_key, theme.strip() or None)
+    def set_theme(request: Request, league_slug: str, season: str,
+                  issue_key: str, theme: str = Form("")):
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_issue(league_slug, season, issue_key,
+                                theme=theme.strip() or None)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}", status_code=303)
 
@@ -989,13 +1010,13 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/stories")
     def story_decide(
-        league_slug: str, season: str, issue_key: str,
+        request: Request, league_slug: str, season: str, issue_key: str,
         candidate_id: str = Form(...), decision: str = Form(...),
         route: str = Form(""), note: str = Form(""),
     ):
-        with storage() as s:
-            s.set_story_decision(
-                league_slug=league_slug, season=season, workflow=issue_key,
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_story_decision(
+                league=league_slug, season=season, workflow=issue_key,
                 candidate_id=candidate_id, decision=decision,
                 route=route.strip() or None, note=note.strip() or None)
         return RedirectResponse(
@@ -1012,13 +1033,13 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/awards")
     def award_decide(
-        league_slug: str, season: str, issue_key: str,
+        request: Request, league_slug: str, season: str, issue_key: str,
         award_key: str = Form(...), decision: str = Form(...),
         winner: str = Form(""), note: str = Form(""),
     ):
-        with storage() as s:
-            s.set_award_decision(
-                league_slug=league_slug, season=season, workflow=issue_key,
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.state.set_award_decision(
+                league=league_slug, season=season, workflow=issue_key,
                 award_key=award_key, decision=decision,
                 winner=winner.strip() or None, note=note.strip() or None)
         return RedirectResponse(
@@ -1062,26 +1083,18 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                                  expected_version=act.prose.get(key).version,
                                  source="lowdown-screen-save", state=None)
             return back
-        # NOT MOVED. Approval records a signature over the module, and
-        # `module_signature` still reads SQLite and the filesystem
-        # directly, so approving through the store would sign what this
-        # machine says about text the cloud holds. The signature has to
-        # learn the port first. Until it does, this half stays where it is
-        # and the route audit records the route as unmoved rather than
-        # reading green because the save half calls the store.
-        with storage() as s:
+        # `s` for the module kinds, which are definitions; `act` for
+        # reading the text and writing the claim about it, so the
+        # signature cannot describe a version a save replaced in between.
+        with storage() as s, _editorial().action(actor=auth.actor_of(request)) as act:
             if action == "approve":
-                text = prose_store.repository(s.db_path).get(key).text
+                text = act.prose.get(key).text
                 if text and ROUGH_DRAFT_MARKER not in text:
-                    s.set_issue_module(
-                        league_slug=league_slug, season=season,
-                        issue_key=issue_key, module_key="lowdown", approved=1,
-                        approved_sha=_approval_signature(
-                            s, league_slug, season, issue_key, "lowdown"))
+                    act.approve(league_slug, season, issue_key, "lowdown",
+                                _approval_signature(s, league_slug, season,
+                                                    issue_key, "lowdown", act))
             elif action == "unapprove":
-                s.set_issue_module(league_slug=league_slug, season=season,
-                                   issue_key=issue_key, module_key="lowdown",
-                                   approved=0, approved_sha=None)
+                act.unapprove(league_slug, season, issue_key, "lowdown")
         return back
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/builder")
@@ -1090,13 +1103,18 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         return templates.TemplateResponse(request, "desk/builder.html", ctx)
 
     def _approval_signature(s, league_slug: str, season: str, issue_key: str,
-                            module_key: str) -> str:
+                            module_key: str, act=None) -> str:
         """What this module says right now, as the approval will record it.
 
         Three screens can approve -- the editor, the Lowdown page and the
         builder -- and an approval that records no signature is a record
         that he clicked rather than a claim about the text. One helper so
         they cannot drift.
+
+        With an action, the prose and the rankings are read through it, so
+        the signature describes the state the approval is about to be
+        written into. Without one, this is a fresh read and fine for a
+        screen that is only displaying something.
         """
         from leaguepage.issue_builder import module_signature, module_states
 
@@ -1104,12 +1122,17 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         week = _week_of(issue_key)
         kinds = {m["module_key"]: m["kind"]
                  for m in module_states(s, league, season, issue_key, week=week)}
-        return module_signature(s, league, season, issue_key, module_key,
-                                kinds.get(module_key, "section"), week)
+        kind = kinds.get(module_key, "section")
+        label = "preseason" if issue_key == "draft" else issue_key
+        return module_signature(
+            s, league, season, issue_key, module_key, kind, week,
+            repo=act.prose if act is not None else None,
+            rankings=(act.state.rankings(league_slug, season, label)
+                      if act is not None and kind == "power" else None))
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/builder/module")
     def issue_module_update(
-        league_slug: str, season: str, issue_key: str,
+        request: Request, league_slug: str, season: str, issue_key: str,
         module_key: str = Form(...), action: str = Form(...),
         position: str = Form(""), custom_title: str = Form(""),
     ):
@@ -1128,12 +1151,12 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         elif action == "move" and position.strip().lstrip("-").isdigit():
             fields["position"] = int(position)
         if fields:
-            with storage() as s:
+            with storage() as s, _editorial().action(actor=auth.actor_of(request)) as act:
                 if action == "approve":
                     fields["approved_sha"] = _approval_signature(
-                        s, league_slug, season, issue_key, module_key)
-                s.set_issue_module(league_slug=league_slug, season=season,
-                                   issue_key=issue_key, module_key=module_key, **fields)
+                        s, league_slug, season, issue_key, module_key, act)
+                act.state.set_module(league_slug, season, issue_key, module_key,
+                                     **fields)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/builder", status_code=303)
 
@@ -1223,12 +1246,8 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                     "tier": int(form.get(f"tier_{rid}")) if str(form.get(f"tier_{rid}", "")).strip().isdigit() else None,
                     "note": str(form.get(f"note_{rid}", "")).strip() or None,
                 })
-        with storage() as s:
-            s.save_power_rankings(league_slug, season, label, entries)
-            from leaguepage import provenance
-
-            provenance.note_rankings(s, league_slug=league_slug, season=season,
-                                     label=label, entries=entries)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.save_rankings(league_slug, season, label, entries)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/rankings/{label}", status_code=303)
 
@@ -1243,40 +1262,47 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/false-assumptions/{take_id}")
     def false_assumption_decide(
-        league_slug: str, season: str, take_id: int,
+        request: Request, league_slug: str, season: str, take_id: int,
         action: str = Form(...), resolution: str = Form(""), issue_key: str = Form(""),
     ):
-        with storage() as s:
+        # `validated` and `retired` are the pre-lifecycle spellings that
+        # migration 0003 rewrote in the data. Storage's alias map has been
+        # translating them ever since; naming the current statuses here
+        # means the route says what the ledger says.
+        verdicts = {"too_early": "too_early", "validate": "resolved_right",
+                    "retire": "void"}
+        with _editorial().action(actor=auth.actor_of(request)) as act:
             if action == "use" and issue_key:
-                s.set_story_decision(
-                    league_slug=league_slug, season=season, workflow=issue_key,
+                act.state.set_story_decision(
+                    league=league_slug, season=season, workflow=issue_key,
                     candidate_id=f"story:take:{take_id}", decision="include",
                     route="false-assumptions",
                     note="commissioner: use as False Assumption")
-            elif action == "too_early":
-                s.resolve_take(take_id, "too_early", resolution.strip() or None)
-            elif action == "validate":
-                s.resolve_take(take_id, "validated", resolution.strip() or None)
-            elif action == "retire":
-                s.resolve_take(take_id, "retired", resolution.strip() or None)
+            elif action in verdicts:
+                act.state.set_take_status(take_id, verdicts[action],
+                                          resolution.strip() or None)
             # "ignore" records nothing — the take stays untouched
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/false-assumptions", status_code=303)
 
     @app.post("/commissioner/{league_slug}/{season}/week/{week}/matchups/{slug}/revision")
     def matchup_revision(
-        league_slug: str, season: str, week: int, slug: str,
+        request: Request, league_slug: str, season: str, week: int, slug: str,
         request_type: str = Form(...), detail: str = Form(""),
     ):
-        with storage() as s:
-            state = s.get_matchup_state(league_slug, season, week, slug) or {}
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            # Read-modify-write on a list, so the read has to be inside
+            # the same transaction as the write. Two requests filed at
+            # once used to be able to lose one.
+            state = act.state.matchup(league_slug, season, week, slug) or {}
             existing = state.get("revision_requests")
-            reqs = json.loads(existing) if existing else []
+            reqs = (json.loads(existing) if isinstance(existing, str)
+                    else list(existing or []))
             entry = request_type + (f": {detail.strip()}" if detail.strip() else "")
             reqs.append(entry)
-            s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                matchup_slug=slug, revision_requests=reqs,
-                                status="ready_to_draft")
+            act.state.set_matchup(league_slug, season, week, slug,
+                                  revision_requests=reqs,
+                                  status="ready_to_draft")
         return _back(league_slug, season, week, slug, "#draft")
 
     from leaguepage.desk_editor import register_editor

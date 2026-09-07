@@ -188,6 +188,26 @@ class EditorialAction:
                                             "done")
         return saved
 
+    def save_rankings(self, league: str, season: str, label: str,
+                      entries: list[dict]) -> None:
+        """The table, and what it says about who wrote the notes.
+
+        These were two `_cursor()` calls and therefore two transactions:
+        a failure between them left the ranking saved and the claim that
+        the notes are his missing. Peer and Near-Peer's prose IS those
+        notes, so the claim is not decoration -- it is the only record
+        that the writing on that page is the Commissioner's.
+        """
+        from leaguepage import provenance
+
+        self.state.set_rankings(league, season, label, entries)
+        if not any((e.get("note") or "").strip() for e in entries):
+            return
+        key = ProseKey.section(
+            league, season, "draft" if label == "preseason" else label, "power")
+        self.state.set_provenance(key, provenance.commissioner_row(
+            self.state.provenance(key), event="rankings-note"))
+
     def approve(self, league: str, season: str, issue: str, module_key: str,
                 signature: str, *, covered: dict[str, str] | None = None) -> None:
         """Record the approval AND what it covers, together.
@@ -228,8 +248,9 @@ class FilesystemEditorialStore:
         repo = prose_store.FilesystemProseRepository(
             db_path=self._db_path, base_dir=self._base_dir)
         with Storage(self._db_path or DB_PATH) as s, s.transaction():
-            yield EditorialAction(repo, SqliteEditorialState(s),
-                                  actor=actor, atomic=False)
+            yield EditorialAction(
+                repo, SqliteEditorialState(s, base_dir=self._base_dir),
+                actor=actor, atomic=False)
 
     def health(self) -> dict:
         return {"backend": self.backend, "atomic_actions": False}

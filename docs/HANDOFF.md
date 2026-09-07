@@ -1,10 +1,78 @@
 # HANDOFF
 
-Updated 2026-09-08, end of Tranche 5B (cloud transaction, no cutover). Companions:
+Updated 2026-09-07, end of Tranche 5C (every authoring route moved; no cutover). Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Commissioner Portal, tranche 5C — the routes moved (2026-09-07)
+
+**Status: NO CUTOVER. `LEAGUEPAGE_PROSE_BACKEND` is still unset, the
+filesystem is still authoritative, `.env` is untouched, nothing was
+published or deployed. Read `docs/CUTOVER.md` before deciding anything.**
+
+### What shipped
+
+- **All 35 authoring routes are store-owned.** Not one holds a
+  transaction of its own. Proved twice: structurally, by reading each
+  route's source and refusing it if it still writes anything itself; and
+  behaviourally, by breaking a metadata seam mid-route and looking at
+  what survived.
+- **`EditorialState` widened from 12 operations to 30**, on both
+  adapters, covering issues, rankings, story and award decisions, takes,
+  team names, the rewrite queue, the repetition log, the inbox baseline
+  and research.
+- **Research has a port.** `rough-lowdown.md` is a file here and a
+  `research_artifacts` row in the cloud. It used to be stat'd on disk,
+  which on a hosted Desk answers "no draft, no AI help" for every
+  section, silently and in the direction that looks like an honest
+  absence.
+- **Migration 0003 verified live** -- all 20 columns with the right
+  types, defaults and nullability, both indexes including the partial
+  predicate, and no rows left carrying the pre-lifecycle statuses.
+- **`scripts/import_editorial_state.py`** -- dry run by default, one
+  transaction on `--apply`, refuses to overwrite a cloud row that
+  differs unless told to, and never invents an `approved_sha`.
+- **`docs/CUTOVER.md`** -- what is ready, what is missing, the four
+  steps a cutover would take and the one step rolling back would.
+
+### Proved against the live database
+
+| suite | drives | result |
+| --- | --- | --- |
+| `tests/test_editorial_store.py` | the store directly | 39 passed |
+| `tests/test_routes_on_postgres.py` | the real routes over HTTP | 10 passed |
+| `tests/test_import_leaves_this_machine_alone.py` | the import's local footprint | 2 passed |
+
+The middle one is new and is the one that answers "do the routes
+actually use it". It builds the app with the Postgres backend selected
+IN THAT PROCESS ONLY, in a scratch namespace deleted either side.
+
+### Waiting on Jonathan
+
+**The import has not been run.** Its dry run is clean -- 808 rows to
+insert, 0 differ, prose already identical, 28 sections to mark
+commissioner-edited -- and the `--apply` run was refused by this
+session's permission classifier. It needs to be run deliberately:
+
+```
+.venv/Scripts/python.exe scripts/import_editorial_state.py
+.venv/Scripts/python.exe scripts/import_editorial_state.py --apply
+```
+
+### Known gaps, named rather than reclassified
+
+- **`about_save`**: the About page's copy is still a file and is the
+  last authoritative prose outside the store. A hosted Desk could not
+  edit it. The blocker is that a `ProseKey` is (league, season, issue,
+  section) and a site-wide page has none of those.
+- **Research beyond the rough draft**: PREP, AUTHORING, themes and
+  outline are read by screens that only display them, and can follow the
+  same port when the hosted Desk needs them.
+- **`issue_build`**: resolved as operational and out of hosted scope.
+  Everything it writes is recomputable and it is a step in a Claude Code
+  session that already needs the repository on the machine.
 
 ## Commissioner Portal, tranche 5B — the cloud transaction (2026-09-08)
 

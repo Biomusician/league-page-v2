@@ -186,32 +186,40 @@ def review_week_for(horizon: str | None, *, created_week: int | None,
 # ------------------------------------------------------------- creation
 
 
-def create_take(storage: Storage, league: League, season: str, *,
-                quote: str, issue_key: str, section: str,
-                week: int | None = None, topic: str | None = None,
-                subject_type: str | None = None,
-                subject_roster_id: int | None = None,
-                subject: str | None = None, subject_name: str | None = None,
-                confidence: str | None = None, review_after: str | None = None,
-                verbatim: bool = True, href: str | None = None,
-                note: str | None = None, players: list[str] | None = None,
-                playoff_week_start: int | None = None) -> int:
-    """Track one take. Metadata the Commissioner did not supply is inferred
-    where it is safe to and left empty where it is not."""
+def take_row(league: League, season: str, *,
+             quote: str, issue_key: str, section: str,
+             week: int | None = None, topic: str | None = None,
+             subject_type: str | None = None,
+             subject_roster_id: int | None = None,
+             subject: str | None = None, subject_name: str | None = None,
+             confidence: str | None = None, review_after: str | None = None,
+             verbatim: bool = True, href: str | None = None,
+             note: str | None = None, players: list[str] | None = None,
+             playoff_week_start: int | None = None) -> dict:
+    """What tracking this take would record. Decides; does not store.
+
+    Metadata the Commissioner did not supply is inferred where it is safe
+    to and left empty where it is not. Pure, so a route can work out what
+    a take says and hand that to whatever owns the write.
+    """
     quote = (quote or "").strip()
     if not quote:
         raise ValueError("A take needs a quote.")
-    topic = topic or infer_topic(quote)
-    return storage.add_take(
+    return dict(
         league_slug=league.slug, season=season, week=week,
         context=issue_key, source=section, subject=subject or "",
-        quote=quote, players=players, topic=topic, confidence=confidence,
-        issue_key=issue_key, subject_type=subject_type,
+        quote=quote, players=players, topic=topic or infer_topic(quote),
+        confidence=confidence, issue_key=issue_key, subject_type=subject_type,
         subject_name=subject_name, subject_roster_id=subject_roster_id,
         review_after=review_after,
         review_week=review_week_for(review_after, created_week=week,
                                     playoff_week_start=playoff_week_start),
         verbatim=verbatim, href=href, note=note)
+
+
+def create_take(storage: Storage, league: League, season: str, **kw) -> int:
+    """`take_row`, stored."""
+    return storage.add_take(**take_row(league, season, **kw))
 
 
 # ----------------------------------------------------------- evaluation

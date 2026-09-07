@@ -36,6 +36,11 @@ from leaguepage.issue_builder import (
     matchup_children, module_defs_for, module_states, next_custom_key,
 )
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER, week_dir
+
+# The one research artifact the application reads on a path that decides
+# what gets written: what Reset puts back, and whether a save records
+# that AI help was present.
+ROUGH_LOWDOWN = "rough-lowdown.md"
 from leaguepage.storage import utcnow_iso
 
 # Where the private preview loads the public stylesheet and logos from.
@@ -173,12 +178,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         except prose_store.ProseError:
             return None
 
-    def _get(league, season: str, issue_key: str, section: str):
+    def _get(league, season: str, issue_key: str, section: str, repo=None):
         """The stored record for a section: text, version, content hash."""
         key = _key(league, season, issue_key, section)
-        return _repo().get(key) if key else None
+        return (repo or _repo()).get(key) if key else None
 
-    def _text_of(league, season: str, issue_key: str, section: str) -> str | None:
+    def _text_of(league, season: str, issue_key: str, section: str,
+                 repo=None) -> str | None:
         """Current text, or None when the section has never been written.
         The `None` is meaningful: several callers distinguish an empty
         section from one that does not exist."""
@@ -281,16 +287,23 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             return "In the issue; no generator recorded, and no Desk edits since"
         return line
 
-    def _ai_help_present(league, season: str, issue_key: str, section: str,
-                         repo=None) -> bool:
+    def _ai_help_present(act, league, season: str, issue_key: str,
+                         section: str) -> bool:
         """An AI draft sits beside the box he writes in: a Claude proposal
         for the section, or the Lowdown's rough draft. Presence on the
-        Desk at the moment he saves, nothing inferred later."""
-        idir = issue_dir(league, season, issue_key)
+        Desk at the moment he saves, nothing inferred later.
+
+        Both halves are read through the action, so the answer describes
+        the store the save is about to land in. The old version stat'd
+        the issue directory, which on a hosted Desk answers "no AI help"
+        for every section forever -- silently, and in the direction that
+        looks like an honest absence.
+        """
         key = _prop_key(league, season, issue_key, section)
-        if key is not None and (repo or _repo()).exists(key):
+        if key is not None and act.prose.exists(key):
             return True
-        return section == "lowdown" and (idir / "lowdown" / "rough-lowdown.md").exists()
+        return section == "lowdown" and act.state.research(
+            league.slug, season, issue_key, "lowdown", ROUGH_LOWDOWN) is not None
 
     def _origin_intent(act, key, league, season: str, issue_key: str,
                        section: str, current: str):
@@ -320,7 +333,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 prov = provenance.commissioner_row(
                     row, method=method, event="commissioner-save")
         assist = None
-        if _ai_help_present(league, season, issue_key, section, act.prose):
+        if _ai_help_present(act, league, season, issue_key, section):
             created, assist = provenance.assistance_intent(row or prov,
                                                            method=method)
             prov = prov or created
@@ -790,19 +803,17 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             return JSONResponse({"ok": False, "error": "bad action"}, status_code=400)
         league = get_league(league_slug)
         m = _MATCHUP_RE.match(section)
-        with storage() as s:
+        with storage() as s, _editorial().action(actor=auth.actor_of(request)) as act:
+            # `s` is analytics: which matchups the week has, what the
+            # module definitions are. `act` is everything authored. The
+            # two are different questions and only one of them is a claim.
             if m:
                 week = _week_of(issue_key)
                 if week is None:
                     return JSONResponse({"ok": False, "error": "not a weekly issue"}, status_code=400)
-                # Keyword-only, like every other call site. Passing these
-                # positionally raised TypeError inside the request and the
-                # editor's Approve chip returned 500 for every matchup it
-                # has ever been clicked on. Nothing to do with angles: the
-                # call died before any angle or readiness logic ran.
-                s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                    matchup_slug=m.group(1),
-                                    status="approved" if action == "approve" else "edited")
+                act.state.set_matchup(
+                    league_slug, season, week, m.group(1),
+                    status="approved" if action == "approve" else "edited")
                 return JSONResponse({"ok": True, "approved": action == "approve"})
             # Validated in both directions. Unapprove used to skip this
             # and write a row anyway, and `included` defaults to 1 in the
@@ -811,7 +822,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             kind = dict((k, kd) for k, _t, kd
                         in module_defs_for(
                             league, issue_key,
-                            s.get_issue_modules(league_slug, season, issue_key))
+                            act.state.modules(league_slug, season, issue_key))
                         ).get(section)
             if kind is None:
                 return JSONResponse({"ok": False, "error": "unknown section"},
@@ -838,7 +849,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                   + ("…" if len(left) > 3 else "")},
                         status_code=400)
             elif action == "approve" and kind in ("lowdown", "section", "all-city"):
-                text = _text_of(league, season, issue_key, section) or ""
+                text = _text_of(league, season, issue_key, section, act.prose) or ""
                 bad = [mk for mk in BLOCKED_MARKERS if mk in text]
                 if not text.strip():
                     return JSONResponse({"ok": False, "error": "section is empty"},
@@ -855,32 +866,39 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
             week = _week_of(issue_key)
             approving = action == "approve"
-            with s.transaction():
-                s.set_issue_module(
-                    league_slug=league_slug, season=season, issue_key=issue_key,
-                    module_key=section, approved=1 if approving else 0,
-                    approved_sha=(module_signature(s, league, season, issue_key,
-                                                   section, kind, week)
-                                  if approving else None))
-                if kind == "ctp" and week is not None:
-                    # Record what each preview said at the moment the one
-                    # approval was given, so the card can name the preview
-                    # that moved. Not an approval of its own.
-                    for child in matchup_children(s, league, season, issue_key,
-                                                  week):
-                        text = _text_of(league, season, issue_key,
-                                        child["section"]) or ""
-                        s.set_matchup_state(
-                            league_slug=league_slug, season=season, week=week,
-                            matchup_slug=child["slug"],
-                            covered_sha=(provenance.text_sha(text)
-                                         if approving else None))
+            # Read through the action, so the signature describes the
+            # state this transaction is about to write into. Read
+            # elsewhere, an approval can record text that a save replaced
+            # between the reading and the writing.
+            covered = {}
+            if kind == "ctp" and week is not None:
+                # What each preview said at the moment the one approval
+                # was given, so the card can name the preview that moved.
+                # Not an approval of its own.
+                for child in matchup_children(s, league, season, issue_key, week):
+                    text = _text_of(league, season, issue_key,
+                                    child["section"], act.prose) or ""
+                    covered[(week, child["slug"])] = provenance.text_sha(text)
+            if approving:
+                act.approve(
+                    league_slug, season, issue_key, section,
+                    module_signature(
+                        s, league, season, issue_key, section, kind, week,
+                        repo=act.prose,
+                        rankings=(act.state.rankings(
+                            league_slug, season,
+                            "preseason" if issue_key == "draft" else issue_key)
+                            if kind == "power" else None)),
+                    covered=covered)
+            else:
+                act.unapprove(league_slug, season, issue_key, section,
+                              covered_weeks=list(covered))
         return JSONResponse({"ok": True, "approved": approving})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/module")
-    def editor_module(league_slug: str, season: str, issue_key: str,
-                      module_key: str = Form(...), action: str = Form(...),
-                      position: str = Form("")):
+    def editor_module(request: Request, league_slug: str, season: str,
+                      issue_key: str, module_key: str = Form(...),
+                      action: str = Form(...), position: str = Form("")):
         fields: dict = {}
         if action == "include":
             fields["included"] = 1
@@ -894,17 +912,17 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             except (TypeError, ValueError):
                 pass
         if fields:
-            with storage() as s:
-                s.set_issue_module(league_slug=league_slug, season=season,
-                                   issue_key=issue_key, module_key=module_key, **fields)
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                act.state.set_module(league_slug, season, issue_key, module_key,
+                                     **fields)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-{module_key}",
             status_code=303)
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/custom")
-    def editor_custom(league_slug: str, season: str, issue_key: str,
-                      action: str = Form("add"), module_key: str = Form(""),
-                      title: str = Form("")):
+    def editor_custom(request: Request, league_slug: str, season: str,
+                      issue_key: str, action: str = Form("add"),
+                      module_key: str = Form(""), title: str = Form("")):
         """Create or rename one special section.
 
         A custom section exists because he made one, which is why nothing
@@ -918,26 +936,27 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         intent; a button that could silently destroy writing is not worth
         the two clicks it saves.
         """
-        with storage() as s:
-            saved = s.get_issue_modules(league_slug, season, issue_key)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            # Choosing the key and writing the row are now one action, so
+            # two clicks arriving together cannot both pick the same free
+            # number and race each other into one row.
+            saved = act.state.modules(league_slug, season, issue_key)
             if action == "add":
                 key = next_custom_key(saved)
                 # Numbered from the key it actually got. Counting existing
                 # rows instead meant that reusing a freed key handed the new
                 # section the wrong number and a duplicate position.
                 n = _custom_index(key)
-                s.set_issue_module(
-                    league_slug=league_slug, season=season, issue_key=issue_key,
-                    module_key=key, included=1, approved=0,
-                    position=n,
+                act.state.set_module(
+                    league_slug, season, issue_key, key,
+                    included=1, approved=0, position=n,
                     custom_title=(title.strip() or f"{CUSTOM_DEFAULT_TITLE} {n}"))
             elif action == "rename" and is_custom_key(module_key):
                 if module_key not in saved:
                     return JSONResponse({"ok": False, "error": "no such section"},
                                         status_code=404)
-                s.set_issue_module(
-                    league_slug=league_slug, season=season, issue_key=issue_key,
-                    module_key=module_key,
+                act.state.set_module(
+                    league_slug, season, issue_key, module_key,
                     custom_title=(title.strip() or CUSTOM_DEFAULT_TITLE))
                 key = module_key
             else:
@@ -961,10 +980,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     "tier": int(form.get(f"tier_{rid}")) if str(form.get(f"tier_{rid}", "")).strip().isdigit() else None,
                     "note": str(form.get(f"note_{rid}", "")).strip() or None,
                 })
-        with storage() as s:
-            s.save_power_rankings(league_slug, season, label, entries)
-            provenance.note_rankings(s, league_slug=league_slug, season=season,
-                                     label=label, entries=entries)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            act.save_rankings(league_slug, season, label, entries)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-power",
             status_code=303)
@@ -1043,25 +1060,30 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
         composed = None
-        with storage() as s:
-            # A read, and deliberately outside the action: Weekly Hardware
-            # is composed from the week's decided awards, which are
-            # analytics rather than prose. What gets WRITTEN below is the
-            # store's business; what the text says is not.
-            if section == "lowdown":
-                generated = _read(idir / "lowdown" / "rough-lowdown.md")
-            elif section in section_defaults.GENERATED_DEFAULTS:
-                generated = composed = section_defaults.generated_md(
-                    s, league, season, issue_key, section)
-            else:
-                return JSONResponse(
-                    {"ok": False, "error": "this section has no generated version"},
-                    status_code=400)
-            if generated is None:
-                return JSONResponse({"ok": False, "error": "no generated draft exists"},
-                                    status_code=404)
         try:
-            with _editorial().action(actor=auth.actor_of(request)) as act:
+            with storage() as s, _editorial().action(
+                    actor=auth.actor_of(request)) as act:
+                # `s` is analytics: Weekly Hardware is composed from the
+                # week's decided awards. `act` is where the words and the
+                # research live, and both are read here so the text that
+                # goes back is the text this transaction is about to
+                # write, not a version something replaced in between.
+                if section == "lowdown":
+                    generated = act.state.research(
+                        league_slug, season, issue_key, "lowdown",
+                        ROUGH_LOWDOWN)
+                elif section in section_defaults.GENERATED_DEFAULTS:
+                    generated = composed = section_defaults.generated_md(
+                        s, league, season, issue_key, section)
+                else:
+                    return JSONResponse(
+                        {"ok": False,
+                         "error": "this section has no generated version"},
+                        status_code=400)
+                if generated is None:
+                    return JSONResponse(
+                        {"ok": False, "error": "no generated draft exists"},
+                        status_code=404)
                 prior = act.state.provenance(key)
                 prov = None
                 if composed is not None:
@@ -1144,15 +1166,15 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         league = get_league(league_slug)
         if _section_path(league, season, issue_key, section) is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            rid = act.state.add_rewrite_request(league_slug, season, issue_key,
+                                                section, note)
+        # Outside the action on purpose: the file is DERIVED from the
+        # queue, not part of it. A crash before it leaves the file stale
+        # and the database right, and the next regeneration repairs it.
+        # Inside, it would look like the file were being committed, which
+        # neither store can do.
         with storage() as s:
-            with s.transaction():
-                rid = s.add_rewrite_request(league_slug, season, issue_key,
-                                            section, note)
-            # Outside the transaction on purpose: the file is DERIVED from
-            # the queue, not part of it. A crash before it leaves the file
-            # stale and the database right, and the next regeneration
-            # repairs it. Inside the transaction it would look like the
-            # file were being committed, which SQLite cannot do.
             _write_requests_file(s, league, season, issue_key)
         return JSONResponse({"ok": True, "request_id": rid})
 
@@ -1298,17 +1320,19 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         return JSONResponse({"ok": True, "action": action})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/use-sleeper-name")
-    def use_sleeper_name(league_slug: str, season: str, issue_key: str,
-                         roster_id: str = Form(...)):
+    def use_sleeper_name(request: Request, league_slug: str, season: str,
+                         issue_key: str, roster_id: str = Form(...)):
         """Drop the commissioner override so this roster follows its Sleeper
         team name automatically (per-row and explicit: never bulk-destroys
         deliberate overrides)."""
         from leaguepage.team_names import sleeper_team_names
 
         league = get_league(league_slug)
-        with storage() as s:
+        # `s` answers what Sleeper calls the team, which is synced cache.
+        # `act` drops the override, which is his.
+        with storage() as s, _editorial().action(actor=auth.actor_of(request)) as act:
             if roster_id.strip().isdigit() and sleeper_team_names(s, league).get(int(roster_id)):
-                s.delete_public_team_name(league_slug, int(roster_id))
+                act.state.clear_team_name(league_slug, int(roster_id))
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/edit#sec-team-names",
             status_code=303)
@@ -1388,9 +1412,9 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     subject_type = "team"
         else:
             subject_type = "team"
-        with storage() as s:
-            take_id = takes_mod.create_take(
-                s, league, season, quote=quote, issue_key=issue_key,
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            take_id = act.state.add_take(**takes_mod.take_row(
+                league, season, quote=quote, issue_key=issue_key,
                 section=section, week=_week_of(issue_key),
                 topic=(body.get("topic") or None),
                 subject_type=subject_type, subject_roster_id=subject_rid,
@@ -1403,7 +1427,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 href=f"{season}/{issue_key}/index.html#{section}",
                 note=(body.get("note") or None),
                 players=takes_mod.infer_players(quote, ctx["player_positions"]),
-                playoff_week_start=ctx["playoff_week_start"])
+                playoff_week_start=ctx["playoff_week_start"]))
         return JSONResponse({"ok": True, "take_id": take_id, "verbatim": verbatim})
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/take-candidates")
@@ -1450,8 +1474,12 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
 
         body = await request.json()
         action = str(body.get("action") or "")
-        with storage() as s:
-            take = s.get_take(take_id)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
+            # Reading the take inside the action is what makes the check
+            # mean something: it used to be possible for a take to be
+            # deleted between "does this belong to this league" and the
+            # write that assumed it did.
+            take = act.state.take(take_id)
             if not take or take["league_slug"] != league_slug:
                 return JSONResponse({"ok": False, "error": "unknown take"},
                                     status_code=404)
@@ -1460,11 +1488,12 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 if status not in _S.TAKE_STATUSES:
                     return JSONResponse({"ok": False, "error": "bad status"},
                                         status_code=400)
-                s.set_take_status(take_id, status, body.get("resolution") or None)
+                act.state.set_take_status(take_id, status,
+                                          body.get("resolution") or None)
             elif action == "public":
-                s.set_take_public(take_id, bool(body.get("public")))
+                act.state.set_take_public(take_id, bool(body.get("public")))
             elif action == "delete":
-                s.delete_take(take_id)
+                act.state.delete_take(take_id)
             else:
                 return JSONResponse({"ok": False, "error": "bad action"},
                                     status_code=400)

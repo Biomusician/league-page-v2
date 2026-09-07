@@ -132,8 +132,10 @@ CLAIMS: dict[str, Claim] = {
     "editor_reset_generated": C(
         P, ("prose_provenance", "section_prose_state", "matchup_state"),
         owner="store", signature="approval and provenance both content-bound",
-        fs_dep="reads lowdown/rough-lowdown.md",
-        why="a hosted Desk cannot see the rough draft it resets to"),
+        why="the rough draft it resets to is read through the research "
+            "port now -- a file here, a `research_artifacts` row in the "
+            "cloud. It used to stat the issue directory, which on a "
+            "hosted Desk answers 'no draft' forever and silently"),
     "editor_replace_origin": C(
         P, ("prose_provenance", "section_prose_state", "matchup_state"),
         owner="store",
@@ -153,65 +155,114 @@ CLAIMS: dict[str, Claim] = {
             "them re-offers a proposal already accepted. Truthful and "
             "recoverable, not atomic"),
     "editor_approve": C(
-        (), ("issue_modules", "matchup_state"), owner="route",
+        (), ("issue_modules", "matchup_state"), owner="store",
         signature="records the signature of exactly what it approves",
-        why="approval is now a claim about a particular text, and CTP "
-            "additionally records what each preview said"),
+        why="approval is a claim about a particular text, and CTP "
+            "additionally records what each preview said. The signature "
+            "is now READ through the same action that writes it, so an "
+            "approval cannot describe a version a save replaced in "
+            "between; CTP's up-to-seven writes are one intent"),
     "matchup_draft_save": C(
         P, ("matchup_state",), owner="store",
         signature="CTP's approval covers this text and retires itself",
         why="the matchup half of save, reached from the week page. The "
             "draft and the stage it moves to now travel together"),
     "lowdown_save": C(
-        P, ("section_prose_state", "issue_modules"), owner="route",
+        P, ("section_prose_state", "issue_modules"), owner="store",
         signature="the Lowdown's approval is a signature over its text",
-        why="HALF MOVED, and deliberately recorded as unmoved. Its save "
-            "goes through the store; its Approve does not, because "
-            "approval signs a module and `module_signature` still reads "
-            "SQLite and the filesystem directly. Signing what this "
-            "machine says about text the cloud holds would be worse than "
-            "not moving it at all"),
+        why="the Lowdown screen's own save and its own Approve control, "
+            "both through the store now that the signature can be read "
+            "on the action that records it"),
     "request_rewrite": C(
-        (), ("issue_revision_requests",), owner="route",
+        (), ("issue_revision_requests",), owner="store",
         fs_dep="regenerates REVISION_REQUESTS.md (derived, not a source)",
         why="the queue is SQLite and authoritative; the file is derived "
             "from it and repaired on the next Issue Room load"),
-    "editor_custom": C((), ("issue_modules",), why="adds a custom section row"),
-    "editor_module": C((), ("issue_modules",), why="include/exclude/reorder"),
-    "issue_module_update": C((), ("issue_modules",), why="the builder's copy"),
-    "editor_rankings": C((), ("power_rankings",), why="saves a ranking table"),
-    "rankings_save": C((), ("power_rankings",), why="the standalone page"),
-    "set_theme": C((), ("issues",),
-                   why="issues.theme has no Postgres column"),
-    "set_team_names": C((), ("team_names",), owner="route",
+    "editor_custom": C((), ("issue_modules",), owner="store",
+                       why="adds a custom section row. Choosing the free "
+                           "key and writing it are one action, so two "
+                           "clicks cannot pick the same number"),
+    "editor_module": C((), ("issue_modules",), owner="store",
+                       why="include/exclude/reorder"),
+    "issue_module_update": C((), ("issue_modules",), owner="store",
+                             why="the builder's copy, signature and all"),
+    "editor_rankings": C((), ("power_rankings", "prose_provenance"),
+                         owner="store",
+                         signature="the notes ARE Peer and Near-Peer's prose",
+                         why="the table and the claim that the notes are "
+                             "his were two transactions; a failure between "
+                             "them saved the ranking and lost the claim"),
+    "rankings_save": C((), ("power_rankings", "prose_provenance"),
+                       owner="store", why="the standalone page, same intent"),
+    "set_theme": C((), ("issues",), owner="store",
+                   why="the issue's theme. `issues.theme` exists in "
+                       "Postgres since 0006"),
+    "set_team_names": C((), ("team_names",), owner="store",
                         why="one click renames as many teams as the form "
                             "carries, in one transaction"),
-    "use_sleeper_name": C((), ("team_names",), why="clears one override"),
-    "matchup_angle": C((), ("matchup_state",), owner="route",
-                       why="angle selection"),
-    "matchup_prominence": C((), ("matchup_state",), why="prominence override"),
-    "matchup_revision": C((), ("matchup_state",),
-                          why="matchup_state.revision_requests has no "
-                              "Postgres column"),
-    "matchup_status_change": C((), ("matchup_state",), owner="route",
-                               why="workflow stage, not a publication claim"),
-    "story_decide": C((), ("story_decisions",), why="story routing"),
-    "decide_story": C((), ("story_decisions",), why="draft-review copy"),
-    "award_decide": C((), ("award_decisions",), why="award decisions"),
-    "decide_award": C((), ("award_decisions",), why="draft-review copy"),
-    "save_power": C((), ("power_rankings",), why="draft-review copy"),
-    "track_take": C((), ("takes",), why="Track This Take"),
-    "add_take": C((), ("takes",), why="draft-review copy"),
-    "take_action": C((), ("takes",), why="status, public flag, delete"),
-    "resolve_take": C((), ("takes",), why="resolution"),
+    "use_sleeper_name": C((), ("team_names",), owner="store",
+                          why="clears one override"),
+    "matchup_angle": C((), ("matchup_state", "story_decisions"),
+                       owner="store",
+                       why="selecting an angle IS deciding the candidate is "
+                           "in. Two writes, one intent: a preview at "
+                           "ready-to-draft with no decision behind it is "
+                           "how a story gets written twice"),
+    "matchup_prominence": C((), ("matchup_state",), owner="store",
+                            why="prominence override"),
+    "matchup_revision": C((), ("matchup_state",), owner="store",
+                          why="read-modify-write on a list, now inside one "
+                              "transaction, so two requests filed at once "
+                              "cannot lose one. The column exists in "
+                              "Postgres since 0006"),
+    "matchup_status_change": C((), ("matchup_state", "editorial_usage"),
+                               owner="store",
+                               why="workflow stage, not a publication claim "
+                                   "-- but approving also writes the "
+                                   "repetition log, and a log entry for an "
+                                   "approval that did not happen would "
+                                   "suppress a joke he never told"),
+    "story_decide": C((), ("story_decisions",), owner="store",
+                      why="story routing"),
+    "decide_story": C((), ("story_decisions",), owner="store",
+                      why="draft-review copy"),
+    "award_decide": C((), ("award_decisions",), owner="store",
+                      why="award decisions"),
+    "decide_award": C((), ("award_decisions",), owner="store",
+                      why="draft-review copy"),
+    "save_power": C((), ("power_rankings", "prose_provenance"),
+                    owner="store", why="draft-review copy, same intent"),
+    "track_take": C((), ("takes",), owner="store", why="Track This Take"),
+    "add_take": C((), ("takes",), owner="store", why="draft-review copy"),
+    "take_action": C((), ("takes",), owner="store",
+                     why="status, public flag, delete. The take is read "
+                         "inside the action, so 'is this take in this "
+                         "league' cannot go stale before the write"),
+    "resolve_take": C((), ("takes",), owner="store", why="resolution"),
     "false_assumption_decide": C((), ("takes", "story_decisions"),
-                                 owner="route",
+                                 owner="store",
                                  why="two tables across its branches, but "
-                                     "one click takes exactly one branch"),
-    "force_flow_note": C((), ("force_flow_notes",),
-                         why="force_flow_notes has no Postgres table"),
-    "inbox_decide": C((), ("story_decisions",), why="Change Inbox ruling"),
-    "inbox_reviewed": C((), ("sync_snapshots",), why="marks a baseline"),
+                                     "one click takes exactly one branch. "
+                                     "Its verdicts now name the statuses "
+                                     "0003 left in the data instead of the "
+                                     "pre-lifecycle words Storage was "
+                                     "quietly translating"),
+    "force_flow_note": C((), ("force_flow_notes",), owner="store",
+                         why="a note against one transaction. The table "
+                             "exists in Postgres since 0006 and has no "
+                             "caller there yet"),
+    "inbox_decide": C((), ("story_decisions",), owner="store",
+                      why="Change Inbox ruling"),
+    "inbox_reviewed": C((), ("sync_snapshots",), owner="store",
+                        why="marks a baseline. `sync_snapshots` carries "
+                            "two different things: the payload rows are "
+                            "CACHE that a resync rebuilds, and "
+                            "`reviewed_at` is an EDITORIAL claim that he "
+                            "has seen those changes. The import carries "
+                            "neither, because a hosted Desk syncs for "
+                            "itself and a `reviewed_at` copied onto a "
+                            "snapshot that no longer exists would mark "
+                            "unseen changes as seen"),
     "qa_action": C(P, ("section_prose_state", "matchup_state"),
                    owner="store",
                    signature="an accepted fix is a prose write like any other",
@@ -221,15 +272,33 @@ CLAIMS: dict[str, Claim] = {
     "issue_build": C((), (), owner="n/a", safe=False, kind="operational",
                      fs_dep="RECOMPUTABLE RESEARCH: briefs, packets, "
                             "generated JSON",
-                     why="recomputable, but it needs a filesystem to "
-                         "compute onto", exercised=False),
+                     why="RESOLVED as operational and out of hosted scope. "
+                         "It writes nothing authoritative -- every byte is "
+                         "recomputable from synced data -- and it is a step "
+                         "in a Claude Code authoring session, which already "
+                         "requires a machine with the repository on it. The "
+                         "one artifact the APPLICATION reads back is the "
+                         "Lowdown rough draft, and that now goes through "
+                         "the research port", exercised=False),
     "sync_start": C((), (), owner="job", safe=False, kind="operational",
                     why="starts a durable job; the job writes Sleeper cache "
-                        "and snapshot rows", exercised=False),
+                        "and snapshot rows, both of which a hosted Desk "
+                        "would rebuild for itself from Sleeper. Nothing it "
+                        "writes is authored, which is why the import "
+                        "carries none of it", exercised=False),
     "about_save": C((), ("editorial/site/about.md",), kind="operational",
                     fs_dep="AUTHORITATIVE: the site copy is the file",
-                    why="the only remaining authoritative prose outside the "
-                        "repository", exercised=False),
+                    why="OPEN, AND IN SCOPE. The only authoritative prose "
+                        "still outside the store, and the blocker is "
+                        "specific: a ProseKey is (league, season, issue, "
+                        "section) and the About page has none of those. It "
+                        "needs either a key shape for site-wide copy or a "
+                        "table of its own, and inventing one inside a "
+                        "migration tranche is how a schema acquires a "
+                        "third way of storing words. Recorded as a hosted "
+                        "gap, not as out of scope: a hosted Desk that "
+                        "cannot edit the About page is missing a feature",
+                    exercised=False),
     "about_preview": C((), (), owner="n/a", safe=True, kind="operational",
                        why="renders to a temp path, writes nothing "
                            "authoritative", exercised=False),
