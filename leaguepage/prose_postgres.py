@@ -85,7 +85,14 @@ class PostgresProseRepository:
             with psycopg.connect(self.dsn(), connect_timeout=20) as conn:
                 with conn.cursor() as cur:
                     yield cur
-        except ProseError:
+        except (ProseError, ProseConflict):
+            # ProseConflict is a SIBLING of ProseError, not a subclass, and
+            # it is raised from inside this block by every guarded write.
+            # Catching only ProseError reported every optimistic-concurrency
+            # refusal as "the backend is unreachable": the Desk would have
+            # shown a stale save as an outage and never reached the conflict
+            # screen. Found by running the contract against a live database,
+            # which is the only place it can be found.
             raise
         except Exception as exc:                                # noqa: BLE001
             # Never echo the DSN: it carries the password.

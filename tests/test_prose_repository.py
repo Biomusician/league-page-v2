@@ -72,6 +72,28 @@ def test_matchups_belong_to_a_week(tmp_path):
 
 # -------------------------------------------------- the backend contract
 
+# A namespace no real issue can occupy. The Postgres backend now points
+# at the live database, so a contract test must not be able to collide
+# with the Commissioner's own prose even by coincidence.
+# week-99 rather than "probe": a matchup key legitimately insists on
+# living in a week, and the contract covers matchups too.
+T_LEAGUE, T_SEASON, T_ISSUE = "__contract__", "1900", "week-99"
+
+
+def _purge_postgres() -> None:
+    """Delete only this namespace. Runs before and after each test, so a
+    killed run cannot leave rows behind for the next one to inherit."""
+    import psycopg
+
+    from leaguepage.prose_postgres import PostgresProseRepository
+
+    with psycopg.connect(PostgresProseRepository().dsn(), connect_timeout=20,
+                         autocommit=True) as conn:
+        for table in ("prose_revisions", "sections"):
+            conn.execute(f"delete from {table} where league_slug = %s",
+                         (T_LEAGUE,))
+
+
 @pytest.fixture(params=[ps.FILESYSTEM, ps.POSTGRES])
 def repo(request, tmp_path, monkeypatch):
     """One contract, every reachable backend."""
@@ -80,15 +102,18 @@ def repo(request, tmp_path, monkeypatch):
             pytest.skip("DATABASE_URL is not configured; postgres not reachable")
         from leaguepage.prose_postgres import PostgresProseRepository
 
-        return PostgresProseRepository()
+        _purge_postgres()
+        yield PostgresProseRepository()
+        _purge_postgres()
+        return
     monkeypatch.setattr(ib, "EDITORIAL_DIR", tmp_path / "editorial")
     monkeypatch.setattr(mp, "EDITORIAL_DIR", tmp_path / "editorial")
     ps.reset_cache()
-    return ps.FilesystemProseRepository(db_path=tmp_path / "t.sqlite3")
+    yield ps.FilesystemProseRepository(db_path=tmp_path / "t.sqlite3")
 
 
 def _k(name="fades", kind=ps.SECTION):
-    return ps.ProseKey("disco", "2026", "week-02", kind, name)
+    return ps.ProseKey(T_LEAGUE, T_SEASON, T_ISSUE, kind, name)
 
 
 def test_absent_is_not_empty(repo):
@@ -200,7 +225,7 @@ def test_every_kind_is_storable_and_they_do_not_collide(repo):
     assert repo.get(section).text == "His words.\n"
     assert repo.get(proposal).text == "A draft for the same section.\n"
     assert repo.get(matchup).text == "The preview.\n"
-    listed = {str(r.key) for r in repo.list_issue("disco", "2026", "week-02")}
+    listed = {str(r.key) for r in repo.list_issue(T_LEAGUE, T_SEASON, T_ISSUE)}
     assert listed == {str(section), str(proposal), str(matchup)}
 
 
