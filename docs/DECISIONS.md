@@ -1375,3 +1375,61 @@ trip on every redemption to protect a path that hosted never takes. The
 login rate limiter stays per-process for the same reason: it throttles
 requests against an allowlist of one address, in front of Supabase's own
 OTP rate limit.
+
+## 2026-09-06 — Outcome B survives contact with the live database
+
+The cutover decision was made by reading the code, before the database
+could be reached. The live validation was the chance for it to be wrong.
+It was not, and the evidence sharpened rather than softened it.
+
+Prose itself passed everything: 15 previously-skipped contract tests now
+execute and pass, the import is idempotent, `verify` reports 34 identical
+and nothing one-sided, assembly of every issue on the Postgres backend
+matches the filesystem hash for hash, and a preview renders byte for byte
+the same. That last pair is proved against a negative control — the same
+Postgres run repeated over an editorial tree with every prose file
+emptied, which the filesystem backend notices and the Postgres backend
+does not.
+
+What the live database added:
+
+- **28 sections are `commissioner-edited` in SQLite and `generated` in
+  Postgres.** `sections.state` exists and nothing writes it: the Desk
+  calls `set_prose_state()` against SQLite while the repository writes
+  content and version. A cutover today tells him every section he wrote is
+  a generated draft. This was recorded as "no `section_prose_state` table"
+  and that was imprecise — the column is there, the caller is not.
+- **Every other boundary table is empty in Postgres**: 0 of 650 prose
+  revisions, 0 of 50 approvals, 0 of 13 matchup states.
+- **No approval in the system is content-bound today.** `approved_sha` is
+  null on both live CTP rows: they predate the signature and are
+  grandfathered. The mechanism exists, the Postgres column to carry it
+  does not, and nothing live exercises it.
+
+So the decision stands unchanged, and the reason is now measurable rather
+than argued. Postgres holds a complete, verified copy of the prose and is
+not authoritative.
+
+## 2026-09-06 — Reaching a live database from the tests is opt-in, by a second name
+
+`conftest.isolate_config` strips `DATABASE_URL` from every test so the
+suite behaves identically on a machine with real credentials and one
+without. That is right, and it also made the Postgres contract tests
+impossible rather than merely skipped — they had never run.
+
+`LEAGUEPAGE_TEST_DATABASE_URL` is the deliberate opt-in. The default stays
+safe: `pytest tests/` on this machine still skips them.
+
+Chosen over letting `DATABASE_URL` through when present, which would mean
+the ordinary suite silently starts writing to Supabase the day someone
+configures one. The live tests also moved to a scratch namespace
+(`__contract__/1900/week-99`) purged either side of each test, because
+their old namespace, `disco/2026/week-02`, is a key a real issue could
+one day occupy.
+
+The first live run immediately paid for itself: `ProseConflict` is a
+sibling of `ProseError`, not a subclass, and the Postgres backend
+re-raised only `ProseError` — so every optimistic-concurrency refusal was
+reported as "the backend is unreachable". A stale save would have looked
+like an outage and the conflict screen would never have opened. Nothing
+static could have found it.

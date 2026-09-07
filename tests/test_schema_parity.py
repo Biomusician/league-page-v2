@@ -36,7 +36,12 @@ EDITORIAL_TABLES = {
 # go IN, that is a new gap and it belongs in the architecture doc first.
 KNOWN_MISSING_TABLES = {
     "section_prose_state":
-        "generated vs commissioner-edited; written after every prose write",
+        "generated vs commissioner-edited. Postgres carries this on "
+        "sections.state instead, so the gap is a CALLER not a table: the "
+        "Desk writes set_prose_state() to SQLite while the repository "
+        "writes only content and version. Measured live 2026-09-06: 28 "
+        "sections are commissioner-edited in SQLite and generated in "
+        "Postgres.",
     "prose_provenance":
         "the authorship claim; written after every prose write",
     "force_flow_notes":

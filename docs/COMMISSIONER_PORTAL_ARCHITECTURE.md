@@ -53,15 +53,21 @@ approval bound to content, provenance recorded rather than inferred.
 3. **The build reads the private database.** `dist/` is produced from
    SQLite and `editorial/`, which is why Vercel never rebuilds and only
    ever receives an audited artifact.
-4. **`app_commissioners` is empty.** RLS is forced on that table and its
-   policy requires membership, so the app cannot seed its own allowlist.
-   Confirmed live 2026-09-06: anon gets 42501 on all sixteen tables that
-   exist, which is the intended answer and also the reason the app cannot
-   bootstrap itself.
-5. **Editorial state is in two databases.** Prose can move to Postgres;
-   the seven pieces of metadata that a single Commissioner click writes
-   alongside it cannot yet. This is the live blocker and it is why the
+4. ~~**`app_commissioners` is empty.**~~ **Seeded 2026-09-06**, by
+   Jonathan, with owner rights. One row, matching
+   `LEAGUEPAGE_COMMISSIONER_EMAILS` exactly. Proved by assuming each
+   application role (below), not by reading it as owner.
+5. **Editorial state is in two databases.** Prose can move to Postgres —
+   proved end to end on 2026-09-06, against the real database, with real
+   prose. The seven pieces of metadata that a single Commissioner click
+   writes alongside it cannot. This is the live blocker and it is why the
    filesystem is still authoritative — see *The cutover boundary*, below.
+6. **The Postgres backend connects as the database owner.** `postgres`
+   carries `BYPASSRLS`, so the RLS model that migration 0001 describes
+   protects the browser and does not protect the application's own data
+   path. That is defensible for a single-tenant Desk whose authorization
+   is `leaguepage/auth.py`, but it is not what the migration's own
+   comments claim, and it should be decided rather than inherited.
 
 ---
 
@@ -331,6 +337,89 @@ outright breakage:
 | 4 | `REVISION_REQUESTS.md` written inside the proposal action | a read-only serverless filesystem fails the whole action |
 | 5 | `reset-generated`, `_ai_help_present` and `lowdown_state` read `rough-lowdown.md` from disk | no generated version, no assistance record, wrong workflow status |
 
+### What the live database proved (2026-09-06)
+
+Migrations 0001, 0002, 0004 and 0005 applied; allowlist seeded; every
+check below run against the real project.
+
+**RLS, from the roles the application uses.** The DSN connects as
+`postgres`, which has `BYPASSRLS`, so a select on it proves nothing and
+was never treated as proof. Each probe instead assumed an application
+role inside a transaction that was rolled back — `set local role`, with
+the JWT claims PostgREST would have set — because RLS is fully in force
+for an assumed role.
+
+| caller | read `sections` | insert into `sections` |
+| --- | --- | --- |
+| `anon` (publishable key) | refused, 42501 | refused, 42501 |
+| `authenticated`, not on the allowlist | 0 rows | refused, policy violation |
+| `authenticated`, on the allowlist | 34 rows | permitted |
+
+The 34-versus-0 is the discriminating result: the same query, the same
+role, a different JWT email. `app_is_commissioner()` returns true only
+for the seeded address. The anon half was confirmed independently over
+PostgREST with the publishable key, which is the real transport.
+
+**Prose, end to end.**
+
+| step | result |
+| --- | --- |
+| import dry run | 34 create · 0 replace · 0 identical · 0 conflict · 0 postgres-only |
+| import applied | 34 created |
+| import re-run | 0 create · 34 identical — idempotent, dry and applied |
+| verify | same=34 · filesystem-only=0 · postgres-only=0 · content-differs=0 |
+| export to a fresh tree | 34 files, 0 differ, 0 missing either way |
+| assemble every issue, Postgres backend | 27/27 module hashes identical to the filesystem run |
+| render a preview, Postgres backend | 101 HTML files byte-identical; privacy audit clean |
+| workspace publication QA, Postgres backend | identical: 4 issues, 0 blockers, 5 warnings |
+
+The parity runs carry a negative control, because "identical" would also
+be what a backend that quietly read the same files would produce: the
+Postgres-backed assembly was re-run against a copy of the editorial tree
+with **all 34 prose files emptied**. The filesystem backend's output
+changed, and the Postgres backend's did not. The words came from the
+database.
+
+**One real bug, findable only here.** `ProseConflict` is a sibling of
+`ProseError`, not a subclass, and `_tx` re-raised only `ProseError`.
+Every optimistic-concurrency refusal on the Postgres backend was
+therefore reported as *the backend is unreachable*: the Desk would have
+shown a stale save as an outage and never reached the conflict screen.
+Four contract tests caught it the moment they could actually run. Fixed.
+
+**What the import did not carry**, measured rather than assumed:
+
+| | Postgres | SQLite |
+| --- | --- | --- |
+| `sections.state` = `commissioner-edited` | 0 | 28 |
+| `prose_revisions` | 0 | 650 |
+| `issue_modules` (approvals) | 0 | 50 |
+| `matchup_state` | 0 | 13 |
+| `issue_revision_requests` | 0 | 1 |
+| `issues` | 0 | 4 |
+| `takes` | 0 | 3 |
+
+`sections.state` is the sharpest of these. The column **exists** in
+Postgres and holds exactly what `section_prose_state` holds in SQLite —
+and nothing writes it, because `desk_editor` calls `s.set_prose_state()`
+against SQLite while the repository writes `content` and `version`. After
+a cutover the Desk would tell him all 28 sections he wrote are generated
+drafts.
+
+**And the approval that is done correctly is not in use.** `approved_sha`
+is null on both live CTP approvals: they were granted before the
+signature existed and are grandfathered. So today no approval anywhere in
+the system is actually content-bound — the mechanism exists, the column
+to carry it does not exist in Postgres, and no live row exercises it.
+
+**PostgREST's schema cache is stale.** `job_events` and `sync_snapshots`
+answer PGRST205 while direct SQL shows both present with RLS forced and a
+policy. `NOTIFY pgrst` does not reach PostgREST through the connection
+pooler; the remedy is Dashboard → Settings → API → Reload schema cache.
+Low severity, because no data flows over PostgREST — `supabase_client`
+does authentication only — but the verifier now says so instead of
+pointing at the wrong migration.
+
 ### The auth residual
 
 Analysed 2026-09-06. Three pieces of per-process state in `auth.py`,
@@ -408,6 +497,111 @@ named artifacts per issue, one writer and one reader each. Deliberately
 not versioned, not searchable, and with no undo: this is evidence, and
 giving it undo semantics would mean deciding whose undo it is. The class-B
 files stay out — a worker regenerates those.
+
+---
+
+## Next tranche — UNIFIED CLOUD EDITORIAL STATE
+
+Specified 2026-09-06, after the live validation. The prose half is done
+and proved; this is the half that makes a cutover safe. Nothing here
+requires new product thinking, which is why it can be specified exactly.
+
+**The goal, stated as an invariant.** One Commissioner action commits or
+does not commit. Today a save writes prose to one store and four pieces
+of metadata to another, and a failure between them leaves a green
+approval chip over text nobody approved.
+
+### 1. Make approval content-bound (do this first, on SQLite)
+
+The blocker, and the only step that changes behaviour rather than
+location. Do it where it is observable before moving anything.
+
+- `issue_modules.approved_sha` already exists in SQLite and is already
+  the right mechanism; extend it from `ctp` to every module kind. The
+  signature is the section's normalised content hash, which is what
+  `provenance` already computes.
+- `matchup_state` gains the same: a preview's approval is a signature
+  over its own text, not the enum `approved`.
+- `_invalidate_approval` stops being a write. An approval whose signature
+  no longer matches the stored text is simply not an approval — the same
+  reasoning provenance uses, and one mechanism rather than two that can
+  disagree. This deletes code.
+- Grandfather explicitly: a row with `approved = true` and a null
+  signature keeps counting, exactly as the two live CTP rows do now.
+  Write the test that pins that, because both live approvals are in that
+  state today.
+
+Done when: editing a section retires its approval with no code noticing,
+and `test_ordinary_approval_is_a_flag_and_not_a_signature` fails and is
+replaced.
+
+### 2. Close the schema gaps
+
+`tests/test_schema_parity.py` declares every one of them and will tell you
+when the list is empty. As a new migration, `0006_editorial_state.sql`:
+
+- `alter table issue_modules add column approved_sha text`
+- `alter table issues add column theme text`
+- `alter table matchup_state add column revision_requests jsonb`
+- `create table prose_provenance` — mirror of the SQLite shape, including
+  `origin`, `assistance`, `baseline_text`, `event`
+- `create table force_flow_notes`
+- **not** `section_prose_state`: Postgres already has `sections.state`,
+  and the fix is a caller, not a table. Give `ProseRepository` the state
+  and let the backend decide where it lives.
+- RLS enabled *and* forced on each new table, one `commissioner_all`
+  policy, `revoke all from anon` — copy the `do $$` block from 0001 so
+  nothing is locked down by hand.
+- `revoke all on function app_is_commissioner() from public`. The
+  existing `revoke ... from anon` does not remove PUBLIC's default
+  EXECUTE grant, so anon can still call it. It only ever returns a
+  boolean about the caller, so nothing leaks, but the migration does not
+  currently do what it says.
+
+### 3. Give the repository the rest of the click
+
+The metadata a prose write must carry moves into the contract, so the
+backend decides the transaction rather than the caller:
+
+    put(key, text, *, expected_version, source, state=None,
+        provenance=None, invalidates_approval=True) -> Prose
+
+- Filesystem backend: the existing SQLite writes, unchanged in effect.
+- Postgres backend: one transaction — `sections` (content, version,
+  state), `prose_revisions`, `prose_provenance`, and the approval
+  signature check, committed together or not at all.
+- `_changed_since_approval` disappears. It reads `meta` with a raw `LIKE`
+  through `s._conn`, and once approval is a signature the question
+  "changed since approval?" is answered by comparing two hashes.
+
+### 4. Move the remaining editorial tables
+
+`issue_modules`, `matchup_state`, `issues`, `issue_revision_requests`,
+`takes`, `story_decisions`, `award_decisions`, `power_rankings`,
+`team_names`, `bit_usage`, `editorial_usage`, `sync_snapshots`,
+`force_flow_notes`. `scripts/export_commissioner_state.py` and its import
+counterpart already exist; extend rather than replace them, and give each
+an idempotence proof the way `prose_tool import` has one.
+
+### 5. Then, and only then, the cutover
+
+The evidence to require, all of which now has a working harness:
+
+- `prose_tool verify` clean, and an equivalent for the metadata tables
+- assembly parity 27/27 with the blank-tree negative control
+- preview parity byte-identical
+- workspace QA identical
+- History, Restore, approval and the changed-since-approval banner
+  exercised through the Desk against Postgres
+- the nine published snapshot hashes unchanged
+
+### Explicitly not in this tranche
+
+The research store, the hosted Vercel project, GitHub Actions
+publication, and any change to who may publish. Publication stays local
+and stays the Commissioner's.
+
+---
 
 ### Portability seams
 

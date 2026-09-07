@@ -8,42 +8,116 @@ This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
 
 ## Commissioner Portal, tranche 4 — Supabase live validation (2026-09-06)
 
-**Status: no cutover. `LEAGUEPAGE_PROSE_BACKEND` is still `filesystem` and
-the filesystem is still authoritative. No Supabase mutation, no migration
-applied, no seed, no publication, no deployment, and `.env` untouched. The
-live work is blocked on a manual gate that turned out to be wider than the
-brief assumed.**
+**Status: validated, populated, NOT authoritative.
+`LEAGUEPAGE_PROSE_BACKEND` is still `filesystem` and the filesystem is
+still the source of truth. The manual gate is complete — Jonathan applied
+migrations 0001/0002/0004/0005 and seeded the allowlist — and everything
+downstream of it has now been run against the real database. No
+publication, no deployment, no snapshot touched, `.env` unmodified.**
 
 The tranche was scoped to decide whether Postgres prose could become
-authoritative. It can't, and the reason is architectural rather than
-operational, so the answer did not depend on reaching the database.
+authoritative. Prose itself is proved end to end. The answer is still no,
+because a Commissioner click is not only prose, and that half has not
+moved. Outcome B stands, now on live evidence rather than on reading.
 
-### Live preflight (read-only, publishable key, no rows fetched)
+### Live schema, re-probed rather than assumed
 
-Anon is granted nothing, so an existing table answers 42501 and a missing
-one answers PGRST205. That distinction is all this probe reads.
+All four migrations applied. 18 tables, every one with RLS **enabled and
+forced**, exactly one `commissioner_all` policy, no anon grant, an
+`authenticated` grant. `sections` is keyed
+`(league_slug, season, issue_key, kind, section)` — 0005 landed — and
+`jobs`/`job_events` carry the full 0004 lease columns. `app_commissioners`
+holds one row and it matches `LEAGUEPAGE_COMMISSIONER_EMAILS` exactly.
 
-| finding | result |
+`change_inbox` is the *name* of migration 0002, not a table it creates;
+the earlier report listed it as missing and that was my error.
+
+Two live findings that were not in the migration's intent:
+
+- **PostgREST's schema cache is stale.** `job_events` and `sync_snapshots`
+  answer PGRST205 over the API while direct SQL shows both present.
+  `NOTIFY pgrst` does not reach PostgREST through the connection pooler.
+  Remedy is one click: Dashboard → Settings → API → Reload schema cache.
+  Low severity — no data flows over PostgREST, `supabase_client` does
+  authentication only — and `scripts/verify_supabase_schema.py` now names
+  both possible causes instead of pointing at the wrong migration.
+- **`revoke all on function app_is_commissioner() from anon` is
+  ineffective.** PostgreSQL grants EXECUTE to PUBLIC by default and
+  revoking from `anon` does not remove that. Nothing leaks: the function
+  returns a boolean about the caller's own JWT, and anon has no JWT. The
+  one-line fix is queued in the next tranche.
+
+### RLS, proved from the application's roles
+
+The DSN connects as `postgres`, which carries `BYPASSRLS`. A select on it
+proves nothing and was not used as proof. Each probe assumed an
+application role inside a rolled-back transaction — `set local role`, with
+the JWT claims PostgREST would set — because RLS is fully in force for an
+assumed role.
+
+| caller | read `sections` | insert into `sections` |
+| --- | --- | --- |
+| `anon` | refused, 42501 | refused, 42501 |
+| `authenticated`, not allowlisted | 0 rows | refused, policy violation |
+| `authenticated`, allowlisted | **34 rows** | permitted |
+
+Same query, same role, different JWT email. The anon half was confirmed
+independently over PostgREST with the publishable key, which is the real
+transport.
+
+### Prose: proved end to end against the real database
+
+| step | result |
 | --- | --- |
-| Supabase reachable | yes |
-| tables present and refusing anon | 16/16 — **nothing exposed** |
-| `migrations/0002_change_inbox.sql` | **not applied** (`change_inbox`, `sync_snapshots` missing) |
-| `migrations/0004_durable_jobs.sql` | **not applied** (`job_events` missing) |
-| `migrations/0005_prose_keys.sql` | unverifiable from anon; alters a column list. Guarded, safe to re-run |
-| `app_commissioners` | exists, empty, and cannot seed itself by design |
-| `DATABASE_URL` | **not set**; `SUPABASE_SECRET_KEY` not set; `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` set |
+| Postgres contract tests | **15 previously skipped now execute; 49 passed, 0 skipped** |
+| import dry run | 34 create · 0 replace · 0 identical · 0 conflict · 0 postgres-only |
+| import applied | 34 created |
+| import re-run (dry and applied) | 0 create · 34 identical — idempotent |
+| `prose_tool verify` | same=34 · filesystem-only=0 · postgres-only=0 · content-differs=0 |
+| export to a fresh tree | 34 files · 0 differ · 0 missing in either direction |
+| assemble every issue on Postgres | **27/27 module hashes identical** |
+| render a preview on Postgres | **101 HTML files byte-identical**, privacy clean |
+| workspace QA on Postgres | identical — 4 issues, 0 blockers, 5 warnings |
 
-`DATABASE_URL` is the binding one: the Postgres repository connects by DSN
-and refuses to fall back, so the 13 Postgres contract tests, `prose_tool
-import` and `prose_tool verify` cannot run at all without it. A DSN also
-connects as the owner and therefore bypasses RLS — it can prove the
-repository contract and can never prove an authorization rule.
+With a negative control, because "identical" is also what a backend
+silently reading the same files would produce: the Postgres run was
+repeated against a copy of the editorial tree with **all 34 prose files
+emptied**. The filesystem backend's output changed; the Postgres
+backend's did not.
 
-**Backups taken before anything else** (kept out of git): the SQLite
-database copied and read back clean (4 issues, 650 prose revisions), all
-34 prose objects exported through the repository, and a BEFORE manifest of
-34 prose content hashes plus 9 published-snapshot hashes. HEAD at the time
-was `a8ca804`.
+**One real bug, findable only here.** `ProseConflict` is a sibling of
+`ProseError`, not a subclass, and `_tx` re-raised only `ProseError` — so
+every optimistic-concurrency refusal on Postgres surfaced as *the backend
+is unreachable*. The Desk would have shown a stale save as an outage and
+never reached the conflict screen. Four contract tests caught it the
+moment they could run. Fixed.
+
+**Backups** (kept out of git): SQLite copied and read back clean, 34 prose
+objects exported, a manifest of 34 prose hashes and 9 snapshot hashes.
+
+### What the import did not carry
+
+| | Postgres | SQLite |
+| --- | --- | --- |
+| `sections.state` = `commissioner-edited` | 0 | **28** |
+| `prose_revisions` | 0 | 650 |
+| `issue_modules` (approvals) | 0 | 50 |
+| `matchup_state` | 0 | 13 |
+| `issue_revision_requests` | 0 | 1 |
+| `issues` | 0 | 4 |
+| `takes` | 0 | 3 |
+
+`sections.state` is the sharpest. The column **exists** in Postgres and
+holds exactly what `section_prose_state` holds in SQLite — and nothing
+writes it, because `desk_editor` calls `s.set_prose_state()` against
+SQLite while the repository writes only `content` and `version`. After a
+cutover the Desk would report all 28 sections he wrote as generated
+drafts. The gap is a caller, not a table.
+
+And the approval that is done correctly is not in use: `approved_sha` is
+null on both live CTP approvals, which were granted before the signature
+existed and are grandfathered. Today no approval anywhere is actually
+content-bound.
 
 ### The cutover decision: filesystem stays authoritative
 
@@ -114,16 +188,24 @@ no infrastructure.
 | Postgres contract tests | **SKIPPED** — `DATABASE_URL` unset, by design rather than by failure |
 | live Supabase validation, import, parity, cutover proofs | **BLOCKED** on the manual gate |
 
+### Running the live tests
+
+`tests/conftest.py` strips `DATABASE_URL` from every test, deliberately:
+the suite must behave the same on a machine with credentials and one
+without, and nothing should reach a live database because someone has a
+`.env`. That also made the Postgres contract tests unrunnable rather than
+merely skipped, so there is now an explicit second name:
+
+    LEAGUEPAGE_TEST_DATABASE_URL="$(...)" pytest tests/test_prose_repository.py
+
+Those tests write only to `__contract__/1900/week-99` and delete that
+namespace either side of every test, so a killed run leaves nothing.
+
 ### Still waiting on Jonathan
 
-1. Apply `0002_change_inbox.sql`, `0004_durable_jobs.sql`,
-   `0005_prose_keys.sql` in the Supabase SQL Editor as database owner.
-2. Run `scripts/make_commissioner_seed.py` and apply its statement.
-3. Optionally set `DATABASE_URL` in `.env` — required before any Postgres
-   contract test, import or verify can run, and it does both jobs at once
-   because the seed script applies itself when it is present.
-
-Nothing downstream of that gate was simulated, assumed or reported as done.
+One click, low priority: Dashboard → Settings → API → **Reload schema
+cache**, so PostgREST can see `job_events` and `sync_snapshots`. Nothing
+depends on it today.
 
 ## Commissioner Portal, tranche 3 — prose repository (2026-09-05)
 

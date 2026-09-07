@@ -31,7 +31,7 @@ Target architecture, transition order and the manual gates live in
 | 4 | Durable jobs table | 13 | `shipped` 2026-09-05 |
 | 5 | AI WritingPacket + proposal queue UX | 10 | `partial` — the packet exists; the queue does not |
 | 6 | Prose repository boundary | 10 | `shipped` 2026-09-05 |
-| 7 | **Unified cloud editorial state** | 9 | `next` — scoped 2026-09-06 |
+| 7 | **Unified cloud editorial state** | 9 | `next` — **specified** 2026-09-06 |
 | 8 | Hosted private beta | 5 | blocked on the manual gate |
 | 9 | Cloud publication worker (GitHub Actions) | 2.4 | `deferred` until 6 and 7 |
 | 10 | Portability / onboarding | 1 | seams only, no SaaS |
@@ -48,7 +48,8 @@ editorial metadata with no shared transaction. Moving prose alone produces
 two databases that disagree about the same click. See
 `docs/DECISIONS.md`, 2026-09-06.
 
-**Tranche 7 — unified cloud editorial state.** In order:
+**Tranche 7 — unified cloud editorial state.** Specified in full in
+`docs/COMMISSIONER_PORTAL_ARCHITECTURE.md`. In order:
 
 1. **Make approval content-bound.** `issue_modules.approved` and
    `matchup_state.status` become signatures over the text they cover, the
@@ -83,22 +84,19 @@ because Tier 1 adds **no filesystem state**: its durable state is rows in
 `migrations/`, in the export/import bundle, and in the schema verifier, so the
 cutover surface did not grow.
 
-Live findings, 2026-09-06 (anon PostgREST, read-only, no mutation):
-
-- RLS is doing its job. All sixteen tables that exist answer 42501 to the
-  publishable key. Nothing is exposed.
-- **Migrations `0002` and `0004` have not been applied** — `change_inbox`,
-  `sync_snapshots` and `job_events` answer PGRST205. `0005` cannot be
-  confirmed from anon, and is safe to re-run.
-- **`DATABASE_URL` is not set.** The Postgres prose repository connects by
-  DSN and refuses to fall back, so the thirteen Postgres contract tests,
-  the import and the verifier cannot run at all without it.
+**The manual gate is done** (Jonathan, 2026-09-06): migrations 0001,
+0002, 0004 and 0005 applied, allowlist seeded, `DATABASE_URL` configured.
+Everything downstream has been run against the real database — see
+HANDOFF for the numbers and the architecture doc for the tranche 7 spec.
 
 Structural blockers still open, in order:
 
-1. **Apply 0002, 0004, 0005, then seed `app_commissioners`** — Jonathan,
-   once, in the Supabase SQL Editor as database owner. Blocks proving
-   anything below.
+1. ~~**Seed `app_commissioners`**~~ — done 2026-09-06. RLS proved from the
+   assumed application roles: anon refused outright, an authenticated
+   non-Commissioner reads 0 rows and cannot insert, the Commissioner reads
+   all 34 and can. One click remains and nothing depends on it: reload
+   PostgREST's schema cache so it can see `job_events` and
+   `sync_snapshots`.
 2. ~~**Prose repository**~~ — done 2026-09-05. `ProseKey` and
    `ProseRepository` (`leaguepage/prose_store.py`); the filesystem backend is
    authoritative and a Postgres one implementing the same contract exists,
