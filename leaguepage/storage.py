@@ -355,12 +355,25 @@ def utcnow_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
 
+class TransactionAborted(RuntimeError):
+    """A transaction body swallowed a failure that had already poisoned it.
+
+    Raised instead of committing, because committing half of a
+    Commissioner action is the failure this whole scope exists to
+    prevent, and doing it silently would be worse than raising.
+    """
+
+
 class Storage:
     def __init__(self, db_path: Path | str = DB_PATH):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
+        # Depth, not a boolean: helpers call helpers, and an inner scope
+        # must never be able to commit the outer one's work.
+        self._tx_depth = 0
+        self._tx_failed = False
         self._conn.executescript(SCHEMA)
         self._migrate()
         self._conn.commit()
@@ -389,6 +402,12 @@ class Storage:
             # approval carries a signature over them (2026-09-05); a row
             # approved before this existed has NULL and is grandfathered.
             "issue_modules": ["approved_sha TEXT"],
+            # What each preview said when Common Tactical Picture was
+            # approved over all of them (2026-09-07). Not a per-preview
+            # approval: there is one approval and it is CTP's. This lets a
+            # card name the preview that moved instead of flagging every
+            # one of them.
+            "matchup_state": ["covered_sha TEXT"],
             # Provenance grew from "was this generated and is it still exact"
             # into origin / edited / assistance (2026-09-05). baseline_text
             # is the private generated text the Desk's edit metric measures
@@ -412,13 +431,70 @@ class Storage:
         self.close()
 
     @contextmanager
+    def transaction(self) -> Iterator["Storage"]:
+        """Make one Commissioner click one SQLite transaction.
+
+            with s.transaction():
+                s.set_prose_state(...)
+                s.set_issue_module(...)
+
+        Inside the scope, mutating methods stop committing on their own;
+        the outermost scope commits once, or rolls the whole thing back.
+        Outside a scope nothing changes: a single method call is still its
+        own transaction, so no existing caller has to learn about this.
+
+        NESTING is by depth, deliberately, rather than by SAVEPOINT.
+        Helpers call helpers here, and the property that matters is that
+        an inner scope cannot commit the outer one's work -- not that an
+        inner scope can be rolled back on its own, which nothing needs.
+        A failure anywhere poisons the whole scope: if the body catches
+        the exception and returns normally, the outermost scope rolls back
+        and raises TransactionAborted rather than committing a half-done
+        action quietly.
+
+        Reads are unaffected -- they go straight to the connection and
+        never take a cursor scope.
+        """
+        self._tx_depth += 1
+        outermost = self._tx_depth == 1
+        if outermost:
+            self._tx_failed = False
+        body_returned = False
+        try:
+            yield self
+            body_returned = True
+        except Exception:
+            self._tx_failed = True
+            raise
+        finally:
+            self._tx_depth -= 1
+            if outermost:
+                if self._tx_failed:
+                    self._conn.rollback()
+                else:
+                    self._conn.commit()
+        if outermost and body_returned and self._tx_failed:
+            self._tx_failed = False
+            raise TransactionAborted(
+                "a write inside this transaction failed and the failure was "
+                "swallowed; the transaction was rolled back rather than "
+                "committing part of it")
+
+    @contextmanager
     def _cursor(self) -> Iterator[sqlite3.Cursor]:
         cur = self._conn.cursor()
         try:
             yield cur
-            self._conn.commit()
+            if self._tx_depth == 0:
+                self._conn.commit()
         except Exception:
-            self._conn.rollback()
+            if self._tx_depth == 0:
+                self._conn.rollback()
+            else:
+                # Inside a scope the decision belongs to the outermost
+                # one; rolling back here would discard its earlier writes
+                # without telling it.
+                self._tx_failed = True
             raise
         finally:
             cur.close()
@@ -1276,7 +1352,8 @@ class Storage:
     ) -> None:
         """Partial update; only provided fields change. Creates the row if new."""
         allowed = {"selected_angle_id", "custom_angle", "angle_note",
-                   "prominence_override", "status", "revision_requests"}
+                   "prominence_override", "status", "revision_requests",
+                   "covered_sha"}
         bad = set(fields) - allowed
         if bad:
             raise ValueError(f"Unknown matchup_state fields: {bad}")
