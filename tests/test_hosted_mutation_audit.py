@@ -89,6 +89,11 @@ class Claim:
     restart_safe: bool = True       # cannot lie after a crash + restart
     exercised: bool = True
     kind: str = "authoring"         # authoring | operational | auth | publish
+    # Would a hosted Desk put this control in front of him? Authoring is
+    # the product; publication and the research build are deliberately
+    # local for the first hosted beta. A route that is exposed and unsafe
+    # is a blocker; one that is not exposed is a scope decision.
+    hosted_exposed: bool = True
 
 
 def C(cloud=(), local=(), owner="none", safe=False, why="", **kw) -> Claim:
@@ -633,3 +638,33 @@ def test_locally_crash_consistent_is_not_the_same_column_as_hosted_safe():
     assert len(consistent) == len(authoring) - 1, (
         "every authoring route but proposal accept is crash-consistent")
     assert hosted == [], "no authoring route is hosted-safe yet"
+
+
+def test_the_cutover_gate_names_its_blockers(store_free=None):
+    """The gate, stated as the number it actually turns on.
+
+    Cutover requires every HOSTED-EXPOSED authoring route to be safe.
+    Tranche 5B built the transaction that makes that possible and wired
+    none of the routes to it, so the number has not moved -- and this
+    test exists so that claim is measured rather than asserted in a
+    document.
+    """
+    exposed = {n: c for n, c in CLAIMS.items()
+               if c.kind == "authoring" and c.hosted_exposed}
+    blockers = sorted(n for n, c in exposed.items() if not c.safe)
+    assert len(exposed) == 35, len(exposed)
+    assert len(blockers) == 35, (
+        f"{len(exposed) - len(blockers)} route(s) now claim hosted safety; "
+        f"re-read them and move the gate deliberately")
+
+
+def test_the_prose_routes_are_the_ones_a_cloud_transaction_can_own():
+    """Which routes EditorialStore could take over, and which need their
+    own cloud state first. Eight touch prose; twenty-seven write only
+    SQLite tables that have a Postgres home but no caller."""
+    authoring = {n: c for n, c in CLAIMS.items() if c.kind == "authoring"}
+    prose = {n for n, c in authoring.items() if c.cloud}
+    sqlite_only = {n for n, c in authoring.items() if not c.cloud}
+    assert len(prose) == 8, sorted(prose)
+    assert len(sqlite_only) == 27, len(sqlite_only)
+    assert prose | sqlite_only == set(authoring)

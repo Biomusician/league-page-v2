@@ -1,10 +1,79 @@
 # HANDOFF
 
-Updated 2026-09-07, end of Tranche 5A (atomic local mutations). Companions:
+Updated 2026-09-08, end of Tranche 5B (cloud transaction, no cutover). Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Commissioner Portal, tranche 5B — the cloud transaction (2026-09-08)
+
+**Status: NO CUTOVER. The filesystem is still authoritative and
+`LEAGUEPAGE_PROSE_BACKEND` is still unset. `migrations/0006` is applied
+and verified live; `EditorialStore` exists and is proved against the real
+database; no route uses it yet. Nothing published, nothing deployed,
+`.env` untouched.**
+
+### What shipped
+
+- **`migrations/0006_editorial_state.sql`**, applied by Jonathan and
+  re-probed rather than assumed. Every check passed: three tables, four
+  columns, primary keys, indexes, RLS enabled AND forced, one
+  `commissioner_all` policy, no anon grant, and the PUBLIC execute grant
+  on `app_is_commissioner()` finally removed.
+- **`leaguepage/editorial_state.py`** — the metadata one prose action
+  writes, behind a narrow port, with a SQLite adapter over `Storage` and
+  a Postgres adapter that runs on a cursor somebody else owns.
+- **`leaguepage/editorial_store.py`** — the transaction owner. Routes
+  express intent; the backend decides what a transaction is. On Postgres
+  a whole Commissioner action is one transaction.
+- **The authorization boundary, asserted rather than inherited.** Every
+  Postgres action runs `set local role authenticated` carrying the
+  signed-in Commissioner's email, so `commissioner_all` evaluates on the
+  half of the application that writes. An action with no actor raises
+  rather than silently running as the owner.
+
+### Proved against the live database
+
+`tests/test_editorial_store.py`, **39 passed, 0 skipped** with the live
+opt-in. Fault injection at every seam:
+
+| seam | Postgres | filesystem |
+| --- | --- | --- |
+| provenance write fails | neither half survives | prose survives, undescribed |
+| prose-state write fails | neither half survives | prose survives, undescribed |
+| matchup write fails | neither half survives | prose survives, undescribed |
+| proposal retirement fails | **neither half** | target moves, proposal stays |
+
+Plus: a stale save changes nothing at all on either backend; two writers
+from the same version and only one wins; approve-then-save leaves the
+approval recording what it covered, which is what makes the signature
+comparison work.
+
+### Why there is no cutover
+
+**27 of 35 authoring routes still write authoritative SQLite with no
+cloud path.** Eight touch prose and could be wired to the store today;
+the rest write `takes`, `story_decisions`, `award_decisions`,
+`power_rankings`, `team_names`, `matchup_state`, `issues`,
+`force_flow_notes` and `sync_snapshots`. Those tables exist in Postgres
+and have no caller. A hosted Desk that cannot record an award decision is
+not a hosted Desk.
+
+`scripts/editorial_state_diff.py` is new and read-only: **726 authoritative
+local rows, 0 in the cloud.**
+
+### Two live findings
+
+- **Migration 0003 has never been applied.** `takes` is missing all
+  twenty columns it adds. Tranche 4 reported 0003 as applied and was
+  wrong: the probe checked table presence, and `takes` has existed since
+  0001. `scripts/verify_supabase_schema.py` now checks live COLUMNS as
+  well as tables, so this class of miss cannot recur.
+- **PostgREST's schema cache is pinned.** It sees every table from 0001
+  and none created since, while all of them exist. A manual reload did
+  not move it. Impact today is nil -- no data flows over PostgREST -- and
+  the verifier now says so instead of guessing.
 
 ## Commissioner Portal, tranche 5A — atomic local mutations (2026-09-07)
 

@@ -4,7 +4,7 @@ Ranked product roadmap. **Future work only** — what exists today is in
 `docs/HANDOFF.md`, and why it was built that way is in `docs/DECISIONS.md`.
 Keep those three separate: HANDOFF gets stale if it doubles as a wish list.
 
-Reviewed 2026-09-07.
+Reviewed 2026-09-08.
 
 ## The product rule
 
@@ -32,7 +32,8 @@ Target architecture, transition order and the manual gates live in
 | 5 | AI WritingPacket + proposal queue UX | 10 | `partial` — the packet exists; the queue does not |
 | 6 | Prose repository boundary | 10 | `shipped` 2026-09-05 |
 | 7a | **Atomic local mutations + content-bound claims** | 9 | `shipped` 2026-09-07 |
-| 7b | **Unified cloud editorial state** | 9 | `next` — implement 7a's contract in Postgres |
+| 7b | **Cloud transaction (EditorialStore)** | 9 | `shipped` 2026-09-08 — built and proved live, no route uses it |
+| 7c | **Move the 27 SQLite-only authoring routes** | 9 | `next` — the whole of what blocks cutover |
 | 8 | Hosted private beta | 5 | blocked on the manual gate |
 | 9 | Cloud publication worker (GitHub Actions) | 2.4 | `deferred` until 6 and 7 |
 | 10 | Portability / onboarding | 1 | seams only, no SaaS |

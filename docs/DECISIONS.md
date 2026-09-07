@@ -1625,3 +1625,60 @@ leaked connection string would then reach the editorial tables and not
 committing the migration grants nobody anything.
 
 `DATABASE_URL` remains server-side only and never reaches browser code.
+
+## 2026-09-08 — NO CUTOVER: the transaction exists, the routes do not use it
+
+Tranche 5B was allowed to change the source of truth if every
+hosted-exposed authoring gate passed. It does not, and the blocker is a
+number rather than a judgement: **27 of 35 authoring routes still write
+authoritative SQLite with no cloud path at all.**
+
+What was actually built and proved: `EditorialStore` owns a whole
+Commissioner action, and on Postgres that action is one transaction --
+prose, its revision, its state, its provenance and the metadata around it
+commit together or not at all. Thirty-nine contract tests run against the
+live database with no skips, including fault injection at every seam. The
+difference the tranche existed to create is visible in those tests: on
+Postgres a failure anywhere leaves NEITHER half, where the filesystem
+leaves prose with no description. Accepting a proposal -- the one route
+5A could not make atomic -- now leaves neither half.
+
+What that does not do is move a single route. The eight prose-heavy
+routes could be wired to the store today; the other twenty-seven write
+`takes`, `story_decisions`, `award_decisions`, `power_rankings`,
+`team_names`, `matchup_state`, `issues`, `force_flow_notes` and
+`sync_snapshots`, and those tables have a Postgres home with no caller.
+A hosted Desk that cannot record an award decision is not a hosted Desk.
+
+Rejected: cutting over the prose and leaving the rest, on the grounds
+that prose is the interesting part. That is the split brain every tranche
+since 4 has refused, and it would be worse now than it was then, because
+the metadata is what the content-bound claims are made of.
+
+Rejected: narrowing hosted scope to the eight prose routes to make the
+gate pass. The route table would read green and the product would be
+unusable. Massaging classification to pass a gate is the failure mode the
+route audit was built to prevent.
+
+So: filesystem remains authoritative, `LEAGUEPAGE_PROSE_BACKEND` stays
+unset, and the cutover gate stays closed with its blockers counted in a
+test rather than described in a paragraph.
+
+## 2026-09-08 — Verify columns, not just tables
+
+Tranche 4 reported migration 0003 as applied. It was not, and it still is
+not: `takes` is missing all twenty columns 0003 adds. The probe could not
+have known -- 0003 only ADDS columns, `takes` has existed since 0001, and
+a table-presence check saw the table and concluded the migration had run.
+
+The static parity test could not have caught it either. It compares
+SQLite against the migration FILES, so it proves the migrations are
+sufficient and says nothing about which have been applied. Both checks
+were sound and both were answering a different question from the one that
+mattered.
+
+`scripts/verify_supabase_schema.py` now reads the live column list and
+compares it against what the migrations define. Table presence answers
+"did something run"; columns answer "did all of it run". It also reads
+`drop column`, because 0004 removes `jobs.stages` and a verifier that
+demanded it back would be inventing a gap.
