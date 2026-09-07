@@ -21,11 +21,18 @@ sys.path.insert(0, str(REPO))
 
 from leaguepage import settings, supabase_client  # noqa: E402
 
-TABLES = ["app_commissioners", "issues", "issue_modules", "sections",
-          "prose_revisions", "issue_revision_requests", "team_names",
-          "story_decisions", "award_decisions", "matchup_state",
-          "power_rankings", "takes", "editorial_usage", "bit_usage",
-          "editorial_meta", "jobs", "job_events", "sync_snapshots"]
+# Which migration creates each table, so a "missing" line names the file
+# to run rather than sending you to 0001 for something 0004 owns.
+OWNER = {
+    "app_commissioners": "0001", "issues": "0001", "issue_modules": "0001",
+    "sections": "0001", "prose_revisions": "0001",
+    "issue_revision_requests": "0001", "team_names": "0001",
+    "story_decisions": "0001", "award_decisions": "0001",
+    "matchup_state": "0001", "power_rankings": "0001", "takes": "0001",
+    "editorial_usage": "0001", "bit_usage": "0001", "editorial_meta": "0001",
+    "jobs": "0001", "job_events": "0004", "sync_snapshots": "0002",
+}
+TABLES = list(OWNER)
 
 
 def classify(status: int, body: str) -> str:
@@ -68,9 +75,23 @@ def main() -> int:
               f"{', '.join(exposed)}")
         return 2
     if missing:
-        print(f"MIGRATION NOT APPLIED: {len(missing)} of {len(TABLES)} tables "
-              "are missing.")
-        print("  Apply migrations/0001_commissioner_state.sql in the SQL editor:")
+        print(f"NOT VISIBLE TO PostgREST: {len(missing)} of {len(TABLES)} "
+              "table(s).")
+        for t in missing:
+            print(f"  {t:26s} created by migration {OWNER[t]}")
+        print()
+        # This script reads one transport. PGRST205 means PostgREST cannot
+        # see the table, which is true both when the migration has not run
+        # and when it has and the schema cache is stale -- and the cache
+        # cannot be reloaded with NOTIFY through the connection pooler.
+        print("  Two causes look identical from here:")
+        print(f"    1. the migration has not been applied -> run "
+              f"migrations/{sorted({OWNER[t] for t in missing})[0]}_*.sql")
+        print("    2. it has, and PostgREST's schema cache is stale ->")
+        print("       Dashboard -> Settings -> API -> Reload schema cache")
+        print("  Tell them apart with a direct connection:")
+        print("    select to_regclass('public.<table>')")
+        print()
         print(f"  {c['url'].replace('.supabase.co', '')}"
               .replace("https://", "https://supabase.com/dashboard/project/")
               + "/sql/new")
