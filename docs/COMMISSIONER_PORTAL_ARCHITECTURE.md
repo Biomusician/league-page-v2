@@ -498,6 +498,137 @@ not versioned, not searchable, and with no undo: this is evidence, and
 giving it undo semantics would mean deciding whose undo it is. The class-B
 files stay out — a worker regenerates those.
 
+### Every mutating route, and what it writes
+
+Added 2026-09-07, because the boundary analysis above was built from an
+inventory of nine editor routes and **the application registers
+forty-four mutating routes**. An inventory covering a fifth of the
+surface is not evidence.
+
+Two independent passes, neither trusting the other:
+
+- **Code search.** A static call-graph walk from every registered
+  handler, collecting reachable writes: Storage methods whose bodies
+  contain INSERT/UPDATE/DELETE, `Path.write_text`/`write_bytes`/
+  `unlink`/`mkdir`, and `ProseRepository.put`/`delete`.
+- **Route-level acceptance tests.** `tests/test_hosted_mutation_audit.py`
+  drives each route with sqlite3's own trace callback installed, so every
+  statement reaching a Storage connection is recorded by table — raw SQL
+  included — along with the COMMIT count, the files touched inside the
+  editorial tree, and every repository write. Each route's observed
+  writes are compared against a written-down claim, and a guard test
+  fails if any registered mutating route is undeclared.
+
+**Safe for hosted execution** means both of: the route performs no
+authoritative write to this machine, and everything it writes commits
+together.
+
+Almost nothing satisfies the second, and the reason is structural rather
+than incidental: **`Storage._cursor()` commits after every mutating
+method**, so a route calling three Storage methods is three
+transactions. On one machine the next request repairs the difference.
+Once the two halves of a click live in two databases, nothing does.
+
+#### Authoring — the weekly loop (35 routes)
+
+| route / action | cloud writes | local authoritative writes | transaction owner | safe hosted |
+| --- | --- | --- | --- | --- |
+| `add_take`<br><sub>/commissioner/{lg}/{yr}/draft-review/take</sub> | — | `takes` | none | NO |
+| `award_decide`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/awards</sub> | — | `award_decisions` | none | NO |
+| `decide_award`<br><sub>/commissioner/{lg}/{yr}/draft-review/award</sub> | — | `award_decisions` | none | NO |
+| `decide_story`<br><sub>/commissioner/{lg}/{yr}/draft-review/story</sub> | — | `story_decisions` | none | NO |
+| `editor_approve`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/approve</sub> | — | `issue_modules`, `matchup_state`, `meta` | none | NO |
+| `editor_custom`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/custom</sub> | — | `issue_modules` | none | NO |
+| `editor_module`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/module</sub> | — | `issue_modules` | none | NO |
+| `editor_rankings`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/rankings</sub> | — | `power_rankings` | none | NO |
+| `editor_replace_origin`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/replace-origin</sub> | `sections`, `prose_revisions` | `prose_provenance`, `section_prose_state`, `issue_modules`, `matchup_state`, `meta` | none | NO |
+| `editor_reset_generated`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/reset-generated</sub> | `sections`, `prose_revisions` | `prose_provenance`, `section_prose_state`, `issue_modules`, `matchup_state`, `meta` | none | NO |
+| `editor_restore`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/restore</sub> | `sections`, `prose_revisions` | `section_prose_state`, `issue_modules`, `matchup_state`, `meta` | none | NO |
+| `editor_save`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/save</sub> | `sections`, `prose_revisions` | `prose_provenance`, `section_prose_state`, `issue_modules`, `matchup_state`, `meta` | none | NO |
+| `false_assumption_decide`<br><sub>/commissioner/{lg}/{yr}/false-assumptions/{take_id}</sub> | — | `takes`, `story_decisions` | none | NO |
+| `force_flow_note`<br><sub>/commissioner/{lg}/{yr}/force-flow/note</sub> | — | `force_flow_notes` | none | NO |
+| `inbox_decide`<br><sub>/commissioner/{lg}/{yr}/inbox/decide</sub> | — | `story_decisions` | none | NO |
+| `inbox_reviewed`<br><sub>/commissioner/{lg}/{yr}/inbox/reviewed</sub> | — | `sync_snapshots` | none | NO |
+| `issue_module_update`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/builder/module</sub> | — | `issue_modules` | none | NO |
+| `lowdown_save`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/lowdown</sub> | `sections`, `prose_revisions` | `section_prose_state` | none | NO |
+| `matchup_angle`<br><sub>/commissioner/{lg}/{yr}/week/{week}/matchups/{slug}/angle</sub> | — | `matchup_state`, `meta` | none | NO |
+| `matchup_draft_save`<br><sub>/commissioner/{lg}/{yr}/week/{week}/matchups/{slug}/draft</sub> | `sections`, `prose_revisions` | `matchup_state`, `meta` | none | NO |
+| `matchup_prominence`<br><sub>/commissioner/{lg}/{yr}/week/{week}/matchups/{slug}/prominence</sub> | — | `matchup_state` | none | NO |
+| `matchup_revision`<br><sub>/commissioner/{lg}/{yr}/week/{week}/matchups/{slug}/revision</sub> | — | `matchup_state` | none | NO |
+| `matchup_status_change`<br><sub>/commissioner/{lg}/{yr}/week/{week}/matchups/{slug}/status</sub> | — | `matchup_state`, `meta` | none | NO |
+| `proposal_action`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/proposal</sub> | `sections`, `prose_revisions` | `prose_provenance`, `section_prose_state`, `issue_modules`, `matchup_state`, `meta`, `issue_revision_requests` | none | NO |
+| `qa_action` °<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/qa-action</sub> | — | `meta`, `issue_modules` | none | NO |
+| `rankings_save`<br><sub>/commissioner/{lg}/{yr}/rankings/{label}</sub> | — | `power_rankings` | none | NO |
+| `request_rewrite`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/request-rewrite</sub> | — | `issue_revision_requests` | none | NO |
+| `resolve_take`<br><sub>/commissioner/{lg}/{yr}/draft-review/take/{take_id}/resolve</sub> | — | `takes` | none | NO |
+| `save_power`<br><sub>/commissioner/{lg}/{yr}/draft-review/power</sub> | — | `power_rankings` | none | NO |
+| `set_team_names`<br><sub>/commissioner/{lg}/{yr}/team-names</sub> | — | `team_names` | none | NO |
+| `set_theme`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/theme</sub> | — | `issues` | none | NO |
+| `story_decide`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/stories</sub> | — | `story_decisions` | none | NO |
+| `take_action`<br><sub>/commissioner/{lg}/{yr}/take/{take_id}</sub> | — | `takes` | none | NO |
+| `track_take`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/take</sub> | — | `takes` | none | NO |
+| `use_sleeper_name`<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/use-sleeper-name</sub> | — | `team_names` | none | NO |
+
+#### Operational (4 routes)
+
+| route / action | cloud writes | local authoritative writes | transaction owner | safe hosted |
+| --- | --- | --- | --- | --- |
+| `about_preview` °<br><sub>/commissioner/site/about/preview</sub> | — | — | n/a | **YES** |
+| `about_save` °<br><sub>/commissioner/site/about</sub> | — | `editorial/site/about.md` | none | NO |
+| `issue_build` °<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/build</sub> | — | — | n/a | NO |
+| `sync_start` °<br><sub>/commissioner/sync-start</sub> | — | — | job | NO |
+
+#### Publication (2 routes)
+
+| route / action | cloud writes | local authoritative writes | transaction owner | safe hosted |
+| --- | --- | --- | --- | --- |
+| `issue_publish` °<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/publish</sub> | — | `published/**.json`, `issues` | none | NO |
+| `publish_start` °<br><sub>/commissioner/{lg}/{yr}/issue/{issue}/edit/publish-start</sub> | — | — | job | NO |
+
+#### Authentication (3 routes)
+
+| route / action | cloud writes | local authoritative writes | transaction owner | safe hosted |
+| --- | --- | --- | --- | --- |
+| `auth_logout` °<br><sub>/auth/logout</sub> | — | — | n/a | **YES** |
+| `auth_request` °<br><sub>/auth/request</sub> | — | — | n/a | **YES** |
+| `auth_verify` °<br><sub>/auth/verify</sub> | — | — | n/a | **YES** |
+
+**44 mutating routes · 4 safe · 35 of 35 authoring routes unsafe.** `°` marks a route declared but not driven by an acceptance test.
+
+The four YES rows are the three authentication routes, whose durable
+state is a cookie, and the About preview, which renders to a temporary
+path. **No authoring route is safe**, so the cutover gate is closed —
+and it is closed in a test
+(`test_no_authoring_route_is_safe_for_hosted_execution_yet`) rather than
+in a paragraph, so it fails the day that stops being true.
+
+### Killing the process between the two halves of a click
+
+`tests/test_crash_between_coupled_writes.py`. A green happy path cannot
+see a seam, because on the happy path both writes land. Each test arms a
+fault at one Storage method, drives the route, gets a 500, then discards
+the app and builds a new one against the same database and editorial
+tree — the Desk keeps no state between requests except its job rows, so
+that is a faithful restart. Every assertion is made on the restarted
+Desk. The fault disarms on restart, because a process that died once is
+replaced by a working one, not by a permanently broken build.
+
+| seam | what the restarted Desk shows |
+| --- | --- |
+| **save**, die before `set_prose_state` | the new text is stored **and the approval survived it**. A green approved chip over text nobody approved, with no signature that could detect it |
+| **restore**, same seam | the restored text is stored and the approval outlives it again |
+| **replace with my copy**, die before the authorship rewrite | the section is empty and provenance still says a machine wrote it |
+| **accept proposal**, die between the two prose objects | the accepted text is in place **and the proposal is still offered**, because deleting it was a separate step |
+| **request rewrite**, die between the row and the file | the database has both requests and `REVISION_REQUESTS.md` — the file a local Claude Code session reads — has one |
+| **provenance**, die before it is written | **nothing is claimed.** Origin reads `unknown`, which is honest |
+| a **refused** save (409) | nothing at all; optimistic concurrency never reaches the seam |
+
+The sixth row is the one to copy. Provenance stores a hash of the text it
+describes, so a half-completed click leaves it silent rather than wrong.
+Common Tactical Picture's `approved_sha` works the same way, and a test
+here shows its signature moving when a preview is edited. The fix for the
+first four rows is that mechanism, not a distributed transaction.
+
 ---
 
 ## Next tranche — UNIFIED CLOUD EDITORIAL STATE
@@ -508,10 +639,27 @@ requires new product thinking, which is why it can be specified exactly.
 
 **The goal, stated as an invariant.** One Commissioner action commits or
 does not commit. Today a save writes prose to one store and four pieces
-of metadata to another, and a failure between them leaves a green
-approval chip over text nobody approved.
+of metadata to another in four further transactions, and a fault
+injected between them leaves a green approval chip over text nobody
+approved — demonstrated, not predicted.
 
-### 1. Make approval content-bound (do this first, on SQLite)
+**Scope, from the route audit: 35 authoring routes, not 9.** The nine
+editor routes are the hardest, because they are the ones that write both
+stores. The other 26 each write a single SQLite table with no Postgres
+path, which is simpler work but is still work, and none of it can be
+skipped: a hosted Desk that cannot record an award decision is not a
+hosted Desk.
+
+### 0. Make one Commissioner action one transaction
+
+Prerequisite to all of it, and independent of Postgres.
+`Storage._cursor()` commits per mutating method, so no route is atomic
+today even within SQLite. Give `Storage` an explicit transaction scope —
+`with s.transaction():` around a route's writes — and the
+transaction-owner column becomes answerable for the 26 single-store
+routes immediately, on the machine where it is observable.
+
+### 1. Make approval content-bound (do this next, on SQLite)
 
 The blocker, and the only step that changes behaviour rather than
 location. Do it where it is observable before moving anything.
@@ -587,6 +735,11 @@ an idempotence proof the way `prose_tool import` has one.
 
 The evidence to require, all of which now has a working harness:
 
+- every row of the route table reading YES, which is asserted by
+  `test_no_authoring_route_is_safe_for_hosted_execution_yet` failing
+- every seam in `test_crash_between_coupled_writes.py` re-asserted to the
+  opposite outcome: the restarted Desk shows either both halves or
+  neither
 - `prose_tool verify` clean, and an equivalent for the metadata tables
 - assembly parity 27/27 with the blank-tree negative control
 - preview parity byte-identical

@@ -1433,3 +1433,44 @@ re-raised only `ProseError` — so every optimistic-concurrency refusal was
 reported as "the backend is unreachable". A stale save would have looked
 like an outage and the conflict screen would never have opened. Nothing
 static could have found it.
+
+## 2026-09-07 — The cutover gate is a test, not a paragraph
+
+The hosted-safety analysis had been an inventory: nine editor routes,
+read carefully, written up. The Desk registers forty-four mutating
+routes. An inventory that covers a fifth of the surface reads like
+evidence and is not, and the gap was invisible precisely because the nine
+were the interesting ones.
+
+So the gate moved into the suite. `tests/test_hosted_mutation_audit.py`
+declares, for every mutating route, what it writes to which store and
+whether it may run hosted, and drives each one with sqlite3's trace
+callback installed to check the declaration against reality. A route that
+is registered and undeclared fails the suite, so the inventory cannot go
+stale again. Today: 44 routes, 4 safe, and every one of the 35 authoring
+routes unsafe.
+
+Two things fell out of doing it properly rather than by reading.
+
+**Nothing is atomic, even within SQLite.** `Storage._cursor()` commits
+after every mutating method, so a save is not one transaction that spans
+two databases badly — it is five transactions that happen to share a
+file. That reframes the next tranche: giving `Storage` an explicit
+transaction scope is step 0, it is independent of Postgres, and it can be
+proved on this machine.
+
+**A happy-path test cannot see a seam.** So each coupled route now has a
+fault injected at one Storage method, after which the app is discarded
+and rebuilt against the same database — a faithful restart, since the
+Desk keeps no state between requests but its job rows. On the restarted
+Desk: a save leaves the new text with the old approval still standing;
+accepting a proposal leaves the accepted text and re-offers the proposal;
+replace-with-my-copy empties a section that still claims a machine wrote
+it. Provenance, alone, claims nothing — because it stores a hash of the
+text it describes.
+
+That last row is the whole design of the fix. The answer is not a
+distributed transaction across two databases; it is that every claim
+about prose should carry a signature over the prose, so a half-completed
+click is silent rather than wrong. Common Tactical Picture already does
+it. Approval does not.

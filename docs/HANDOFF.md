@@ -188,6 +188,41 @@ no infrastructure.
 | Postgres contract tests | **SKIPPED** — `DATABASE_URL` unset, by design rather than by failure |
 | live Supabase validation, import, parity, cutover proofs | **BLOCKED** on the manual gate |
 
+### The route audit, and killing the process mid-click (2026-09-07)
+
+The cutover analysis had been built from nine editor routes. **The Desk
+registers forty-four mutating routes.** Two new suites close that:
+
+- `tests/test_hosted_mutation_audit.py` — drives each route with
+  sqlite3's trace callback installed, recording every INSERT/UPDATE/
+  DELETE by table, the COMMIT count, every file written inside the
+  editorial tree, and every repository write; compares each against a
+  declared claim; and fails if a registered mutating route is
+  undeclared. **44 declared, 4 safe for hosted execution, 35 of 35
+  authoring routes unsafe.**
+- `tests/test_crash_between_coupled_writes.py` — arms a fault at one
+  Storage method, drives the route, then discards the app and rebuilds it
+  against the same database. Every assertion is on the restarted Desk.
+
+What the fault injection showed, on a restarted process:
+
+| seam | result |
+| --- | --- |
+| save, die before `set_prose_state` | new text stored, **approval survived**, no signature to detect it |
+| restore, same seam | same |
+| replace with my copy | section empty, provenance still claims a machine wrote it |
+| accept proposal | accepted text in place **and the proposal still offered** |
+| request rewrite | database has both requests, `REVISION_REQUESTS.md` has one |
+| provenance | **claims nothing** — origin `unknown`. The pattern to copy |
+| a refused (409) save | nothing; the seam is never reached |
+
+And the structural finding underneath all of it: **`Storage._cursor()`
+commits after every mutating method**, so no route is atomic today even
+within SQLite. That is now step 0 of the next tranche, and it is fixable
+on this machine without touching Postgres.
+
+The full table is in `docs/COMMISSIONER_PORTAL_ARCHITECTURE.md`.
+
 ### Running the live tests
 
 `tests/conftest.py` strips `DATABASE_URL` from every test, deliberately:
