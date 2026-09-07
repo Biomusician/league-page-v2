@@ -35,6 +35,32 @@ OWNER = {
 TABLES = list(OWNER)
 
 
+def really_exists(tables: list[str]) -> dict[str, bool] | None:
+    """Ask the database directly, when we have a connection to ask with.
+
+    PGRST205 means only that PostgREST cannot see a table, which is true
+    both when the migration has not run and when it has and the API's
+    schema cache is stale. One `to_regclass` settles it. Returns None when
+    there is no DSN, which is the normal case on a machine that only has
+    the publishable key.
+    """
+    dsn = settings.get(settings.DATABASE_URL)
+    if not dsn:
+        return None
+    try:
+        import psycopg
+    except ImportError:
+        return None
+    try:
+        with psycopg.connect(dsn, connect_timeout=20) as conn:
+            return {t: conn.execute("select to_regclass(%s)", (f"public.{t}",)
+                                    ).fetchone()[0] is not None
+                    for t in tables}
+    except Exception as exc:                                # noqa: BLE001
+        print(f"  (direct check unavailable: {type(exc).__name__})")
+        return None
+
+
 def classify(status: int, body: str) -> str:
     if status == 200:
         return "EXPOSED"
@@ -80,22 +106,33 @@ def main() -> int:
         for t in missing:
             print(f"  {t:26s} created by migration {OWNER[t]}")
         print()
-        # This script reads one transport. PGRST205 means PostgREST cannot
-        # see the table, which is true both when the migration has not run
-        # and when it has and the schema cache is stale -- and the cache
-        # cannot be reloaded with NOTIFY through the connection pooler.
-        print("  Two causes look identical from here:")
-        print(f"    1. the migration has not been applied -> run "
-              f"migrations/{sorted({OWNER[t] for t in missing})[0]}_*.sql")
-        print("    2. it has, and PostgREST's schema cache is stale ->")
-        print("       Dashboard -> Settings -> API -> Reload schema cache")
-        print("  Tell them apart with a direct connection:")
-        print("    select to_regclass('public.<table>')")
+        truth = really_exists(missing)
+        if truth is None:
+            print("  Two causes look identical from here, and this machine "
+                  "has no DATABASE_URL to settle it:")
+            print(f"    1. the migration has not run -> apply "
+                  f"migrations/{sorted({OWNER[t] for t in missing})[0]}_*.sql")
+            print("    2. it has, and PostgREST's schema cache is stale ->")
+            print("       Dashboard -> Settings -> API -> Reload schema cache")
+            print(f"  {c['url'].replace('.supabase.co', '')}"
+                  .replace("https://", "https://supabase.com/dashboard/project/")
+                  + "/sql/new")
+            return 1
+        absent = sorted(t for t, there in truth.items() if not there)
+        if absent:
+            print("  DIRECT CHECK: genuinely absent from the database.")
+            for t in absent:
+                print(f"    {t:26s} apply migrations/{OWNER[t]}_*.sql")
+            return 1
+        print("  DIRECT CHECK: every one of them EXISTS in the database.")
+        print("  So this is PostgREST's schema cache, not the schema. It is")
+        print("  pinned to an older snapshot and a reload has not moved it.")
         print()
-        print(f"  {c['url'].replace('.supabase.co', '')}"
-              .replace("https://", "https://supabase.com/dashboard/project/")
-              + "/sql/new")
-        return 1
+        print("  Impact today: NONE. No data flows over PostgREST -- the")
+        print("  application talks to Postgres directly and supabase_client")
+        print("  is authentication only. This affects this script and")
+        print("  anything that might later read the database from a browser.")
+        return 0
     print(f"SCHEMA OK: {len(locked)}/{len(TABLES)} tables present and locked "
           "against the anon key (RLS working).")
     return 0

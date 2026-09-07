@@ -58,6 +58,10 @@ class PostgresProseRepository:
         # backend from the same call. SQLite holds no prose here.
         self._dsn = dsn
         self._checked = False
+        # When set, this repository is a passenger: somebody else opened
+        # the transaction and will commit or roll it back. Used by
+        # EditorialStore so one Commissioner action is one transaction.
+        self._bound = None
 
     # -- connection ----------------------------------------------------
 
@@ -74,8 +78,24 @@ class PostgresProseRepository:
                 "half-populated sources of truth is worse than not starting.")
         return value
 
+    def bound_to(self, cursor) -> "PostgresProseRepository":
+        """A view of this repository that runs on someone else's cursor.
+
+        Returns a copy rather than mutating, so a bound repository cannot
+        leak out of the transaction that made it.
+        """
+        clone = PostgresProseRepository(self._dsn)
+        clone._bound = cursor
+        return clone
+
     @contextmanager
     def _tx(self):
+        if self._bound is not None:
+            # A passenger. No connect, no commit, and crucially no
+            # try/except that would turn somebody else's failure into a
+            # ProseError and hide it from the transaction owner.
+            yield self._bound
+            return
         try:
             import psycopg
         except ImportError as exc:                              # pragma: no cover
