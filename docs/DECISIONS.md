@@ -1570,3 +1570,58 @@ Chosen over making the file authoritative (a hosted Desk has no disk) and
 over dropping it (the local authoring workflow reads it). It is the first
 filesystem artifact to move from AUTHORITATIVE to DERIVED, which is the
 shape the rest of the research tree will follow in a later tranche.
+
+## 2026-09-08 — The application drops to `authenticated` for every Commissioner action
+
+The live validation established that `DATABASE_URL` connects as `postgres`,
+which carries BYPASSRLS. So the RLS model migration 0001 describes has been
+protecting the browser and not the application's own data path — the half
+that actually writes. That was inherited rather than chosen, and Tranche 5B
+had to choose.
+
+Four options, against the requirement that dominates everything else: one
+Commissioner action spans six tables and must commit or not commit.
+
+**PostgREST with the signed-in user's JWT** is the shape 0001 imagined, and
+it cannot do this. Each PostgREST request is its own transaction. The only
+way to get multi-table atomicity through it is to move the whole
+EditorialStore into PL/pgSQL — signatures, provenance rules, optimistic
+version checks — in a language this repository has no tests for, deployed by
+migration. Rejected on maintainability, not on principle.
+
+**A restricted login role** reduces the blast radius of a leaked connection
+string, which is real, but on its own it does not make RLS apply: a direct
+connection carries no JWT, so `app_is_commissioner()` is false and the
+policy denies everything. It needs the identity assertion below regardless,
+which makes it an optimisation rather than a mechanism.
+
+**Keeping the owner connection as-is** was the status quo and is a dead end
+for a second Commissioner, because nothing in the data path ever knows who
+is acting.
+
+**Chosen: the application asserts the signed-in Commissioner's identity into
+every transaction.**
+
+    set local role authenticated;
+    set local request.jwt.claims = '{"email": "..."}';
+
+RLS is bypassed on the basis of the CURRENT role rather than the login role,
+so this binds even on the owner connection. Verified live 2026-09-08: an
+owner connection that assumes `authenticated` with a non-allowlisted email
+reads zero rows from `sections`, and one with the allowlisted email reads
+all of them. It costs two statements per transaction and it makes the
+policy do real work on the path that writes.
+
+What this is and is not. It is defence in depth against the realistic
+threat — an application bug acting for the wrong Commissioner, or a route
+that forgets to check. It is not a boundary against a compromised process,
+because a role that can `SET ROLE` can `RESET ROLE`. Saying otherwise would
+be the kind of security claim that reads well and protects nothing.
+
+0006 also creates `leaguepage_app` NOLOGIN, so the credential blast radius
+can be reduced later with a password set out of band and no code change: a
+leaked connection string would then reach the editorial tables and not
+`auth.users`. It is deliberately created without a password so that
+committing the migration grants nobody anything.
+
+`DATABASE_URL` remains server-side only and never reaches browser code.

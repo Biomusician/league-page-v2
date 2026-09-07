@@ -30,22 +30,17 @@ EDITORIAL_TABLES = {
     "sync_snapshots",
 }
 
-# Known and accepted, each with the reason it is still open. This set is
-# the deliverable: when the unified-cloud-editorial-state tranche lands,
-# entries come OUT of here and the test keeps passing. If an entry has to
-# go IN, that is a new gap and it belongs in the architecture doc first.
+# Known and accepted, each with the reason it is still open. This set was
+# the deliverable of the audit tranche and 0006 emptied most of it: entries
+# come OUT as they are closed. If an entry has to go IN, that is a new gap
+# and it belongs in the architecture doc first.
 KNOWN_MISSING_TABLES = {
     "section_prose_state":
-        "generated vs commissioner-edited. Postgres carries this on "
-        "sections.state instead, so the gap is a CALLER not a table: the "
-        "Desk writes set_prose_state() to SQLite while the repository "
-        "writes only content and version. Measured live 2026-09-06: 28 "
-        "sections are commissioner-edited in SQLite and generated in "
-        "Postgres.",
-    "prose_provenance":
-        "the authorship claim; written after every prose write",
-    "force_flow_notes":
-        "per-transaction Commissioner blurbs; outside the prose boundary",
+        "DELIBERATE AND PERMANENT. Postgres carries this meaning on "
+        "sections.state, so the gap was never a missing table -- it was a "
+        "missing caller: the Desk wrote set_prose_state() to SQLite while "
+        "the repository wrote only content and version. Tranche 5B fixes "
+        "the caller. This entry should never be removed by adding a table.",
 }
 
 # Columns a hosted Desk will never want. `issues` gained `published_at` in
@@ -56,19 +51,8 @@ DELIBERATELY_NOT_MIGRATED = {
     ("issues", "published_path"): "a path under site/ on this machine",
 }
 
-KNOWN_MISSING_COLUMNS = {
-    ("issue_modules", "approved_sha"):
-        "the ONLY content-bound approval in the system (CTP) has no home in "
-        "the target schema; added to SQLite additively on 2026-09-05",
-    ("issues", "theme"):
-        "the optional issue-wide gimmick; editorial intent, not a derivation",
-    ("matchup_state", "revision_requests"):
-        "structured requests carried into the next drafting pass",
-    ("matchup_state", "covered_sha"):
-        "what each preview said when CTP was approved over all of them "
-        "(2026-09-07). Not a per-preview approval: it lets a card name the "
-        "preview that moved instead of flagging every one of them",
-}
+# Empty, and it should stay empty. 0006 closed all four.
+KNOWN_MISSING_COLUMNS: dict[tuple[str, str], str] = {}
 
 
 def _sqlite_tables() -> dict[str, set[str]]:
@@ -144,6 +128,43 @@ def test_every_editorial_table_named_here_exists_in_sqlite():
     renamed table cannot silently drop out of the comparison."""
     missing = EDITORIAL_TABLES - set(_sqlite_tables())
     assert missing == set(), missing
+
+
+def test_zero_six_closed_the_gaps_it_was_written_to_close():
+    """The specific claim the migration makes, checked rather than trusted.
+
+    Written as its own test because "the declared set is empty" reads as an
+    absence and this reads as a presence: these are the four columns and
+    three tables that Tranche 5B needed, and they are here.
+    """
+    postgres = _postgres_tables()
+    for table in ("prose_provenance", "force_flow_notes", "research_artifacts"):
+        assert table in postgres, f"0006 should create {table}"
+    for table, column in (("issue_modules", "approved_sha"),
+                          ("issues", "theme"),
+                          ("matchup_state", "revision_requests"),
+                          ("matchup_state", "covered_sha")):
+        assert column in postgres[table], f"0006 should add {table}.{column}"
+    assert "section_prose_state" not in postgres, (
+        "sections.state already carries this; adding a table would be the "
+        "wrong fix for a missing caller")
+    assert "state" in postgres["sections"]
+
+
+def test_zero_six_locks_down_everything_it_creates():
+    """A new table with no policy is a readable table. The migration uses
+    the same `do $$` block 0001 uses, so this checks the block covers every
+    table the migration created rather than most of them."""
+    sql = (MIGRATIONS / "0006_editorial_state.sql").read_text(encoding="utf-8")
+    created = set(re.findall(r"create table if not exists\s+(\w+)", sql, re.I))
+    locked = set()
+    for block in re.findall(r"foreach t in array array\[(.*?)\]", sql, re.S):
+        locked |= {m.strip().strip("'") for m in block.split(",")}
+    assert created <= locked, f"not locked down: {sorted(created - locked)}"
+    for needed in ("enable row level security", "force row level security",
+                   "create policy commissioner_all",
+                   "revoke all on function app_is_commissioner() from public"):
+        assert needed in sql.lower(), f"0006 is missing: {needed}"
 
 
 def test_the_postgres_schema_covers_the_editorial_tables_or_says_why_not():

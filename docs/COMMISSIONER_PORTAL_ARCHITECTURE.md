@@ -780,10 +780,38 @@ Done when: editing a section retires its approval with no code noticing,
 and `test_ordinary_approval_is_a_flag_and_not_a_signature` fails and is
 replaced.
 
+### The runtime authorization boundary (decided 2026-09-08)
+
+`DATABASE_URL` connects as `postgres`, which has BYPASSRLS, so the policy
+in 0001 protects the browser and not the application. That was inherited.
+It is now chosen:
+
+**every Commissioner action runs as `authenticated`, carrying the
+signed-in Commissioner's email as JWT claims.** `set local role
+authenticated` plus `set local request.jwt.claims` at the top of the
+transaction, so `commissioner_all` evaluates exactly as it would for a
+browser. RLS applies on the basis of the current role, not the login role,
+which is why this binds on the owner connection — verified live: a
+non-allowlisted email reads zero rows, the allowlisted one reads all 34.
+
+The application holds a login rather than a JWT because one Commissioner
+action spans six tables and PostgREST gives each request its own
+transaction. Moving the whole store into PL/pgSQL to get around that was
+rejected: it puts signature and provenance logic in a language this
+repository cannot test.
+
+Honest about what it buys: defence in depth against an application bug
+acting for the wrong Commissioner, not a boundary against a compromised
+process — a role that can `SET ROLE` can `RESET ROLE`. `leaguepage_app`
+(NOLOGIN, created by 0006) is the later upgrade that shrinks the blast
+radius of a leaked connection string, with no code change.
+
 ### 2. Close the schema gaps
 
-`tests/test_schema_parity.py` declares every one of them and will tell you
-when the list is empty. As a new migration, `0006_editorial_state.sql`:
+**Written 2026-09-08 as `migrations/0006_editorial_state.sql`**, awaiting
+the manual apply gate. `tests/test_schema_parity.py` now declares an empty
+column-gap set and one permanent table divergence, and two new tests check
+the migration's specific claims rather than trusting them. What it does:
 
 - `alter table issue_modules add column approved_sha text`
 - `alter table issues add column theme text`
