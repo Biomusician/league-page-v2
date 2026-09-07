@@ -1177,6 +1177,22 @@ class Storage:
                     (league_slug, season, issue_key, status, source_path, published_path, now, now),
                 )
 
+    def list_issues(self, league_slug: str, season: str | None = None) -> list[dict]:
+        """Every issue this league has a workspace row for, newest first.
+
+        scripts/qa_issues.py --workspace has called this since it was
+        written; it never existed, so that flag has never run. Season is
+        optional because the caller usually wants "whatever exists".
+        """
+        sql = "SELECT * FROM issues WHERE league_slug=?"
+        args: list = [league_slug]
+        if season:
+            sql += " AND season=?"
+            args.append(season)
+        rows = self._conn.execute(sql + " ORDER BY season DESC, issue_key DESC",
+                                  args).fetchall()
+        return [dict(r) for r in rows]
+
     def get_issue(self, league_slug: str, season: str, issue_key: str) -> dict | None:
         row = self._conn.execute(
             "SELECT * FROM issues WHERE league_slug=? AND season=? AND issue_key=?",
