@@ -915,7 +915,9 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     async def set_team_names(request: Request, league_slug: str, season: str):
         form = await request.form()
         back = str(form.get("back") or f"/commissioner/{league_slug}/{season}/issue/draft")
-        with storage() as s:
+        with storage() as s, s.transaction():
+            # One click renames as many teams as the form carries, so it is
+            # one transaction: half a rename is not a state he asked for.
             for key, value in form.items():
                 if key.startswith("name_") and str(value).strip():
                     s.set_public_team_name(league_slug, int(key.removeprefix("name_")),
@@ -1047,11 +1049,15 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             elif action == "approve":
                 text = repo.get(key).text
                 if text and ROUGH_DRAFT_MARKER not in text:
-                    s.set_issue_module(league_slug=league_slug, season=season,
-                                       issue_key=issue_key, module_key="lowdown", approved=1)
+                    s.set_issue_module(
+                        league_slug=league_slug, season=season,
+                        issue_key=issue_key, module_key="lowdown", approved=1,
+                        approved_sha=_approval_signature(
+                            s, league_slug, season, issue_key, "lowdown"))
             elif action == "unapprove":
                 s.set_issue_module(league_slug=league_slug, season=season,
-                                   issue_key=issue_key, module_key="lowdown", approved=0)
+                                   issue_key=issue_key, module_key="lowdown",
+                                   approved=0, approved_sha=None)
         return RedirectResponse(
             f"/commissioner/{league_slug}/{season}/issue/{issue_key}/lowdown", status_code=303)
 
@@ -1059,6 +1065,24 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     def issue_builder_screen(request: Request, league_slug: str, season: str, issue_key: str):
         ctx = _workspace_context(league_slug, season, issue_key)
         return templates.TemplateResponse(request, "desk/builder.html", ctx)
+
+    def _approval_signature(s, league_slug: str, season: str, issue_key: str,
+                            module_key: str) -> str:
+        """What this module says right now, as the approval will record it.
+
+        Three screens can approve -- the editor, the Lowdown page and the
+        builder -- and an approval that records no signature is a record
+        that he clicked rather than a claim about the text. One helper so
+        they cannot drift.
+        """
+        from leaguepage.issue_builder import module_signature, module_states
+
+        league = get_league(league_slug)
+        week = _week_of(issue_key)
+        kinds = {m["module_key"]: m["kind"]
+                 for m in module_states(s, league, season, issue_key, week=week)}
+        return module_signature(s, league, season, issue_key, module_key,
+                                kinds.get(module_key, "section"), week)
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/builder/module")
     def issue_module_update(
@@ -1075,12 +1099,16 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             fields["approved"] = 1
         elif action == "unapprove":
             fields["approved"] = 0
+            fields["approved_sha"] = None
         elif action == "retitle":
             fields["custom_title"] = custom_title.strip() or None
         elif action == "move" and position.strip().lstrip("-").isdigit():
             fields["position"] = int(position)
         if fields:
             with storage() as s:
+                if action == "approve":
+                    fields["approved_sha"] = _approval_signature(
+                        s, league_slug, season, issue_key, module_key)
                 s.set_issue_module(league_slug=league_slug, season=season,
                                    issue_key=issue_key, module_key=module_key, **fields)
         return RedirectResponse(

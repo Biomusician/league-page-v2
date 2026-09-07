@@ -25,6 +25,8 @@
             title="Matchup previews written, out of the week's total. The section is approved once, over all of them.">{{ c.children_written }} / {{ c.children_total }} written</span>{% endif %}
       {% if c.changed_since_approval %}<span class="chip stale"
             title="This changed after you approved it. Approve again to publish what is here now.">changed since approval</span>{% endif %}
+    {% if c.approval_legacy %}<span class="chip warn"
+            title="You approved this before approvals recorded what they covered, so nothing here can confirm the current text is the text you signed off. One click settles it.">approved before signatures</span>{% endif %}
       {% if c.brief and c.brief.stale_prose %}<span class="chip stale"
             title="Sleeper data was synced after this section was written; check the writing brief.">data updated since written</span>{% endif %}
     {% endif %}
@@ -121,7 +123,16 @@
       <code>work all pending rewrite requests for {{ league.slug }} {{ issue_key }}</code></p>
   {% endfor %}
 
-  {% if c.proposal %}
+  {% if c.proposal and c.proposal_identical %}
+  <div class="proposal proposal-identical">
+    <b>Already accepted.</b> This proposal says exactly what the section
+    says now, so there is nothing left to accept or discard. Clearing it
+    is safe and changes no text.
+    <div class="row">
+      <button type="button" onclick="proposal('{{ c.module_key }}', 'accept')">Clear it</button>
+    </div>
+  </div>
+  {% elif c.proposal %}
   <div class="proposal">
     <b>Claude proposal awaiting review</b> — your current text is untouched until you accept.
     <div class="compare">

@@ -23,6 +23,8 @@ credited to him).
 from __future__ import annotations
 
 import json
+
+import json
 from pathlib import Path
 
 from leaguepage import evidence as ev_mod
@@ -377,16 +379,94 @@ def ctp_approved(
     """Whether the section as it stands now is the one he approved."""
     if row is None:
         row = (storage.get_issue_modules(league.slug, season, issue_key) or {}).get("ctp") or {}
+    return module_approved(storage, league, season, issue_key, "ctp", "ctp",
+                           week, row=row, base_dir=base_dir)[0]
+
+
+def module_signature(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    module_key: str,
+    kind: str,
+    week: int | None,
+    *,
+    base_dir: Path | None = None,
+) -> str:
+    """The identity of exactly what this module would publish.
+
+    One function for every approvable shape, so approval means the same
+    thing everywhere and there is no bespoke parallel implementation to
+    drift. Common Tactical Picture keeps its composite signature because
+    its content genuinely is other sections; everything else signs the
+    prose, which is what the Commissioner reads before he approves.
+
+    `power` is the one module whose published content is not its prose:
+    it is composed from the rankings he saved, so those are what it signs.
+    Text composed from decisions -- Weekly Hardware's generated copy --
+    is written INTO the prose when it is composed, so signing prose is
+    signing what publishes.
+    """
+    from leaguepage import provenance
+
+    if kind == "ctp":
+        return ctp_signature(storage, league, season, issue_key, week,
+                             base_dir=base_dir)
+    if kind == "auto":
+        # Rendered from data at publish time; there is nothing to approve
+        # and nothing to sign.
+        return ""
+    if kind == "power":
+        label = "preseason" if issue_key == "draft" else issue_key
+        entries = storage.get_power_rankings(league.slug, season, label)
+        return provenance.text_sha(json.dumps(entries, sort_keys=True,
+                                              default=str))
+    idir = issue_dir(league, season, issue_key, base_dir)
+    return provenance.text_sha(_prose_of(idir, module_key) or "")
+
+
+def module_approved(
+    storage: Storage,
+    league: League,
+    season: str,
+    issue_key: str,
+    module_key: str,
+    kind: str,
+    week: int | None,
+    *,
+    row: dict | None = None,
+    base_dir: Path | None = None,
+) -> tuple[bool, bool]:
+    """(approved right now, approval is stale) for one module.
+
+    APPROVED means he approved it AND what is there now is what he
+    approved. Not "someone clicked approve once". Nothing has to notice an
+    edit and nothing has to clear a flag: the comparison is the mechanism,
+    which is why a process that dies after writing prose cannot leave an
+    approval describing text nobody read.
+
+    A recorded approval with NO signature predates signatures. It is not
+    evidence about the current text, so it does not count as approval
+    now -- he re-approves and the signature is recorded. That does not
+    touch published history: a snapshot is an immutable file and never
+    consults this.
+    """
+    if row is None:
+        row = (storage.get_issue_modules(league.slug, season, issue_key)
+               or {}).get(module_key) or {}
     if not row.get("approved"):
-        return False
+        return False, False
     recorded = row.get("approved_sha")
-    # Approved before signatures existed: we know he approved it, we do not
-    # know what it said, and un-approving shipped work to say so would be a
-    # worse lie than grandfathering it.
     if not recorded:
-        return True
-    return recorded == ctp_signature(storage, league, season, issue_key, week,
-                                     base_dir=base_dir)
+        # Recorded before signatures existed. Not approval of what is
+        # there now, and not evidence that anything changed either --
+        # `module_states` reports the two differently, because telling him
+        # he edited something he did not touch is its own kind of wrong.
+        return False, False
+    live = module_signature(storage, league, season, issue_key, module_key,
+                            kind, week, base_dir=base_dir)
+    return (recorded == live), (recorded != live)
 
 
 def module_states(
@@ -419,7 +499,11 @@ def module_states(
         kids = children if kind == "ctp" else []
         default_included = 0 if (key in OPT_IN_MODULES and not row) else 1
         included = bool(row.get("included", default_included))
-        approved = bool(row.get("approved", 0))
+        # Effective approval, computed the same way for every kind. The
+        # stored boolean on its own is only a record that he clicked.
+        approved, approval_stale = module_approved(
+            storage, league, season, issue_key, key, kind, week,
+            row=row, base_dir=base_dir)
         status, detail = "ready", ""
         if kind == "auto":
             status, detail = "ready", "rendered automatically"
@@ -435,8 +519,6 @@ def module_states(
             # carries a signature over that exact text.
             t = len(kids)
             written = sum(1 for c in kids if c.get("written"))
-            approved = ctp_approved(storage, league, season, issue_key, week,
-                                    row=row, base_dir=base_dir)
             if t == 0:
                 status, detail = "not_ready", "no matchups"
             elif written < t:
@@ -496,6 +578,15 @@ def module_states(
             "_registry_index": position,
             "included": included,
             "approved": approved,
+            # What the row records, and whether it still describes what is
+            # there. The card says "changed since approval" from this
+            # rather than from a flag some other write had to set.
+            "approved_recorded": bool(row.get("approved", 0)),
+            "approval_stale": approval_stale,
+            # Approved before approvals carried a signature: we know he
+            # clicked and not what it said.
+            "approval_legacy": bool(row.get("approved", 0))
+                               and not row.get("approved_sha"),
             "status": status,
             "detail": detail,
             # An included section with nothing in it is the Commissioner's

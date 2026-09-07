@@ -239,9 +239,20 @@ def classify(row: dict | None, text: str | None) -> dict | None:
     if origin == "commissioner":
         return _public("commissioner", "commissioner", None,
                        (row or {}).get("method"), assistance)
-    exact = bool(row.get("generated_sha")) and text_sha(text) == row["generated_sha"]
-    return _public(origin, "exact" if exact else "edited", row.get("generator"),
-                   row.get("method"), assistance)
+    return _public(origin, "exact" if claims_exact(row, text) else "edited",
+                   row.get("generator"), row.get("method"), assistance)
+
+
+def claims_exact(row: dict | None, text: str | None) -> bool:
+    """Does this record still describe exactly this text?
+
+    The question every content-bound claim asks. A claim whose subject
+    moved does not apply any more, and nothing has to notice: this is
+    what makes a half-completed Commissioner click silent rather than
+    wrong.
+    """
+    return bool(row and row.get("generated_sha")
+                and text_sha(text) == row["generated_sha"])
 
 
 def _public(origin: str, relationship: str, generator: str | None,
