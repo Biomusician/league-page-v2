@@ -85,6 +85,14 @@ class ProseError(Exception):
     """Something about the request was wrong, before any storage was asked."""
 
 
+class UnknownRevision(ProseError):
+    """A revision id that is not this section's, or is not there at all.
+
+    Distinct from its base because a route answers 404 to this and 5xx to
+    a store it cannot reach, and those must not be the same exception.
+    """
+
+
 class ProseConflict(Exception):
     """The stored prose moved after the caller read it.
 

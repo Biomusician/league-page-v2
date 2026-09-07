@@ -45,10 +45,14 @@ from typing import Iterator
 from leaguepage import prose_store
 from leaguepage.editorial_state import (PostgresEditorialState,
                                         SqliteEditorialState)
-from leaguepage.prose_store import Prose, ProseError, ProseKey
+from leaguepage.prose_store import (Prose, ProseError, ProseKey,
+                                    UnknownRevision)
 
 # What a save records about who wrote the text, when the Desk can tell.
 COMMISSIONER = "commissioner"
+
+# "the caller did not say" is distinguishable from "the caller said None".
+_UNSET = object()
 
 
 class EditorialAction:
@@ -106,6 +110,8 @@ class EditorialAction:
                      source: str = "commissioner-save",
                      week: int | None = None,
                      state: str | None = "commissioner-edited",
+                     prior_version=_UNSET,
+                     describe_unchanged: bool = False,
                      provenance_row: dict | None = None,
                      assistance: str | None = None) -> Prose:
         """Write prose and everything that describes it.
@@ -113,10 +119,22 @@ class EditorialAction:
         Raises ProseConflict before anything is written when the caller's
         version is stale, so a refused save leaves no revision, no state
         change, no provenance and no approval change -- on either backend.
+
+        `prior_version` is what was STORED before this call, which is the
+        only thing that can answer "were these the same bytes twice". The
+        caller's expected version is a weaker stand-in and is wrong
+        outright for a client that sends no version, so a route that has
+        already read the record should say what it read.
+
+        `describe_unchanged` is for acts that are about origin rather than
+        about words. Accepting a proposal that happens to match the text
+        already there is still Claude's wording being adopted, and the
+        Desk should say so.
         """
         saved = self.prose.put(key, text, expected_version=expected_version,
                                source=source)
-        if saved.version == expected_version:
+        stored = expected_version if prior_version is _UNSET else prior_version
+        if saved.version == stored and not describe_unchanged:
             # The same bytes saved twice. Not an edit, so nothing that
             # describes the text needs to change either.
             return saved
@@ -133,7 +151,7 @@ class EditorialAction:
         if not rev or (rev["league_slug"], rev["season"], rev["issue_key"],
                        rev["section"]) != (key.league, key.season, key.issue,
                                            key.section_id):
-            raise ProseError("unknown revision")
+            raise UnknownRevision(str(revision_id))
         return self.save_section(key, rev["prior_text"],
                                  expected_version=expected_version,
                                  source="restore", week=week)
@@ -162,6 +180,7 @@ class EditorialAction:
         saved = self.save_section(target, text,
                                   expected_version=expected_version,
                                   source="proposal-accept", week=week,
+                                  describe_unchanged=True,
                                   provenance_row=provenance_row)
         self.prose.delete(proposal)
         self.state.resolve_rewrite_requests(target.league, target.season,

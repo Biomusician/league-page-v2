@@ -81,7 +81,14 @@ class Claim:
 
     cloud: tuple[str, ...]          # would land in Postgres after a cutover
     local: tuple[str, ...]          # stays on this machine and is authoritative
-    owner: str                      # who commits the SQLite writes together
+    # Who commits the SQLite writes together. "route" is a route holding
+    # its own transaction; "store" is a route that has given that up and
+    # expresses intent to EditorialStore instead, which is the shape a
+    # cutover needs -- on Postgres the store's action is one transaction
+    # covering the prose as well. "store" is a claim about SHAPE and is
+    # cross-checked structurally in tests/test_prose_routes_are_store_owned.py,
+    # because a route can call the store and still write beside it.
+    owner: str
     safe: bool                      # hosted-safe TODAY
     why: str
     signature: str = ""             # what a content signature protects here
@@ -109,31 +116,36 @@ CLAIMS: dict[str, Claim] = {
     # ---------------------------------------------------------- authoring
     "editor_save": C(
         P, ("prose_provenance", "section_prose_state", "matchup_state"),
-        owner="route",
+        owner="store",
         signature="approval retires itself; provenance claims nothing",
-        why="prose commits, then ALL its metadata in one transaction. A "
-            "crash between the two leaves prose with no description, "
-            "which is honest, rather than a stale description"),
+        why="the route decides and the store writes. On the filesystem "
+            "that is still two commits -- prose, then everything "
+            "describing it -- so a crash between them leaves prose with "
+            "no description, which is honest rather than wrong. On "
+            "Postgres the same intent is one transaction"),
     "editor_restore": C(
-        P, ("section_prose_state", "matchup_state"), owner="route",
+        P, ("section_prose_state", "matchup_state"), owner="store",
         signature="approval retires itself, and returns if the exact text does",
-        why="same seam as save, reached from the History panel"),
+        why="same seam as save, reached from the History panel. The "
+            "revision is now read inside the action, so it cannot be "
+            "deleted between being chosen and being used"),
     "editor_reset_generated": C(
         P, ("prose_provenance", "section_prose_state", "matchup_state"),
-        owner="route", signature="approval and provenance both content-bound",
+        owner="store", signature="approval and provenance both content-bound",
         fs_dep="reads lowdown/rough-lowdown.md",
         why="a hosted Desk cannot see the rough draft it resets to"),
     "editor_replace_origin": C(
         P, ("prose_provenance", "section_prose_state", "matchup_state"),
-        owner="route",
+        owner="store",
         signature="provenance is hashed over the text, so a lost write "
                   "claims nothing rather than the wrong author",
-        why="clears the section and rewrites authorship in one "
-            "transaction"),
+        why="clears the section and rewrites authorship in one action. "
+            "The origin it refuses on is now READ inside that action, "
+            "which closes a check-then-act race the old route had"),
     "proposal_action": C(
         P, ("prose_provenance", "section_prose_state", "matchup_state",
             "issue_revision_requests"),
-        owner="route", restart_safe=False,
+        owner="store", restart_safe=False,
         signature="approval and provenance both content-bound",
         fs_dep="deletes the proposal file; rewrites REVISION_REQUESTS.md",
         why="the metadata is one transaction, but accepting is TWO prose "
@@ -146,13 +158,19 @@ CLAIMS: dict[str, Claim] = {
         why="approval is now a claim about a particular text, and CTP "
             "additionally records what each preview said"),
     "matchup_draft_save": C(
-        P, ("matchup_state",), owner="route",
+        P, ("matchup_state",), owner="store",
         signature="CTP's approval covers this text and retires itself",
-        why="the matchup half of save, reached from the week page"),
+        why="the matchup half of save, reached from the week page. The "
+            "draft and the stage it moves to now travel together"),
     "lowdown_save": C(
-        P, ("section_prose_state",), owner="route",
+        P, ("section_prose_state", "issue_modules"), owner="route",
         signature="the Lowdown's approval is a signature over its text",
-        why="the Lowdown screen's own save, and its own Approve control"),
+        why="HALF MOVED, and deliberately recorded as unmoved. Its save "
+            "goes through the store; its Approve does not, because "
+            "approval signs a module and `module_signature` still reads "
+            "SQLite and the filesystem directly. Signing what this "
+            "machine says about text the cloud holds would be worse than "
+            "not moving it at all"),
     "request_rewrite": C(
         (), ("issue_revision_requests",), owner="route",
         fs_dep="regenerates REVISION_REQUESTS.md (derived, not a source)",
@@ -195,7 +213,7 @@ CLAIMS: dict[str, Claim] = {
     "inbox_decide": C((), ("story_decisions",), why="Change Inbox ruling"),
     "inbox_reviewed": C((), ("sync_snapshots",), why="marks a baseline"),
     "qa_action": C(P, ("section_prose_state", "matchup_state"),
-                   owner="route",
+                   owner="store",
                    signature="an accepted fix is a prose write like any other",
                    why="dismisses a warning, or applies its mechanical fix",
                    exercised=False),
@@ -361,6 +379,41 @@ def test_no_authoring_route_is_safe_for_hosted_execution_yet():
     # Pinned so a route cannot quietly flip to safe without someone
     # re-reading this file.
     assert len(unsafe) == 35, sorted(unsafe)
+
+
+def test_the_store_owned_routes_are_exactly_the_ones_proved_to_be():
+    """`owner="store"` is not a label anyone may hand out.
+
+    The structural half of the claim lives in
+    tests/test_prose_routes_are_store_owned.py, which reads each route's
+    source and refuses it if it still writes anything authoritative
+    itself. Pinning the two lists against each other means a route cannot
+    be marked moved in one file without being proved moved in the other.
+    """
+    from test_prose_routes_are_store_owned import MOVED, PARTIAL
+
+    claimed = {n for n, c in CLAIMS.items() if c.owner == "store"}
+    assert claimed == set(MOVED), sorted(claimed ^ set(MOVED))
+    for name in PARTIAL:
+        assert CLAIMS[name].owner != "store", (
+            f"{name} is half migrated and must not read as moved")
+
+
+def test_moving_a_route_did_not_move_the_cutover():
+    """Seven routes changed owner. None of them changed the answer.
+
+    Hosted safety is about WHERE the authoritative write lands, and it
+    still lands on this machine for every one of them. A route with a
+    better transaction owner and the same destination is a better route
+    and not a hosted one.
+    """
+    for name, claim in CLAIMS.items():
+        if claim.owner != "store":
+            continue
+        assert not claim.safe, f"{name} claims hosted safety"
+        assert claim.local, (
+            f"{name} claims to write nothing local; if that is true it is "
+            "a cutover candidate and belongs in that conversation")
 
 
 def _observed(log: WriteLog) -> tuple[set[str], set[str]]:

@@ -28,7 +28,8 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from leaguepage import pubqa
 from leaguepage import takes as takes_mod
 from leaguepage.config import DIST_DIR, REPO_ROOT, SITE_URL, get_league
-from leaguepage import prose, prose_store, provenance, section_defaults
+from leaguepage import (auth, editorial_store, prose, prose_store,
+                        provenance, section_defaults)
 from leaguepage.issue_builder import (
     BLOCKED_MARKERS, BLURB_MODULES, CUSTOM_DEFAULT_TITLE, WRITING_SKILL,
     assemble_issue, _custom_index, is_custom_key, issue_dir,
@@ -140,6 +141,21 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             with storage() as s:
                 _db_path.append(s.db_path)
         return prose_store.repository(_db_path[0])
+
+    def _editorial():
+        """The one editorial store for this run.
+
+        `_repo()` is still here and still correct for reading. This is for
+        writing: prose and everything that describes it, under a single
+        transaction owner. Which backend that is comes from the same
+        configuration the repository uses, because a run with prose in one
+        store and its metadata in another is the split brain every tranche
+        so far has been avoiding.
+        """
+        if not _db_path:
+            with storage() as st:
+                _db_path.append(st.db_path)
+        return editorial_store.store(_db_path[0])
 
     def _key(league, season: str, issue_key: str, section: str):
         """A section string from the Desk to a logical prose key, or None
@@ -265,64 +281,50 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             return "In the issue; no generator recorded, and no Desk edits since"
         return line
 
-    def _ai_help_present(league, season: str, issue_key: str, section: str) -> bool:
+    def _ai_help_present(league, season: str, issue_key: str, section: str,
+                         repo=None) -> bool:
         """An AI draft sits beside the box he writes in: a Claude proposal
         for the section, or the Lowdown's rough draft. Presence on the
         Desk at the moment he saves, nothing inferred later."""
         idir = issue_dir(league, season, issue_key)
         key = _prop_key(league, season, issue_key, section)
-        if key is not None and _repo().exists(key):
+        if key is not None and (repo or _repo()).exists(key):
             return True
         return section == "lowdown" and (idir / "lowdown" / "rough-lowdown.md").exists()
 
-    def _record_origin_on_save(s, league, season: str, issue_key: str, section: str,
-                               current: str) -> None:
-        """Settle origin the first time the Desk writes a section.
+    def _origin_intent(act, key, league, season: str, issue_key: str,
+                       section: str, current: str):
+        """What a save implies about who wrote the section.
 
-        A file carrying the ROUGH DRAFT marker arrived under the Claude
-        Code authoring contract, so the text before his first edit is the
+        Settles origin the first time the Desk writes a section. A file
+        carrying the ROUGH DRAFT marker arrived under the Claude Code
+        authoring contract, so the text before his first edit is the
         generated baseline. An empty section he writes into is his. Text
         of no known origin stays unknown: an edit to it proves nothing
         about who wrote the rest.
+
+        Decides only, and reads the prior row through the action, so the
+        decision is made from the same state the write will land in.
+        Returns what `save_section` takes: a whole row to replace, and an
+        assistance level to raise on whatever row ends up there.
         """
-        row = s.get_prose_provenance(league.slug, season, issue_key, section)
+        row = act.state.provenance(key)
         method = "matchup-brief" if section.startswith("matchup:") else "section-brief"
+        prov = None
         if provenance.origin_of(row) == "unknown":
             if current and ROUGH_DRAFT_MARKER in current:
-                provenance.record(s, league_slug=league.slug, season=season,
-                                  issue_key=issue_key, section=section,
-                                  generator="claude-code", method=method,
-                                  text=current, event="marker-arrival")
+                prov = provenance.record_row(
+                    row, generator="claude-code", method=method,
+                    text=current, event="marker-arrival")
             elif not current.strip():
-                provenance.mark_commissioner(s, league_slug=league.slug, season=season,
-                                             issue_key=issue_key, section=section,
-                                             method=method, event="commissioner-save")
-        if _ai_help_present(league, season, issue_key, section):
-            provenance.note_assistance(s, league_slug=league.slug, season=season,
-                                       issue_key=issue_key, section=section,
-                                       kind="ai-writing", method=method)
-
-    def _stage_back_from_approved(s, league, season: str, issue_key: str,
-                                  section: str) -> None:
-        """A preview he has just rewritten is not at the approved stage.
-
-        This is bookkeeping, not a claim: what Common Tactical Picture
-        publishes is governed by its signature, which retired itself the
-        moment the text moved. The week page shows a stage, and the stage
-        should follow the writing. If this write is lost to a crash the
-        worst case is a stale label beside prose whose approval is already
-        correctly gone.
-        """
-        m = _MATCHUP_RE.match(section)
-        week = _week_of(issue_key)
-        if not m or week is None:
-            return
-        st = s.get_matchup_state(league_slug=league.slug, season=season,
-                                 week=week, matchup_slug=m.group(1)) or {}
-        if (st.get("status") or "") in ("approved", "locked"):
-            s.set_matchup_state(league_slug=league.slug, season=season,
-                                week=week, matchup_slug=m.group(1),
-                                status="edited")
+                prov = provenance.commissioner_row(
+                    row, method=method, event="commissioner-save")
+        assist = None
+        if _ai_help_present(league, season, issue_key, section, act.prose):
+            created, assist = provenance.assistance_intent(row or prov,
+                                                           method=method)
+            prov = prov or created
+        return prov, assist
 
     def _changed_since_approval(s, league, season: str, issue_key: str,
                                 modules: list[dict]) -> dict[str, bool]:
@@ -733,23 +735,34 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         key = _key(league, season, issue_key, section)
         if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
-        repo = _repo()
-        rec = repo.get(key)
-        current = rec.text
-        if chunk_index is None:
-            new_text = text
-        else:
-            chunks = _split_chunks(current)
-            i = int(chunk_index)
-            if i >= len(chunks) or int(body.get("chunk_count") or 0) != len(chunks):
-                return JSONResponse({"ok": False, "error": "conflict"}, status_code=409)
-            if base_sha and base_sha != _sha(chunks[i]):
-                return JSONResponse({"ok": False, "error": "conflict"}, status_code=409)
-            chunks[i] = text
-            new_text = "".join(chunks)
         try:
-            saved = repo.put(key, new_text, expected_version=expected,
-                             source="commissioner-save")
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                # Everything from here to the end of the block is one
+                # action. The read of the current text, the decision about
+                # who wrote it, the write and everything describing the
+                # write see the same state, and on Postgres they commit
+                # together or not at all.
+                rec = act.prose.get(key)
+                current = rec.text
+                if chunk_index is None:
+                    new_text = text
+                else:
+                    chunks = _split_chunks(current)
+                    i = int(chunk_index)
+                    if i >= len(chunks) or int(body.get("chunk_count") or 0) != len(chunks):
+                        return JSONResponse({"ok": False, "error": "conflict"},
+                                            status_code=409)
+                    if base_sha and base_sha != _sha(chunks[i]):
+                        return JSONResponse({"ok": False, "error": "conflict"},
+                                            status_code=409)
+                    chunks[i] = text
+                    new_text = "".join(chunks)
+                prov, assist = _origin_intent(act, key, league, season, issue_key,
+                                              section, current)
+                saved = act.save_section(
+                    key, new_text, expected_version=expected,
+                    prior_version=rec.version, week=_week_of(issue_key),
+                    provenance_row=prov, assistance=assist)
         except prose_store.ProseConflict as exc:
             # Nothing was written, so nothing downstream of the write runs:
             # no revision, no provenance, and the approval still describes
@@ -757,25 +770,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             return _conflict(exc, section)
         if saved.version == rec.version:
             # The same bytes saved twice. Not an edit, so history, origin
-            # and approval are all left exactly as they were.
+            # and approval were all left exactly as they were.
             return JSONResponse({"ok": True, "sha": _sha(text), "unchanged": True,
                                  "version": saved.version})
-        with storage() as s, s.transaction():
-            # After the prose write rather than before it, and now in one
-            # transaction: these describe a write that has already
-            # happened, and either all of them describe it or none does.
-            # The old order recorded who wrote text that a failure could
-            # then leave unsaved; this order can only ever leave the
-            # description missing, which reads as unknown and claims
-            # nothing.
-            _record_origin_on_save(s, league, season, issue_key, section, current)
-            s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-            _stage_back_from_approved(s, league, season, issue_key, section)
-            # Approval is not touched here and does not need to be. It
-            # carries a signature over the text it approved, so this write
-            # has already retired it: an approval that no longer matches
-            # what is stored is not an approval of what is stored. That is
-            # what makes a crash between these two writes survivable.
+        # Approval is not touched here and does not need to be. It carries
+        # a signature over the text it approved, so this write has already
+        # retired it: an approval that no longer matches what is stored is
+        # not an approval of what is stored.
         return JSONResponse({"ok": True, "sha": _sha(text),
                              "file_sha": _sha(new_text), "version": saved.version,
                              "state": "commissioner-edited"})
@@ -991,24 +992,24 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         key = _key(league, season, issue_key, section)
         if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
-        repo = _repo()
-        rev = repo.revision(int(body.get("revision_id") or 0))
-        if not rev or (rev["league_slug"], rev["season"], rev["issue_key"], rev["section"]) \
-                != (league_slug, season, issue_key, section):
-            return JSONResponse({"ok": False, "error": "unknown revision"}, status_code=404)
         try:
-            # A deliberate, confirmed action rather than an autosave, so the
-            # version is enforced when the page says what it was looking at
-            # and falls back to the stored one when it cannot. The Desk's own
-            # client always says.
-            saved = repo.put(key, rev["prior_text"],
-                             expected_version=_expected(body) or repo.get(key).version,
-                             source="restore")
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                # The revision is read inside the action, so it cannot be
+                # deleted between being chosen and being used.
+                #
+                # A deliberate, confirmed action rather than an autosave, so
+                # the version is enforced when the page says what it was
+                # looking at and falls back to the stored one when it
+                # cannot. The Desk's own client always says.
+                saved = act.restore(
+                    key, int(body.get("revision_id") or 0),
+                    expected_version=_expected(body) or act.prose.get(key).version,
+                    week=_week_of(issue_key))
         except prose_store.ProseConflict as exc:
             return _conflict(exc, section)
-        with storage() as s, s.transaction():
-            s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-            _stage_back_from_approved(s, league, season, issue_key, section)
+        except prose_store.UnknownRevision:
+            return JSONResponse({"ok": False, "error": "unknown revision"},
+                                status_code=404)
         return JSONResponse({"ok": True, "version": saved.version})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/reset-generated")
@@ -1041,9 +1042,12 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         key = _key(league, season, issue_key, section)
         if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
-        repo = _repo()
         composed = None
         with storage() as s:
+            # A read, and deliberately outside the action: Weekly Hardware
+            # is composed from the week's decided awards, which are
+            # analytics rather than prose. What gets WRITTEN below is the
+            # store's business; what the text says is not.
             if section == "lowdown":
                 generated = _read(idir / "lowdown" / "rough-lowdown.md")
             elif section in section_defaults.GENERATED_DEFAULTS:
@@ -1057,25 +1061,27 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 return JSONResponse({"ok": False, "error": "no generated draft exists"},
                                     status_code=404)
         try:
-            repo.put(key, generated,
-                     expected_version=_expected(body) or repo.get(key).version,
-                     source="restore")
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                prior = act.state.provenance(key)
+                prov = None
+                if composed is not None:
+                    prov = provenance.record_row(
+                        prior, generator=provenance.DETERMINISTIC,
+                        method=section_defaults.GENERATED_METHOD.get(section),
+                        text=composed, event="reset-generated")
+                elif ROUGH_DRAFT_MARKER in generated:
+                    prov = provenance.record_row(
+                        prior, generator="claude-code", method="section-brief",
+                        text=generated, event="reset-generated")
+                # `describe_unchanged`: this click is a claim about origin,
+                # and it is true whether or not the bytes happened to move.
+                act.save_section(
+                    key, generated,
+                    expected_version=_expected(body) or act.prose.get(key).version,
+                    source="restore", state="generated", describe_unchanged=True,
+                    week=_week_of(issue_key), provenance_row=prov)
         except prose_store.ProseConflict as exc:
             return _conflict(exc, section)
-        with storage() as s, s.transaction():
-            s.set_prose_state(league_slug, season, issue_key, section, "generated")
-            _stage_back_from_approved(s, league, season, issue_key, section)
-            if composed is not None:
-                provenance.record(
-                    s, league_slug=league_slug, season=season, issue_key=issue_key,
-                    section=section, generator=provenance.DETERMINISTIC,
-                    method=section_defaults.GENERATED_METHOD.get(section),
-                    text=composed, event="reset-generated")
-            elif ROUGH_DRAFT_MARKER in generated:
-                provenance.record(
-                    s, league_slug=league_slug, season=season, issue_key=issue_key,
-                    section=section, generator="claude-code", method="section-brief",
-                    text=generated, event="reset-generated")
         return JSONResponse({"ok": True, "section": section})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/replace-origin")
@@ -1097,27 +1103,34 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         key = _key(league, season, issue_key, section)
         if key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
-        repo = _repo()
-        with storage() as s:
-            row = s.get_prose_provenance(league_slug, season, issue_key, section)
-            origin = provenance.origin_of(row)
-            if origin not in ("ai", "deterministic"):
-                return JSONResponse({"ok": False, "error": "this section is not "
-                                     "generated in origin"}, status_code=400)
         try:
-            # Clearing is storing empty text, not deleting the object: the
-            # section still exists, he is simply about to write it himself.
-            repo.put(key, "", expected_version=_expected(body) or repo.get(key).version,
-                     source="replace-with-my-copy")
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                # Reading the origin inside the action closes a race the
+                # old code had: it checked with one connection and wrote
+                # with another, so a concurrent save could settle origin in
+                # between and this click would overwrite the answer.
+                row = act.state.provenance(key)
+                origin = provenance.origin_of(row)
+                if origin not in ("ai", "deterministic"):
+                    # Nothing has been written, so leaving the block here
+                    # commits an empty transaction and changes nothing.
+                    return JSONResponse({"ok": False, "error": "this section is not "
+                                         "generated in origin"}, status_code=400)
+                # Clearing is storing empty text, not deleting the object:
+                # the section still exists, he is simply about to write it
+                # himself. `describe_unchanged`, because this is a claim
+                # about authorship and an already-empty box does not make
+                # it less true.
+                act.save_section(
+                    key, "",
+                    expected_version=_expected(body) or act.prose.get(key).version,
+                    source="replace-with-my-copy", describe_unchanged=True,
+                    week=_week_of(issue_key),
+                    provenance_row=provenance.commissioner_row(
+                        row, assistance="ai-writing" if origin == "ai" else None,
+                        event="replace-with-my-copy"))
         except prose_store.ProseConflict as exc:
             return _conflict(exc, section)
-        with storage() as s, s.transaction():
-            provenance.mark_commissioner(
-                s, league_slug=league_slug, season=season, issue_key=issue_key,
-                section=section, assistance="ai-writing" if origin == "ai" else None,
-                event="replace-with-my-copy")
-            s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-            _stage_back_from_approved(s, league, season, issue_key, section)
         return JSONResponse({"ok": True, "section": section})
 
     # ------------------------------------------------ rewrite requests
@@ -1210,69 +1223,77 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         section = str(body.get("section") or "")
         action = str(body.get("action") or "")
         league = get_league(league_slug)
-        repo = _repo()
         target_key = _key(league, season, issue_key, section)
         prop_key = _prop_key(league, season, issue_key, section)
         if target_key is None or prop_key is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
-        proposal = repo.get(prop_key)
-        if not proposal.exists:
-            return JSONResponse({"ok": False, "error": "no proposal"}, status_code=404)
-        # A proposal can be rewritten by a second Claude run while the
-        # review page is open. If the page said which one it was reading,
-        # accepting a different one is refused rather than silently
-        # publishing text he never saw.
-        seen = _expected(body, "proposal_version")
-        if seen and seen != proposal.version:
-            return _conflict(prose_store.ProseConflict(
-                prop_key, seen, proposal.version, proposal.text), section)
-        with storage() as s, s.transaction():
-            if action == "accept":
-                # The draft marker is scaffolding, not prose: it exists so
-                # unreviewed text cannot publish. Accepting IS the review,
-                # so it comes off here rather than being left for him to
-                # delete -- which would edit the text, break the hash, and
-                # retire a provenance claim that was true. Left in, the
-                # marker also blocks approval and publication outright, so
-                # no accepted proposal could ever reach a page labelled.
-                accepted = _strip_draft_markers(proposal.text)
-                try:
-                    repo.put(target_key, accepted,
-                             expected_version=_expected(body)
-                             or repo.get(target_key).version,
-                             source="proposal-accept")
-                except prose_store.ProseConflict as exc:
-                    return _conflict(exc, section)
-                # Remember what was accepted, so the page can say so honestly
-                # for as long as it is still exactly this. The moment he
-                # edits a character the hash stops matching and the claim
-                # retires itself; nothing has to notice or clean up.
-                provenance.record(
-                    s, league_slug=league_slug, season=season, issue_key=issue_key,
-                    section=section, generator="claude-code",
-                    method=("matchup-brief" if section.startswith("matchup:")
-                            else "section-brief"),
-                    text=accepted, event="proposal-accept")
-                s.set_prose_state(league_slug, season, issue_key, section,
-                                  "commissioner-edited")
-                _stage_back_from_approved(s, league, season, issue_key, section)
-                # Accepting replaces the section outright, so whatever was
-                # approved before is gone -- and it goes on its own, because
-                # the approval signature no longer matches the text. Nothing
-                # is written here to make that true.
-            elif action == "discard":
-                # He read it and kept his own. AI help reached the section
-                # either way, and the origin of his text is unchanged.
-                provenance.note_assistance(
-                    s, league_slug=league_slug, season=season, issue_key=issue_key,
-                    section=section, kind="ai-writing",
-                    method=("matchup-brief" if section.startswith("matchup:")
-                            else "section-brief"))
-            else:
-                return JSONResponse({"ok": False, "error": "bad action"}, status_code=400)
-            repo.delete(prop_key)
-            s.resolve_rewrite_requests(league_slug, season, issue_key, section,
-                                       "done" if action == "accept" else "withdrawn")
+        if action not in ("accept", "discard"):
+            return JSONResponse({"ok": False, "error": "bad action"}, status_code=400)
+        method = ("matchup-brief" if section.startswith("matchup:")
+                  else "section-brief")
+        try:
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                proposal = act.prose.get(prop_key)
+                if not proposal.exists:
+                    return JSONResponse({"ok": False, "error": "no proposal"},
+                                        status_code=404)
+                if action == "accept":
+                    # The draft marker is scaffolding, not prose: it exists
+                    # so unreviewed text cannot publish. Accepting IS the
+                    # review, so it comes off here rather than being left
+                    # for him to delete -- which would edit the text, break
+                    # the hash, and retire a provenance claim that was
+                    # true. Left in, the marker also blocks approval and
+                    # publication outright, so no accepted proposal could
+                    # ever reach a page labelled.
+                    accepted = _strip_draft_markers(proposal.text)
+                    # Remember what was accepted, so the page can say so
+                    # honestly for as long as it is still exactly this. The
+                    # moment he edits a character the hash stops matching
+                    # and the claim retires itself.
+                    #
+                    # A proposal can be rewritten by a second Claude run
+                    # while the review page is open. If the page said which
+                    # one it was reading, accepting a different one is
+                    # refused rather than silently publishing text he never
+                    # saw -- and now the check and the accept are one
+                    # transaction, so nothing can move between them.
+                    act.accept_proposal(
+                        target_key, prop_key, accepted,
+                        expected_version=(_expected(body)
+                                          or act.prose.get(target_key).version),
+                        proposal_version=_expected(body, "proposal_version"),
+                        week=_week_of(issue_key),
+                        provenance_row=provenance.record_row(
+                            act.state.provenance(target_key),
+                            generator="claude-code", method=method,
+                            text=accepted, event="proposal-accept"))
+                    # Accepting replaces the section outright, so whatever
+                    # was approved before is gone -- and it goes on its own,
+                    # because the approval signature no longer matches the
+                    # text. Nothing is written here to make that true.
+                else:
+                    # He read it and kept his own. AI help reached the
+                    # section either way, and the origin of his text is
+                    # unchanged.
+                    seen = _expected(body, "proposal_version")
+                    if seen and seen != proposal.version:
+                        return _conflict(prose_store.ProseConflict(
+                            prop_key, seen, proposal.version, proposal.text), section)
+                    created, assist = provenance.assistance_intent(
+                        act.state.provenance(target_key), method=method)
+                    act.describe(target_key, state=None, provenance_row=created,
+                                 assistance=assist)
+                    act.prose.delete(prop_key)
+                    act.state.resolve_rewrite_requests(
+                        league_slug, season, issue_key, section, "withdrawn")
+        except prose_store.ProseConflict as exc:
+            return _conflict(exc, section)
+        # DERIVED, and deliberately outside the transaction: the requests
+        # file is a convenience copy for a Claude Code session, regenerated
+        # whenever the Issue Room loads. A crash before this line loses
+        # nothing that is not rebuilt on the next page view.
+        with storage() as s:
             _write_requests_file(s, league, season, issue_key)
         return JSONResponse({"ok": True, "action": action})
 
@@ -1492,16 +1513,14 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     {"ok": False, "error": "the text moved since the check ran; "
                                            "reload and try again"}, status_code=409)
             fixed = rec.text.replace(found["fix_from"], found["fix_to"], 1)
-            try:
-                _repo().put(key, fixed, expected_version=rec.version,
-                            source="qa-suggestion-accepted")
-            except prose_store.ProseConflict as exc:
-                return _conflict(exc, found["module_key"] or "")
-            with s.transaction():
-                s.set_prose_state(league_slug, season, issue_key,
-                                  found["module_key"], "commissioner-edited")
-                _stage_back_from_approved(s, league, season, issue_key,
-                                          found["module_key"])
+        try:
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                act.save_section(key, fixed, expected_version=rec.version,
+                                 prior_version=rec.version,
+                                 source="qa-suggestion-accepted",
+                                 week=_week_of(issue_key))
+        except prose_store.ProseConflict as exc:
+            return _conflict(exc, found["module_key"] or "")
         return JSONResponse({"ok": True})
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/qa")

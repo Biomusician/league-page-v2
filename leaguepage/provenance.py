@@ -123,46 +123,111 @@ def text_sha(text: str | None) -> str:
     return hashlib.sha256(normalise(text).encode("utf-8")).hexdigest()
 
 
+# ------------------------------------------------- deciding what is true
+#
+# These three are pure: given what the row says now, they return what it
+# should say next. Nothing here reads or writes a database.
+#
+# They exist because a route that writes provenance itself is a second
+# transaction owner. The Desk's save path has to decide what provenance a
+# save implies and hand that decision to whatever owns the write, which on
+# Postgres is the same transaction as the prose. The writers below are the
+# same decisions with a `Storage` attached, kept for every caller that is
+# genuinely just recording a fact on its own.
+
+
+def record_row(prior: dict | None, *, generator: str | None, method: str | None,
+               text: str, origin: str | None = None, assistance: str | None = None,
+               event: str | None = None) -> dict:
+    """This exact text was generated, and by what.
+
+    The baseline is kept privately so the Desk can say roughly how much he
+    has changed since. Assistance already on the row survives: accepting a
+    proposal is an act about origin, not about what research he read."""
+    gen = generator if (generator in GENERATORS or generator == DETERMINISTIC) else None
+    origin = origin or (DETERMINISTIC if gen == DETERMINISTIC else "ai")
+    if origin not in ORIGINS:
+        raise ValueError(f"unknown origin {origin!r}")
+    return {"generator": gen,
+            "method": method if method in METHODS else None,
+            "generated_sha": text_sha(text),
+            "origin": origin,
+            "assistance": _pick_assistance((prior or {}).get("assistance"),
+                                           assistance),
+            "baseline_text": normalise(text),
+            "event": event if event in EVENTS else None}
+
+
+def commissioner_row(prior: dict | None, *, assistance: str | None = None,
+                     method: str | None = None,
+                     event: str = "commissioner-save") -> dict:
+    """The Commissioner supplied the wording. No baseline: there is nothing
+    generated to compare his text with."""
+    prior = prior or {}
+    return {"generator": None,
+            "method": method if method in METHODS else prior.get("method"),
+            "generated_sha": "", "origin": "commissioner",
+            "assistance": _pick_assistance(prior.get("assistance"), assistance),
+            "baseline_text": None,
+            "event": event if event in EVENTS else None}
+
+
+def assistance_row(kind: str = "ai-writing", *, method: str | None = None) -> dict:
+    """AI help reached a section nothing else is known about.
+
+    Origin stays unknown, which is the honest answer: help arriving says
+    nothing about who wrote the words. This is only for the case where
+    there is no row at all. When there is one, raise its assistance and
+    leave the rest of what it claims alone.
+    """
+    if kind not in ASSISTANCE:
+        raise ValueError(f"unknown assistance {kind!r}")
+    return {"generator": None, "method": method if method in METHODS else None,
+            "generated_sha": "", "origin": "unknown", "assistance": kind,
+            "baseline_text": None, "event": "assistance"}
+
+
+def assistance_intent(prior: dict | None, kind: str = "ai-writing", *,
+                      method: str | None = None) -> tuple[dict | None, str | None]:
+    """AI help reached this section: what to write, and what to raise.
+
+    Two shapes, because they are two different writes. With a row already
+    there, only the assistance field moves and everything the row claims
+    about origin is left alone. With no row, there is one to create, and
+    it claims nothing except that help arrived.
+    """
+    if kind not in ASSISTANCE:
+        raise ValueError(f"unknown assistance {kind!r}")
+    if prior:
+        return None, _pick_assistance(prior.get("assistance"), kind)
+    return assistance_row(kind, method=method), None
+
+
 # ------------------------------------------------------------ recording
 
 def record(storage: Storage, *, league_slug: str, season: str, issue_key: str,
            section: str, generator: str | None, method: str | None,
            text: str, origin: str | None = None, assistance: str | None = None,
            event: str | None = None) -> None:
-    """Remember that this exact text was generated, and by what.
-
-    The baseline is kept privately so the Desk can say roughly how much he
-    has changed since. Assistance already on the row survives: accepting a
-    proposal is an act about origin, not about what research he read."""
-    prior = storage.get_prose_provenance(league_slug, season, issue_key, section) or {}
-    gen = generator if (generator in GENERATORS or generator == DETERMINISTIC) else None
-    origin = origin or (DETERMINISTIC if gen == DETERMINISTIC else "ai")
-    if origin not in ORIGINS:
-        raise ValueError(f"unknown origin {origin!r}")
+    """`record_row`, stored."""
+    prior = storage.get_prose_provenance(league_slug, season, issue_key, section)
     storage.set_prose_provenance(
         league_slug=league_slug, season=season, issue_key=issue_key,
-        section=section, generator=gen,
-        method=method if method in METHODS else None,
-        generated_sha=text_sha(text),
-        origin=origin,
-        assistance=_pick_assistance(prior.get("assistance"), assistance),
-        baseline_text=normalise(text),
-        event=event if event in EVENTS else None)
+        section=section,
+        **record_row(prior, generator=generator, method=method, text=text,
+                     origin=origin, assistance=assistance, event=event))
 
 
 def mark_commissioner(storage: Storage, *, league_slug: str, season: str,
                       issue_key: str, section: str, assistance: str | None = None,
                       method: str | None = None, event: str = "commissioner-save") -> None:
-    """The Commissioner supplied the wording. No baseline: there is nothing
-    generated to compare his text with."""
-    prior = storage.get_prose_provenance(league_slug, season, issue_key, section) or {}
+    """`commissioner_row`, stored."""
+    prior = storage.get_prose_provenance(league_slug, season, issue_key, section)
     storage.set_prose_provenance(
         league_slug=league_slug, season=season, issue_key=issue_key,
-        section=section, generator=None,
-        method=method if method in METHODS else prior.get("method"),
-        generated_sha="", origin="commissioner",
-        assistance=_pick_assistance(prior.get("assistance"), assistance),
-        baseline_text=None, event=event if event in EVENTS else None)
+        section=section,
+        **commissioner_row(prior, assistance=assistance, method=method,
+                           event=event))
 
 
 def note_assistance(storage: Storage, *, league_slug: str, season: str,
@@ -171,19 +236,16 @@ def note_assistance(storage: Storage, *, league_slug: str, season: str,
     """AI help reached this section: a proposal he read, a rough draft
     beside the box he wrote in. Origin is untouched; a row with no origin
     yet is created as unknown so the fact is not lost."""
-    if kind not in ASSISTANCE:
-        raise ValueError(f"unknown assistance {kind!r}")
     prior = storage.get_prose_provenance(league_slug, season, issue_key, section)
-    if prior:
+    row, assistance = assistance_intent(prior, kind, method=method)
+    if row is None:
         storage.set_prose_assistance(
             league_slug=league_slug, season=season, issue_key=issue_key,
-            section=section, assistance=_pick_assistance(prior.get("assistance"), kind))
+            section=section, assistance=assistance)
         return
     storage.set_prose_provenance(
         league_slug=league_slug, season=season, issue_key=issue_key,
-        section=section, generator=None, method=method if method in METHODS else None,
-        generated_sha="", origin="unknown", assistance=kind, baseline_text=None,
-        event="assistance")
+        section=section, **row)
 
 
 def _pick_assistance(prior: str | None, new: str | None) -> str:

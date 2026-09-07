@@ -197,3 +197,16 @@ def check_csrf(session: Session | None, submitted: str | None) -> bool:
     if session is None or not session.csrf or not submitted:
         return False
     return hmac.compare_digest(session.csrf, submitted)
+
+
+def actor_of(request) -> str:
+    """Who is acting, for the editorial store to authorize with.
+
+    Empty when auth is off, which is the local Desk on this machine. The
+    filesystem store does not authorize and does not care; the Postgres
+    store refuses an action with no actor rather than quietly running as
+    the owner and skipping the policy. That asymmetry is deliberate: a
+    hosted Desk without sign-in is not a configuration worth supporting.
+    """
+    session = getattr(getattr(request, "state", None), "session", None)
+    return (getattr(session, "email", "") or "").strip().lower()

@@ -16,7 +16,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from leaguepage.adp import load_adp_for_league
-from leaguepage import prose, prose_store
+from leaguepage import auth, editorial_store, prose, prose_store
 from leaguepage.config import DB_PATH, LEAGUES, TEMPLATES_DIR, get_league
 from leaguepage.draft_analysis import analyze_league_draft
 from leaguepage.draft_awards import draft_award_nominations
@@ -354,6 +354,14 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     def storage() -> Storage:
         return Storage(db_path)
+
+    def _editorial():
+        """Prose and everything describing it, under one transaction owner.
+
+        `storage()` is still the right thing for analytics and for the
+        screens that only read. This is for the routes that write words.
+        """
+        return editorial_store.store(db_path)
 
     def _draft_context(league_slug: str, season: str) -> dict:
         league = get_league(league_slug)
@@ -786,20 +794,23 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/week/{week}/matchups/{slug}/draft")
     def matchup_draft_save(
-        league_slug: str, season: str, week: int, slug: str, draft_text: str = Form(...),
+        request: Request, league_slug: str, season: str, week: int, slug: str,
+        draft_text: str = Form(...),
     ):
         league = get_league(league_slug)
         key = _draft_key(league, season, week, slug)
-        with storage() as s:
-            repo = prose_store.repository(s.db_path)
+        with _editorial().action(actor=auth.actor_of(request)) as act:
             # This form has no version field and one Commissioner at a
             # keyboard, so it writes against what is stored right now. The
             # Issue Room is the surface that carries a version through.
-            repo.put(key, draft_text.replace("\r\n", "\n"),
-                     expected_version=repo.get(key).version,
-                     source="matchup-screen-save")
-            s.set_matchup_state(league_slug=league_slug, season=season, week=week,
-                                matchup_slug=slug, status="edited")
+            #
+            # `state=None`: this screen has never set a prose state, and
+            # the stage below is what it tracks instead. The draft and the
+            # stage now move together or not at all.
+            act.save_section(key, draft_text.replace("\r\n", "\n"),
+                             expected_version=act.prose.get(key).version,
+                             source="matchup-screen-save", state=None)
+            act.state.set_matchup(league_slug, season, week, slug, status="edited")
         return _back(league_slug, season, week, slug, "#draft")
 
     @app.post("/commissioner/{league_slug}/{season}/week/{week}/matchups/{slug}/status")
@@ -1035,19 +1046,32 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/lowdown")
     def lowdown_save(
-        league_slug: str, season: str, issue_key: str,
+        request: Request, league_slug: str, season: str, issue_key: str,
         lowdown_text: str = Form(""), action: str = Form("save"),
     ):
         get_league(league_slug)   # 404s an unknown league before writing
         key = prose_store.ProseKey.section(league_slug, season, issue_key, "lowdown")
+        back = RedirectResponse(
+            f"/commissioner/{league_slug}/{season}/issue/{issue_key}/lowdown",
+            status_code=303)
+        if action == "save" and lowdown_text.strip():
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                # `state=None`: this screen has never set a prose state and
+                # the Issue Room is the surface that owns that idea.
+                act.save_section(key, lowdown_text.replace("\r\n", "\n"),
+                                 expected_version=act.prose.get(key).version,
+                                 source="lowdown-screen-save", state=None)
+            return back
+        # NOT MOVED. Approval records a signature over the module, and
+        # `module_signature` still reads SQLite and the filesystem
+        # directly, so approving through the store would sign what this
+        # machine says about text the cloud holds. The signature has to
+        # learn the port first. Until it does, this half stays where it is
+        # and the route audit records the route as unmoved rather than
+        # reading green because the save half calls the store.
         with storage() as s:
-            repo = prose_store.repository(s.db_path)
-            if action == "save" and lowdown_text.strip():
-                repo.put(key, lowdown_text.replace("\r\n", "\n"),
-                         expected_version=repo.get(key).version,
-                         source="lowdown-screen-save")
-            elif action == "approve":
-                text = repo.get(key).text
+            if action == "approve":
+                text = prose_store.repository(s.db_path).get(key).text
                 if text and ROUGH_DRAFT_MARKER not in text:
                     s.set_issue_module(
                         league_slug=league_slug, season=season,
@@ -1058,8 +1082,7 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                 s.set_issue_module(league_slug=league_slug, season=season,
                                    issue_key=issue_key, module_key="lowdown",
                                    approved=0, approved_sha=None)
-        return RedirectResponse(
-            f"/commissioner/{league_slug}/{season}/issue/{issue_key}/lowdown", status_code=303)
+        return back
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/builder")
     def issue_builder_screen(request: Request, league_slug: str, season: str, issue_key: str):
