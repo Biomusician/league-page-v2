@@ -1,10 +1,94 @@
 # HANDOFF
 
-Updated 2026-09-06, end of the Supabase live-validation tranche. Companions:
+Updated 2026-09-07, end of Tranche 5A (atomic local mutations). Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Commissioner Portal, tranche 5A — atomic local mutations (2026-09-07)
+
+**Status: local crash-consistency substantially improved, hosted-safe
+still NO for every authoring route, and that is the intended outcome.
+No cutover, no Supabase mutation, no 0006, no publication, no deployment.
+`LEAGUEPAGE_PROSE_BACKEND` unset; the filesystem is still authoritative.**
+
+### What changed
+
+- **`Storage.transaction()`** — a depth-counted scope. Inside it, mutating
+  methods stop committing on their own; the outermost scope commits once
+  or rolls the whole thing back. Outside it, nothing changed. A body that
+  swallows its own failure gets `TransactionAborted` and a rollback rather
+  than a quiet half-commit.
+- **Universal content-bound approval.** `module_signature()` gives every
+  approvable module one canonical signature (CTP's composite, Power's
+  saved entries, prose for everything else) and `module_approved()` means
+  *he approved it AND what is there now is what he approved*.
+- **Staleness is derived.** `_invalidate_approval`, `_mark_changed`,
+  `_stale_key` and `_stale_sections` are deleted, along with the
+  `approval-stale:` rows in `meta` and the raw `LIKE` scan that read
+  them. The net change to `desk_editor.py` is **-20 lines**.
+- **Three approve paths, not one.** The editor, the Lowdown screen and
+  the issue builder each have an Approve control and each wrote a bare
+  boolean. All three now sign through one helper. Found by the
+  publication tests, not by reading.
+- **`matchup_state.covered_sha`** records what each preview said when CTP
+  was approved over all of them — so a card can name the preview that
+  moved. Not a per-preview approval; CTP still has exactly one.
+- **Proposal recovery.** A proposal whose text is already the section's
+  text is recognised and shown as *already accepted*, with a button that
+  only clears the file. Retirement is idempotent and no evidence is
+  deleted to hide the ambiguity.
+- **`REVISION_REQUESTS.md` is derived.** SQLite is authoritative for the
+  queue; the file is regenerated on every change and again on Issue Room
+  load, so a crash leaves it stale and the next page load repairs it.
+
+### Fault injection: before and after
+
+Same tests, opposite outcomes, all asserted on a **restarted** app.
+
+| seam | before 5A | after 5A |
+| --- | --- | --- |
+| save | new text + approval still valid | new text, approval **not** valid: its signature does not describe it |
+| restore | same | same protection |
+| replace with my copy | section empty, still claims a machine wrote it | the authorship claim does not survive the text it described |
+| accept proposal | proposal offered again, silently | recognised as already accepted; recoverable, not atomic |
+| request rewrite | DB and file disagree, both look authoritative | DB is authoritative, file is derived and self-repairing |
+| provenance | claimed nothing (already correct) | unchanged — it was the model |
+| 409 save | nothing changed | nothing changed |
+
+New: a fault at the **first** metadata write and at the **last** behave
+identically, because the transaction is the unit either way.
+
+### Commit counts
+
+One fully coupled save is now **two** transaction owners, not five
+transactions: one commit for the repository writing prose and its
+revision, one for the route writing everything that describes it. The
+second is exactly what 5B collapses into the first.
+
+### A behaviour change worth knowing about
+
+**A correction now requires re-approval.** Under the old boolean a
+correction could republish changed words under the approval that covered
+the words it replaced — the same failure as the crash case, arriving
+through a different door.
+
+### Legacy approvals
+
+An approval with no signature predates signatures: we know he clicked, we
+do not know what it said. For an editable issue that is not evidence
+about the current text, so it reads as not-currently-approved. Published
+snapshots are immutable files and never consult this. The two live CTP
+approvals are in exactly this state.
+
+### Route table
+
+44 routes, unchanged in scope. The table now carries SQLite transaction
+owner, content-signature protection, remaining filesystem dependency,
+**locally crash-consistent** and **hosted-safe** as separate columns.
+34 of 35 authoring routes are crash-consistent (accept proposal is the
+exception, and says why); **0 of 35 are hosted-safe**.
 
 ## Commissioner Portal, tranche 4 — Supabase live validation (2026-09-06)
 

@@ -629,6 +629,109 @@ Common Tactical Picture's `approved_sha` works the same way, and a test
 here shows its signature moving when a preview is edited. The fix for the
 first four rows is that mechanism, not a distributed transaction.
 
+### The local semantic contract (Tranche 5A, 2026-09-07)
+
+The route audit found forty-four mutating routes and one structural
+defect underneath all of them: `Storage._cursor()` committed after every
+mutating method, so a Commissioner click was several committed
+transactions that happened to share a file. 5A fixes the local semantics
+first, on the machine where they are observable, and the result is the
+contract the Postgres backend has to implement exactly.
+
+**One click, one transaction.** `Storage.transaction()` is a depth-counted
+scope. Inside it, mutating methods stop committing on their own and the
+outermost scope commits once or rolls the whole thing back. Outside it
+nothing changed, so no existing caller had to learn about it. Nesting is
+by depth rather than SAVEPOINT because the property that matters is that
+an inner scope cannot commit the outer one's work, and nothing needs an
+inner rollback. A failure anywhere poisons the scope: a body that
+swallows its own exception gets `TransactionAborted` and a rollback,
+because committing half a Commissioner action silently is the thing this
+exists to prevent.
+
+**SQLite cannot commit a filesystem write, and this does not pretend
+otherwise.** Prose is still a file. What closes the gap is not a
+distributed transaction but the second half of the contract.
+
+**Every claim about prose carries the identity of the prose.** Approval
+was a boolean that a later write had to clear; a crash between the prose
+write and that clear left a green chip over text nobody approved, which
+the fault injection demonstrated. Now `module_signature()` gives every
+approvable module one canonical signature — Common Tactical Picture's
+composite, the saved entries for Power Rankings, the prose for everything
+else — and `module_approved()` means *he approved it AND what is there
+now is what he approved*. Nothing has to notice an edit. Nothing has to
+clear a flag. Putting the exact text back makes the approval valid again,
+because a signature is a comparison rather than a latch.
+
+That deleted more than it added: `_invalidate_approval`, `_mark_changed`,
+`_stale_key` and `_stale_sections` are all gone, and with them the
+`approval-stale:` rows in `meta` and the raw `LIKE` scan through
+`s._conn` that read them. "Changed since approval" is now the signature
+failing to match, which cannot be out of step with the text.
+
+**Legacy approvals.** An approval with no signature predates signatures.
+We know he clicked; we do not know what it said. For an issue that is
+still editable that is not evidence about the current text, so it reads
+as not-currently-approved and he re-approves. Published snapshots are
+immutable files and never consult this, so history is untouched. The two
+live CTP approvals are in exactly this state.
+
+**A behaviour change worth knowing about:** a correction now requires
+re-approval. Under the old boolean a correction could republish changed
+words under the approval that covered the words it replaced — the same
+failure as the crash case, arriving through a different door.
+
+**What still cannot be made atomic locally, and is honest about it.**
+Accepting a proposal is two prose objects: put the target, delete the
+proposal. No SQLite transaction joins two filesystem writes, so a crash
+between them leaves the accepted text in place and the proposal file
+beside it. Rather than delete the evidence to hide the ambiguity, the
+Desk recognises the state: a proposal whose text is already the section's
+text is not a proposal, and the card says *already accepted* with a
+button that only clears the file. Retirement is idempotent.
+
+**`REVISION_REQUESTS.md` is derived.** `issue_revision_requests` in
+SQLite is authoritative for what has been asked for; the file exists so a
+local Claude Code session can read the queue without the Desk running. It
+is regenerated from the rows on every change and again whenever the Issue
+Room loads, so a crash leaves the file stale and the database right, and
+the next page load repairs it. File content never determines request
+truth.
+
+#### Filesystem writes, classified
+
+| write | class |
+| --- | --- |
+| prose under `editorial/**` (repository, filesystem backend) | **AUTHORITATIVE TODAY** |
+| `editorial/site/about.md` | **AUTHORITATIVE TODAY** — the only editable prose outside the repository |
+| `lowdown/{themes,outline,rough-lowdown}.md` | **AUTHORITATIVE TODAY** — research, and nothing can recompute it |
+| `matchups/<slug>/commissioner_notes.md` | **AUTHORITATIVE TODAY** — his own words |
+| `REVISION_REQUESTS.md` | **DERIVED / REGENERABLE** as of 5A |
+| `AUTHORING*.md`, `PREP.md`, `COMMAND_BRIEF.md`, `REVIEW_PACKET`, `matchups/*/generated/**`, `generated/**` | **RECOMPUTABLE RESEARCH** |
+| `published/**.json` | **PUBLICATION ARTIFACT** — immutable |
+| `dist/**` | **DERIVED / REGENERABLE** |
+| `logs/login-links.log`, `backups/**`, `prose_tool export` output | **BACKUP / EXPORT** |
+
+#### Transaction ownership, after 5A
+
+`jobs.py` opens its own connection with `isolation_level=None` and never
+goes through `Storage`, so the durable job control plane is untouched by
+any of this — which is correct: an operational job is not part of a
+Commissioner click and has its own transactional requirements. The only
+other direct commits are `Storage.__init__` creating the schema and the
+two migration scripts, each on its own connection. There were no legacy
+helper commits to remove.
+
+**Locally crash-consistent is not hosted-safe.** After 5A a process can
+die between any two internal steps of a Commissioner click and the
+application never afterwards presents metadata that falsely describes the
+prose that survived — metadata may be missing, which is honest, or
+visibly stale, but not wrong. Every authoring route but *accept proposal*
+is in that state. **None of them became hosted-safe**, because nothing
+about a local transaction removes a local filesystem write. The route
+table carries both columns separately for exactly this reason.
+
 ---
 
 ## Next tranche — UNIFIED CLOUD EDITORIAL STATE
@@ -650,19 +753,13 @@ path, which is simpler work but is still work, and none of it can be
 skipped: a hosted Desk that cannot record an award decision is not a
 hosted Desk.
 
-### 0. Make one Commissioner action one transaction
+### 0. ~~Make one Commissioner action one transaction~~ — done in 5A
 
-Prerequisite to all of it, and independent of Postgres.
-`Storage._cursor()` commits per mutating method, so no route is atomic
-today even within SQLite. Give `Storage` an explicit transaction scope —
-`with s.transaction():` around a route's writes — and the
-transaction-owner column becomes answerable for the 26 single-store
-routes immediately, on the machine where it is observable.
+### 1. ~~Make approval content-bound~~ — done in 5A
 
-### 1. Make approval content-bound (do this next, on SQLite)
-
-The blocker, and the only step that changes behaviour rather than
-location. Do it where it is observable before moving anything.
+Done on SQLite in Tranche 5A, where it was observable. What follows is
+the record of what was built, because 5B has to implement exactly this in
+Postgres.
 
 - `issue_modules.approved_sha` already exists in SQLite and is already
   the right mechanism; extend it from `ctp` to every module kind. The

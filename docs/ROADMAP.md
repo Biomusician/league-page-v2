@@ -4,7 +4,7 @@ Ranked product roadmap. **Future work only** — what exists today is in
 `docs/HANDOFF.md`, and why it was built that way is in `docs/DECISIONS.md`.
 Keep those three separate: HANDOFF gets stale if it doubles as a wish list.
 
-Reviewed 2026-09-06.
+Reviewed 2026-09-07.
 
 ## The product rule
 
@@ -31,7 +31,8 @@ Target architecture, transition order and the manual gates live in
 | 4 | Durable jobs table | 13 | `shipped` 2026-09-05 |
 | 5 | AI WritingPacket + proposal queue UX | 10 | `partial` — the packet exists; the queue does not |
 | 6 | Prose repository boundary | 10 | `shipped` 2026-09-05 |
-| 7 | **Unified cloud editorial state** | 9 | `next` — **specified** 2026-09-06 |
+| 7a | **Atomic local mutations + content-bound claims** | 9 | `shipped` 2026-09-07 |
+| 7b | **Unified cloud editorial state** | 9 | `next` — implement 7a's contract in Postgres |
 | 8 | Hosted private beta | 5 | blocked on the manual gate |
 | 9 | Cloud publication worker (GitHub Actions) | 2.4 | `deferred` until 6 and 7 |
 | 10 | Portability / onboarding | 1 | seams only, no SaaS |
@@ -48,7 +49,15 @@ editorial metadata with no shared transaction. Moving prose alone produces
 two databases that disagree about the same click. See
 `docs/DECISIONS.md`, 2026-09-06.
 
-**Tranche 7 — unified cloud editorial state.** Specified in full in
+**Tranche 7a shipped 2026-09-07.** `Storage.transaction()`, universal
+content-bound approval, staleness derived rather than stored, the
+proposal-already-accepted recovery, and `REVISION_REQUESTS.md` demoted to
+a derived artifact. 34 of 35 authoring routes are now locally
+crash-consistent and **none is hosted-safe**, which is the expected and
+correct outcome: local transaction semantics do not remove a local
+filesystem write.
+
+**Tranche 7b — unified cloud editorial state.** Specified in full in
 `docs/COMMISSIONER_PORTAL_ARCHITECTURE.md`. In order:
 
 1. **Make approval content-bound.** `issue_modules.approved` and

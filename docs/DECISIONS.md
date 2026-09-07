@@ -1474,3 +1474,99 @@ distributed transaction across two databases; it is that every claim
 about prose should carry a signature over the prose, so a half-completed
 click is silent rather than wrong. Common Tactical Picture already does
 it. Approval does not.
+
+## 2026-09-07 — A claim about prose carries the identity of the prose
+
+The fault injection had proved that a process dying between the prose
+write and the metadata write left an approval standing over text nobody
+approved. The obvious fix is a transaction spanning both. It is also
+impossible: prose is a file and SQLite cannot commit a file.
+
+So the fix is not a transaction, it is a rule. Every assertion about
+prose stores a hash of the prose it asserts about, and an assertion whose
+subject moved simply does not apply. Approval signs the text it approves.
+Provenance already hashed the text it attributed, which is why provenance
+was the one thing the crash tests could not break — it was the model, and
+this generalises it.
+
+What that buys, in order of importance:
+
+- A dead process cannot produce a false claim. It can produce a MISSING
+  claim, which reads as unknown and is honest.
+- Nothing has to notice an edit. `_invalidate_approval`, `_mark_changed`,
+  `_stale_key` and `_stale_sections` are all deleted, and "changed since
+  approval" becomes a comparison rather than a `meta` row that every
+  mutating path had to remember to set.
+- Restoring the exact text he approved makes the approval valid again,
+  with no second click, because a signature is a comparison and not a
+  latch.
+
+Rejected: keeping the boolean and adding a compensating repair pass. That
+is a second mechanism that can also fail, and it can only run after the
+Desk has already shown the wrong answer once.
+
+Rejected: making every metadata field a hash. Only claims whose truth
+depends on exact content need content identity. `matchup_state.status` is
+a workflow stage and stays an enum; what governs publication is CTP's
+signature.
+
+The transaction scope is still worth having and is the other half:
+`Storage.transaction()` makes all the metadata describing one prose write
+land together, so the failure modes are "described" or "not described"
+rather than "half described".
+
+## 2026-09-07 — An approval with no signature is not evidence about the current text
+
+The two live Common Tactical Picture approvals carry a null
+`approved_sha`: they predate signatures. The old code grandfathered them
+as approved, reasoning that un-approving shipped work would be a worse
+lie.
+
+That reasoning holds for what shipped and not for what is editable. A
+published snapshot is an immutable file that never consults this, so
+history is safe either way. For an issue still being edited, "he clicked
+approve at some point, and we have no idea what it said" is not evidence
+that the words on the screen are approved — and the whole point of the
+tranche is that a claim we cannot check is a claim we do not make.
+
+So: legacy approvals read as not-currently-approved, and he re-approves.
+The cost is one click on two issues that are already published. The
+alternative was a permanent class of approval that means nothing and
+cannot be distinguished from one that does.
+
+## 2026-09-07 — Accepting a proposal is recoverable rather than atomic
+
+Accepting is two prose objects: put the target, delete the proposal. Both
+are files. No SQLite transaction joins them and no signature closes the
+gap, so a crash between them leaves the accepted text in place with the
+proposal still sitting beside it.
+
+Three options. Delete the proposal first and risk losing a rewrite he
+never saw. Wrap it in something that pretends to be atomic and is not.
+Or recognise the state.
+
+The Desk recognises it: a proposal whose text is already the section's
+text is not a proposal, and the card says *already accepted* with a
+button that only clears the file. Retirement is idempotent, no evidence
+is destroyed to hide the ambiguity, and the route is honestly marked as
+the one authoring route that is not crash-consistent.
+
+Tranche 5B makes this one Postgres transaction and the special case goes
+away. Until then the behaviour is truthful, which is the standard this
+tranche set.
+
+## 2026-09-07 — REVISION_REQUESTS.md is derived, and SQLite is the queue
+
+The crash tests found the database holding two rewrite requests and the
+Markdown file holding one, with nothing to say which was right.
+
+`issue_revision_requests` is authoritative. The file exists so a local
+Claude Code session can read the queue without the Desk running, and it
+is regenerated from the rows on every change and again whenever the Issue
+Room loads. A crash therefore leaves the file stale and the database
+correct, and the next page load repairs it.
+
+Chosen over making the file authoritative (a hosted Desk has no disk) and
+over dropping it (the local authoring workflow reads it). It is the first
+filesystem artifact to move from AUTHORITATIVE to DERIVED, which is the
+shape the rest of the research tree will follow in a later tranche.
