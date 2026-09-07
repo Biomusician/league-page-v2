@@ -53,19 +53,6 @@ from leaguepage.team_names import resolve_public_names
 EDITABLE_KINDS = ("lowdown", "section", "all-city")
 
 
-def _stale_key(league_slug: str, season: str, issue_key: str, section: str) -> str:
-    """Where "this changed after you approved it" is remembered.
-
-    A flag rather than a comparison: by the time the page renders, the text
-    he approved is gone, so nothing on disk can still answer the question.
-    It is set when an edit retires an approval and cleared the moment he
-    makes an approval decision either way.
-    """
-    # Hyphen, not underscore: the prefix goes into a SQL LIKE, where an
-    # underscore is a single-character wildcard.
-    return f"approval-stale:{league_slug}:{season}:{issue_key}:{section}"
-
-
 PRODUCTION_URL = "https://league-page-ten-sandy.vercel.app"
 VERCEL_PROJECT = "league-page"
 
@@ -181,6 +168,21 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         section from one that does not exist."""
         rec = _get(league, season, issue_key, section)
         return rec.text if (rec is not None and rec.exists) else None
+
+    def _proposal_is_the_section(league, season: str, issue_key: str,
+                                 section: str) -> bool:
+        """The proposal says exactly what the section already says.
+
+        Which means it was accepted and the file outlived the acceptance
+        -- two prose objects, no transaction across them. Offering it as
+        a change would be offering him a rewrite he already took.
+        """
+        proposed = _proposal_text(league, season, issue_key, section)
+        if proposed is None:
+            return False
+        current = _text_of(league, season, issue_key, section) or ""
+        return (provenance.text_sha(_strip_draft_markers(proposed))
+                == provenance.text_sha(current))
 
     def _proposal_text(league, season: str, issue_key: str, section: str) -> str | None:
         key = _prop_key(league, season, issue_key, section)
@@ -300,69 +302,58 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                        issue_key=issue_key, section=section,
                                        kind="ai-writing", method=method)
 
-    def _mark_changed(s, league_slug: str, season: str, issue_key: str,
-                      section: str, on: bool) -> None:
-        s.set_meta(_stale_key(league_slug, season, issue_key, section),
-                   utcnow_iso() if on else "")
+    def _stage_back_from_approved(s, league, season: str, issue_key: str,
+                                  section: str) -> None:
+        """A preview he has just rewritten is not at the approved stage.
 
-    def _changed_since_approval(s, league_slug: str, season: str,
-                                issue_key: str) -> dict[str, str]:
-        """{section: when} for everything edited since it was signed off."""
-        prefix = _stale_key(league_slug, season, issue_key, "")
-        out = {}
-        for section in _stale_sections(s, prefix):
-            when = s.get_meta(prefix + section)
-            if when:
-                out[section] = when
-        return out
-
-    def _stale_sections(s, prefix: str) -> list[str]:
-        rows = s._conn.execute(  # noqa: SLF001 - meta has no prefix scan
-            "SELECT key FROM meta WHERE key LIKE ?", (prefix + "%",)).fetchall()
-        return [r["key"][len(prefix):] for r in rows]
-
-    def _invalidate_approval(s, league, season: str, issue_key: str,
-                             section: str) -> None:
-        """Changing published prose retires the sign-off it replaced.
-
-        An approval is a statement about a particular text. Editing that
-        text and leaving the approval standing publishes something nobody
-        approved, which is the one failure this whole screen exists to
-        prevent. So an edit takes the approval back and says why, and he
-        re-approves what he now has.
-
-        A matchup preview takes Common Tactical Picture with it. CTP has no
-        text of its own: it publishes the previews, so signing it off was
-        signing off exactly this writing.
+        This is bookkeeping, not a claim: what Common Tactical Picture
+        publishes is governed by its signature, which retired itself the
+        moment the text moved. The week page shows a stage, and the stage
+        should follow the writing. If this write is lost to a crash the
+        worst case is a stale label beside prose whose approval is already
+        correctly gone.
         """
         m = _MATCHUP_RE.match(section)
-        if m:
-            week = _week_of(issue_key)
-            if week is None:
-                return
-            st = s.get_matchup_state(league_slug=league.slug, season=season,
-                                     week=week, matchup_slug=m.group(1)) or {}
-            if (st.get("status") or "") in ("approved", "locked"):
-                s.set_matchup_state(league_slug=league.slug, season=season,
-                                    week=week, matchup_slug=m.group(1),
-                                    status="edited")
-                _mark_changed(s, league.slug, season, issue_key, section, True)
-            # Common Tactical Picture is NOT cleared here. Its approval
-            # carries a signature over the previews, so it stops counting
-            # the moment this edit lands and starts counting again if the
-            # exact text comes back — the same reasoning provenance uses,
-            # and one mechanism rather than two that can disagree.
-            _mark_changed(s, league.slug, season, issue_key, "ctp", True)
+        week = _week_of(issue_key)
+        if not m or week is None:
             return
-        if section == "ctp":
-            _mark_changed(s, league.slug, season, issue_key, "ctp", True)
-            return          # ...and the opening remarks are inside that signature
-        row = s.get_issue_modules(league.slug, season, issue_key).get(section) or {}
-        if row.get("approved"):
-            s.set_issue_module(league_slug=league.slug, season=season,
-                               issue_key=issue_key, module_key=section,
-                               approved=0)
-            _mark_changed(s, league.slug, season, issue_key, section, True)
+        st = s.get_matchup_state(league_slug=league.slug, season=season,
+                                 week=week, matchup_slug=m.group(1)) or {}
+        if (st.get("status") or "") in ("approved", "locked"):
+            s.set_matchup_state(league_slug=league.slug, season=season,
+                                week=week, matchup_slug=m.group(1),
+                                status="edited")
+
+    def _changed_since_approval(s, league, season: str, issue_key: str,
+                                modules: list[dict]) -> dict[str, bool]:
+        """{section: True} for everything edited since it was signed off.
+
+        Derived, not stored. This used to be a `meta` row that every
+        mutating path had to remember to set and every approval had to
+        remember to clear -- and a process that died between the prose
+        write and that row left the Desk saying nothing had changed. Now
+        it is the approval signature failing to match the text, which
+        cannot be out of step with the text by construction.
+
+        Matchup previews carry `covered_sha`: what each one said when
+        Common Tactical Picture was approved over all of them. That is not
+        a per-preview approval -- there is exactly one approval and it is
+        CTP's -- it is a record of what that approval covered, so the card
+        can say which preview moved rather than flagging all of them.
+        """
+        out = {m["module_key"]: True for m in modules if m.get("approval_stale")}
+        week = _week_of(issue_key)
+        if week is None:
+            return out
+        for slug, st in s.list_matchup_states(league.slug, season, week).items():
+            covered = st.get("covered_sha")
+            if not covered:
+                continue
+            section = f"matchup:{slug}"
+            text = _text_of(league, season, issue_key, section) or ""
+            if covered != provenance.text_sha(text):
+                out[section] = True
+        return out
 
     def _blockers(s, league, season: str, issue_key: str, modules: list[dict]) -> list[dict]:
         assembled = assemble_issue(s, league, season, issue_key, week=_week_of(issue_key))
@@ -423,13 +414,16 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             blockers = _blockers(s, league, season, issue_key, modules)
             qa = pubqa.check_issue(s, league, season, issue_key, week=week)
             open_requests = s.list_rewrite_requests(league_slug, season, issue_key)
+            # Repair the derived file if a crash left it behind the queue.
+            _write_requests_file(s, league, season, issue_key)
             # Through the repository, because history belongs to whichever
             # store holds the prose. Asking SQLite directly was correct only
             # for as long as those were the same store.
             rev_counts = _repo().revision_counts(league_slug, season, issue_key)
             label = "preseason" if week is None else issue_key
             rankings = s.get_power_rankings(league_slug, season, label)
-            stale = _changed_since_approval(s, league_slug, season, issue_key)
+            stale = _changed_since_approval(s, league, season, issue_key,
+                                            modules)
             prov_rows = s.all_prose_provenance(league_slug, season, issue_key)
             # The computed half of Weekly Hardware: decided awards and the
             # basis each was decided on. Shown as evidence, and the source
@@ -482,6 +476,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                         "angle": st.get("custom_angle") or st.get("selected_angle_id") or "(no angle)",
                         "brief": _brief(section),
                         "proposal": _proposal_text(league, season, issue_key, section),
+                        "proposal_identical": _proposal_is_the_section(
+                            league, season, issue_key, section),
                         "revisions": rev_counts.get(section, 0),
                     }
             briefs = {m["module_key"]: _brief(m["module_key"])
@@ -527,6 +523,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                                   for i, c in enumerate(chunks)]
                 card["chunk_count"] = len(chunks)
                 card["proposal"] = _proposal_text(league, season, issue_key, key)
+                card["proposal_identical"] = _proposal_is_the_section(
+                    league, season, issue_key, key)
                 card["authority"] = _authority(prov_rows.get(key), text,
                                                card["prose_state"],
                                                card["not_written"])
@@ -545,6 +543,8 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     "text": text, "sha": _sha(text),
                     "written": bool(text.strip()),
                     "proposal": _proposal_text(league, season, issue_key, key),
+                    "proposal_identical": _proposal_is_the_section(
+                        league, season, issue_key, key),
                 }
             if key in section_defaults.GENERATED_DEFAULTS:
                 card["generated_available"] = bool(
@@ -581,6 +581,16 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         }
 
     def _write_requests_file(s, league, season: str, issue_key: str) -> None:
+        """Regenerate REVISION_REQUESTS.md from the queue.
+
+        DERIVED, not a second source of truth. `issue_revision_requests`
+        in SQLite is authoritative for what has been asked for; this file
+        exists so a local Claude Code session can read the queue without
+        the Desk running. It is rewritten from the rows every time, and
+        the Issue Room regenerates it on load, so a crash between the row
+        and the file leaves the file stale for as long as it takes him to
+        open the page -- and never makes the file the truth.
+        """
         idir = issue_dir(league, season, issue_key)
         rows = s.list_rewrite_requests(league.slug, season, issue_key)
         path = idir / "REVISION_REQUESTS.md"
@@ -750,17 +760,22 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             # and approval are all left exactly as they were.
             return JSONResponse({"ok": True, "sha": _sha(text), "unchanged": True,
                                  "version": saved.version})
-        with storage() as s:
-            # After the write rather than before it. The old order recorded
-            # who wrote text that a failure could then leave unsaved; this
-            # order can only ever leave origin unrecorded, which reads as
-            # "unknown" and claims nothing.
+        with storage() as s, s.transaction():
+            # After the prose write rather than before it, and now in one
+            # transaction: these describe a write that has already
+            # happened, and either all of them describe it or none does.
+            # The old order recorded who wrote text that a failure could
+            # then leave unsaved; this order can only ever leave the
+            # description missing, which reads as unknown and claims
+            # nothing.
             _record_origin_on_save(s, league, season, issue_key, section, current)
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-            # This used to be a comment and a `pass`. Approval survived every
-            # edit, so a section could publish text nobody had signed off
-            # while the Desk showed a green chip saying otherwise.
-            _invalidate_approval(s, league, season, issue_key, section)
+            _stage_back_from_approved(s, league, season, issue_key, section)
+            # Approval is not touched here and does not need to be. It
+            # carries a signature over the text it approved, so this write
+            # has already retired it: an approval that no longer matches
+            # what is stored is not an approval of what is stored. That is
+            # what makes a crash between these two writes survivable.
         return JSONResponse({"ok": True, "sha": _sha(text),
                              "file_sha": _sha(new_text), "version": saved.version,
                              "state": "commissioner-edited"})
@@ -787,7 +802,6 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                 s.set_matchup_state(league_slug=league_slug, season=season, week=week,
                                     matchup_slug=m.group(1),
                                     status="approved" if action == "approve" else "edited")
-                _mark_changed(s, league_slug, season, issue_key, section, False)
                 return JSONResponse({"ok": True, "approved": action == "approve"})
             # Validated in both directions. Unapprove used to skip this
             # and write a row anyway, and `included` defaults to 1 in the
@@ -832,21 +846,35 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     return JSONResponse(
                         {"ok": False, "error": f"blocked marker present: {bad[0]}"},
                         status_code=400)
-            extra = {}
-            if kind == "ctp":
-                # Sign the approval over the text it covers, so it retires
-                # itself when any of that text changes.
-                from leaguepage.issue_builder import ctp_signature
+            # Sign the approval over exactly what it covers, whatever
+            # kind it is. An approval that carries no signature is a
+            # record that he clicked and nothing about the current text,
+            # so unapprove clears it rather than leaving a bare true.
+            from leaguepage.issue_builder import module_signature
 
-                extra["approved_sha"] = (
-                    ctp_signature(s, league, season, issue_key, _week_of(issue_key))
-                    if action == "approve" else None)
-            s.set_issue_module(league_slug=league_slug, season=season, issue_key=issue_key,
-                               module_key=section, approved=1 if action == "approve" else 0,
-                               **extra)
-            # He has now ruled on what is actually there, either way.
-            _mark_changed(s, league_slug, season, issue_key, section, False)
-        return JSONResponse({"ok": True, "approved": action == "approve"})
+            week = _week_of(issue_key)
+            approving = action == "approve"
+            with s.transaction():
+                s.set_issue_module(
+                    league_slug=league_slug, season=season, issue_key=issue_key,
+                    module_key=section, approved=1 if approving else 0,
+                    approved_sha=(module_signature(s, league, season, issue_key,
+                                                   section, kind, week)
+                                  if approving else None))
+                if kind == "ctp" and week is not None:
+                    # Record what each preview said at the moment the one
+                    # approval was given, so the card can name the preview
+                    # that moved. Not an approval of its own.
+                    for child in matchup_children(s, league, season, issue_key,
+                                                  week):
+                        text = _text_of(league, season, issue_key,
+                                        child["section"]) or ""
+                        s.set_matchup_state(
+                            league_slug=league_slug, season=season, week=week,
+                            matchup_slug=child["slug"],
+                            covered_sha=(provenance.text_sha(text)
+                                         if approving else None))
+        return JSONResponse({"ok": True, "approved": approving})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/module")
     def editor_module(league_slug: str, season: str, issue_key: str,
@@ -978,9 +1006,9 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                              source="restore")
         except prose_store.ProseConflict as exc:
             return _conflict(exc, section)
-        with storage() as s:
+        with storage() as s, s.transaction():
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-            _invalidate_approval(s, league, season, issue_key, section)
+            _stage_back_from_approved(s, league, season, issue_key, section)
         return JSONResponse({"ok": True, "version": saved.version})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/reset-generated")
@@ -1034,8 +1062,9 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                      source="restore")
         except prose_store.ProseConflict as exc:
             return _conflict(exc, section)
-        with storage() as s:
+        with storage() as s, s.transaction():
             s.set_prose_state(league_slug, season, issue_key, section, "generated")
+            _stage_back_from_approved(s, league, season, issue_key, section)
             if composed is not None:
                 provenance.record(
                     s, league_slug=league_slug, season=season, issue_key=issue_key,
@@ -1047,7 +1076,6 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     s, league_slug=league_slug, season=season, issue_key=issue_key,
                     section=section, generator="claude-code", method="section-brief",
                     text=generated, event="reset-generated")
-            _invalidate_approval(s, league, season, issue_key, section)
         return JSONResponse({"ok": True, "section": section})
 
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/replace-origin")
@@ -1083,13 +1111,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                      source="replace-with-my-copy")
         except prose_store.ProseConflict as exc:
             return _conflict(exc, section)
-        with storage() as s:
+        with storage() as s, s.transaction():
             provenance.mark_commissioner(
                 s, league_slug=league_slug, season=season, issue_key=issue_key,
                 section=section, assistance="ai-writing" if origin == "ai" else None,
                 event="replace-with-my-copy")
             s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
-            _invalidate_approval(s, league, season, issue_key, section)
+            _stage_back_from_approved(s, league, season, issue_key, section)
         return JSONResponse({"ok": True, "section": section})
 
     # ------------------------------------------------ rewrite requests
@@ -1104,7 +1132,14 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         if _section_path(league, season, issue_key, section) is None:
             return JSONResponse({"ok": False, "error": "unknown section"}, status_code=400)
         with storage() as s:
-            rid = s.add_rewrite_request(league_slug, season, issue_key, section, note)
+            with s.transaction():
+                rid = s.add_rewrite_request(league_slug, season, issue_key,
+                                            section, note)
+            # Outside the transaction on purpose: the file is DERIVED from
+            # the queue, not part of it. A crash before it leaves the file
+            # stale and the database right, and the next regeneration
+            # repairs it. Inside the transaction it would look like the
+            # file were being committed, which SQLite cannot do.
             _write_requests_file(s, league, season, issue_key)
         return JSONResponse({"ok": True, "request_id": rid})
 
@@ -1191,7 +1226,7 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
         if seen and seen != proposal.version:
             return _conflict(prose_store.ProseConflict(
                 prop_key, seen, proposal.version, proposal.text), section)
-        with storage() as s:
+        with storage() as s, s.transaction():
             if action == "accept":
                 # The draft marker is scaffolding, not prose: it exists so
                 # unreviewed text cannot publish. Accepting IS the review,
@@ -1218,11 +1253,13 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                     method=("matchup-brief" if section.startswith("matchup:")
                             else "section-brief"),
                     text=accepted, event="proposal-accept")
-                s.set_prose_state(league_slug, season, issue_key, section, "commissioner-edited")
+                s.set_prose_state(league_slug, season, issue_key, section,
+                                  "commissioner-edited")
+                _stage_back_from_approved(s, league, season, issue_key, section)
                 # Accepting replaces the section outright, so whatever was
-                # approved before is gone. A matchup takes CTP's sign-off
-                # with it, for the same reason an edit to one does.
-                _invalidate_approval(s, league, season, issue_key, section)
+                # approved before is gone -- and it goes on its own, because
+                # the approval signature no longer matches the text. Nothing
+                # is written here to make that true.
             elif action == "discard":
                 # He read it and kept his own. AI help reached the section
                 # either way, and the origin of his text is unchanged.
@@ -1460,8 +1497,11 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
                             source="qa-suggestion-accepted")
             except prose_store.ProseConflict as exc:
                 return _conflict(exc, found["module_key"] or "")
-            s.set_prose_state(league_slug, season, issue_key, found["module_key"],
-                              "commissioner-edited")
+            with s.transaction():
+                s.set_prose_state(league_slug, season, issue_key,
+                                  found["module_key"], "commissioner-edited")
+                _stage_back_from_approved(s, league, season, issue_key,
+                                          found["module_key"])
         return JSONResponse({"ok": True})
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/edit/qa")
