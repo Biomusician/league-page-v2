@@ -64,6 +64,10 @@ KNOWN_MISSING_COLUMNS = {
         "the optional issue-wide gimmick; editorial intent, not a derivation",
     ("matchup_state", "revision_requests"):
         "structured requests carried into the next drafting pass",
+    ("matchup_state", "covered_sha"):
+        "what each preview said when CTP was approved over all of them "
+        "(2026-09-07). Not a per-preview approval: it lets a card name the "
+        "preview that moved instead of flagging every one of them",
 }
 
 
@@ -167,12 +171,21 @@ def test_the_shared_tables_have_the_same_columns_or_say_why_not():
         f"{sorted(set(KNOWN_MISSING_COLUMNS) - gap)}")
 
 
-def test_the_staleness_flags_have_nowhere_to_go_yet():
-    """`_changed_since_approval` reads `meta` with a raw LIKE through
-    `s._conn`. Postgres has `editorial_meta`, so the table exists -- but
-    nothing routes that read to it, and a prefix scan is not in the
-    repository contract. Pinned because it is easy to believe this one is
-    already handled: the table's existence is not the same as a caller."""
+def test_the_staleness_flags_are_gone_rather_than_migrated():
+    """This gap closed by deletion, which is the better way to close one.
+
+    "Changed since approval" used to be a `meta` row that every mutating
+    path had to set and every approval had to clear, read back with a raw
+    LIKE through `s._conn` -- a prefix scan no repository contract has,
+    and a flag a crash could leave describing the wrong text. It is now
+    the approval signature failing to match the prose, which cannot be
+    out of step with the prose by construction.
+
+    So there is nothing left to migrate, and this test exists to make
+    sure nobody reintroduces the flag while porting the feature.
+    """
     src = (REPO / "leaguepage" / "desk_editor.py").read_text(encoding="utf-8")
-    assert "SELECT key FROM meta WHERE key LIKE ?" in src
-    assert "editorial_meta" not in src
+    assert "SELECT key FROM meta WHERE key LIKE ?" not in src
+    assert "approval-stale:" not in src, "the meta key namespace is retired"
+    assert "_mark_changed" not in src, "nothing marks staleness any more"
+    assert "approval_stale" in src, "it is derived from the signature"

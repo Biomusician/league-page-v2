@@ -11,7 +11,7 @@ from leaguepage.receipts import evaluate, extract_claims
 from leaguepage.takes import VOID, _matchup_evidence
 from leaguepage.team_analytics import team_outlook
 
-from fixtures import add_players, populate_league, populate_matchups
+from fixtures import approve, add_players, populate_league, populate_matchups
 from season import populate_season
 
 DISCO = get_league("disco")
@@ -125,13 +125,19 @@ def _publish_env(tmp_path, monkeypatch, text):
         d = tmp_path / "editorial" / SEASON / "disco" / "draft" / "lowdown"
         d.mkdir(parents=True, exist_ok=True)
         (d / "lowdown.md").write_text(text, encoding="utf-8")
-        s.set_issue_module(league_slug="disco", season=SEASON, issue_key="draft",
-                           module_key="lowdown", approved=1)
+        approve(s, league_slug="disco", season=SEASON, issue_key="draft",
+                           module_key="lowdown",
+                base_dir=tmp_path / "editorial")
     return db
 
 
 def _publish(db, tmp_path):
     with Storage(db) as s:
+        # Whatever the caller just wrote is what he is publishing, so it is
+        # what the approval has to cover. Republishing changed text under an
+        # older approval is precisely what the signature refuses.
+        approve(s, league_slug="disco", season=SEASON, issue_key="draft",
+                module_key="lowdown", base_dir=tmp_path / "editorial")
         return publish_assembled_issue(s, DISCO, SEASON, "draft",
                                        published_dir=tmp_path / "published",
                                        base_dir=tmp_path / "editorial")

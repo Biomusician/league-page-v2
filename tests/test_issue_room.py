@@ -25,7 +25,7 @@ from leaguepage.desk import create_app
 from leaguepage.desk_editor import _rail_state
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups, save_section
+from fixtures import approve, populate_league, populate_matchups, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -58,6 +58,18 @@ def env(tmp_path, monkeypatch):
 
 
 ATTR = r'data-{}="([a-z0-9:_-]+)"'          # the attribute, never a JS template literal
+
+
+def effective_approval(db, module="lowdown", issue="week-01", week=1):
+    """What the Desk actually treats as approved: the recorded click AND a
+    signature that still matches what is stored."""
+    from leaguepage.issue_builder import module_approved, module_states
+
+    with Storage(db) as s:
+        kind = {m["module_key"]: m["kind"]
+                for m in module_states(s, LG, SEASON, issue, week=week)}[module]
+        return module_approved(s, LG, SEASON, issue, module, kind, week)[0]
+
 
 
 def _room(client):
@@ -307,9 +319,7 @@ def test_a_refused_save_leaves_the_approval_describing_the_stored_text(env):
     assert r.status_code == 200, r.text
 
     def approved():
-        with Storage(db) as s:
-            row = s.get_issue_modules("surfeit", SEASON, "week-01").get("lowdown") or {}
-        return bool(row.get("approved"))
+        return effective_approval(db)
 
     assert approved()
     stale = client.post(f"{BASE}/edit/save",
@@ -476,23 +486,18 @@ def test_restore_reads_the_revision_through_the_repository(env, monkeypatch):
                       params={"section": "lowdown"}).json()["text"] == "One.\n"
 
 
-def test_ordinary_approval_is_a_flag_and_not_a_signature(env):
-    """A known gap, pinned here so it cannot be quietly lost.
+def test_ordinary_approval_is_a_signature_over_the_text_it_approved(env):
+    """The gap this test used to pin, closed.
 
-    Common Tactical Picture signs its approval over the exact text it
-    covers, so editing any preview retires that sign-off with nothing
-    having to notice. An ordinary section's approval is a boolean in
-    `issue_modules`, and the save route clears it AFTER the prose write.
+    An approval is a statement about a particular text, so it carries a
+    hash of that text. Prose written straight through the repository --
+    exactly the partial write two stores allow, with no Desk code running
+    afterwards to clear anything -- retires the approval on its own,
+    because the recorded signature no longer describes what is stored.
 
-    Every path through the Desk clears it, so the Desk is right today.
-    What is not proved is the storage layer: prose and approval live in
-    two stores with no shared transaction, so a prose write that lands
-    beside a metadata write that does not leaves `approved = 1` standing
-    over text nobody approved. This is one of the two reasons the Postgres
-    prose backend is not authoritative.
-
-    When approval becomes content-bound, this test should fail, and
-    `docs/COMMISSIONER_PORTAL_ARCHITECTURE.md` should change with it.
+    Nothing has to notice. That is the whole point: a process that dies
+    after the prose write and before any metadata write cannot leave an
+    approval standing over text nobody read.
     """
     client, db, _idir = env
     save_section(client, f"{BASE}/edit", "lowdown", "Approved words.\n")
@@ -504,9 +509,9 @@ def test_ordinary_approval_is_a_flag_and_not_a_signature(env):
         with Storage(db) as s:
             return s.get_issue_modules("surfeit", SEASON, "week-01").get("lowdown") or {}
 
-    assert module_row().get("approved")
-    # Exactly the partial write the two stores allow: the prose moves and
-    # the metadata write that follows it never runs.
+    assert module_row().get("approved_sha"), "approve records what it approved"
+    assert effective_approval(db)
+
     from leaguepage import prose_store
 
     repo = prose_store.repository(db)
@@ -514,7 +519,45 @@ def test_ordinary_approval_is_a_flag_and_not_a_signature(env):
     repo.put(key, "Different words nobody signed off.\n",
              expected_version=repo.get(key).version)
 
-    row = module_row()
-    assert row.get("approved"), "pinning the gap, not endorsing it"
-    assert row.get("approved_sha") in (None, ""), \
-        "an ordinary approval carries no signature over its text"
+    assert module_row().get("approved"), (
+        "the click is still on the record -- it happened")
+    assert not effective_approval(db), (
+        "but it no longer describes what is stored, so it is not approval "
+        "of what is stored")
+
+
+def test_restoring_the_exact_approved_text_makes_the_approval_valid_again(env):
+    """A signature is a comparison, not a latch. Putting back exactly what
+    he approved is approved again, with no second click."""
+    client, db, _idir = env
+    save_section(client, f"{BASE}/edit", "lowdown", "The approved text.\n")
+    client.post(f"{BASE}/edit/approve",
+                json={"section": "lowdown", "action": "approve"})
+    assert effective_approval(db)
+
+    save_section(client, f"{BASE}/edit", "lowdown", "Something else.\n")
+    assert not effective_approval(db)
+
+    save_section(client, f"{BASE}/edit", "lowdown", "The approved text.\n")
+    assert effective_approval(db), "the same words are the same words"
+
+
+def test_an_approval_recorded_before_signatures_is_not_evidence_about_now(env):
+    """Legacy semantics, decided rather than inherited.
+
+    Two live CTP approvals predate signatures and carry a null one. We
+    know he clicked; we do not know what it said. For an issue that is
+    still editable that is not evidence the current text is approved, so
+    it reads as not-currently-approved and he re-approves. Published
+    snapshots are immutable files and never consult this.
+    """
+    client, db, _idir = env
+    save_section(client, f"{BASE}/edit", "lowdown", "Words from before.\n")
+    with Storage(db) as s:
+        s.set_issue_module(league_slug="surfeit", season=SEASON,
+                           issue_key="week-01", module_key="lowdown",
+                           approved=1, approved_sha=None)
+        assert (s.get_issue_modules("surfeit", SEASON, "week-01")["lowdown"]
+                ["approved"])
+    assert not effective_approval(db), (
+        "a click with no signature says nothing about the current text")

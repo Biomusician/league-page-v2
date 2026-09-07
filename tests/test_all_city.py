@@ -16,7 +16,7 @@ from leaguepage.publish import PublishError, publish_assembled_issue
 from leaguepage.site_build import audit_output, build_site
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups
+from fixtures import approve, populate_league, populate_matchups
 
 SEASON = "2026"
 SHIPPED = EDITORIAL_DIR / "features" / "all-city" / "2026-week-01.json"
@@ -336,8 +336,9 @@ def test_module_reports_a_broken_edition_rather_than_rendering_it(env):
     m = _module(db, league, tmp)
     assert m["status"] == "needs_review"
     with Storage(db) as s:
-        s.set_issue_module(league_slug=league.slug, season=SEASON, issue_key="week-01",
-                           module_key="all-city", included=1, approved=1)
+        approve(s, league_slug=league.slug, season=SEASON, issue_key="week-01",
+                           module_key="all-city", included=1,
+                base_dir=tmp / "editorial")
         assembled = assemble_issue(s, league, SEASON, "week-01",
                                    base_dir=tmp / "editorial", week=1)
     sec = next(x for x in assembled["sections"] if x["module_key"] == "all-city")
@@ -349,8 +350,9 @@ def test_module_reports_a_broken_edition_rather_than_rendering_it(env):
 def test_including_the_module_with_no_edition_blocks_the_publish(env):
     db, league, tmp = env
     with Storage(db) as s:
-        s.set_issue_module(league_slug=league.slug, season=SEASON, issue_key="week-01",
-                           module_key="all-city", included=1, approved=1)
+        approve(s, league_slug=league.slug, season=SEASON, issue_key="week-01",
+                           module_key="all-city", included=1,
+                base_dir=tmp / "editorial")
     with pytest.raises(PublishError, match="The All-City Team"):
         _publish(db, league, tmp)
 
@@ -377,8 +379,9 @@ def test_prose_with_a_rough_marker_blocks_publication(env):
         "<!-- ROUGH DRAFT - COMMISSIONER EDIT REQUIRED -->\n\nWords.\n", encoding="utf-8")
     assert _module(db, league, tmp)["status"] == "drafting"
     with Storage(db) as s:
-        s.set_issue_module(league_slug=league.slug, season=SEASON, issue_key="week-01",
-                           module_key="all-city", included=1, approved=1)
+        approve(s, league_slug=league.slug, season=SEASON, issue_key="week-01",
+                           module_key="all-city", included=1,
+                base_dir=tmp / "editorial")
         assembled = assemble_issue(s, league, SEASON, "week-01",
                                    base_dir=tmp / "editorial", week=1)
     assert any("blocked marker" in w for w in assembled["warnings"])
@@ -393,8 +396,9 @@ def test_edited_prose_assembles_into_the_issue(env):
                                       encoding="utf-8")
     assert _module(db, league, tmp)["status"] == "edited"
     with Storage(db) as s:
-        s.set_issue_module(league_slug=league.slug, season=SEASON, issue_key="week-01",
-                           module_key="all-city", included=1, approved=1)
+        approve(s, league_slug=league.slug, season=SEASON, issue_key="week-01",
+                           module_key="all-city", included=1,
+                base_dir=tmp / "editorial")
         assembled = assemble_issue(s, league, SEASON, "week-01",
                                    base_dir=tmp / "editorial", week=1)
     sec = next(x for x in assembled["sections"] if x["module_key"] == "all-city")
@@ -413,11 +417,13 @@ def _publish(db, league, tmp, extra_modules=()):
         ldir = tmp / "editorial" / SEASON / league.slug / "week-01" / "lowdown"
         ldir.mkdir(parents=True, exist_ok=True)
         (ldir / "lowdown.md").write_text("# The Lowdown\n\nWeek one.\n", encoding="utf-8")
-        s.set_issue_module(league_slug=league.slug, season=SEASON, issue_key="week-01",
-                           module_key="lowdown", approved=1)
+        approve(s, league_slug=league.slug, season=SEASON, issue_key="week-01",
+                           module_key="lowdown",
+                base_dir=tmp / "editorial")
         for key in extra_modules:
-            s.set_issue_module(league_slug=league.slug, season=SEASON, issue_key="week-01",
-                               module_key=key, included=1, approved=1)
+            approve(s, league_slug=league.slug, season=SEASON, issue_key="week-01",
+                               module_key=key, included=1,
+                base_dir=tmp / "editorial")
         return publish_assembled_issue(s, league, SEASON, "week-01", week=1,
                                        published_dir=tmp / "published",
                                        base_dir=tmp / "editorial")

@@ -69,13 +69,24 @@ FS_WRITES = ("write_text", "write_bytes", "unlink", "mkdir")
 
 @dataclass(frozen=True)
 class Claim:
-    """What a route is asserted to write, and whether it may run hosted."""
+    """What a route writes, who commits it, and what survives a restart.
+
+    `restart_safe` and `safe` are deliberately separate columns. Locally
+    crash-consistent means: kill the process anywhere inside this route
+    and the application never afterwards presents metadata that falsely
+    describes the prose that survived. Hosted-safe additionally means the
+    route performs no authoritative write to this machine. Almost every
+    authoring route is now the first and none is the second.
+    """
 
     cloud: tuple[str, ...]          # would land in Postgres after a cutover
     local: tuple[str, ...]          # stays on this machine and is authoritative
-    owner: str                      # who guarantees the writes commit together
-    safe: bool
+    owner: str                      # who commits the SQLite writes together
+    safe: bool                      # hosted-safe TODAY
     why: str
+    signature: str = ""             # what a content signature protects here
+    fs_dep: str = ""                # remaining local filesystem dependency
+    restart_safe: bool = True       # cannot lie after a crash + restart
     exercised: bool = True
     kind: str = "authoring"         # authoring | operational | auth | publish
 
@@ -92,42 +103,56 @@ P = ("sections", "prose_revisions")
 CLAIMS: dict[str, Claim] = {
     # ---------------------------------------------------------- authoring
     "editor_save": C(
-        P, ("prose_provenance", "section_prose_state", "issue_modules",
-            "matchup_state", "meta"),
-        why="prose commits, then four metadata writes in four more "
-            "transactions; a crash between them leaves an approval "
-            "standing over text nobody approved"),
+        P, ("prose_provenance", "section_prose_state", "matchup_state"),
+        owner="route",
+        signature="approval retires itself; provenance claims nothing",
+        why="prose commits, then ALL its metadata in one transaction. A "
+            "crash between the two leaves prose with no description, "
+            "which is honest, rather than a stale description"),
     "editor_restore": C(
-        P, ("section_prose_state", "issue_modules", "matchup_state", "meta"),
+        P, ("section_prose_state", "matchup_state"), owner="route",
+        signature="approval retires itself, and returns if the exact text does",
         why="same seam as save, reached from the History panel"),
     "editor_reset_generated": C(
-        P, ("prose_provenance", "section_prose_state", "issue_modules",
-            "matchup_state", "meta"),
-        why="also READS rough-lowdown.md from disk, which a hosted Desk "
-            "cannot see"),
+        P, ("prose_provenance", "section_prose_state", "matchup_state"),
+        owner="route", signature="approval and provenance both content-bound",
+        fs_dep="reads lowdown/rough-lowdown.md",
+        why="a hosted Desk cannot see the rough draft it resets to"),
     "editor_replace_origin": C(
-        P, ("prose_provenance", "section_prose_state", "issue_modules",
-            "matchup_state", "meta"),
-        why="clears the section, then rewrites authorship in a second "
+        P, ("prose_provenance", "section_prose_state", "matchup_state"),
+        owner="route",
+        signature="provenance is hashed over the text, so a lost write "
+                  "claims nothing rather than the wrong author",
+        why="clears the section and rewrites authorship in one "
             "transaction"),
     "proposal_action": C(
-        P, ("prose_provenance", "section_prose_state", "issue_modules",
-            "matchup_state", "meta", "issue_revision_requests"),
-        why="two prose objects (put target, delete proposal) plus five "
-            "metadata writes plus a REVISION_REQUESTS.md rewrite"),
+        P, ("prose_provenance", "section_prose_state", "matchup_state",
+            "issue_revision_requests"),
+        owner="route", restart_safe=False,
+        signature="approval and provenance both content-bound",
+        fs_dep="deletes the proposal file; rewrites REVISION_REQUESTS.md",
+        why="the metadata is one transaction, but accepting is TWO prose "
+            "objects and the filesystem cannot join them: a crash between "
+            "them re-offers a proposal already accepted. Truthful and "
+            "recoverable, not atomic"),
     "editor_approve": C(
-        (), ("issue_modules", "matchup_state", "meta"),
-        why="approval is a flag with no signature; nothing binds it to the "
-            "text it describes"),
+        (), ("issue_modules", "matchup_state"), owner="route",
+        signature="records the signature of exactly what it approves",
+        why="approval is now a claim about a particular text, and CTP "
+            "additionally records what each preview said"),
     "matchup_draft_save": C(
-        P, ("matchup_state", "meta"),
+        P, ("matchup_state",), owner="route",
+        signature="CTP's approval covers this text and retires itself",
         why="the matchup half of save, reached from the week page"),
     "lowdown_save": C(
-        P, ("section_prose_state",),
-        why="the Lowdown screen's own save"),
+        P, ("section_prose_state",), owner="route",
+        signature="the Lowdown's approval is a signature over its text",
+        why="the Lowdown screen's own save, and its own Approve control"),
     "request_rewrite": C(
-        (), ("issue_revision_requests",),
-        why="also rewrites REVISION_REQUESTS.md, a file on this machine"),
+        (), ("issue_revision_requests",), owner="route",
+        fs_dep="regenerates REVISION_REQUESTS.md (derived, not a source)",
+        why="the queue is SQLite and authoritative; the file is derived "
+            "from it and repaired on the next Issue Room load"),
     "editor_custom": C((), ("issue_modules",), why="adds a custom section row"),
     "editor_module": C((), ("issue_modules",), why="include/exclude/reorder"),
     "issue_module_update": C((), ("issue_modules",), why="the builder's copy"),
@@ -135,15 +160,18 @@ CLAIMS: dict[str, Claim] = {
     "rankings_save": C((), ("power_rankings",), why="the standalone page"),
     "set_theme": C((), ("issues",),
                    why="issues.theme has no Postgres column"),
-    "set_team_names": C((), ("team_names",), why="public name overrides"),
+    "set_team_names": C((), ("team_names",), owner="route",
+                        why="one click renames as many teams as the form "
+                            "carries, in one transaction"),
     "use_sleeper_name": C((), ("team_names",), why="clears one override"),
-    "matchup_angle": C((), ("matchup_state", "meta"), why="angle selection"),
+    "matchup_angle": C((), ("matchup_state",), owner="route",
+                       why="angle selection"),
     "matchup_prominence": C((), ("matchup_state",), why="prominence override"),
     "matchup_revision": C((), ("matchup_state",),
                           why="matchup_state.revision_requests has no "
                               "Postgres column"),
-    "matchup_status_change": C((), ("matchup_state", "meta"),
-                               why="status transitions"),
+    "matchup_status_change": C((), ("matchup_state",), owner="route",
+                               why="workflow stage, not a publication claim"),
     "story_decide": C((), ("story_decisions",), why="story routing"),
     "decide_story": C((), ("story_decisions",), why="draft-review copy"),
     "award_decide": C((), ("award_decisions",), why="award decisions"),
@@ -154,33 +182,39 @@ CLAIMS: dict[str, Claim] = {
     "take_action": C((), ("takes",), why="status, public flag, delete"),
     "resolve_take": C((), ("takes",), why="resolution"),
     "false_assumption_decide": C((), ("takes", "story_decisions"),
-                                 why="two tables, two transactions"),
+                                 owner="route",
+                                 why="two tables across its branches, but "
+                                     "one click takes exactly one branch"),
     "force_flow_note": C((), ("force_flow_notes",),
                          why="force_flow_notes has no Postgres table"),
     "inbox_decide": C((), ("story_decisions",), why="Change Inbox ruling"),
     "inbox_reviewed": C((), ("sync_snapshots",), why="marks a baseline"),
-    "qa_action": C((), ("meta", "issue_modules"),
-                   why="dismisses a QA warning", exercised=False),
+    "qa_action": C(P, ("section_prose_state", "matchup_state"),
+                   owner="route",
+                   signature="an accepted fix is a prose write like any other",
+                   why="dismisses a warning, or applies its mechanical fix",
+                   exercised=False),
     # ------------------------------------------------------- operational
     "issue_build": C((), (), owner="n/a", safe=False, kind="operational",
-                     why="writes the whole research tree to disk: briefs, "
-                         "packets, generated JSON. Recomputable, but it "
-                         "needs a filesystem to compute onto",
-                     exercised=False),
+                     fs_dep="RECOMPUTABLE RESEARCH: briefs, packets, "
+                            "generated JSON",
+                     why="recomputable, but it needs a filesystem to "
+                         "compute onto", exercised=False),
     "sync_start": C((), (), owner="job", safe=False, kind="operational",
                     why="starts a durable job; the job writes Sleeper cache "
                         "and snapshot rows", exercised=False),
     "about_save": C((), ("editorial/site/about.md",), kind="operational",
-                    why="site copy is a file in the editorial tree",
-                    exercised=False),
+                    fs_dep="AUTHORITATIVE: the site copy is the file",
+                    why="the only remaining authoritative prose outside the "
+                        "repository", exercised=False),
     "about_preview": C((), (), owner="n/a", safe=True, kind="operational",
                        why="renders to a temp path, writes nothing "
                            "authoritative", exercised=False),
     # ----------------------------------------------------------- publish
     "issue_publish": C((), ("published/**.json", "issues"), kind="publish",
-                       why="writes an immutable snapshot to disk. Out of "
-                           "scope for hosted execution by decision, not by "
-                           "defect", exercised=False),
+                       fs_dep="PUBLICATION ARTIFACT: the immutable snapshot",
+                       why="out of scope for hosted execution by decision, "
+                           "not by defect", exercised=False),
     "publish_start": C((), (), owner="job", kind="publish",
                        why="queues the publish job", exercised=False),
     # -------------------------------------------------------------- auth
@@ -365,42 +399,63 @@ def test_save_writes_prose_and_metadata_separately(audited):
         f"made atomic without moving anything")
 
 
-def test_a_fully_coupled_save_writes_five_things_in_five_transactions(audited):
-    """The case the cutover actually turns on.
+def test_a_fully_coupled_save_has_two_transaction_owners_not_five(audited):
+    """The case the cutover turns on, after Tranche 5A.
 
-    An approved section, whose text arrived carrying the rough-draft
-    marker, saved over. Every conditional write fires: prose, its
-    revision, provenance, prose state, the approval, and the staleness
-    flag -- and each one commits on its own. A process that dies between
-    any two leaves the Desk describing text that is not there.
+    An approved section whose text arrived carrying the rough-draft
+    marker, saved over. Every conditional write still fires -- prose, its
+    revision, provenance, prose state -- but the counting is different:
+
+      one commit  the repository writing the prose and its revision
+      one commit  the route writing everything that DESCRIBES that prose
+
+    Two owners, not five transactions, and the second is exactly the one
+    the Postgres backend will absorb into the first. Nothing writes to
+    the approval at all: it carries a signature, so the save retired it
+    by moving the text.
     """
     client, log, db, idir = audited
+    # The marker settles an AI origin from the text as it stood BEFORE his
+    # first edit. It must not survive into what he approves: approval over
+    # a marked draft is refused, which is the point of the marker.
+    (idir / "lowdown" / "lowdown.md").write_text(MARK + "\n\nGenerated.\n",
+                                                 encoding="utf-8")
     (idir / "lowdown" / "rough-lowdown.md").write_text(
-        "ROUGH DRAFT\n\nGenerated.\n", encoding="utf-8")
-    save_section(client, EDIT, "lowdown", "ROUGH DRAFT\n\nGenerated.\n")
-    assert client.post(f"{EDIT}/approve",
-                       json={"section": "lowdown",
-                             "action": "approve"}).status_code == 200
-    with Storage(db) as s:
-        assert (s.get_issue_modules("surfeit", SEASON, "week-01")
-                .get("lowdown") or {}).get("approved")
+        MARK + "\n\nGenerated.\n", encoding="utf-8")
+    from leaguepage import prose_store
+    prose_store.reset_cache()
+    save_section(client, EDIT, "lowdown", "Edited into shape.\n")
+    r = client.post(f"{EDIT}/approve",
+                    json={"section": "lowdown", "action": "approve"})
+    assert r.status_code == 200, r.text
+    assert _effective(db), "approved to begin with"
     log.clear()
 
     save_section(client, EDIT, "lowdown", "Rewritten by hand.\n")
 
     _check("editor_save", log)
     assert log.prose, "prose"
-    for table in ("prose_revisions", "section_prose_state", "issue_modules",
-                  "meta"):
+    for table in ("prose_revisions", "section_prose_state", "prose_provenance"):
         assert table in log.sqlite, (
             f"{table} not written; observed {sorted(log.sqlite)}")
-    assert log.commits >= 4, (
-        f"{log.commits} commits for one click. Storage._cursor() commits "
-        f"per method, so these cannot fail together")
+    assert "issue_modules" not in log.sqlite, (
+        "nothing writes to the approval; the signature already retired it")
+    assert "meta" not in log.sqlite, (
+        "staleness is a comparison now, not a row somebody has to set")
+    assert log.commits == 2, (
+        f"{log.commits} commits. Expected two owners: the repository for "
+        f"prose + its revision, the route for everything describing it")
+    assert not _effective(db), "the edit retired the approval it replaced"
+
+
+def _effective(db, module="lowdown"):
+    from leaguepage.issue_builder import module_approved, module_states
+
     with Storage(db) as s:
-        assert not (s.get_issue_modules("surfeit", SEASON, "week-01")
-                    .get("lowdown") or {}).get("approved"), \
-            "the edit must retire the approval it replaced"
+        kinds = {m["module_key"]: m["kind"]
+                 for m in module_states(s, LG, SEASON, "week-01", week=1)}
+        return module_approved(s, LG, SEASON, "week-01", module,
+                               kinds.get(module, "section"), 1)[0]
 
 
 def test_approve_writes_only_metadata(audited):
@@ -538,13 +593,43 @@ def test_no_route_commits_its_writes_together(audited):
 
 
 def test_the_declared_table_is_internally_consistent():
-    """No claim may say `safe` while naming a local authoritative write."""
+    """The rules the table has to obey, so a claim cannot be self-serving.
+
+    A route that writes both stores may now name a SQLite transaction
+    owner -- that is what Tranche 5A built -- but it may never call
+    itself hosted-safe on that basis, because no SQLite transaction spans
+    a filesystem write. It may only call itself restart-safe if a content
+    signature covers the gap, and it has to say which one.
+    """
     for name, c in CLAIMS.items():
         if c.safe:
             assert not c.local, f"{name}: safe but writes {c.local} locally"
-            assert not c.cloud or c.owner != "none", (
-                f"{name}: safe with cloud writes but no transaction owner")
+            assert not c.fs_dep, f"{name}: safe but depends on {c.fs_dep}"
         if c.local and c.cloud:
-            assert c.owner == "none", (
-                f"{name}: writes both stores; owner must be 'none' until "
-                f"one transaction spans them")
+            assert not c.safe, (
+                f"{name}: writes both stores, so it cannot be hosted-safe "
+                f"however well the local half commits")
+            if c.restart_safe:
+                assert c.signature, (
+                    f"{name}: a route spanning two stores can only be "
+                    f"restart-safe because a content signature covers the "
+                    f"gap, and it has to name which one")
+            else:
+                assert c.why, f"{name}: says it can lie, without saying how"
+
+
+def test_locally_crash_consistent_is_not_the_same_column_as_hosted_safe():
+    """The distinction this tranche exists to make.
+
+    After 5A most authoring routes cannot lie after a crash. None of them
+    became hosted-safe, because nothing about a local transaction removes
+    a local filesystem write. When the second number moves, it will be
+    because Tranche 5B replaced the local transaction owner with the
+    Postgres one -- not because this file was edited.
+    """
+    authoring = [c for c in CLAIMS.values() if c.kind == "authoring"]
+    consistent = [c for c in authoring if c.restart_safe]
+    hosted = [c for c in authoring if c.safe]
+    assert len(consistent) == len(authoring) - 1, (
+        "every authoring route but proposal accept is crash-consistent")
+    assert hosted == [], "no authoring route is hosted-safe yet"

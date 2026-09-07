@@ -13,7 +13,7 @@ from leaguepage.publish import publish_assembled_issue
 from leaguepage.site_build import audit_output, build_site
 from leaguepage.storage import Storage
 
-from fixtures import add_players, populate_league, populate_matchups
+from fixtures import approve, add_players, populate_league, populate_matchups
 from season import stock_rosters, synthetic_adp
 
 SEASON = "2027"  # deliberately not 2026: proves nothing hardcodes the season
@@ -68,8 +68,9 @@ def _publish_minimal(db, tmp_path, league: League, issue_key: str, text: str):
         ldir = tmp_path / "editorial" / SEASON / league.slug / issue_key / "lowdown"
         ldir.mkdir(parents=True, exist_ok=True)
         (ldir / "lowdown.md").write_text(text, encoding="utf-8")
-        s.set_issue_module(league_slug=league.slug, season=SEASON, issue_key=issue_key,
-                          module_key="lowdown", approved=1)
+        approve(s, league_slug=league.slug, season=SEASON, issue_key=issue_key,
+                          module_key="lowdown",
+                base_dir=tmp_path / "editorial")
         wk = int(issue_key.removeprefix("week-")) if issue_key.startswith("week-") else None
         return publish_assembled_issue(s, league, SEASON, issue_key, week=wk,
                                        published_dir=tmp_path / "published",

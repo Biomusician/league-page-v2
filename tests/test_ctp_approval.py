@@ -23,7 +23,7 @@ from leaguepage.issue_builder import (assemble_issue, ctp_approved, ctp_signatur
                                       matchup_children, module_states)
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups, save_section
+from fixtures import approve, populate_league, populate_matchups, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -196,9 +196,14 @@ def test_an_approval_from_before_signatures_is_grandfathered(env):
     said would be the worse lie."""
     client, db, _idir, _kids = env
     with Storage(db) as s:
-        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="week-01",
-                           module_key="ctp", approved=1, approved_sha=None)
-        assert ctp_approved(s, LG, SEASON, "week-01", 1)
+        # Deliberately the raw row: an approval recorded before
+        # signatures existed.
+        s.set_issue_module(league_slug="surfeit", season=SEASON,
+                           issue_key="week-01", module_key="ctp",
+                           approved=1, approved_sha=None)
+        assert not ctp_approved(s, LG, SEASON, "week-01", 1), (
+            "we know he clicked; we do not know what it said, and that is "
+            "not evidence about the text that is there now")
 
 
 def test_the_preview_cards_no_longer_ask_for_their_own_approval(env):

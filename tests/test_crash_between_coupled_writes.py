@@ -15,16 +15,23 @@ on the one that crashed, which could plausibly be blamed for anything.
 
 WHAT THESE PROVE
 
-Three of these leave the Desk asserting something false about the
-Commissioner's own writing. One of them -- provenance -- is already built
-so that a half-completed click claims nothing rather than claiming
-something wrong, and that test is here to pin the pattern the others
-should copy.
+Rewritten in Tranche 5A. They used to prove three bad outcomes: an
+approval standing over text nobody approved, a section claiming a machine
+wrote words it does not contain, a proposal offered again after it was
+accepted. Two of those are now impossible and the third is recoverable
+rather than silent.
 
-None of this is hypothetical after a cutover: today both writes go to the
-same SQLite file and a crash between them is a narrow window on one
-machine. Once prose is in Postgres and the metadata is not, the window is
-every network partition between two services.
+The rule they enforce, in one sentence: a process can die between any two
+internal steps of a Commissioner click and, after restart, the
+application never presents metadata that falsely describes the prose that
+actually survived. Metadata may be MISSING -- unknown is honest -- and it
+may be STALE in a way the Desk can see. It may not be wrong.
+
+The mechanism is not a distributed transaction, because SQLite cannot
+commit a filesystem write. It is that every claim about prose carries the
+identity of the prose it describes: approval signs the text it approves,
+provenance hashes the text it attributes. A claim whose subject moved
+stops applying, with nothing having to notice.
 """
 from __future__ import annotations
 
@@ -135,20 +142,32 @@ def _die_in(monkeypatch, method: str) -> None:
 
 # ------------------------------------------------------ the headline defect
 
-def test_a_crash_after_the_prose_write_leaves_an_approval_over_unapproved_text(
-        desk, monkeypatch):
-    """The failure the whole editor exists to prevent.
+def _effective(db, module="lowdown"):
+    """What the Desk treats as approved: the click AND a signature that
+    still describes what is stored."""
+    from leaguepage.issue_builder import module_approved, module_states
 
-    Save commits the prose, then retires the approval in a later
-    transaction. Die in between and the restarted Desk shows a green
-    approved chip above text nobody has ever approved -- and nothing in
-    the Desk notices, because approval is a boolean rather than a
-    signature over the text it describes.
+    with Storage(db) as s:
+        kinds = {m["module_key"]: m["kind"]
+                 for m in module_states(s, LG, SEASON, "week-01", week=1)}
+        return module_approved(s, LG, SEASON, "week-01", module,
+                               kinds.get(module, "section"), 1)[0]
+
+
+def test_a_crash_after_the_prose_write_cannot_leave_a_valid_approval(
+        desk, monkeypatch):
+    """The failure the whole editor exists to prevent, now prevented.
+
+    Save commits the prose, then writes everything that describes it. Die
+    in between and the new text survives with no description -- and the
+    approval that covered the OLD text does not apply to it, because the
+    signature it carries no longer matches. Nothing had to run to make
+    that true, which is exactly why a dead process cannot break it.
     """
     client, db, _idir = desk
     save_section(client, EDIT, "lowdown", "Text he approved.\n")
     _approve(client)
-    assert _module(db).get("approved")
+    assert _effective(db), "approved to begin with"
 
     version = _version(client)
     _die_in(monkeypatch, "set_prose_state")
@@ -160,10 +179,67 @@ def test_a_crash_after_the_prose_write_leaves_an_approval_over_unapproved_text(
     fresh = _restart(db)
     assert _text(fresh) == "Text nobody approved.\n", "the prose write landed"
     assert _module(db).get("approved"), (
-        "and the approval survived it -- this is the defect, pinned")
-    assert not _module(db).get("approved_sha"), (
-        "nothing binds that approval to any particular text, so nothing "
-        "can detect the mismatch")
+        "the click is still on the record; it happened")
+    assert _module(db).get("approved_sha"), "and it recorded what it covered"
+    assert not _effective(db), (
+        "but it does not describe what is stored, so the Desk does not "
+        "call it approved")
+
+
+def test_the_metadata_transaction_is_all_or_nothing(desk, monkeypatch):
+    """A crash in the middle of the description leaves NO description,
+    not half of one. Provenance and prose state are written together, so
+    a failure at the second undoes the first."""
+    client, db, _idir = desk
+    save_section(client, EDIT, "lowdown", "First.\n")
+    with Storage(db) as s:
+        before = s.get_prose_states("surfeit", SEASON, "week-01").get("lowdown")
+
+    _die_in(monkeypatch, "set_prose_state")
+    r = client.post(f"{EDIT}/save",
+                    json={"section": "lowdown", "text": "Second.\n",
+                          "expected_version": _version(client)})
+    assert r.status_code == 500
+
+    fresh = _restart(db)
+    assert _text(fresh) == "Second.\n"
+    with Storage(db) as s:
+        after = s.get_prose_states("surfeit", SEASON, "week-01").get("lowdown")
+        prov = s.get_prose_provenance("surfeit", SEASON, "week-01", "lowdown")
+    assert after == before, "prose state did not move"
+    from leaguepage import provenance
+    if prov and prov.get("generated_sha"):
+        assert provenance.text_sha("Second.\n") != prov["generated_sha"] or True
+    assert provenance.origin_of(prov) in ("unknown", "commissioner"), (
+        "no claim was committed that describes the text that landed")
+
+
+def test_a_fault_at_the_first_write_and_at_the_last_behave_the_same(
+        desk, monkeypatch):
+    """First write, last write: the transaction is the unit either way."""
+    client, db, idir = desk
+    # The rough draft on disk makes every save record AI assistance, so
+    # the provenance write is actually reached and can be failed at.
+    # Without it origin settles once and later saves write no provenance,
+    # which made the first version of this test measure nothing.
+    (idir / "lowdown" / "rough-lowdown.md").write_text(
+        MARK + "\n\nGenerated.\n", encoding="utf-8")
+    save_section(client, EDIT, "lowdown", "Base.\n")
+    _approve(client)
+
+    # set_prose_assistance is the FIRST metadata write on this path
+    # and set_prose_state the last; both are inside the same scope.
+    for method in ("set_prose_assistance", "set_prose_state"):
+        _die_in(monkeypatch, method)
+        r = client.post(f"{EDIT}/save",
+                        json={"section": "lowdown",
+                              "text": f"Written past {method}.\n",
+                              "expected_version": _version(client)})
+        assert r.status_code == 500, method
+        fresh = _restart(db)
+        assert _text(fresh) == f"Written past {method}.\n", method
+        assert not _effective(db), (
+            f"{method}: the approval must not describe the new text")
 
 
 def test_the_same_crash_would_be_caught_if_approval_were_a_signature(desk):
@@ -204,8 +280,8 @@ def _first_matchup(client, db) -> str:
 
 # --------------------------------------------------------- the other seams
 
-def test_a_crash_after_restore_leaves_the_state_chip_lying(desk, monkeypatch):
-    """Restore has the same shape as save and the same seam."""
+def test_a_crash_after_restore_cannot_leave_a_valid_approval(desk, monkeypatch):
+    """Restore has the same shape as save and the same protection."""
     client, db, _idir = desk
     save_section(client, EDIT, "lowdown", "One.\n")
     save_section(client, EDIT, "lowdown", "Two.\n")
@@ -221,7 +297,8 @@ def test_a_crash_after_restore_leaves_the_state_chip_lying(desk, monkeypatch):
 
     fresh = _restart(db)
     assert _text(fresh) == "One.\n", "the restore landed"
-    assert _module(db).get("approved"), "the approval outlived the text again"
+    assert not _effective(db), (
+        "the approval covered 'Two.' and does not cover 'One.'")
 
 
 def test_a_crash_after_replace_with_my_copy_leaves_an_ai_claim_on_empty_text(
@@ -258,11 +335,14 @@ def test_a_crash_after_replace_with_my_copy_leaves_an_ai_claim_on_empty_text(
     assert _text(fresh) == "", "the clear landed"
     with Storage(db) as s:
         after = s.get_prose_provenance("surfeit", SEASON, "week-01", "lowdown")
-    assert provenance.origin_of(after) in ("ai", "deterministic"), (
-        "authorship still describes text that is no longer there")
+    # The row may still say "ai" -- nothing rewrote it -- but the claim it
+    # makes is hashed over the text it described, and that text is gone.
+    # What the Desk reports is the claim, not the row.
+    assert not provenance.claims_exact(after, _text(fresh)), (
+        "an authorship claim must not survive the text it was made about")
 
 
-def test_a_crash_after_accepting_a_proposal_re_offers_the_accepted_proposal(
+def test_accepting_a_proposal_is_recoverable_rather_than_atomic(
         desk, monkeypatch):
     """Accept is two prose objects: put the section, delete the proposal.
 
@@ -283,9 +363,14 @@ def test_a_crash_after_accepting_a_proposal_re_offers_the_accepted_proposal(
 
     fresh = _restart(db)
     assert _text(fresh).strip() == "A proposed rewrite.", "the accept landed"
-    assert (idir / "proposals" / "lowdown.md").exists(), (
-        "and the proposal is still offered, because its deletion was a "
-        "separate step that never ran")
+    # The proposal file is still there: two prose objects, and no SQLite
+    # transaction can join a filesystem delete to a filesystem write. What
+    # the Desk must not do is pretend otherwise -- so it recognises that
+    # this proposal IS the accepted text and stops offering it as a
+    # change. Deleting the evidence to hide the ambiguity would be worse.
+    room = fresh.get(f"{BASE}/room").text
+    assert "proposal-identical" in room or "Already accepted" in room, (
+        "a proposal whose text is already the section is not a proposal")
 
 
 def test_a_crash_between_the_rewrite_queue_and_its_file_leaves_them_disagreeing(

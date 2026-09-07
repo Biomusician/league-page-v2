@@ -13,9 +13,10 @@ import leaguepage.publish as pub
 from leaguepage.config import get_league
 from leaguepage.desk import create_app
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER
+from leaguepage import prose_store
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, save_section
+from fixtures import approve, populate_league, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -216,8 +217,8 @@ def test_empty_section_with_brief_still_blocks_publication(env):
     client, db, idir = env
     (idir / "sections" / "hardware.md").write_text("", encoding="utf-8")
     with Storage(db) as s:
-        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                          module_key="hardware", included=1, approved=1)
+        approve(s, league_slug="surfeit", season=SEASON, issue_key="draft",
+                          module_key="hardware", included=1)
     r = client.get(f"{EDIT}/publish")
     assert "Cannot publish yet" in r.text        # excellent ghost != written
     assert "write it or exclude it" in r.text    # actionable, not mysterious
@@ -275,8 +276,8 @@ def _approve_only_lowdown(db):
                     "forceflow", "blackbox", "false-assumptions", "branches", "custom"):
             s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
                               module_key=key, included=0)
-        s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="draft",
-                          module_key="lowdown", approved=1)
+        approve(s, league_slug="surfeit", season=SEASON, issue_key="draft",
+                          module_key="lowdown")
 
 
 def _wait_job(client, timeout=8.0):
@@ -427,6 +428,11 @@ def test_a_changed_published_issue_needs_a_note_and_becomes_a_correction(jobs_en
 
     (idir / "lowdown" / "lowdown.md").write_text("# The Lowdown\n\nCorrected words.\n",
                                                  encoding="utf-8")
+    # A correction changes the words, so the approval that covered the
+    # words it replaced no longer covers anything. He approves what the
+    # correction actually says before it can publish.
+    prose_store.reset_cache()
+    client.post(f"{EDIT}/approve", json={"section": "lowdown", "action": "approve"})
     page = client.get(f"{EDIT}/publish").text
     assert "Correction note" in page and "changed" in page
     # no note: refused before any job exists
@@ -562,6 +568,11 @@ def test_the_page_knows_whether_the_latest_revision_is_live(jobs_env):
     # a correction frozen locally puts production behind again
     (idir / "lowdown" / "lowdown.md").write_text("# The Lowdown\n\nCorrected words.\n",
                                                  encoding="utf-8")
+    # A correction changes the words, so the approval that covered the
+    # words it replaced no longer covers anything. He approves what the
+    # correction actually says before it can publish.
+    prose_store.reset_cache()
+    client.post(f"{EDIT}/approve", json={"section": "lowdown", "action": "approve"})
     client.post(f"{EDIT}/publish-start",
                 data={"mode": "local", "confirm": "yes", "note": "wording"})
     assert _wait_job(client)["job"]["state"] == "succeeded"

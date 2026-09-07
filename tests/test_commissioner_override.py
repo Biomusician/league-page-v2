@@ -123,16 +123,16 @@ def _editors(html):
 def _approved(db, key):
     """Whether the section as it stands now is approved.
 
-    Common Tactical Picture answers through its signature rather than a
-    flag: its approval covers the previews it publishes, so it stops
-    counting when any of them changes and counts again if the exact text
-    returns. Every other module is the flag.
+    Every module answers the way Common Tactical Picture always did: the
+    approval carries a signature over the text it covers, so it stops
+    counting when that text changes and counts again if the exact text
+    returns. Nothing writes to make either of those true.
     """
     with Storage(db) as s:
-        if key == "ctp":
-            return ib.ctp_approved(s, LG, SEASON, "week-01", 1)
-        return bool((s.get_issue_modules("surfeit", SEASON, "week-01")
-                     .get(key) or {}).get("approved"))
+        kind = {m["module_key"]: m["kind"]
+                for m in ib.module_states(s, LG, SEASON, "week-01", week=1)}
+        return ib.module_approved(s, LG, SEASON, "week-01", key,
+                                  kind.get(key, "section"), 1)[0]
 
 
 def _matchup_status(db, slug):
@@ -239,6 +239,27 @@ def test_editing_an_approved_matchup_unapproves_it_and_ctp(env):
     assert r.status_code == 200, r.text
     assert _matchup_status(db, child["slug"]) == "edited"
     assert not _approved(db, "ctp"), "CTP publishes the previews; its sign-off went too"
+
+
+def test_putting_the_matchup_text_back_makes_ctp_approved_again(env):
+    """The signature is a comparison, not a latch. This is why nothing has
+    to write anything when a preview is edited: putting the exact words
+    back is approved again, with no second click."""
+    client, db, _ed = env
+    child = _first_child(db)
+    before = _text(db, child["section"])
+    assert _approved(db, "ctp")
+    _save(client, child["section"], "He rewrote this one.\n")
+    assert not _approved(db, "ctp")
+    _save(client, child["section"], before)
+    assert _approved(db, "ctp")
+
+
+def _text(db, section):
+    from leaguepage import prose_store
+
+    key = prose_store.ProseKey.for_section("surfeit", SEASON, "week-01", section)
+    return prose_store.repository(db).get(key).text
 
 
 def test_an_edited_matchup_is_marked_as_changed_on_the_page(env):

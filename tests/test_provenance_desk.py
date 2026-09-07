@@ -23,7 +23,7 @@ from leaguepage.desk import create_app
 from leaguepage.matchup_packet import ROUGH_DRAFT_MARKER
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups, save_section
+from fixtures import approve, populate_league, populate_matchups, save_section
 
 SEASON = "2027"
 LG = get_league("surfeit")
@@ -285,8 +285,8 @@ def test_a_snapshot_carries_labels_and_never_a_baseline(env):
             s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="week-01",
                                module_key=key, included=0)
         for key in ("lowdown", "tracks"):
-            s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="week-01",
-                               module_key=key, approved=1)
+            approve(s, league_slug="surfeit", season=SEASON, issue_key="week-01",
+                               module_key=key)
         path = publish_assembled_issue(s, LG, SEASON, "week-01", week=1)
     import json
 

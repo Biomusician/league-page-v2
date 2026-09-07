@@ -20,7 +20,7 @@ from leaguepage.publish import (
 from leaguepage.site_build import build_site
 from leaguepage.storage import Storage
 
-from fixtures import populate_league, populate_matchups
+from fixtures import approve, populate_league, populate_matchups
 
 SEASON = "2027"
 LEAGUE = get_league("surfeit")
@@ -59,8 +59,9 @@ def _publish(db, tmp_path, text):
                     "custom"):
             s.set_issue_module(league_slug=LEAGUE.slug, season=SEASON,
                                issue_key="draft", module_key=key, included=0)
-        s.set_issue_module(league_slug=LEAGUE.slug, season=SEASON, issue_key="draft",
-                           module_key="lowdown", approved=1)
+        approve(s, league_slug=LEAGUE.slug, season=SEASON, issue_key="draft",
+                           module_key="lowdown",
+                base_dir=tmp_path / "editorial")
         return publish_assembled_issue(
             s, LEAGUE, SEASON, "draft", published_dir=tmp_path / "published",
             base_dir=tmp_path / "editorial")
@@ -69,6 +70,11 @@ def _publish(db, tmp_path, text):
 def _revise(db, tmp_path, text, note="corrected team names / formatting"):
     _write_lowdown(tmp_path, text)
     with Storage(db) as s:
+        # A correction changes the words, so the approval that covered the
+        # words it replaced no longer covers anything. He approves what the
+        # correction says before it can publish.
+        approve(s, league_slug=LEAGUE.slug, season=SEASON, issue_key="draft",
+                module_key="lowdown", base_dir=tmp_path / "editorial")
         return revise_issue(s, LEAGUE, SEASON, "draft", note=note,
                             published_dir=tmp_path / "published",
                             base_dir=tmp_path / "editorial")

@@ -183,3 +183,29 @@ def make_adp(entries: dict[int, float], teams: int = 10, rounds: int = 3) -> ADP
         scoring_format="half_ppr", retrieved_at="2026-08-29T00:00:00", note="",
         players=players,
     )
+
+
+def approve(storage, *, league_slug: str, season: str, issue_key: str,
+            module_key: str, base_dir=None, **extra):
+    """Approve a module the way the Desk does: with a signature.
+
+    A bare `approved=1` is the record of a click and says nothing about
+    the current text, so on its own it no longer counts as approval.
+    Fixtures that want an approved module want this.
+    """
+    from leaguepage.config import get_league
+    from leaguepage.issue_builder import module_signature, module_states
+
+    league = get_league(league_slug)
+    week = (int(issue_key.removeprefix("week-"))
+            if issue_key.startswith("week-") else None)
+    kinds = {m["module_key"]: m["kind"]
+             for m in module_states(storage, league, season, issue_key,
+                                    week=week, base_dir=base_dir)}
+    storage.set_issue_module(
+        league_slug=league_slug, season=season, issue_key=issue_key,
+        module_key=module_key, approved=1,
+        approved_sha=module_signature(storage, league, season, issue_key,
+                                      module_key, kinds.get(module_key, "section"),
+                                      week, base_dir=base_dir),
+        **extra)

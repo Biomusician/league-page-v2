@@ -27,7 +27,7 @@ from leaguepage.publish import publish_assembled_issue
 from leaguepage.storage import Storage
 from leaguepage.transaction_analysis import analyze_transactions, story_candidate_id
 
-from fixtures import add_players
+from fixtures import approve, add_players
 from test_site_build import _build, site_env, SEASON, TEST_SURFEIT  # noqa: F401
 
 LG = TEST_SURFEIT
@@ -74,8 +74,9 @@ def _publish_with_force_flow(db, tmp, prose, *, decisions=()):
         (idir / "lowdown" / "lowdown.md").write_text("# The Lowdown\n\nWords.\n", encoding="utf-8")
         (idir / "sections" / "forceflow.md").write_text(prose, encoding="utf-8")
         for key in ("lowdown", "forceflow"):
-            s.set_issue_module(league_slug="surfeit", season=SEASON, issue_key="week-01",
-                               module_key=key, included=1, approved=1)
+            approve(s, league_slug="surfeit", season=SEASON, issue_key="week-01",
+                               module_key=key, included=1,
+                base_dir=tmp / "editorial")
         for cid, note in decisions:
             s.set_story_decision(league_slug="surfeit", season=SEASON, workflow="week-01",
                                  candidate_id=cid, decision="include", note=note)
