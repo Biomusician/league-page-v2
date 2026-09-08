@@ -193,6 +193,7 @@
     {% endif %}
     <div class="editwrap {% if c.blurb.written %}has-content{% endif %}">
       <textarea class="prose autosave" data-section="{{ c.module_key }}"
+                aria-label="{{ c.title }} — opening remarks"
                 data-sha="{{ c.blurb.sha }}" data-version="{{ c.version or '' }}"
                 rows="4">{{ c.blurb.text }}</textarea>
     </div>
@@ -217,6 +218,7 @@
 words replace this)</span>{{ c.brief.text }}</div>
           {% endif %}
           <textarea class="prose autosave" data-section="{{ c.module_key }}"
+                    aria-label="{{ c.title }}{% if c.chunk_count > 1 %} — part {{ ch.index + 1 }} of {{ c.chunk_count }}{% endif %}"
                     data-sha="{{ ch.sha }}" data-version="{{ c.version or '' }}"
                     {% if c.chunk_count > 1 %}data-chunk-index="{{ ch.index }}"
                     data-chunk-count="{{ c.chunk_count }}"{% endif %}

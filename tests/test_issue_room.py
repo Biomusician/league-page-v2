@@ -647,3 +647,22 @@ def test_the_save_state_announces_itself(env):
     html = _room(client)
     m = re.search(r'<span id="savestate"[^>]*>', html)
     assert m and 'role="status"' in m.group(0) and 'aria-live="polite"' in m.group(0)
+
+
+def test_the_box_he_writes_in_has_a_name(env):
+    """The main writing surface had no accessible name at all — no label,
+    no aria-label — so it announced as an unlabelled text area."""
+    client, _db, _idir = env
+    html = _room(client)
+    for m in re.finditer(r'<textarea class="prose autosave"[^>]*>', html):
+        assert "aria-label=" in m.group(0), m.group(0)[:120]
+
+
+def test_the_heading_levels_do_not_skip(env):
+    """The page went h1 (masthead) straight to h3 (the rail's group
+    headings); the issue's own name is the level in between, and it was
+    already on the page as a span."""
+    client, _db, _idir = env
+    levels = [int(n) for n in re.findall(r"<h([1-4])[ >]", _room(client))]
+    assert levels[:2] == [1, 2], levels[:6]
+    assert all(b - a <= 1 for a, b in zip(levels, levels[1:])), levels

@@ -57,6 +57,7 @@
 replace this)</span>{{ mc.brief.text }}</div>
     {% endif %}
     <textarea class="prose autosave" data-section="{{ mc.section }}" data-sha="{{ mc.sha }}"
+              aria-label="{{ mc.title }} — matchup preview"
               data-version="{{ mc.version or '' }}"
               rows="{{ [(mc.brief.text.count('\n') + 4) if (mc.brief and not mc.text.strip()) else 4, [mc.text.count('\n') + 2, 26] | min] | max }}">{{ mc.text }}</textarea>
   </div>
