@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import RedirectResponse
@@ -987,21 +988,46 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
     def review_packet(request: Request, league_slug: str, season: str, issue_key: str):
         import markdown as md
 
-        from leaguepage.review_packet import build_review_packet
+        from leaguepage.review_packet import packet_path, review_packet_text
 
         league = get_league(league_slug)
         with storage() as s:
             candidates = _candidates_for(s, league, season, issue_key)
             awards = _awards_for(s, league, season, issue_key)
-            path = build_review_packet(s, league, season, issue_key,
-                                       awards=awards, candidates=candidates)
+            # Rendered, not written. Opening this page used to rewrite a
+            # git-tracked file in the issue directory, so reading the
+            # review dirtied the working tree.
+            text = review_packet_text(s, league, season, issue_key,
+                                      awards=awards, candidates=candidates)
+        path = packet_path(league, season, issue_key)
         # Not prose.render: this is a generated report, hard-wrapped for a
         # diff, and honoring its line breaks would only make it ragged.
-        html = md.markdown(path.read_text(encoding="utf-8"), extensions=["tables"])
+        html = md.markdown(text, extensions=["tables"])
+        on_disk = path.read_text(encoding="utf-8") if path.exists() else None
         return templates.TemplateResponse(request, "desk/review.html", {
             "league": league, "season": season, "issue_key": issue_key,
             "packet_html": html, "packet_path": path.as_posix(),
+            "packet_saved": on_disk == text, "packet_exists": on_disk is not None,
         })
+
+    @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/review/save")
+    def review_packet_save(league_slug: str, season: str, issue_key: str):
+        """Write the packet into the issue directory, because he asked.
+
+        A Claude Code authoring session reads this file, so writing it has
+        to stay possible; it just stopped happening as a side effect of
+        looking at the page."""
+        from leaguepage.review_packet import build_review_packet
+
+        league = get_league(league_slug)
+        with storage() as s:
+            build_review_packet(
+                s, league, season, issue_key,
+                awards=_awards_for(s, league, season, issue_key),
+                candidates=_candidates_for(s, league, season, issue_key))
+        return RedirectResponse(
+            f"/commissioner/{league_slug}/{season}/issue/{issue_key}/review",
+            status_code=303)
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/stories")
     def story_board(request: Request, league_slug: str, season: str, issue_key: str):
@@ -1098,8 +1124,10 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
         return back
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/builder")
-    def issue_builder_screen(request: Request, league_slug: str, season: str, issue_key: str):
+    def issue_builder_screen(request: Request, league_slug: str, season: str,
+                             issue_key: str, refused: str = ""):
         ctx = _workspace_context(league_slug, season, issue_key)
+        ctx["refused"] = refused
         return templates.TemplateResponse(request, "desk/builder.html", ctx)
 
     def _approval_signature(s, league_slug: str, season: str, issue_key: str,
@@ -1130,6 +1158,34 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             rankings=(act.state.rankings(league_slug, season, label)
                       if act is not None and kind == "power" else None))
 
+    def _approval_refusal(s, league_slug: str, season: str, issue_key: str,
+                          module_key: str, act) -> str:
+        """Why this module cannot be approved from here, or "".
+
+        The gate lives in `issue_builder` so the editor and this screen ask
+        the same question; what differs is only how each one reads the text
+        it is judging.
+        """
+        from leaguepage import prose_store
+        from leaguepage.issue_builder import (
+            approval_refusal, matchup_children, module_states)
+
+        league = get_league(league_slug)
+        week = _week_of(issue_key)
+        kind = {m["module_key"]: m["kind"]
+                for m in module_states(s, league, season, issue_key, week=week)
+                }.get(module_key, "section")
+        kids = (matchup_children(s, league, season, issue_key, week)
+                if kind == "ctp" and week is not None else None)
+        text = ""
+        try:
+            rec = act.prose.get(prose_store.ProseKey.for_section(
+                league.slug, season, issue_key, module_key))
+            text = rec.text if rec.exists else ""
+        except prose_store.ProseError:
+            text = ""
+        return approval_refusal(kind, children=kids, text=text) or ""
+
     @app.post("/commissioner/{league_slug}/{season}/issue/{issue_key}/builder/module")
     def issue_module_update(
         request: Request, league_slug: str, season: str, issue_key: str,
@@ -1150,15 +1206,28 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
             fields["custom_title"] = custom_title.strip() or None
         elif action == "move" and position.strip().lstrip("-").isdigit():
             fields["position"] = int(position)
+        refused = ""
         if fields:
             with storage() as s, _editorial().action(actor=auth.actor_of(request)) as act:
                 if action == "approve":
-                    fields["approved_sha"] = _approval_signature(
-                        s, league_slug, season, issue_key, module_key, act)
-                act.state.set_module(league_slug, season, issue_key, module_key,
-                                     **fields)
+                    # The same gates the long-form editor applies. This
+                    # screen used to apply none of them and still write a
+                    # signature, so an empty or ROUGH-DRAFT-marked section
+                    # could be signed into the record from here and read
+                    # as audited afterwards. Asked inside the action, so
+                    # the text it judges is the text a signature would
+                    # cover; refused, nothing is written at all.
+                    refused = _approval_refusal(s, league_slug, season, issue_key,
+                                                module_key, act)
+                    if not refused:
+                        fields["approved_sha"] = _approval_signature(
+                            s, league_slug, season, issue_key, module_key, act)
+                if not refused:
+                    act.state.set_module(league_slug, season, issue_key, module_key,
+                                         **fields)
         return RedirectResponse(
-            f"/commissioner/{league_slug}/{season}/issue/{issue_key}/builder", status_code=303)
+            f"/commissioner/{league_slug}/{season}/issue/{issue_key}/builder"
+            + (f"?refused={quote(refused)}" if refused else ""), status_code=303)
 
     @app.get("/commissioner/{league_slug}/{season}/issue/{issue_key}/preview")
     def issue_preview(request: Request, league_slug: str, season: str, issue_key: str):

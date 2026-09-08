@@ -61,7 +61,7 @@ def _take_candidates(idir: Path) -> list[str]:
     return out
 
 
-def build_review_packet(
+def review_packet_text(
     storage: Storage,
     league: League,
     season: str,
@@ -70,7 +70,7 @@ def build_review_packet(
     awards: list[dict],
     candidates: list[dict],
     base_dir: Path | None = None,
-) -> Path:
+) -> str:
     idir = issue_dir(league, season, issue_key, base_dir)
     names = resolve_public_names(storage, league)
     award_decisions = storage.get_award_decisions(league.slug, season, issue_key)
@@ -198,6 +198,27 @@ def build_review_packet(
     a("Full detail and controls: the stories board.")
     a("")
 
-    path = idir / "REVIEW_PACKET.md"
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "\n".join(lines) + "\n"
+
+
+def packet_path(league: League, season: str, issue_key: str,
+                base_dir: Path | None = None) -> Path:
+    return issue_dir(league, season, issue_key, base_dir) / "REVIEW_PACKET.md"
+
+
+def build_review_packet(*args, **kwargs) -> Path:
+    """Render the packet AND write it into the issue directory.
+
+    Reading a screen should not change the repository. This used to be the
+    only entry point and the only caller was a GET, so opening the review
+    page rewrote a git-tracked file every time -- which is how the working
+    tree acquired a modified REVIEW_PACKET.md nobody had edited. The
+    rendering now lives in `review_packet_text`; writing it is a separate
+    act with a button behind it.
+    """
+    league, season, issue_key = args[1], args[2], args[3]
+    text = review_packet_text(*args, **kwargs)
+    path = packet_path(league, season, issue_key, kwargs.get("base_dir"))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
     return path

@@ -244,6 +244,44 @@ def _clean(text: str | None) -> bool:
     return bool(text) and not any(b in text for b in BLOCKED_MARKERS)
 
 
+# Modules whose approval is an approval OF PROSE, so there has to be prose
+# and it has to be finished. Common Tactical Picture is deliberately not in
+# this set: it holds no words of its own and is gated on its children.
+PROSE_APPROVAL_KINDS = ("lowdown", "section", "all-city")
+
+
+def approval_refusal(kind: str, *, text: str | None = None,
+                     children: list[dict] | None = None) -> str | None:
+    """Why this module cannot be approved right now, or None if it can.
+
+    Three screens can approve -- the long-form editor, the Lowdown page and
+    the issue builder -- and only the editor was asking these questions.
+    The builder wrote `approved=1` AND a signature over the text, so a
+    section that was empty, or still carried a ROUGH DRAFT marker, could be
+    signed into the publication record and look audited afterwards.
+
+    The signature is not the gate. This is.
+    """
+    if kind == "ctp":
+        if children is None:
+            return None
+        if not children:
+            return "no matchups computed for this week"
+        left = [c for c in children if not c.get("written")]
+        if left:
+            names = ", ".join(c["title"] for c in left[:3])
+            return (f"{len(left)} matchup preview(s) not written yet: {names}"
+                    + ("…" if len(left) > 3 else ""))
+        return None
+    if kind in PROSE_APPROVAL_KINDS:
+        if not (text or "").strip():
+            return "section is empty"
+        bad = [mk for mk in BLOCKED_MARKERS if mk in text]
+        if bad:
+            return f"blocked marker present: {bad[0]}"
+    return None
+
+
 def lowdown_state(idir: Path) -> tuple[str, str]:
     """(status, detail) for the commissioner-owned Lowdown."""
     final = _prose_of(idir, "lowdown")

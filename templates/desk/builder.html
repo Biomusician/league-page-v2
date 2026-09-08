@@ -4,6 +4,12 @@
 {% block content %}
 <h2>Issue Builder <span class="meta">— editorial sequence; not every issue needs every section</span></h2>
 
+{% if refused %}
+{#  Approval was refused here for the same reason it would be refused in
+    the editor. It used to be granted, signature and all. #}
+<div class="warn"><b>Not approved.</b> {{ refused }}</div>
+{% endif %}
+
 {% for w in warnings %}<div class="warn">{{ w }}</div>{% endfor %}
 
 {% for m in modules %}

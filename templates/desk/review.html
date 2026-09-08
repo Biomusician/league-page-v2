@@ -3,6 +3,18 @@
 {% block masthead_right %}<a href="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}">← {{ issue_key }} workspace</a>{% endblock %}
 {% block content %}
 <div class="card">{{ packet_html | safe }}</div>
-<p class="meta">Saved to <code>{{ packet_path }}</code>. Recommendations are the system's;
-selections and approvals happen on the boards.</p>
+{#  Reading this page no longer writes the file. The file still matters --
+    a Claude Code authoring session reads it -- so saving it is a button. #}
+<form method="post" action="/commissioner/{{ league.slug }}/{{ season }}/issue/{{ issue_key }}/review/save"
+      class="inline">
+  <button type="submit">{{ "Save to the issue folder" if not packet_exists
+                            else "Overwrite the saved copy" }}</button>
+  <span class="meta">
+    {%- if packet_saved %}The copy at <code>{{ packet_path }}</code> matches this.
+    {%- elif packet_exists %}<b>The saved copy is out of date.</b> This page is current.
+    {%- else %}Not written to <code>{{ packet_path }}</code> yet.{% endif %}
+  </span>
+</form>
+<p class="meta">Recommendations are the system's; selections and approvals
+happen on the boards.</p>
 {% endblock %}

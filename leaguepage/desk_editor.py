@@ -832,32 +832,18 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             # sign-off for all of them, so the gate is that they are
             # written; asking him to approve each preview and then approve
             # the section that IS those previews was ceremony.
-            if action == "approve" and kind == "ctp":
+            if action == "approve":
+                from leaguepage.issue_builder import approval_refusal
+
                 week = _week_of(issue_key)
                 kids = (matchup_children(s, league, season, issue_key, week)
-                        if week is not None else [])
-                left = [c for c in kids if not c.get("written")]
-                if not kids:
-                    return JSONResponse(
-                        {"ok": False, "error": "no matchups computed for this week"},
-                        status_code=400)
-                if left:
-                    return JSONResponse(
-                        {"ok": False,
-                         "error": f"{len(left)} matchup preview(s) not written yet: "
-                                  + ", ".join(c["title"] for c in left[:3])
-                                  + ("…" if len(left) > 3 else "")},
-                        status_code=400)
-            elif action == "approve" and kind in ("lowdown", "section", "all-city"):
-                text = _text_of(league, season, issue_key, section, act.prose) or ""
-                bad = [mk for mk in BLOCKED_MARKERS if mk in text]
-                if not text.strip():
-                    return JSONResponse({"ok": False, "error": "section is empty"},
+                        if kind == "ctp" and week is not None else [])
+                refusal = approval_refusal(
+                    kind, children=kids if kind == "ctp" else None,
+                    text=_text_of(league, season, issue_key, section, act.prose) or "")
+                if refusal:
+                    return JSONResponse({"ok": False, "error": refusal},
                                         status_code=400)
-                if bad:
-                    return JSONResponse(
-                        {"ok": False, "error": f"blocked marker present: {bad[0]}"},
-                        status_code=400)
             # Sign the approval over exactly what it covers, whatever
             # kind it is. An approval that carries no signature is a
             # record that he clicked and nothing about the current text,

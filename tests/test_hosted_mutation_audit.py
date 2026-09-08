@@ -269,6 +269,17 @@ CLAIMS: dict[str, Claim] = {
                    why="dismisses a warning, or applies its mechanical fix",
                    exercised=False),
     # ------------------------------------------------------- operational
+    "review_packet_save": C((), (), owner="n/a", safe=False, kind="operational",
+                            fs_dep="RECOMPUTABLE RESEARCH: REVIEW_PACKET.md",
+                            why="the packet is a rendering of state that lives "
+                                "elsewhere, and it is written for a Claude Code "
+                                "session to read. It exists as a route at all "
+                                "because the GET that used to write it made "
+                                "reading the review screen a repository change; "
+                                "the writing is now an act with a button behind "
+                                "it, and the same recomputable-research "
+                                "resolution as issue_build applies",
+                            exercised=False),
     "issue_build": C((), (), owner="n/a", safe=False, kind="operational",
                      fs_dep="RECOMPUTABLE RESEARCH: briefs, packets, "
                             "generated JSON",

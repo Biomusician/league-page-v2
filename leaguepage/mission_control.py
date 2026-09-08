@@ -138,9 +138,20 @@ def league_status(storage: Storage, league: League) -> dict:
 
     out["sections"] = _section_counts(storage, league, season, issue_key, week)
     issue = storage.get_issue(league.slug, season, issue_key)
-    out["issue_status"] = (issue or {}).get("status") or "not started"
-    if out["issue_status"] not in ("published",):
-        out["blockers"] = _blockers(storage, league, season, issue_key)
+    # `week_status`, not `issue_status`: the Desk home also carries the
+    # DRAFT issue's status under that name, and one key meaning two
+    # different issues on one dictionary is how a card ends up captioning
+    # the wrong one.
+    out["week_status"] = (issue or {}).get("status") or "not started"
+    out["published"] = out["week_status"] == "published"
+    # Asked unconditionally. This used to skip a published issue, on the
+    # reading that "what would block publishing" is moot once it has been
+    # published -- but the Issue Room asks the same question of the same
+    # assembler and answers it, so the two screens disagreed in public:
+    # home said "0 would block publish" while the room said "BLOCKED · 8".
+    # A published issue can still be republished as a correction, and the
+    # same warnings would refuse it, so the honest answer is the count.
+    out["blockers"] = _blockers(storage, league, season, issue_key)
 
     out["next_action"] = _next_action(out)
     return out
@@ -151,19 +162,35 @@ def _next_action(row: dict) -> dict:
 
     Ordering matters more than the wording. Suggesting "publish" while four
     sections are empty is not guidance; it is a button that will refuse.
+
+    Staleness used to be the whole first rung, and on a weekly product that
+    made "Sync Sleeper" the answer almost every time it was asked: the data
+    is more than twenty hours old on any day that is not the day he last
+    synced. It said that to both leagues while eight sections sat
+    unapproved on an issue that had already been published.
+
+    But the reason it was first is real -- triaging an inbox built from
+    three-day-old rosters is work done twice -- so it keeps its priority
+    over exactly the work that reads the data, and loses it over the work
+    that does not. Reviewing prose already written, and an issue already
+    out, do not get better by fetching yesterday's waivers again.
     """
     lg, season, week = row["league"], row["season"], row["week"]
     base = f"/commissioner/{lg.slug}/{season}"
     key = row["issue_key"]
     sec = row["sections"]
+    # Filtered. The unfiltered board is both leagues at once -- 62KB of it
+    # against 24KB -- and nothing in the Desk linked to the filter.
+    inbox = f"/commissioner/inbox?league={lg.slug}"
+    sync = {"text": "Sync Sleeper", "href": "/commissioner#syncpanel",
+            "why": f"last sync {row['sync_age']}"}
 
-    if row["sync_stale"]:
-        return {"text": "Sync Sleeper", "href": "/commissioner#syncpanel",
-                "why": f"last sync {row['sync_age']}"}
+    if row["sync_stale"] and (row["worth_a_look"] or sec["empty"]):
+        return sync
     if row["worth_a_look"]:
         n = row["worth_a_look"]
         return {"text": f"Triage {n} item{'' if n == 1 else 's'} in the Change Inbox",
-                "href": "/commissioner/inbox",
+                "href": inbox,
                 "why": f"{row['undecided']} undecided, {n} above the noise floor"}
     if sec["empty"]:
         n = sec["empty"]
@@ -172,20 +199,27 @@ def _next_action(row: dict) -> dict:
                 "why": f"{sec['approved']} of {sec['total']} approved"}
     if sec["drafted"]:
         n = sec["drafted"]
+        # Into the room, not the review packet: that GET writes a file to
+        # the repository, and it was reached from here.
         return {"text": f"Review and approve {n} section{'' if n == 1 else 's'}",
-                "href": f"{base}/issue/{key}/review",
+                "href": f"{base}/issue/{key}/room",
                 "why": "written but not approved"}
     if row["blockers"]:
         return {"text": f"Clear {len(row['blockers'])} publication blocker(s)",
                 "href": f"{base}/issue/{key}/room",
                 "why": row["blockers"][0][:120]}
-    if sec["total"] and sec["approved"] == sec["total"]:
+    if sec["total"] and sec["approved"] == sec["total"] and not row.get("published"):
         return {"text": f"Preview and publish week {week}",
                 "href": f"{base}/issue/{key}/publish",
                 "why": "every included section is approved"}
+    if row["sync_stale"]:
+        return sync
     if row["undecided"]:
         return {"text": f"Clear {row['undecided']} inbox item(s)",
-                "href": "/commissioner/inbox", "why": "nothing urgent, but not empty"}
+                "href": inbox, "why": "nothing urgent, but not empty"}
+    if row.get("published"):
+        return {"text": f"Week {week} is live", "href": f"{base}/issue/{key}/room",
+                "why": "nothing is waiting on you"}
     return {"text": f"Open week {week}", "href": f"{base}/issue/{key}/room",
             "why": "nothing is waiting on you"}
 

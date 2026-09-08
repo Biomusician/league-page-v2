@@ -74,12 +74,31 @@ def test_stale_data_comes_before_everything_else():
     assert a["href"].endswith("#syncpanel"), "a link to the page you are on is not an action"
 
 
+def test_stale_data_does_not_outrank_work_that_does_not_read_it():
+    """The other half of the rule above.
+
+    Reviewing prose that is already written, and an issue that is already
+    out, do not get better by fetching yesterday's waivers again. Both
+    leagues' cards said "Sync Sleeper" for two days while eight sections
+    sat unapproved on a published issue, because staleness outranked
+    everything rather than outranking the work that consumes the data.
+    """
+    a = _next_action(_row(sync_stale=True, sync_age="2 days ago",
+                          worth_a_look=0,
+                          sections={"total": 9, "approved": 1, "drafted": 8,
+                                    "empty": 0, "rows": []}))
+    assert a["text"] == "Review and approve 8 sections"
+
+
 def test_triage_comes_before_writing():
     a = _next_action(_row(worth_a_look=3, undecided=9,
                           sections={"total": 8, "approved": 0, "drafted": 0,
                                     "empty": 8, "rows": []}))
     assert "Triage 3" in a["text"]
-    assert a["href"] == "/commissioner/inbox"
+    # Filtered to this league. Unfiltered, the board is both leagues at
+    # once and nothing in the Desk linked to the filter that already
+    # existed on the route.
+    assert a["href"] == "/commissioner/inbox?league=disco"
     assert "9 undecided" in a["why"]
 
 
@@ -94,7 +113,12 @@ def test_approving_comes_before_publishing():
     a = _next_action(_row(sections={"total": 8, "approved": 5, "drafted": 3,
                                     "empty": 0, "rows": []}))
     assert a["text"] == "Review and approve 3 sections"
-    assert a["href"].endswith("/review")
+    # The room, not the review packet. The packet is a screen of system
+    # recommendations and nothing is approved on it; approving happens
+    # where the sections are. It was also, until this tranche, a GET that
+    # wrote a git-tracked file, so the one action that named it was the
+    # tool routing him at its own side effect.
+    assert a["href"].endswith("/issue/week-04/room")
 
 
 def test_publishing_is_only_offered_when_it_would_actually_work():
