@@ -1770,3 +1770,158 @@ third way of storing words permanently. So it is recorded as a hosted
 gap with the blocker named -- on a hosted Desk the About editor would
 not work -- rather than reclassified as out of scope to keep a table
 green.
+
+## 2026-09-08 — Shared Desk CSS is a partial, included after base, not before
+
+`_section_card.html` and `_matchup_card.html` are rendered by five surfaces
+and their stylesheet lived inside `editor.html`, so only `/edit` was styled.
+The rules moved to `templates/desk/_components.html`, included from
+`desk/base.html` **after** its own `<style>` block. The order is the whole
+decision: `.chip` and base's `.warn` are both single-class selectors, they
+tie on specificity, and source order decides them. Loading the partial first
+would have turned every chip into a padded yellow block, and it would also
+have broken `.chip.edited`, which deliberately shares `#fff3cd` with `.warn`.
+
+The tie itself is now stated rather than won by accident: there is an
+explicit `.chip.warn` rule, because the "approved before signatures" chip
+has never actually been yellow.
+
+## 2026-09-08 — `main.wide` is opt-in; the Desk does not go full-bleed globally
+
+The Issue Room's writing column was 405px at 1440px and still 405px at
+1920px, because `main { max-width:70rem }` bound the page while the rail and
+context panes are fixed. The obvious fix — lifting the cap above 1200px —
+would have applied to all 26 Desk templates, and two of them
+(`lowdown.html`, `matchup_detail.html`) are `width:100%` textareas that
+would have become 1856px wide. That is worse than 405. So the Room opts in
+through a `main_class` block, the same way the public site's `.wide` already
+works.
+
+## 2026-09-08 — The Room's writing column is capped, and the surplus is margin
+
+42rem (672px, about 70 characters of Consolas) rather than letting the
+column absorb everything. Uncapped it reaches 128 characters on a wide
+display, which is worse than 40.
+
+The surplus deliberately does **not** go to the context pane. Widening the
+preview iframe past 640px would make it render the public site's desktop
+layout — and at 368px it renders the phone layout, which is what almost
+every reader actually gets. The narrow preview was an accident that turned
+out to be correct, so it stays and the leftover width becomes margin. If the
+desktop render ever needs proofing, that wants an explicit width toggle
+defaulting to phone, not a permanently wider pane.
+
+## 2026-09-08 — Blockers are computed for a published issue too
+
+`mission_control.league_status` skipped `_blockers()` when the issue status
+was `published`, on the reading that "what would block publishing" is moot
+once it is out. But the Issue Room asks the same assembler and answers it,
+so the two screens disagreed in public: home said "0 would block publish"
+while the room said "BLOCKED · 8" about the same issue. A published issue
+can still be republished as a correction, and the same warnings would refuse
+it, so the count is the honest answer and the label changes instead.
+
+## 2026-09-08 — Sync staleness outranks the work that reads the data, and nothing else
+
+`_next_action` tested `sync_stale` first, and `SYNC_STALE_HOURS` is 20 — so
+on a weekly product "Sync Sleeper" is the answer on any day that is not the
+day he synced. Live, it was the answer for both leagues for two days while
+eight sections sat unapproved on an issue that had already been published.
+
+The original reason for putting it first is real and is kept: triaging an
+inbox built from three-day-old rosters is work done twice. So staleness
+still outranks inbox triage and writing empty sections, and no longer
+outranks reviewing prose that is already written or an issue that has
+already shipped. Fetching yesterday's waivers again does not improve either.
+
+## 2026-09-08 — The approval gate lives in `issue_builder`, not in a route
+
+Three screens can approve a module and only one was asking whether it could
+be: `/builder/module?action=approve` set `approved=1` **and** computed a
+signature with no check at all. That is worse than approving without a
+signature, because the record it produced is indistinguishable from one the
+gated path made — an empty or ROUGH-DRAFT-marked section could be signed
+into the publication record and read as audited afterwards.
+
+`issue_builder.approval_refusal(kind, text=, children=)` is now the gate and
+both screens call it, inside the editorial action so the text being judged
+is the text a signature would cover. A refusal writes nothing rather than
+rolling back. The signature was never the gate; this is.
+
+## 2026-09-08 — Rendering the review packet is separate from writing it
+
+`GET /issue/{k}/review` called `build_review_packet`, which does
+`path.write_text` into the issue directory, so opening the screen modified a
+git-tracked file — and `_next_action` pointed at that GET, so the tool
+recommended its own side effect. `review_packet_text` renders,
+`build_review_packet` writes, and writing is a POST behind a button, because
+a Claude Code authoring session genuinely reads that file and the ability to
+produce it had to stay.
+
+## 2026-09-08 — The Matchup Lab's Approve is relabelled, never removed
+
+It reads as the publication approval and is not one — Common Tactical
+Picture is what publishes, signed off once over every preview, so six
+matchups could sit "approved" while CTP was still in the blocker list.
+
+Removing the button, which two reviewers proposed, would have been a silent
+data loss: `matchup_status_change` on `action == "approve"` is the **only**
+writer of the repetition log, parsing the draft's `<!-- usage: -->` comment
+into the angle, frame, callback and joke family that preview spent. Take it
+away and Story Memory keeps answering "this bit is fresh" forever, because
+the corpus that would contradict it stops being written. It says what it
+does now: "Mark preview done".
+
+## 2026-09-08 — The rail: `not_written` still outranks `empty`
+
+Both can be true, and then the card does read two things at once ("not
+written · suggestions ready" and "No meaningful material this week —
+consider excluding"). Flipping the order looked like the fix and is wrong
+for the one section that matters most: the Lowdown is the Commissioner's own
+column and gets written whether or not the week produced material, so
+"nothing this week" would be the wrong instruction there.
+
+What did change is the states that were genuinely collapsed: "edited since
+approval" and "never approved" were one label, and an approval recorded
+before signatures existed showed as plain green "approved" — the one state
+that stops him looking — while the card underneath said otherwise.
+
+## 2026-09-08 — The front-page excerpt is a character budget, not a paragraph count
+
+The hero took `paras[:2]` and the second paragraph of the published Disco
+Week 1 Lowdown is the colophon about ChatGPT, Claude Code and Vercel, so
+build tooling occupied the most valuable prose slot on the site and pushed
+"This week in 30 seconds" to y=904 against a 900px fold.
+
+`paras[:1]` was the obvious fix and was measured to be the wrong lever: the
+draft issue's first paragraph alone is 766 characters and would not have
+cleared the fold either, while a short opening paragraph should still be
+allowed to bring the next one. A ~450-character budget over whole paragraphs
+does both. Whole paragraphs, because truncating one mid-sentence would be
+editing his writing rather than choosing how much of it to show.
+
+Consequence worth naming: the paragraph this drops from the front page is
+the AI-disclosure statement. It is still inside the issue and nothing was
+rewritten, but if that disclosure belongs on the front page it needs a home
+— and `/about/` is still a stub.
+
+## 2026-09-08 — `og:description` keeps the week and the league appended
+
+Falling back to the Commissioner's own first sentence is right; using it
+bare is not. Both leagues' Week 1 Lowdowns open with the identical sentence
+("Your teams are like newborn babies at this point…"), so a bare hook would
+have made two different group chats preview the same card with no week
+number and no league name — worse than the stub it replaced.
+
+## 2026-09-08 — Phone cell-wrapping is per-page, because measurement said so
+
+`td, th { white-space:nowrap }` makes every table a sideways scroll on a
+364px content box, and the blanket fix — letting cells wrap below 640px —
+was measured on the real build before shipping. On standings and teams (5
+columns) it removes the scroll entirely for about a fifth more height. On
+the draft board it keeps **all 13 tables scrolling** and makes the page 83%
+taller, because nine columns do not fit wrapped or not.
+
+So `main.wrapcells` is opt-in, and the wide data pages keep `nowrap` and
+scroll inside `.tablewrap`, which is the correct pattern for them. The
+general lesson: this one is not a CSS preference, it is a per-table fact.

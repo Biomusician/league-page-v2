@@ -1,10 +1,247 @@
 # HANDOFF
 
-Updated 2026-09-07, end of Tranche 5C (every authoring route moved; no cutover). Companions:
+Updated 2026-09-08, end of the overnight product tranche. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Overnight product tranche — Desk workflow and reader experience (2026-09-08)
+
+**Status: nothing published, nothing deployed, no cutover.
+`LEAGUEPAGE_PROSE_BACKEND` still unset, `.env` untouched, Supabase not
+mutated, `published/` `editorial/` and `archive/` byte-identical to the
+commit this started from. `docs/CUTOVER.md` is unchanged and still the
+thing to read before deciding anything about the cloud.**
+
+Starting HEAD `2111db9`. Five commits, each green on its own.
+
+### How the work was chosen
+
+Three independent reviewers examined the running product at `2111db9` —
+the Commissioner who ships it weekly, a league member reading it on a
+phone, and a UI/UX systems reviewer — then each was given the other two's
+conclusions and asked for a rebuttal. The rebuttal round changed the
+implementation four times and is the reason several things below are
+*not* what the first pass proposed. `claude-usage` is not on PATH, so
+scope was set by task fitness, which is that tool's own stated rule.
+
+**What the rebuttals overturned, before it shipped:**
+
+- Dropping the front-page excerpt to one paragraph was the wrong lever.
+  Measured against the real snapshots, the draft issue's first paragraph
+  alone is 766 characters and would not have cleared the fold either. It
+  is a character budget now.
+- A bare first-sentence `og:description` would have made both leagues'
+  Week 1 links preview *identically* in two different group chats, because
+  both Lowdowns open with the same sentence. The week and league stay
+  appended.
+- Extracting `.compare` as written would have made proposal diffs render
+  as two 190px columns in the Room, because its media query asks the
+  viewport about a container.
+- Widening the Room's context pane to "finally show the desktop preview"
+  was vetoed on the grounds that the 368px iframe means the Commissioner
+  has only ever proofed the phone render — which is what almost every
+  reader gets. The surplus became margin instead.
+- Two proposals were dropped for colliding with "do not remove
+  functionality": deleting the Story Board, and stripping Approve from the
+  Matchup Lab. The second turned out to be the only writer of the
+  repetition log, so removing it would have silently stopped Story Memory
+  ever learning a bit was stale. It was relabelled instead.
+
+### What changed
+
+**`templates/desk/_components.html` (new).** `_section_card.html` and
+`_matchup_card.html` are rendered by five Desk surfaces and their entire
+stylesheet lived inside `editor.html`, so exactly one of the five was
+styled. Measured in the Issue Room at 1440x900 before: 41 chips at 16px
+with no background or border, the writing box 191px wide in Georgia, and
+`.ghost` — 2,661 characters of the **private writing brief** — printed
+into the card as ordinary copy, because the rule that hides it was in the
+other file. Included from `base.html` *after* its own block, because
+`.chip` and `.warn` tie on specificity and source order decides them.
+
+Four things fixed with the move rather than propagated by it: `.compare`
+became container-relative; `.chip` states its colour instead of inheriting
+`var(--muted)` at 4.26:1; `.chip.warn` — the "approved before signatures"
+chip — gets an explicit rule, having never actually been yellow; and
+`.chip.excluded` came off 4.35:1. `.visually-hidden` is defined for the
+first time, so the two labels using it stop rendering as visible text.
+
+**The Room's writing column: 405px → 672px** (about 40 characters of
+Consolas to about 70). `main` capped the page at 70rem while the rail and
+context panes are fixed, so it was 405px at 1440px *and* at 1920px. The
+cap is `main.wide`, opt-in: a global change would have made the Lowdown
+and matchup editors 1856px wide. The three-column layout used to engage at
+1101px where it had 754px for two tracks whose minimums total 784px; it
+now yields at the same width `main.wide` starts, so the 386px trough
+between them is gone.
+
+**One answer to "is this issue done?"** `mission_control.league_status`
+skipped the blocker computation for a published issue, so Home said "0
+would block publish" while the Room said "BLOCKED · 8" about the same
+issue, in both leagues, live. Asked unconditionally now. The Room also
+printed "8 would block publication" four lines above a panel titled
+"Publication check" reading "READY · 0 blockers" — two different
+questions both claiming the whole word. Each now says which it asks.
+
+**"Next" stopped saying "Sync Sleeper" to everything.** Staleness was the
+first rung and the data is over twenty hours old on any day that is not
+the day he synced, so both leagues said it for two days while eight
+sections sat unapproved on a published issue. It keeps its priority over
+the work that *reads* the data — triaging an inbox built from three-day-old
+rosters is work done twice — and loses it over the work that does not.
+
+**`GET /issue/{k}/review` stopped writing to the repository.** It called
+`build_review_packet`, which does `path.write_text`, so opening the review
+screen modified a git-tracked file — and `_next_action` pointed at it, so
+the Desk was routing him at its own side effect. Rendering and writing are
+separate; writing is a button, because a Claude Code session reads that
+file.
+
+**The builder's approval bypass is closed.**
+`/builder/module?action=approve` set `approved=1` **and computed a
+signature** while applying none of the gates `/edit/approve` enforces, so
+an empty or ROUGH-DRAFT-marked section could be signed into the
+publication record from that screen and read as audited afterwards. The
+gates moved to `issue_builder.approval_refusal`; both screens ask them,
+inside the action, and a refusal writes nothing.
+
+**The Room became the room.** Bulk approve (16 clicks → 3, using the
+function that was already loaded and had no button), the Takes panel (one
+`{% include %}`; its context was already in scope), week navigation (there
+was none anywhere in the Desk — week 2 needed a hand-edited URL), and
+links to the Command Brief and Force Flow, which were reachable from the
+workspace only and from nowhere at all respectively.
+
+**The rail says what needs him.** Eight of eleven sections read "needs
+review", which is not a priority order. "Edited since approval" and "never
+approved" were one label; an approval predating signatures showed as plain
+green "approved" while the card said otherwise. On the real Disco week
+that turns eight identical rows into eight that read "approved, unsigned"
+— which is exactly the one-time re-approval `docs/CUTOVER.md` describes.
+
+**The reader.** `og:description` was "Week 01 of DISCO CHAT." on every
+issue — the one string with 100% reader reach. It carries his own opening
+sentence now. "This week in 30 seconds" moved from y=904 to y=799 against a
+900px fold, because the hero excerpt was taking the Lowdown's second
+paragraph and that paragraph is the colophon about ChatGPT and Vercel. The
+issue page got a heading, a contents list above the fold and prev/next
+(the imported archive pages have had prev/next all along). Four opaque nav
+labels carry plain-language subtitles on desktop and become a 44px-target
+scrolling strip on a phone. My Team moves to just under the lede once
+chosen, and only once chosen.
+
+**Quote extraction.** `_sentences` feeds receipts, takes, history and the
+team briefing; all four promise the Commissioner's sentence as written. 22
+built files carried `**Swanson**`, 9 carried escaped `<b>` tags, and the
+splitter ended a sentence at every period so a published quote read
+`"Justin Herbert, QB — Gary — LAC vs."` and stopped. The third is the
+worst: it changes what he said.
+
+### Measured, before and after
+
+| | before | after |
+| --- | --- | --- |
+| Room writing column @1440 | 405px | 672px |
+| Room writing column @1920 | 405px | 672px |
+| Room writing column @1101 | 386px | 770px (two-column) |
+| Room textarea | 191px Georgia | 635px Consolas |
+| Private writing brief visible in Room | yes, 2,661 chars | no |
+| Approve 8 sections from the Room | 16 clicks | 3 |
+| Home vs Room blocker count | 0 vs 8 | 8 vs 8 |
+| Rail states over 11 sections | 8× "needs review" | 8× "approved, unsigned" |
+| Desk home targets under 24px @390 | 14 | 0 |
+| Room mode tabs @390 | 32px | 44px |
+| "30 seconds" y @1440 (fold 900) | 904 | 799 (Surfeit 838) |
+| Public home @390 | 7.0 screens | 5.5 |
+| Public nav targets | ~18px | 44px |
+| Public nav height @390 | ~85px wrapped | 55px, one row |
+| "Your week" y @1440, team chosen | 1618 | 757 |
+| Issue page contents list | none | above the fold, 7 anchors |
+| `og:description` | "Week 01 of DISCO CHAT." | his own opening sentence |
+| Markdown in built output | 23 files | 1 (archive footnote, correct) |
+| Escaped HTML in built output | 9 files | 0 |
+| standings/teams tables scrolling @390 | 1 each | 0 |
+
+### Verified
+
+Browser measurement at 390 / 768 / 1100 / 1199 / 1200 / 1440 / 1920 on the
+running Desk and the built site, both leagues. No horizontal overflow at
+any width on any surface touched. `/edit` is unchanged by the extraction —
+1019px, Consolas, ghost hidden, `#savestate` still right-aligned — which
+was the thing most at risk.
+
+Screenshots in this environment render at pane scale rather than the
+emulated viewport, so **the evidence here is DOM measurement**
+(`getBoundingClientRect`, `getComputedStyle`, `scrollWidth` vs
+`clientWidth`), not eyeballed images. That is stricter for geometry and
+weaker for "does it look right"; the pages have not been visually
+inspected at full size and that is the gap to close first.
+
+Gates: full pytest green; public build 101 pages, built-output privacy
+audit clean; repo privacy audit clean at HEAD; publication QA 4 issues, 0
+blockers, 5 warnings (roster-drift warnings, pre-existing kind); internal
+link and anchor integrity 0 broken across 101 pages; hosted mutation audit
+green with the one new route declared; 9/9 published snapshots and 34/34
+prose records byte-identical (git reports `published/`, `editorial/` and
+`archive/` clean).
+
+### Deliberately not done
+
+- **The public reading measure.** An opt-in `main.reading { max-width:42rem }`
+  was specified and deferred: it changes bytes league members read, it
+  costs ~25% scroll depth, and it is a no-op below a 698px viewport, so it
+  earns nothing on the phone where most reading happens. Worth doing on its
+  own with a `dist/` diff.
+- **The Desk token layer.** Specified (spacing, type, one status vocabulary
+  replacing seven). Not applied, because the remap would have to rename
+  `.chip.approved`, and `desk-editor.js` treats that literal class as
+  application state in three places — the chip patch after approve, the
+  bulk-approve filter, and Collapse Approved. Doing it means changing CSS
+  and JS in one commit, and it buys consistency rather than workflow.
+- **Quieter chips.** Vetoed in the rebuttal: an unwritten matchup child
+  drawn as absence is pixel-identical to a written one inside a collapsed
+  `<details>`, which fails exactly when he is scanning on publish night.
+- **The 15 native `alert()`/`confirm()`/`prompt()` calls**, including the
+  rewrite request, which is a single-line `window.prompt` with no section
+  context and no history of prior requests.
+- **`/about/` is still "Information about the project will be added here."**
+  It is linked from the league-select page. Related: the front-page excerpt
+  change drops the **AI-disclosure paragraph** off the front page. It is
+  still inside the issue, one click away, and nothing was rewritten — but
+  if that disclosure should stay on the front page it needs somewhere to
+  live, and the About page is the obvious somewhere. **This one needs a
+  decision.**
+- **The issue page carries two `<h1>`s** (league masthead, issue title).
+  Standard site-name-plus-article-title practice and valid, but it makes
+  the issue page inconsistent with the other 100.
+- **Two teams named in the live Week 1 issue no longer exist** ("George &
+  Friends" is DIP's old name). That is published prose in a frozen
+  snapshot; correcting it is a republish and a Commissioner act.
+- The archive buries the current season under the 2021 reconstruction;
+  `/matchups/` is a strict superset of the issue's own matchup section;
+  the Change Inbox's baseline has never been pinned (`reviewed_at` is NULL
+  on every snapshot row, and Disco has exactly one, so its inbox diff is
+  effectively off).
+
+### Cloud / cutover state: unchanged
+
+Untouched by this tranche. `docs/CUTOVER.md` still describes the position
+exactly: ready in shape, not in data.
+`scripts/import_editorial_state.py --apply` has **not** been run; its dry
+run remains 808 rows to insert, 0 differ, prose identical, 28 sections to
+mark commissioner-edited. Every authoring route still claims `safe=False`,
+and `test_hosted_mutation_audit.py` still holds that gate. The one new
+mutating route (`review_packet_save`) is declared operational, for the same
+recomputable-research reason as `issue_build`.
+
+### Exact recommended next action
+
+Open the Issue Room for either league and look at it. If it reads right,
+the next tranche is the public reading measure and then the token layer
+with its JS rename, in that order and separately. The cutover decision is
+independent of all of this and still waiting.
 
 ## Commissioner Portal, tranche 5C — the routes moved (2026-09-07)
 

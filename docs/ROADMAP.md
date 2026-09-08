@@ -146,6 +146,38 @@ Structural blockers still open, in order:
    fail.
 5. **Private Vercel project + env vars.**
 
+## Product / UX backlog (from the 2026-09-08 overnight tranche)
+
+Three independent reviews plus a rebuttal round. What shipped is in
+`docs/HANDOFF.md`; what follows is what was deliberately left, ranked by
+(value delivered) / (risk of breaking something).
+
+| # | Item | Size | Risk | Note |
+| --- | --- | --- | --- | --- |
+| 1 | `/about/` content, and a home for the AI-disclosure paragraph | S | none | Blocked on Jonathan: it is prose, and the front-page excerpt change moved that disclosure into the issue. |
+| 2 | Public reading measure as opt-in `main.reading { max-width:42rem }` | S | med | Changes bytes readers see; ~25% more scroll; a literal no-op below a 698px viewport, so it buys nothing on a phone. Do it alone with a `dist/` diff. |
+| 3 | Desk token layer + one status vocabulary replacing seven | M | med | Blocked on a JS rename: `desk-editor.js` uses the literal class `approved` as application state in three places (chip patch after approve, bulk-approve filter, Collapse Approved). CSS and JS in one commit. |
+| 4 | Replace the 15 native `alert`/`confirm`/`prompt` with inline states | M | low | The rewrite request is the worst of them: a single-line `window.prompt`, no section context, no history of prior requests. A `.state` pattern is specified in the review. |
+| 5 | Archive: current season first; the 2021 reconstruction behind a fold | S | low | Today this year's two links sit ~55 lines down, under 52 reconstructed games. |
+| 6 | Give the issue's matchup section what `/matchups/` already has | M | med | `/matchups/` is a strict superset: same prose plus tier tags, team links and archive callbacks. The newspaper carries the inferior copy of its own flagship. Card metadata is live, so an archived issue must not bake it in. |
+| 7 | Pin the Change Inbox baseline | S | low | `reviewed_at` is NULL on every snapshot row and Disco has exactly one, so its inbox diff is effectively off. Either auto-pin on the next sync or move the button somewhere it gets pressed. |
+| 8 | Team-name normalisation at publish | M | med | Two teams named in the live Week 1 issue no longer exist. Fixing the published copy is a republish and a Commissioner act; stopping the next one is a build check. |
+| 9 | Room: 3.8s / ~200KB per load; 6 `location.reload()` sites | M | med | Accepting a QA fix or requesting a rewrite costs a full reload. Approve already patches in place, which is the model. |
+| 10 | Desk re-entry memory | S | low | Nothing anywhere remembers where he was; the Room's hash survives a tab, not a browser restart. |
+
+Explicitly rejected rather than deferred:
+
+- **Deleting the Story Board** and **stripping Approve from the Matchup
+  Lab** — both collide with "do not remove functionality", and the second
+  would have silently killed the repetition log (see `docs/DECISIONS.md`).
+- **Cutting public nav from nine destinations to five by deleting
+  Standings and Black Box** — measured at Week 1, which is the emptiest
+  moment of the season for exactly those two pages. A nav slot is a
+  season-long decision.
+- **Quieter chips that draw the unapproved state as absence** — inside a
+  collapsed `<details>` an unwritten matchup child becomes pixel-identical
+  to a written one.
+
 ## Status key
 
 `shipped` · `partial` (usable, not finished) · `planned` · `deferred`
