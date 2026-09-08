@@ -201,7 +201,11 @@ def test_there_is_no_delete_button_for_a_custom_section(env):
 # ------------------------------------------------------------ responsive
 
 def _css():
+    # `_components.html` is where the shared card rules live now. They were
+    # inside `editor.html`, which is why every other surface that renders
+    # the same partials rendered them unstyled.
     return (pathlib.Path("templates/desk/base.html").read_text(encoding="utf-8")
+            + pathlib.Path("templates/desk/_components.html").read_text(encoding="utf-8")
             + pathlib.Path("templates/desk/editor.html").read_text(encoding="utf-8")
             + pathlib.Path("templates/desk/_takes_panel.html").read_text(encoding="utf-8")
             + pathlib.Path("templates/desk/_qa_panel.html").read_text(encoding="utf-8"))
@@ -221,13 +225,13 @@ def test_no_control_is_sized_below_a_finger():
 def test_the_writing_box_does_not_zoom_on_ios():
     """Below 16px, Safari zooms on focus and never zooms back, on the one
     surface he actually writes in."""
-    css = pathlib.Path("templates/desk/editor.html").read_text(encoding="utf-8")
+    css = _css()
     m = re.search(r"textarea\.prose\s*\{[^}]*font-size:\s*([\d.]+)rem", css)
     assert m and float(m.group(1)) >= 1.0
 
 
 def test_a_nested_matchup_does_not_eat_a_phone_screen():
-    css = pathlib.Path("templates/desk/editor.html").read_text(encoding="utf-8")
+    css = _css()
     assert "details.sec.child" in css
     narrow = css[css.index("@media (max-width:30rem)"):]
     assert "margin-left:0" in narrow.replace(" ", "")

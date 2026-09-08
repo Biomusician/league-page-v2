@@ -1,0 +1,122 @@
+{#  Shared Desk components.
+
+    These rules used to live inside `editor.html`, which meant the section
+    card partial was styled on `/edit` and nowhere else. Every other
+    surface that renders the same partials -- the Issue Room, the About
+    editor, Force Flow, the takes panel -- got the markup with none of its
+    presentation. Measured in the Room at 1440x900 before this file
+    existed: 41 chips at 16px with no background or border, the writing box
+    191px wide in Georgia, and `.ghost` -- 2,661 characters of the private
+    writing brief -- rendered as visible body copy because the rule that
+    hides it was in the other file.
+
+    Included from `desk/base.html` AFTER its own style block, deliberately.
+    `.chip` and base's `.warn` tie on specificity, and source order is what
+    decides them; loading this first would turn every chip yellow. #}
+<style>
+  /* Used by _section_card.html and about.html and defined nowhere, so both
+     labels rendered as visible body text. */
+  .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden;
+                     clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap;
+                     border:0; padding:0; margin:-1px; }
+
+  /* ---------------------------------------------------- disclosure cards */
+  details.sec { margin:.8rem 0; }
+  details.sec > summary { display:flex; gap:.6rem; align-items:baseline; flex-wrap:wrap;
+                          font-size:1.05rem; font-weight:bold; list-style:none; }
+  details.sec > summary::before { content:"▸ "; }
+  details.sec[open] > summary::before { content:"▾ "; }
+  /* Nesting is structural: these cards live inside the parent's <details>,
+     so they close with it and Expand All reaches them. The rule below only
+     makes that visible. Used by _matchup_card.html, so the Room needs it. */
+  details.sec.child { margin:.6rem 0 .6rem 1rem; border-left:3px solid var(--line);
+                      background:#fdfcf8; }
+  details.sec.child > summary { font-size:.98rem; }
+  /* On a phone the indent plus two sets of card padding was taking a fifth
+     of the screen away from the box he writes in. The left border still
+     says "this is inside that"; the margin was only saying it twice. */
+  @media (max-width:30rem) {
+    details.sec.child { margin-left:0; padding-left:.5rem; }
+  }
+
+  /* ------------------------------------------------------------- chips */
+  /* `details summary { color:var(--muted) }` in base.html means a chip in a
+     summary inherits #6b6f76, which on this tint is 4.26:1 at .72rem --
+     a failure the move would have introduced, since these chips sit on
+     white today. Stated rather than inherited. */
+  .chip { font-size:.72rem; font-weight:normal; padding:.08rem .45rem; border-radius:3px;
+          border:1px solid var(--line); background:#efede7; color:#4a4438; }
+  .chip.approved { background:#e2f0e2; border-color:#8fbc8f; color:#2f6b2f; }
+  .chip.edited { background:#fff3cd; border-color:#e0c96a; color:#5a4a10; }
+  .chip.empty { background:#fff3cd; border-color:#e0c96a; color:#5a4a10; }
+  .chip.notwritten { background:#f3e9d8; border-color:#d8bd8a; color:#7a5b18; }
+  .chip.stale { background:#e8eef7; border-color:#9db4d4; color:#2d4a73; }
+  /* Were #6b6f76 on #eee -- 4.35:1, under the 4.5 floor, and struck
+     through on top of it. */
+  .chip.excluded { background:#efeee9; border-color:#dcd8cf; color:#5b564d;
+                   text-decoration:line-through; }
+  .chip.retired { background:#efeee9; border-color:#dcd8cf; color:#5b564d; }
+  /* base.html's `.warn` is a single class, exactly like `.chip`, so the two
+     tied and source order handed it to `.chip`. The "approved before
+     signatures" chip in _section_card.html has never been yellow. */
+  .chip.warn { background:#fff3cd; border-color:#e0c96a; color:#5a4a10; }
+
+  /* ----------------------------------------------------- writing surface */
+  /* 1rem, not .92: below 16px iOS Safari zooms on focus and never zooms
+     back, on the surface he actually writes in. */
+  textarea.prose { width:100%; font-family:Consolas, monospace; font-size:1rem; line-height:1.45; }
+  .editwrap { position:relative; }
+  /* The writing brief is private. In the Room this was `display:block;
+     position:static`, so it printed into the card as ordinary copy. */
+  .editwrap .ghost { position:absolute; inset:2px; padding:.35rem .55rem; overflow:hidden;
+                     pointer-events:none; white-space:pre-wrap; color:#6f6a5e; font-size:.84rem;
+                     line-height:1.5; font-family:Consolas, monospace; display:none; }
+  .editwrap .ghost .ghostlabel { display:block; font-style:italic; color:#8f3a0c;
+                                 font-family:Georgia, serif; margin-bottom:.25rem; }
+  .editwrap:not(.has-content) .ghost { display:block; }
+  .editwrap:not(.has-content) textarea.prose { background:#fbfaf6; }
+
+  /* desk-editor.js builds this at runtime wherever it loads, which is both
+     editors -- so it was never editor-only. 2.75rem is 44px: a finger, not
+     a mouse. These sit directly above the box he writes in, which on a
+     phone is the only thing on screen. */
+  .formatbar { display:flex; gap:.25rem; margin:.4rem 0 .15rem; }
+  .formatbar button { min-width:2.75rem; min-height:2.75rem; padding:.1rem .45rem;
+                      font-family:Georgia, serif; font-size:.9rem; line-height:1.3; }
+  @media (min-width:56rem) {
+    .formatbar button { min-width:2rem; min-height:0; }
+  }
+
+  /* ------------------------------------------------------ card furniture */
+  /* One line under the summary saying who wrote what is in the card and
+     that he can change it. Quiet, because it is orientation rather than a
+     warning, but not `.meta` grey: it is the answer to the question the
+     card was failing to answer. */
+  .authority { margin:.2rem 0 .5rem; font-size:.88rem; color:#4a4438;
+               border-left:3px solid var(--line); padding-left:.6rem; }
+  .briefpanel { border:1px dashed #b8b2a4; background:#faf8f1; padding:.5rem .9rem;
+                margin:.5rem 0; font-size:.86rem; white-space:pre-wrap;
+                font-family:Consolas, monospace; }
+  .briefpanel .meta, details.evd summary { font-family:Georgia, serif; }
+  details.evd { margin:.4rem 0; font-size:.84rem; }
+  .cardctl { display:flex; gap:.5rem; flex-wrap:wrap; margin:.5rem 0 .2rem; align-items:center; }
+  .subcard { border-top:1px dashed var(--line); padding-top:.5rem; margin-top:.7rem; }
+  .subcard h4 { margin:.1rem 0 .3rem; }
+  .previewbox { border:1px solid var(--line); background:#fffdf8; padding:.6rem 1rem; margin:.4rem 0; }
+  .proposal { border:2px solid #3a5a8c; background:#f0f4fb; padding:.6rem .9rem; margin:.5rem 0; }
+  /* Was `1fr 1fr` with a `max-width:56rem` VIEWPORT query. In the Room this
+     grid lives inside a centre column narrower than the breakpoint on a
+     1440px screen, so the query never fired and every rewrite diff would
+     have rendered as two ~190px columns. Ask the container, not the
+     window; `min(20rem,100%)` is what stops the floor overflowing a phone. */
+  .compare { display:grid; gap:.7rem;
+             grid-template-columns:repeat(auto-fit, minmax(min(20rem, 100%), 1fr)); }
+  .revlist { font-size:.85rem; }
+  .revlist li { margin:.25rem 0; }
+
+  /* Both editors defined these identically. The `margin-left:auto` that
+     positions it in the long-form editor's toolbar stays there; the Room
+     positions it with `.ihead .grow`. */
+  #savestate.dirty { color:#8a6d00; font-weight:bold; }
+  #savestate.error { color:var(--accent); font-weight:bold; }
+</style>

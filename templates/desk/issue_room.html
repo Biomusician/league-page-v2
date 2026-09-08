@@ -1,6 +1,7 @@
 {% extends "desk/base.html" %}
 {% block title %}{{ league.display_name }} {{ issue_key }} — Issue Room{% endblock %}
 {% block masthead_right %}<a href="/commissioner">← Desk</a>{% endblock %}
+{% block main_class %}wide{% endblock %}
 {% block content %}
 {#  One room for a week's work.
 
@@ -16,17 +17,27 @@
     sections are all rendered and one is shown, which is why moving between
     them costs nothing and never loses an unsaved box. #}
 <style>
-  :root { --rail:15.5rem; --ctx:23rem; }
-  .room { display:grid; gap:0 1.1rem; grid-template-columns:var(--rail) minmax(0,1fr) var(--ctx);
-          align-items:start; }
+  :root { --rail:15.5rem; --ctx:23rem; --work-min:26rem; --work-max:42rem; }
+  /*  The writing column was the narrowest region on the screen: 405px at
+      1440px, and still 405px at 1920px, because `main` capped the page at
+      70rem and the rail and context panes are fixed. 405px of Consolas at
+      16px is about 40 characters. 42rem is about 70, which is a measure.
+
+      The cap is deliberate on both sides. Left uncapped the box grows to
+      128 characters on a wide display, which is worse than 40; and the
+      surplus does NOT go to the preview, because at 23rem the preview
+      renders the public site's phone layout -- which is what almost every
+      reader gets, and therefore the render worth proofing. Leftover width
+      becomes margin instead.  */
+  .room { display:grid; gap:0 1.1rem; align-items:start;
+          margin-inline:auto;
+          grid-template-columns:var(--rail) minmax(var(--work-min),var(--work-max)) var(--ctx); }
   /* ---------- sticky issue header ---------- */
   .ihead { position:sticky; top:0; z-index:30; grid-column:1/-1; background:var(--paper);
            border-bottom:1px solid var(--line); padding:.5rem 0 .55rem; margin-bottom:.8rem;
            display:flex; align-items:center; gap:.5rem .9rem; flex-wrap:wrap; }
   .ihead .who { font-weight:bold; font-size:1.05rem; letter-spacing:.02em; }
   .ihead .meta, #savestate { font-size:.76rem; color:var(--muted); }
-  #savestate.dirty { color:#8a6d00; font-weight:bold; }
-  #savestate.error { color:var(--accent); font-weight:bold; }
   .ihead .grow { margin-left:auto; }
   .ihead .btn, .ihead button { min-height:2.1rem; }
   /* ---------- status tokens ---------- */
@@ -79,7 +90,7 @@
   dialog.pub textarea { width:100%; font:inherit; font-size:.86rem; }
   /* ---------- responsive ---------- */
   .modetabs { display:none; }
-  @media (max-width:1100px) {
+  @media (max-width:1199.98px) {
     .room { grid-template-columns:var(--rail) minmax(0,1fr); }
     .ctx { display:none; grid-column:1/-1; position:static; }
     .room.show-ctx .ctx { display:block; }
@@ -117,10 +128,11 @@
     {% endif %}
     {% if live %}<span class="tok tok-live">rev {{ published_rev.n }} live</span>{% endif %}
     <span class="grow"></span>
-    <span id="savestate">All changes saved</span>
-    <button type="button" onclick="saveAll()">Save</button>
+    <span id="savestate" role="status" aria-live="polite" aria-atomic="true">All changes saved</span>
+    <button class="primary" type="button" onclick="saveAll()">Save</button>
     <a class="btn" href="{{ edit_base }}/full-preview" target="_blank" rel="noopener">Preview ↗</a>
-    <button class="primary" type="button" onclick="openPublish()">Publish…</button>
+    <button class="{% if qa.ready and not blockers %}primary{% endif %}"
+            type="button" onclick="openPublish()">Publish…</button>
     <span class="modetabs">
       <button type="button" onclick="mode('rail')">Sections</button>
       <button type="button" onclick="mode('work')">Edit</button>
@@ -200,9 +212,15 @@
       {% endfor %}
     </div>
     <div class="ctxbody" data-ctx="qa" hidden>
+      {#  Two checks, two questions. Assembly asks whether the issue can be
+          built at all; the copy check reads the words. They used to sit
+          four lines apart both claiming to be "publication". #}
+      <p class="meta"><b>Assembly</b> — can this issue be built?</p>
       {% if blockers %}
-      <p class="meta"><b>{{ blockers|length }} would block publication</b></p>
+      <p class="meta">{{ blockers|length }} would refuse:</p>
       <ul>{% for b in blockers %}<li class="meta">{{ b.text }}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="meta">Nothing would refuse.</p>
       {% endif %}
       {% with qa_actions = true %}{% include "desk/_qa_panel.html" %}{% endwith %}
     </div>
@@ -270,7 +288,7 @@ function ctxTab(name) {
   document.querySelectorAll("[data-ctx]").forEach(b => b.hidden = b.dataset.ctx !== name);
   document.querySelectorAll("[data-tab]").forEach(b =>
     b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  if (window.matchMedia("(max-width:1100px)").matches) mode("ctx");
+  if (window.matchMedia("(max-width:1199.98px)").matches) mode("ctx");
 }
 
 function mode(which) {

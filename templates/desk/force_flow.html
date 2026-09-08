@@ -1,6 +1,15 @@
 {% extends "desk/base.html" %}
 {% block title %}Force Flow — {{ league.display_name }}{% endblock %}
 {% block content %}
+<style>
+  /*  This page renders section-card markup but is not a page of section
+      cards: a row is a transaction to scan, not a writing task. Without
+      these two rules the shared `details.sec > summary` promotes every
+      waiver claim to the visual weight of an Issue Room section, and the
+      note box -- which is prose -- renders in the editor's monospace. */
+  .sec.card > summary { font-size:1rem; font-weight:normal; }
+  .sec.card textarea.prose { font-family:Georgia, 'Times New Roman', serif; }
+</style>
 {#  The review queue: what the league did that was not routine, and why
     each one surfaced. Private. A note is optional on every row -- a
     flagged move with none publishes on its evidence alone, and nothing
