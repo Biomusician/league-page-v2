@@ -99,18 +99,34 @@ def _rail_state(card: dict) -> tuple[str, str]:
         return "automatic", "off"
     if card.get("proposal") or (card.get("blurb") or {}).get("proposal"):
         return "AI draft ready", "ai"
+    # `not_written` stays ahead of `empty`, deliberately. They can both be
+    # true, and then the card does read two things at once -- but the
+    # Lowdown is the Commissioner's own column and he writes it whether or
+    # not the week produced material, so "needs writing" is the instruction
+    # and "nothing this week" would be the wrong one.
     if card.get("editable") and card.get("not_written"):
         return "needs writing", "work"
-    if card.get("changed_since_approval"):
-        return "needs review", "need"
     if card.get("empty"):
         return "nothing this week", "work"
-    if card.get("approved"):
-        return "approved", "ok"
     total, written = card.get("children_total") or 0, card.get("children_written") or 0
     if total and written != total:
         return f"{written}/{total} written", "work"
-    return "needs review", "need"
+    # An approval recorded before signatures existed says he clicked, not
+    # that he read what is there now. The card has always said so; the rail
+    # showed it as a plain green "approved", which is the one state that
+    # stops him looking.
+    if card.get("approval_legacy"):
+        return "approved, unsigned", "need"
+    if card.get("changed_since_approval"):
+        return "edited since approval", "need"
+    if card.get("approved"):
+        return "approved", "ok"
+    if (card.get("brief") or {}).get("stale_prose"):
+        return "research moved on", "ai"
+    # Split from the case above it. Both used to read "needs review", so
+    # "you changed this after approving it" and "this has never been
+    # approved" were indistinguishable in the one place he scans.
+    return "not approved", "need"
 
 
 def _strip_draft_markers(text: str) -> str:
@@ -1597,7 +1613,16 @@ def register_editor(app, storage, templates) -> None:  # noqa: C901 - route regi
             card["state_label"], card["tone"] = _rail_state(card)
         with storage() as s:
             _hours, said = mission_control._age(s.get_meta(sync_jobs.LAST_SYNC_KEY))
+            current = int(s.get_meta("current_week") or 1)
         ctx["sync_age"] = said
+        # There was no week navigation anywhere in the Desk: week 2 was
+        # reachable only by editing the URL. The season to date plus the
+        # draft issue, which is the whole set of issues that exist.
+        ctx["current_week"] = current
+        ctx["issue_links"] = (
+            [{"key": "draft", "label": "draft"}]
+            + [{"key": f"week-{w:02d}", "label": f"wk {w}"}
+               for w in range(1, current + 1)])
         ctx["weekly"] = [c for c in ctx["cards"] if c.get("checklist")]
         ctx["admin"] = [c for c in ctx["cards"] if not c.get("checklist")]
         return templates.TemplateResponse(request, "desk/issue_room.html", ctx)

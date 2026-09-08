@@ -11,7 +11,10 @@
   .nextline { margin:.5rem 0 .1rem; }
   .nextlabel { font-size:.68rem; letter-spacing:.14em; text-transform:uppercase;
                color:var(--muted); margin-right:.4rem; }
-  a.next { font-size:1.05rem; font-weight:bold; color:var(--accent); }
+  /* The single most important link on the card, and it was a 21px
+     target on a phone. */
+  a.next { font-size:1.05rem; font-weight:bold; color:var(--accent);
+           display:inline-flex; align-items:center; min-height:44px; }
   .mcstats { list-style:none; margin:.7rem 0 0; padding:0; display:grid;
              grid-template-columns:repeat(auto-fit, minmax(7rem, 1fr)); gap:.4rem; }
   .mcstats li { display:grid; gap:.05rem; padding:.35rem .5rem; border-radius:3px;
@@ -29,6 +32,12 @@
   .golinks { margin:.6rem 0 0; font-size:.85rem; }
   .golinks b { font-size:.62rem; letter-spacing:.14em; text-transform:uppercase;
                color:var(--muted); font-weight:normal; margin-right:.35rem; }
+  /* A row of inline links is a row of 18px targets on a phone. */
+  @media (max-width:40rem) {
+    .golinks { line-height:1.2; }
+    .golinks a { display:inline-flex; align-items:center; min-height:44px;
+                 padding:0 .15rem; }
+  }
 </style>
 <h2>Commissioner's Desk</h2>
 

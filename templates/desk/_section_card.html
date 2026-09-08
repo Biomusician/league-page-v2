@@ -67,30 +67,30 @@
       <label class="visually-hidden" for="title-{{ c.module_key }}">Section title</label>
       <input type="text" id="title-{{ c.module_key }}" name="title"
              value="{{ c.title }}" size="24" maxlength="80">
-      <button>Rename</button>
+      <button class="quiet">Rename</button>
     </form>
     {% endif %}
     <form method="post" action="{{ edit_base }}/module" class="inline">
       <input type="hidden" name="module_key" value="{{ c.module_key }}">
-      {% if c.included %}<button name="action" value="exclude">Exclude from issue</button>
+      {% if c.included %}<button class="danger" name="action" value="exclude">Exclude from issue</button>
       {% else %}<button name="action" value="include">Include in issue</button>{% endif %}
       <input type="hidden" name="position" value="">
     </form>
     {% if c.kind != "auto" %}
-      <button type="button" onclick="approve('{{ c.module_key }}', true)">Approve</button>
-      <button type="button" onclick="approve('{{ c.module_key }}', false)">Unapprove</button>
+      <button class="primary" type="button" onclick="approve('{{ c.module_key }}', true)">Approve</button>
+      <button class="quiet" type="button" onclick="approve('{{ c.module_key }}', false)">Unapprove</button>
     {% endif %}
     {% if c.editable %}
-      <button type="button" onclick="previewSection('{{ c.module_key }}')">Preview section</button>
-      <button type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
+      <button class="quiet" type="button" onclick="previewSection('{{ c.module_key }}')">Preview section</button>
+      <button class="quiet" type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
       {% if c.not_written %}
-        <button type="button" onclick="copyPrompt('{{ c.module_key }}', this)">Copy prompt for Claude</button>
-        <button type="button" onclick="copyPrompt('{{ c.module_key }}', this, 'chatgpt')">Copy brief for ChatGPT</button>
+        <button class="quiet" type="button" onclick="copyPrompt('{{ c.module_key }}', this)">Copy prompt for Claude</button>
+        <button class="quiet" type="button" onclick="copyPrompt('{{ c.module_key }}', this, 'chatgpt')">Copy brief for ChatGPT</button>
       {% else %}
-        <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
+        <button class="quiet" type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
       {% endif %}
       {% if c.module_key == "lowdown" and c.generated_source and not c.not_written %}
-        <button type="button" onclick="resetGenerated('lowdown')">Reset to generated draft</button>
+        <button class="danger" type="button" onclick="resetGenerated('lowdown')">Reset to generated draft</button>
       {% endif %}
       {#  A section with a composed default gets it as a starting point or
           as a way back. The wording changes because the act does: taking
@@ -106,14 +106,14 @@
           act that makes the wording his, and it clears the box so that is
           literally true; the generated text waits in History. #}
       {% if c.origin in ("ai", "deterministic") and not c.not_written %}
-        <button type="button" onclick="replaceOrigin('{{ c.module_key }}')">Replace with my copy</button>
+        <button class="danger" type="button" onclick="replaceOrigin('{{ c.module_key }}')">Replace with my copy</button>
       {% endif %}
     {% endif %}
     {% if c.blurb %}
-      <button type="button" onclick="previewSection('{{ c.module_key }}')">Preview opening remarks</button>
-      <button type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
+      <button class="quiet" type="button" onclick="previewSection('{{ c.module_key }}')">Preview opening remarks</button>
+      <button class="quiet" type="button" onclick="showRevisions('{{ c.module_key }}')">History ({{ c.revisions }})</button>
       {% if c.blurb.written %}
-        <button type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
+        <button class="quiet" type="button" onclick="askRewrite('{{ c.module_key }}')">Request rewrite</button>
       {% endif %}
     {% endif %}
   </div>
@@ -143,7 +143,7 @@
     </div>
     <div class="cardctl">
       <button class="primary" type="button" onclick="proposal('{{ c.module_key }}', 'accept')">Accept proposal</button>
-      <button type="button" onclick="proposal('{{ c.module_key }}', 'discard')">Keep current (discard)</button>
+      <button class="danger" type="button" onclick="proposal('{{ c.module_key }}', 'discard')">Keep current (discard)</button>
       <span class="meta">Accepting snapshots your current text to History first.</span>
     </div>
   </div>
@@ -187,7 +187,7 @@
       </div>
       <div class="cardctl">
         <button class="primary" type="button" onclick="proposal('{{ c.module_key }}', 'accept')">Accept proposal</button>
-        <button type="button" onclick="proposal('{{ c.module_key }}', 'discard')">Keep current (discard)</button>
+        <button class="danger" type="button" onclick="proposal('{{ c.module_key }}', 'discard')">Keep current (discard)</button>
       </div>
     </div>
     {% endif %}

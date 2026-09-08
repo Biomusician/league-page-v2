@@ -31,6 +31,16 @@
   @media (min-width:56rem) { button, .btn { min-height:0; } }
   button { font:inherit; padding:.25rem .8rem; border:1px solid var(--ink); background:var(--card); border-radius:3px; cursor:pointer; }
   button.primary, .btn.primary { background:var(--ink); color:var(--paper); }
+  /* Three weights, because a card's control row carried up to ten buttons
+     drawn identically -- "Approve", "History (3)" and "Replace with my
+     copy" all the same, so the row read as a wall rather than a sentence.
+     Element-qualified, so these never claim a bare word the way `.warn`
+     does. Outlined and not filled: a red fill on four buttons in one row
+     reads as an alarm, and the ink is the warning. */
+  button.quiet, .btn.quiet { border-color:transparent; background:none; color:var(--muted); }
+  button.quiet:hover, .btn.quiet:hover { background:#efede7; color:var(--ink); }
+  button.danger, .btn.danger { border-color:var(--accent); color:var(--accent); }
+  button.danger:hover, .btn.danger:hover { background:#fdf1ef; }
   /* A link that looks and sizes like a button, for the places that
      used to wrap a real button inside an anchor: two focus stops for
      one control, and in some engines the button ate the click. */

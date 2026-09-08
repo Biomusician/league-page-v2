@@ -134,7 +134,9 @@ def test_the_rail_says_what_needs_him_not_what_the_column_is_called(env):
     for jargon in ("commissioner-edited", "generated", "not_written", "prose_state"):
         assert jargon not in labels, jargon
     assert labels <= {"excluded", "automatic", "AI draft ready", "needs writing",
-                      "needs review", "approved", "nothing this week"} | {
+                      "not approved", "edited since approval", "approved",
+                      "approved, unsigned", "research moved on",
+                      "nothing this week"} | {
         l for l in labels if re.fullmatch(r"\d+/\d+ written", l)}, labels
 
 
@@ -143,13 +145,30 @@ def test_the_rail_says_what_needs_him_not_what_the_column_is_called(env):
     ({"included": True, "kind": "auto"}, ("automatic", "off")),
     ({"included": True, "proposal": "text"}, ("AI draft ready", "ai")),
     ({"included": True, "editable": True, "not_written": True}, ("needs writing", "work")),
-    ({"included": True, "changed_since_approval": True}, ("needs review", "need")),
+    ({"included": True, "changed_since_approval": True}, ("edited since approval", "need")),
     ({"included": True, "empty": True}, ("nothing this week", "work")),
     ({"included": True, "approved": True}, ("approved", "ok")),
     ({"included": True, "children_total": 6, "children_written": 2}, ("2/6 written", "work")),
     ({"included": True, "children_total": 6}, ("0/6 written", "work")),
     ({"included": True, "children_total": 6, "children_written": 6, "approved": True},
      ("approved", "ok")),
+    # "you changed this after approving it" and "this was never approved"
+    # both used to read "needs review", in the one place he scans to decide
+    # what to open next.
+    ({"included": True}, ("not approved", "need")),
+    # An approval with no signature predates signatures: it records that he
+    # clicked, not that he read what is there now. The card has always said
+    # so; the rail showed it as a plain green "approved", which is the one
+    # state that stops him looking.
+    ({"included": True, "approved": True, "approval_legacy": True},
+     ("approved, unsigned", "need")),
+    # Both can be true at once. "Write this" wins, because the Lowdown is
+    # his own column and gets written whether or not the week produced
+    # material -- "nothing this week" would be the wrong instruction on the
+    # one section that never takes it.
+    ({"included": True, "editable": True, "not_written": True, "empty": True},
+     ("needs writing", "work")),
+    ({"included": True, "brief": {"stale_prose": True}}, ("research moved on", "ai")),
 ])
 def test_rail_state_precedence(card, expected):
     assert _rail_state(card) == expected
@@ -212,7 +231,7 @@ def test_research_and_qa_ride_along_with_the_section(env):
     html = _room(client)
     assert set(re.findall(ATTR.format("research"), html)) == set(
         re.findall(ATTR.format("pane"), html))
-    assert 'data-ctx="qa"' in html and "PUBLICATION CHECK" in html.upper()
+    assert 'data-ctx="qa"' in html and "CONSISTENCY CHECK" in html.upper()
 
 
 def test_publish_is_reachable_without_leaving_the_room(env):
@@ -561,3 +580,70 @@ def test_an_approval_recorded_before_signatures_is_not_evidence_about_now(env):
                 ["approved"])
     assert not effective_approval(db), (
         "a click with no signature says nothing about the current text")
+
+
+# ------------------------------------------- what the room can reach from here
+
+def test_the_room_can_approve_the_issue_without_leaving_it(env):
+    """`approveAllReady()` has been in desk-editor.js all along and the room
+    loads it; only the long-form editor rendered a button. Approving eight
+    sections cost sixteen clicks here and three there, and the Desk home
+    links here."""
+    client, _db, _idir = env
+    html = _room(client)
+    assert "approveAllReady()" in html, "the room must offer the bulk approve"
+    js = pathlib.Path("static/desk-editor.js").read_text(encoding="utf-8")
+    # It gets no endpoint of its own: one approval path, N calls to it.
+    assert 'fetch(EDIT + "/approve"' in js
+    assert "/approve-all" not in js and "/approve-all" not in html
+
+
+def test_tracking_a_take_is_reachable_from_where_he_writes(env):
+    """The room already rendered `_editor_context`, so `takes_rows` and
+    `take_topics` were in scope the whole time; the panel was included by
+    the long-form editor only."""
+    client, _db, _idir = env
+    html = _room(client)
+    assert 'data-ctx="takes"' in html
+    assert 'id="sec-takes"' in html, "the takes panel itself, not just a tab"
+
+
+def test_the_room_offers_the_other_weeks(env):
+    """There was no week navigation anywhere in the Desk: week 2 was
+    reachable only by editing the URL."""
+    client, _db, _idir = env
+    html = _room(client)
+    weeks = re.findall(r'/issue/([a-z0-9-]+)/room"\s*\n?\s*(?:aria-current="page")?>', html)
+    assert "draft" in weeks and "week-01" in weeks, weeks
+
+
+def test_the_room_links_the_screens_nothing_else_linked(env):
+    """The Command Brief was reachable only from the workspace, and
+    `/force-flow` from nowhere at all."""
+    client, _db, _idir = env
+    html = _room(client)
+    for href in (f"{BASE}/brief", "/commissioner/inbox?league=surfeit",
+                 f"/commissioner/surfeit/{SEASON}/force-flow"):
+        assert href in html, href
+
+
+def test_the_context_tabs_are_one_control_not_four_buttons(env):
+    """role=tablist and role=tab were here with no ids, aria-controls,
+    tabpanels or roving tabindex, which announces four buttons rather than
+    one control with four positions."""
+    client, _db, _idir = env
+    html = _room(client)
+    for name in ("preview", "research", "qa", "takes"):
+        assert f'id="tab-{name}"' in html and f'aria-controls="panel-{name}"' in html
+        assert f'id="panel-{name}"' in html and 'role="tabpanel"' in html
+    assert html.count('tabindex="0"') >= 1 and 'tabindex="-1"' in html
+    assert "ArrowRight" in html, "arrows move within the tablist"
+
+
+def test_the_save_state_announces_itself(env):
+    """It carries save, error and CONFLICT, and is the only async feedback
+    channel on the page. It had no role and no aria-live."""
+    client, _db, _idir = env
+    html = _room(client)
+    m = re.search(r'<span id="savestate"[^>]*>', html)
+    assert m and 'role="status"' in m.group(0) and 'aria-live="polite"' in m.group(0)

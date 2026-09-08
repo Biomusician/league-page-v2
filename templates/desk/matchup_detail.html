@@ -104,9 +104,25 @@
     <textarea name="draft_text" rows="18" cols="100" style="width:100%">{{ draft_text }}</textarea>
     <div><button class="primary">Save edit</button> <span class="meta">saving sets status to “edited”</span></div>
   </form>
+  {#  This button reads as the approval and is not one: Common Tactical
+      Picture is what publishes, signed off once over every preview. Six
+      matchups sat "approved" here while CTP was still in the blocker
+      list, which is a queue state dressed as a publication state.
+
+      It is not decoration either, and that is why it stays. Marking a
+      preview done is the ONLY thing that parses the draft's
+      `<!-- usage: -->` comment into the repetition log, so the angle,
+      frame, callback and joke family this preview spent are recorded.
+      Take the button away and Story Memory keeps answering "this bit is
+      fresh" forever, because the corpus that would contradict it stops
+      being written. #}
+  <p class="meta">Marking a preview done records the angle, frame and bits it
+    used, so Story Memory can tell you later when one is getting stale. It is
+    not the publication approval: that is given once on Common Tactical
+    Picture, in the Issue Room.</p>
   <form class="inline" method="post" action="/commissioner/{{ league.slug }}/{{ season }}/week/{{ week }}/matchups/{{ slug }}/status">
-    <button name="action" value="approve" class="primary">Approve</button>
-    <button name="action" value="unapprove">Unapprove</button>
+    <button name="action" value="approve" class="primary">Mark preview done</button>
+    <button name="action" value="unapprove">Reopen</button>
     <button name="action" value="lock">Lock</button>
     <button name="action" value="reject">Reject draft</button>
     <button name="action" value="requeue">Return to authoring queue</button>
