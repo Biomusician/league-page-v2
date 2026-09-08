@@ -22,7 +22,10 @@ It says what is at stake, not who wins.</p>
   <p class="meta">{{ c.records }}{% if c.score %} · {{ c.score }}{% endif %}</p>
   {% endif %}
   <div>{% for t in c.tags %}<span class="tag">{{ t }}</span>{% endfor %}
-       <span class="tag prom">{{ c.prominence }}</span></div>
+       {#  Only the featured game takes the loud treatment. Applied to all of
+     them, FEATURE, MAJOR and STANDARD rendered identically and the
+     colour stopped carrying the ranking it exists to show. #}
+       <span class="tag{{ ' prom' if c.prominence == 'FEATURE' }}">{{ c.prominence }}</span></div>
   {% if c.preview_html %}
   <div class="prose">{{ c.preview_html | safe }}</div>
   {% elif c.scout %}

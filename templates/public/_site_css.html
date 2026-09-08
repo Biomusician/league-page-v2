@@ -21,7 +21,12 @@
   footer.colophon img.logo-footer { display:block; margin:0 auto 1rem; width:min(24rem, 88%);
                                     height:auto; border:1px solid #33325f; }
   nav.leaguenav { text-align:center; padding:.55rem .4rem .8rem; font-size:.88rem; }
-  nav.leaguenav a { margin:0 .45rem; text-decoration:none; display:inline-block; padding:.15rem .2rem; }
+  /* 44px, and it was about 18px: `.15rem` of padding on a .82rem label is
+     under the 24px WCAG 2.5.8 floor before it is anywhere near a finger. */
+  nav.leaguenav a { margin:0 .45rem; text-decoration:none; padding:.2rem .35rem;
+                    min-height:44px; display:inline-flex; flex-direction:column;
+                    justify-content:center; align-items:center; line-height:1.25; }
+  nav.leaguenav .ns { font-size:.71rem; opacity:.72; letter-spacing:.01em; }
   nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #f0c419; outline-offset:2px; }
   h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
   .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
@@ -43,6 +48,19 @@
   .flags { font-size:1.05rem; letter-spacing:.15em; }
   .teamgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.8rem; }
   footer.colophon { text-align:center; padding:2rem 1rem; font-size:.8rem; }
+  /* The issue's own name, and a way to see what is in it before scrolling
+     nineteen phone screens to find out. */
+  h1.issuehead { font-size:1.9rem; line-height:1.15; margin:.1rem 0 .9rem;
+                 text-wrap:balance; }
+  nav.contents { margin:0 0 1.6rem; }
+  nav.contents p { margin:0 0 .3rem; letter-spacing:.1em; text-transform:uppercase;
+                   font-size:.7rem; }
+  nav.contents ol { margin:0; padding:0; list-style:none; display:flex;
+                    flex-wrap:wrap; gap:.15rem .4rem; }
+  nav.contents li::after { content:"·"; opacity:.45; margin-left:.4rem; }
+  nav.contents li:last-child::after { content:""; }
+  nav.contents a { display:inline-flex; align-items:center; min-height:44px;
+                   padding:.2rem 0; }
   /* Draft value (REACH/STEAL): color intensity from --dvi (0..1, saturates
      at 3 league rounds); words always carry the meaning, color is a bonus. */
   .dv { white-space:nowrap; }
@@ -56,9 +74,26 @@
   th.sortable[aria-sort="descending"]::after { content:" ▼"; opacity:1; }
   th.sortable:hover, th.sortable:focus-visible { text-decoration:underline; }
   @media (max-width: 640px) {
-    nav.leaguenav { font-size:.82rem; }
-    nav.leaguenav a { margin:0 .3rem; }
+    /* One scrolling row instead of three wrapped ones. The subtitle is
+       desktop-only: it is the thing that made the wrapped nav taller than
+       the content it sits above. */
+    nav.leaguenav { display:flex; overflow-x:auto; gap:.1rem; text-align:left;
+                    padding:.3rem .5rem; font-size:.84rem;
+                    scrollbar-width:none; -ms-overflow-style:none; }
+    nav.leaguenav::-webkit-scrollbar { display:none; }
+    nav.leaguenav a { flex:0 0 auto; margin:0; padding:.2rem .55rem;
+                      white-space:nowrap; scroll-margin-inline:1rem; }
+    nav.leaguenav .ns { display:none; }
+    h1.issuehead { font-size:1.55rem; }
     main { padding:1rem .8rem 3rem; }
+    /* Opt-in, because measured both ways it only pays on the narrow
+       tables. On a 390px phone, letting cells wrap removes the sideways
+       scroll on standings and teams entirely (5 columns) at a fifth more
+       height -- but on the draft board it keeps every one of 13 tables
+       scrolling AND makes the page 83% taller, because nine columns do
+       not fit a 364px box wrapped or not. Those keep `nowrap` and scroll
+       inside `.tablewrap`, which is the right answer for them. */
+    main.wrapcells td, main.wrapcells th { white-space:normal; }
   }
 {% if league and league.theme == "disco" %}
   /* DISCO CHAT — the 606th Air Control Squadron patch, "Inspector of the

@@ -64,17 +64,54 @@ _SENTENCE_RE = re.compile(r"[^.!?]*[.!?]")
 
 _TABLE_ROW_RE = re.compile(r"^\s*\|.*$|^.*\|.*\|.*$", re.M)
 
+# Markup is not prose. The sections these quotes come from are Markdown, and
+# some of them carry raw HTML, so a verbatim quote was arriving as
+# "**Swanson** · Competitive but Flawed" or "<b>Jordan Love, QB (EMCO)</b>".
+# Rule 1 of this module is that a claim is quoted rather than paraphrased;
+# removing the marks that were never spoken is the opposite of paraphrase.
+_HTML_TAG_RE = re.compile(r"<[^>]{1,80}>")
+_MD_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_MD_MARK_RE = re.compile(r"\*{1,3}|_{2,}|`+|~~")
+
+# A period that does not end a sentence. Football prose is full of them --
+# "A.J. Brown", "Amon-Ra St. Brown", "Marvin Harrison Jr.", "LAC vs. KC",
+# "the only reason this is not No. 1", "48.44" -- and splitting on every
+# period produced quotes that stop mid-name. A module whose contract is
+# "quoted, never paraphrased" cannot ship a quote ending at "LAC vs."
+_DOTTED_RE = re.compile(r"\b(?:[A-Za-z]\.){2,}")        # A.J.  U.S.  e.g.
+_DECIMAL_RE = re.compile(r"\d\.\d")                     # 48.44
+_ABBREV_RE = re.compile(
+    r"\b(?:vs|no|nos|st|jr|sr|dr|mr|mrs|ms|prof|inc|co|corp|dept|ave|rd|"
+    r"approx|est|min|max|ret|def)\.", re.I)
+_DOT = "\x00"
+
+
+def _protect_abbreviations(text: str) -> str:
+    """Hide the periods that are part of a word, so the splitter skips them."""
+    def hide(m: re.Match) -> str:
+        return m.group(0).replace(".", _DOT)
+    for rx in (_DOTTED_RE, _DECIMAL_RE, _ABBREV_RE):
+        text = rx.sub(hide, text)
+    return text
+
 
 def _sentences(text: str) -> list[str]:
     """Prose sentences only.
 
     Headings and markdown table rows are stripped first: a table row reads
     as a sentence to a regex and produces quotes like "0 | | 3 | Statistical
-    Anomalies | A- | 139." — technically a match, editorially worthless."""
+    Anomalies | A- | 139." — technically a match, editorially worthless.
+    Inline markup goes the same way, and abbreviations are protected from
+    the sentence splitter so a quote ends where the sentence does."""
     body = re.sub(r"^#{1,6}\s.*$", " ", text, flags=re.M)
     body = _TABLE_ROW_RE.sub(" ", body)
+    body = _HTML_TAG_RE.sub(" ", body)
+    body = _MD_LINK_RE.sub(r"\1", body)
+    body = _MD_MARK_RE.sub("", body)
     flat = re.sub(r"\s+", " ", body)
-    return [s.strip() for s in _SENTENCE_RE.findall(flat) if len(s.strip()) > 30]
+    found = _SENTENCE_RE.findall(_protect_abbreviations(flat))
+    out = [s.replace(_DOT, ".").strip() for s in found]
+    return [s for s in out if len(s) > 30]
 
 
 def _claim_id(league_slug: str, issue_key: str, quote: str) -> str:

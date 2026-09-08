@@ -323,7 +323,11 @@ def test_navigation_order_standings_teams_before_archive(site_env):
     for slug in ("disco", "surfeit"):
         home = (tmp / "dist" / slug / "index.html").read_text(encoding="utf-8")
         nav = re.search(r'aria-label="League navigation".*?</nav>', home, re.S).group(0)
-        labels = re.findall(r">([^<]+)</a>", nav)
+        # The branded label is `.nl`; `.ns` underneath it is the
+        # plain-language line, hidden on a phone. "My team" carries no
+        # subtitle because it is not house vocabulary.
+        labels = re.findall(r'<span class="nl">([^<]+)</span>', nav) \
+            + re.findall(r'>([^<]+)</a>', nav)
         assert labels == ["Home", "Common Tactical Picture", "Peer and Near-Peer",
                           "Force Flow", "Draft", "Black Box", "Standings", "Teams",
                           "Archive",
@@ -331,6 +335,13 @@ def test_navigation_order_standings_teams_before_archive(site_env):
                           # browser has picked a team; ships hidden
                           "My team"]
         assert 'data-myteam-nav' in nav and "hidden" in nav
+        # Every house term carries its translation. These four are the ones
+        # a first-time reader cannot decode.
+        subs = dict(re.findall(
+            r'<span class="nl">([^<]+)</span><span class="ns">([^<]+)</span>', nav))
+        for brand in ("Common Tactical Picture", "Peer and Near-Peer",
+                      "Force Flow", "Black Box"):
+            assert subs.get(brand), f"{brand} has no plain-language subtitle"
 
 
 def test_teams_matrix_and_team_page_positional(site_env):

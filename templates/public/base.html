@@ -44,13 +44,27 @@
   <div class="sub">{{ league.subtitle }} · {{ season }}</div>
 </header>
 <nav class="leaguenav" aria-label="League navigation">
-  {% set items = [("index.html", "Home"), ("matchups/index.html", "Common Tactical Picture"),
-                  ("power/index.html", "Peer and Near-Peer"), ("transactions/index.html", "Force Flow"),
-                  ("draft/index.html", "Draft"), ("black-box/index.html", "Black Box"),
-                  ("standings/index.html", "Standings"), ("teams/index.html", "Teams"),
-                  ("archive/index.html", "Archive")] %}
-  {% for href, label in items %}
-  <a href="{{ lroot }}{{ href }}" {% if current_nav == label %}aria-current="page"{% endif %}>{{ label }}</a>
+  {#  The branded name stays the name. Four of these -- Common Tactical
+      Picture, Peer and Near-Peer, Force Flow, Black Box -- are house
+      vocabulary a first-time reader cannot decode, and the nav is
+      wayfinding rather than voice, so each carries a plain-language line
+      underneath. On a phone the subtitle is hidden and the row scrolls
+      sideways instead of wrapping to three lines: subtitled and wrapped
+      it measured about 148px of chrome under a masthead already over
+      200px, against about 66px for a single scrolling row with real
+      touch targets. #}
+  {% set items = [("index.html", "Home", "the week in brief"),
+                  ("matchups/index.html", "Common Tactical Picture", "this week's matchups"),
+                  ("power/index.html", "Peer and Near-Peer", "power rankings"),
+                  ("transactions/index.html", "Force Flow", "adds, drops, trades"),
+                  ("draft/index.html", "Draft", "every pick, graded"),
+                  ("black-box/index.html", "Black Box", "league records"),
+                  ("standings/index.html", "Standings", "wins, losses, points"),
+                  ("teams/index.html", "Teams", "every roster"),
+                  ("archive/index.html", "Archive", "every past issue")] %}
+  {% for href, label, sub in items %}
+  <a href="{{ lroot }}{{ href }}" {% if current_nav == label %}aria-current="page"{% endif %}>
+    <span class="nl">{{ label }}</span><span class="ns">{{ sub }}</span></a>
   {% endfor %}
   {#  Revealed by assets/myteam.js when this browser has picked a team. It
       starts hidden so a reader who never picks one sees the league-wide

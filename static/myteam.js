@@ -49,8 +49,24 @@
     return all.indexOf(slug) >= 0 ? slug : null;
   }
 
+  /* Once a reader has told us which team is theirs, their team is the most
+   * relevant thing on the page and it was sitting at 46% of the scroll
+   * depth -- below the league-wide summary, below the standings. Move it
+   * up to just under the lede.
+   *
+   * Only once chosen. A first-time reader gets the newspaper in the order
+   * the Commissioner wrote it, not a team-picker above the news. */
+  function promote() {
+    var card = document.getElementById("myteam");
+    var main = card && card.closest("main");
+    if (!card || !main) return;
+    var first = main.querySelector("section.module:not(.myteam)");
+    if (first && first !== card.nextElementSibling) main.insertBefore(card, first);
+  }
+
   function apply(slug) {
     var chosen = known(slug);
+    if (chosen) promote();
     each("[data-team]", function (el) { el.hidden = el.getAttribute("data-team") !== chosen; });
     each("[data-myteam-empty]", function (el) { el.hidden = !!chosen; });
     each("[data-myteam-set]", function (el) { el.hidden = !chosen; });
@@ -89,4 +105,17 @@
   });
 
   apply(read());
+
+  // On a phone the nav is one horizontally scrolling row, so the page you
+  // are on can start off-screen -- and the current item is the one piece
+  // of orientation a nav owes you. Nudge it into view without moving the
+  // page itself.
+  try {
+    var here = document.querySelector('nav.leaguenav a[aria-current="page"]');
+    var strip = here && here.parentElement;
+    if (here && strip && strip.scrollWidth > strip.clientWidth) {
+      strip.scrollLeft = Math.max(
+        0, here.offsetLeft - (strip.clientWidth - here.offsetWidth) / 2);
+    }
+  } catch (e) { /* orientation is a nicety; never break the nav over it */ }
 })();

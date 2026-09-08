@@ -46,12 +46,64 @@ from leaguepage.team_names import resolve_public_names
 FLAGS = {"France": "\U0001F1EB\U0001F1F7", "United Kingdom": "\U0001F1EC\U0001F1E7",
          "Japan": "\U0001F1EF\U0001F1F5", "Sweden": "\U0001F1F8\U0001F1EA"}
 
+# Roughly how much lede the front page can carry before the module built
+# for the thirty-second reader falls past the fold. Whole paragraphs only:
+# a lede is a paragraph, and truncating one mid-sentence would be editing
+# his writing rather than choosing how much of it to show.
+LEDE_BUDGET = 450
+
+
+def _lede(paras: list[str]) -> str:
+    """As much of the Lowdown's opening as the front page can carry.
+
+    This used to be a flat `paras[:2]`, and in the published Disco Week 1
+    the second paragraph is the colophon about ChatGPT, Claude Code and
+    Vercel -- so build tooling occupied the most valuable prose slot on
+    the site and pushed "This week in 30 seconds" to y=904 against a
+    900px fold. A budget rather than a count, because a short opening
+    paragraph should still be allowed to bring the next one with it.
+    """
+    kept, total = [], 0
+    for p in paras:
+        if kept and total + len(p) > LEDE_BUDGET:
+            break
+        kept.append(p)
+        total += len(p)
+    return "\n\n".join(kept)
+
+
+def _hook_of(paragraph: str) -> str | None:
+    """The first sentence of the Lowdown, as plain text.
+
+    This is what a link pasted into the league chat shows underneath the
+    title, and it was "Week 01 of DISCO CHAT." on every issue -- a string
+    that tells twelve people nothing about whether to click. The
+    Commissioner's own opening sentence is the best hook available and it
+    is already written; it just was not being used.
+    """
+    from leaguepage.receipts import _sentences
+
+    found = _sentences(paragraph)
+    text = (found[0] if found else re.sub(r"\s+", " ", paragraph)).strip()
+    if len(text) <= 110:
+        return text or None
+    return text[:107].rsplit(" ", 1)[0] + "\u2026"
+
+
 def _issue_description(ctx: dict, league) -> str:
     """A shared issue link should show its own headline, not the league name."""
     head = (ctx.get("headline") or "").strip()
     label = ctx.get("issue_label") or "Issue"
-    if head:
-        return f"{head} \u2014 {label}, {league.display_name}."
+    # No headline in the Lowdown -- the normal case, and the reason every
+    # weekly issue previewed in the league chat as "Week 01 of DISCO CHAT."
+    # His own opening sentence is the better hook and is already written.
+    #
+    # The week and the league stay appended either way. Both leagues'
+    # Week 1 Lowdowns open with the same sentence, so a bare hook would
+    # have previewed identically in two different group chats.
+    lead = head or (ctx.get("hook") or "").strip()
+    if lead:
+        return f"{lead} \u2014 {label}, {league.display_name}."
     return f"{label} of {league.display_name}."
 
 
@@ -268,7 +320,7 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
             "html": _render_md(_strip_duplicate_heading(s["content_md"], s["title"])),
         })
     lowdown = next((s for s in snap["sections"] if s["module_key"] == "lowdown"), None)
-    excerpt = headline = None
+    excerpt = headline = hook = None
     if lowdown:
         parts = lowdown["content_md"].split("\n\n")
         # The Lowdown's own headline is the first heading that is not just the
@@ -285,7 +337,8 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
                     headline = text
                     break
         paras = [p for p in parts if p.strip() and not p.strip().startswith("#")]
-        excerpt = _render_md("\n\n".join(paras[:2]))
+        excerpt = _render_md(_lede(paras)) if paras else None
+        hook = _hook_of(paras[0]) if paras else None
     return {
         "issue_key": snap["issue_key"], "issue_label": snap["issue_label"],
         "season": snap["season"], "published_at": snap.get("published_at"),
@@ -293,6 +346,7 @@ def _issue_ctx(snap: dict, *, preview: bool = False) -> dict:
         "section_titles": [{"anchor": s["anchor"], "title": s["title"]} for s in sections],
         "lowdown_excerpt_html": excerpt,
         "headline": headline,
+        "hook": hook,
         "href": snap["href"],
         "revisions": snap.get("revisions") or [],
         "revised_at": (snap.get("revised_at") or "")[:10] or None,
@@ -464,13 +518,25 @@ def build_league(
 
     # issue permalinks from frozen snapshots
     latest_ctx = None
-    for snap in snaps:
+    # `snaps` is newest first, so the neighbour before an issue in the list
+    # is the newer one. The imported archive pages have carried prev/next
+    # since they were built; the issues published this season never had it,
+    # so the old ones browsed better than the new ones.
+    for i, snap in enumerate(snaps):
         ctx = _issue_ctx(snap)
         if latest_ctx is None:
             latest_ctx = ctx
+
+        def _neighbour(j: int) -> dict | None:
+            if not 0 <= j < len(snaps):
+                return None
+            n = snaps[j]
+            return {"href": n["href"], "label": n.get("issue_label") or n["issue_key"]}
+
         render(f"{snap['season']}/{snap['issue_key']}/index.html", "public/issue_page.html",
                2, description=_issue_description(ctx, league), og_type="article",
                issue=ctx, current_nav="Archive",
+               newer=_neighbour(i - 1), older=_neighbour(i + 1),
                comments=_comments_ctx(league, snap["season"], snap["issue_key"]))
 
     # optional commissioner preview of an unpublished issue (dist-preview only)

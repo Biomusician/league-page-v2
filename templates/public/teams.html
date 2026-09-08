@@ -1,6 +1,7 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Teams{% endblock %}
 {% from "public/_links.html" import team %}
+{% block main_attrs %} class="wrapcells"{% endblock %}
 {% block content %}
 <h2 class="section-label">Positional Strength — League Comparison</h2>
 <p class="meta">Click a position to rank the league's rooms; click again to reverse.</p>

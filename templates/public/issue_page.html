@@ -8,12 +8,28 @@
 </div>
 {% endif %}
 <p class="meta">{{ issue.issue_label }} · {{ season }}{% if issue.published_at %} · published {{ issue.published_at[:10] }}{% endif %}</p>
+{#  The issue had no heading of its own. The only h1 on the page was the
+    league masthead, so the document went straight from the site's name to
+    the first section, and nothing named the thing you had opened. #}
+<h1 class="issuehead">{{ issue.headline or issue.issue_label }}</h1>
 {% if issue.revisions %}
 <p class="meta correction" role="note">
   Updated {{ issue.revisions[-1].at }} · {{ issue.revisions[-1].note }}{% if issue.revisions|length > 1 %}
   <span>({{ issue.revisions|length }} corrections; the issue as first published is
   kept in the archive record)</span>{% endif %}
 </p>
+{% endif %}
+{#  `section_titles` has been computed for every issue since the front page
+    started jumping into them; the issue itself could not jump within
+    itself. Nineteen phone screens of unbroken scroll with no way to see
+    what was in it. #}
+{% if issue.section_titles|length > 2 %}
+<nav class="contents" aria-label="In this issue">
+  <p class="meta">In this issue</p>
+  <ol>{% for s in issue.section_titles %}
+    <li><a href="#{{ s.anchor }}">{{ s.title }}</a></li>{% endfor %}
+  </ol>
+</nav>
 {% endif %}
 {% for s in issue.sections %}
 <section class="module" id="{{ s.anchor }}">
@@ -26,7 +42,9 @@
 </section>
 {% endfor %}
 <nav class="exits" aria-label="Where to next">
-  <a href="{{ lroot }}archive/index.html">&larr; Every issue</a>
+  {% if older %}<a href="{{ lroot }}{{ older.href }}">&larr; {{ older.label }}</a>{% endif %}
+  {% if newer %}<a href="{{ lroot }}{{ newer.href }}">{{ newer.label }} &rarr;</a>{% endif %}
+  <a href="{{ lroot }}archive/index.html">Every issue</a>
   <a href="{{ lroot }}teams/index.html">Every team &rarr;</a>
   <a href="{{ lroot }}draft/index.html">The draft board &rarr;</a>
   <a href="{{ lroot }}index.html">{{ league.display_name }} home &rarr;</a>

@@ -1,6 +1,7 @@
 {% extends "public/base.html" %}
 {% block title %}{{ league.display_name }} — Standings{% endblock %}
 {% from "public/_links.html" import team %}
+{% block main_attrs %} class="wrapcells"{% endblock %}
 {% block content %}
 <h2 class="section-label">Standings</h2>
 {% if not weeks_played %}
