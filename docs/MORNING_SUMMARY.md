@@ -96,10 +96,10 @@ is fresh" forever. It's relabelled instead: **"Mark preview done"**.
    rewrite a word — but if that disclosure belongs on the front page it
    needs a home, and `/about/` is still the stub
    *"Information about the project will be added here."* **Your call.**
-2. **Screenshots in this environment render at pane scale, not the emulated
-   viewport.** Everything here was verified by DOM measurement instead —
-   stricter for geometry, weaker for "does it look right". The pages have
-   not been eyeballed at full size.
+2. **Nothing has been seen at a real 1440px or on a real phone.** Geometry
+   was verified by DOM measurement, which is stricter than eyeballing, and
+   the Desk home, the Issue Room and the public nav were checked as images
+   at the pane's native ~800px. But the full-size look is still unverified.
 3. **Two teams named in the live Week 1 issue no longer exist** ("George &
    Friends" is DIP's old name; his current team appears nowhere in the
    section that names teams). That's frozen published prose — correcting it

@@ -172,12 +172,16 @@ any width on any surface touched. `/edit` is unchanged by the extraction —
 1019px, Consolas, ghost hidden, `#savestate` still right-aligned — which
 was the thing most at risk.
 
-Screenshots in this environment render at pane scale rather than the
-emulated viewport, so **the evidence here is DOM measurement**
+Screenshots only render at the browser pane's own size here, not at an
+emulated viewport, so **the geometry evidence is DOM measurement**
 (`getBoundingClientRect`, `getComputedStyle`, `scrollWidth` vs
-`clientWidth`), not eyeballed images. That is stricter for geometry and
-weaker for "does it look right"; the pages have not been visually
-inspected at full size and that is the gap to close first.
+`clientWidth`), which is stricter than eyeballing. Three surfaces were also
+looked at as images at the pane's native ~800px and read correctly: the
+Desk home (both league cards, the NEXT line, the two link rows), the Issue
+Room (rail chips, the button hierarchy, the collapsed writing brief, the
+four context tabs, the live preview), and the public nav with its
+subtitles. Nothing has been inspected at a real 1440px or on a real phone;
+that is the gap to close first.
 
 Gates: full pytest green; public build 101 pages, built-output privacy
 audit clean; repo privacy audit clean at HEAD; publication QA 4 issues, 0
