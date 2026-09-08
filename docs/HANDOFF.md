@@ -175,13 +175,16 @@ was the thing most at risk.
 Screenshots only render at the browser pane's own size here, not at an
 emulated viewport, so **the geometry evidence is DOM measurement**
 (`getBoundingClientRect`, `getComputedStyle`, `scrollWidth` vs
-`clientWidth`), which is stricter than eyeballing. Three surfaces were also
-looked at as images at the pane's native ~800px and read correctly: the
-Desk home (both league cards, the NEXT line, the two link rows), the Issue
-Room (rail chips, the button hierarchy, the collapsed writing brief, the
-four context tabs, the live preview), and the public nav with its
-subtitles. Nothing has been inspected at a real 1440px or on a real phone;
-that is the gap to close first.
+`clientWidth`), which is stricter than eyeballing. Five surfaces were also
+looked at as images and read correctly: the Desk home (both league cards,
+the NEXT line, the two link rows), the Issue Room (rail chips, the button
+hierarchy, the collapsed writing brief, the four context tabs, the live
+preview), the public nav with its subtitles, and both the league home and
+an issue page at an emulated 390px -- where the nav is one gold-underlined
+scrolling row that has auto-scrolled to the current page, the hero carries
+the lede with no colophon under it, and the issue opens with its own name
+and an "In this issue" list of all seven sections. Nothing has been
+inspected at a real 1440px or on physical hardware.
 
 Gates: full pytest green; public build 101 pages, built-output privacy
 audit clean; repo privacy audit clean at HEAD; publication QA 4 issues, 0
