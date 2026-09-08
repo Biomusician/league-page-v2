@@ -45,7 +45,11 @@ def test_prose_pages_keep_the_reading_measure(site_env):
     _build(db, tmp)
     for rel in ("index.html", "standings/index.html", f"{SEASON}/week-01/index.html"):
         html = (tmp / "dist" / "disco" / rel).read_text(encoding="utf-8")
-        assert '<main id="content">' in html, rel
+        # Not "carries no class": `wrapcells` is also opted into through
+        # `main_attrs` and changes only `white-space` below 640px. The
+        # invariant is the width, so test the width.
+        main = re.search(r"<main id=\"content\"[^>]*>", html)
+        assert main and "wide" not in main.group(0), (rel, main and main.group(0))
     css = _css(tmp)
     assert re.search(r"main\s*\{[^}]*max-width:\s*52rem", css)
 
