@@ -31,6 +31,11 @@ OWNER = {
     "matchup_state": "0001", "power_rankings": "0001", "takes": "0001",
     "editorial_usage": "0001", "bit_usage": "0001", "editorial_meta": "0001",
     "jobs": "0001", "job_events": "0004", "sync_snapshots": "0002",
+    # 0006 and 0007 were missing from this map, so the verifier could not
+    # answer the one question it exists to answer about them: did the
+    # migration land? Added when 0007 was written.
+    "prose_provenance": "0006", "force_flow_notes": "0006",
+    "research_artifacts": "0006", "site_documents": "0007",
 }
 TABLES = list(OWNER)
 

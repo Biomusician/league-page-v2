@@ -1996,3 +1996,44 @@ templates**, because the failure is compositional — a template whose own
 levels are correct can still skip one once it is inside `base.html`, which
 is exactly how `matchups` and `transactions` stayed broken while every
 template looked fine on its own.
+
+## 2026-09-09 — About lives in its own table, not in a table that nearly fits
+
+Site → About was the last authoring surface persisting authoritative state to
+this machine's filesystem: `editorial/site/about.md`, written by the Desk and
+read again by `site_build` when it renders `about/index.html`. On a hosted Desk
+that file does not survive a restart, so the one page describing how the paper
+is made — and disclosing the AI assistance — is the one thing Hosted Beta would
+have silently discarded.
+
+Three tables already existed that could have taken it, and each would have been
+a lie of a different size.
+
+`sections` / `prose_revisions` are addressed by a ProseKey: league, season,
+issue, kind, name. About has none of those. Storing it there means inventing
+values for all three, in the primary key of the table every readiness count,
+every parity diff and the whole editorial model is addressed by. The cost is
+not the row; it is that from then on nobody can trust a count of what is in an
+issue. `research_artifacts` is issue-scoped research arriving from outside the
+Desk, which About is not, twice over. `editorial_meta` is recomputable settings
+— the editorial-state diff deliberately does not compare it, which makes it
+precisely the wrong home for authored prose, because it would be authored prose
+nothing is guarding.
+
+So: migration 0007, `site_documents (slug, body, updated_at, updated_by)`. One
+row per site-wide authored document; today exactly one, `about`. RLS enabled and
+forced, the same `commissioner_all` policy as every other table, anon granted
+nothing — and the migration raises rather than returns if any of that is untrue
+after it runs.
+
+What it deliberately is not: a CMS. No revisions, no drafts, no publish
+workflow, no ordering, no per-league copy. A second document is a row. A second
+*feature* is a decision, and it should not be reachable by accident because the
+table was built wide enough to allow it.
+
+The named loss: on the filesystem About has git history, and here it has
+`updated_at` and `updated_by` and no revision log. That is a real reduction and
+it is chosen. The Desk has never had an About history UI, and a revision table
+built to preserve a history nothing reads is the speculative half of the
+migration. If that history is ever wanted, it is a new decision with a new
+table, not a column somebody adds quietly.

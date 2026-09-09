@@ -54,6 +54,31 @@ DELIBERATELY_NOT_MIGRATED = {
 # Empty, and it should stay empty. 0006 closed all four.
 KNOWN_MISSING_COLUMNS: dict[tuple[str, str], str] = {}
 
+# Tables that exist ONLY in Postgres, each with the reason there is nothing
+# on the SQLite side to compare them to. Declared for the same reason the
+# gaps above are: a table nobody has written down is a table somebody
+# discovers during a cutover.
+POSTGRES_ONLY_TABLES = {
+    "app_commissioners":
+        "the allowlist RLS reads. A local Desk has no RLS and no sign-in.",
+    "editorial_meta":
+        "SQLite calls the same thing `meta`. Recomputable settings; the "
+        "import deliberately does not compare it.",
+    "sections":
+        "the prose tree. On this machine that IS the filesystem -- a "
+        "directory of Markdown -- so there is no table to line it up with.",
+    "research_artifacts":
+        "research that arrives from outside the Desk. On this machine it "
+        "is a file under editorial/; 0006 gave it a home a hosted Desk "
+        "can reach.",
+    "site_documents":
+        "site-wide authored copy with no league, season or issue. On this "
+        "machine About is editorial/site/about.md; 0007 gave it a home a "
+        "hosted Desk can reach. Same shape as research_artifacts: a "
+        "filesystem thing that needed a table, not a table that needed a "
+        "filesystem.",
+}
+
 
 def _sqlite_tables() -> dict[str, set[str]]:
     """{table: columns} from the authoritative SQLite schema, including the
@@ -210,3 +235,91 @@ def test_the_staleness_flags_are_gone_rather_than_migrated():
     assert "approval-stale:" not in src, "the meta key namespace is retired"
     assert "_mark_changed" not in src, "nothing marks staleness any more"
     assert "approval_stale" in src, "it is derived from the signature"
+
+
+def test_every_postgres_only_table_is_declared():
+    """Both directions, like the SQLite list above: a table that appears in
+    a migration with no counterpart here is an undeclared difference, and a
+    declaration whose table has gone is a stale one."""
+    only = set(_postgres_tables()) - set(_sqlite_tables())
+    assert only == set(POSTGRES_ONLY_TABLES), (
+        f"undeclared: {sorted(only - set(POSTGRES_ONLY_TABLES))}; "
+        f"gone, remove the declaration: "
+        f"{sorted(set(POSTGRES_ONLY_TABLES) - only)}")
+
+
+# ------------------------------------------------------------------- 0007
+
+ZERO_SEVEN = MIGRATIONS / "0007_site_documents.sql"
+
+
+def test_zero_seven_creates_the_site_document_table():
+    """The last authoring surface that wrote to this machine's filesystem.
+
+    Site -> About persisted to editorial/site/about.md and site_build read
+    the same file, so a hosted Desk would have discarded the Commissioner's
+    own words about how the paper is made.
+    """
+    postgres = _postgres_tables()
+    assert "site_documents" in postgres, "0007 should create site_documents"
+    assert postgres["site_documents"] == {
+        "slug", "body", "updated_at", "updated_by"}
+
+
+def test_zero_seven_does_not_invent_a_prose_key_for_a_page_that_has_none():
+    """The failure this migration exists to avoid.
+
+    About has no league, no season and no issue. The cheap way to store it
+    was a row in `sections` under made-up values, and `sections` is the
+    table every readiness count, diff and parity check is addressed by.
+    """
+    sql = ZERO_SEVEN.read_text(encoding="utf-8")
+    body = re.search(r"create table if not exists\s+site_documents\s*\((.*?)\n\);",
+                     sql, re.S | re.I).group(1)
+    for invented in ("league_slug", "season", "issue_key", "kind", "section"):
+        assert invented not in body, (
+            f"site_documents should not carry {invented}: About is not "
+            f"scoped to an issue and pretending otherwise puts a lie in a "
+            f"primary key")
+    for wrong_home in ("research_artifacts", "editorial_meta",
+                       "prose_revisions"):
+        assert f"into {wrong_home}" not in sql.lower()
+
+
+def test_zero_seven_is_additive_and_idempotent():
+    """It is pasted into a SQL editor by hand, so running it twice has to be
+    a no-op rather than a question."""
+    sql = ZERO_SEVEN.read_text(encoding="utf-8")
+    assert "create table if not exists site_documents" in sql.lower()
+    assert "drop policy if exists commissioner_all" in sql.lower()
+    for destructive in ("drop table", "delete from", "truncate",
+                        "drop column", "alter column"):
+        assert destructive not in sql.lower(), (
+            f"0007 must not {destructive}: it runs against production data")
+
+
+def test_zero_seven_locks_down_everything_it_creates():
+    """Same check 0006 gets, for the same reason: a new table with no policy
+    is a readable table."""
+    sql = ZERO_SEVEN.read_text(encoding="utf-8")
+    created = set(re.findall(r"create table if not exists\s+(\w+)", sql, re.I))
+    locked = set()
+    for block in re.findall(r"foreach t in array array\[(.*?)\]", sql, re.S):
+        locked |= {m.strip().strip("'") for m in block.split(",")}
+    assert created <= locked, f"not locked down: {sorted(created - locked)}"
+    lower = sql.lower()
+    for needed in ("enable row level security", "force row level security",
+                   "create policy commissioner_all on %i for all to "
+                   "authenticated", "revoke all on %i from anon",
+                   "raise exception 'rls is not enabled and forced"):
+        assert needed in lower, f"0007 is missing: {needed}"
+
+
+def test_zero_seven_grants_anon_nothing_and_says_so_out_loud():
+    """`revoke` is the instruction; the assert block is the proof. 0006
+    learned this the hard way with the PUBLIC grant on a function."""
+    lower = ZERO_SEVEN.read_text(encoding="utf-8").lower()
+    assert "grantee = 'anon'" in lower
+    assert "raise exception 'anon still holds a grant on site_documents'" in lower
+    assert "to anon" not in lower.replace("from anon", ""), \
+        "nothing in 0007 may grant anon anything"

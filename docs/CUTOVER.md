@@ -1,19 +1,24 @@
 # Cutover readiness — the Commissioner's Desk on Postgres
 
-Updated 2026-09-08, after the first production import attempt failed
-part-written. Read the INCIDENT section at the foot of this file
-before anything else.
+Updated 2026-09-09, after the corrected import completed and was
+verified. The INCIDENT section at the foot of this file records the
+attempt that failed first; it is history now, not the current state.
 
-**Status: READY IN SHAPE, PART-WRITTEN IN DATA. Nothing has been cut
-over. `LEAGUEPAGE_PROSE_BACKEND` is unset, `.env` is untouched, the
-filesystem is still authoritative, and nothing has been published or
-deployed.**
+**Status: READY IN DATA. Nothing has been cut over.
+`LEAGUEPAGE_PROSE_BACKEND` is unset, `.env` is untouched, the filesystem
+is still authoritative, and nothing has been published or deployed.**
 
-**The first production import ran on 2026-09-08 and failed part-way.
-Four of 808 rows are in the cloud and 804 are not. Nothing differs and
-nothing was lost, but the importer's claim to be one transaction was
-false at the time and is the reason those four stayed. It has been
-repaired. See INCIDENT at the foot of this file.**
+**The corrected import ran on 2026-09-09 and completed: 832 rows in one
+transaction, on top of the 4 that survived the first attempt. The cloud
+and this machine now hold the same editorial state, verified three ways
+and reported below. That is what READY IN DATA means and it is all it
+means.**
+
+**READY FOR CUTOVER is a different claim and is NOT made yet.** One
+schema gap is open -- Site -> About still writes to this machine's
+filesystem, and `migrations/0007_site_documents.sql` closes it but has
+not been applied. Until it is, the remaining verification gates cannot
+honestly be run. See "The last filesystem write" below.
 
 This document is the thing to read before deciding. It says what is
 actually true, what is still missing, exactly what a cutover would
@@ -68,34 +73,70 @@ row in the cloud, because it is read on a path that decides what gets
 written and a hosted Desk would otherwise answer "no draft, no AI help"
 for every section, silently.
 
+### The data has moved, and it matches
+
+The cloud holds **34 prose sections and all 808 metadata rows**, and
+every one of them matches this machine. The import is done. Re-running
+the dry run now reads:
+
+```
+0 rows to insert, 0 rows differ, 0 cloud-only, prose identical
+0 sections to mark commissioner-edited, 28 already right
+type preflight: every value fits its destination column
+```
+
+Verified three ways rather than taken from the apply message, all on
+2026-09-09:
+
+| check | result |
+| --- | --- |
+| `import_editorial_state.py` (dry run) | insert 0, differs 0, cloud-only 0 |
+| `editorial_state_diff.py` | 842 local, 842 cloud, 0 local-only, 0 cloud-only, 0 differs |
+| `prose_tool.py verify` | same 34, filesystem-only 0, postgres-only 0, content-differs 0 |
+
+Per table, local and cloud: issues 4/4, issue_modules 50/50,
+prose_provenance 8/8, matchup_state 13/13, prose_revisions 650/650,
+issue_revision_requests 1/1, takes 3/3, story_decisions 30/30,
+award_decisions 5/5, power_rankings 22/22, team_names 22/22, and
+force_flow_notes, editorial_usage and bit_usage empty on both sides
+because they are empty here.
+
+**Section state reconciled exactly.** 28 sections carry
+`commissioner-edited` in both stores, section for section. The other 6
+have no local state row and remain `generated`: two `all-city` sections
+in disco week-01, and four surfeit proposals. The absence of a local row
+is not a record of anything, and the import treats it as such.
+
+**Legacy approvals came through as history, not as claims.** 19 approved
+modules, all 19 with `approved_sha` NULL on both sides -- they were
+approved before signatures existed. The Desk already reads that state
+correctly and says so: the card shows "approved before signatures" and
+the rail shows "approved, unsigned" rather than a plain green "approved",
+which is the one state that would stop him looking. Nothing was
+signed, repaired or re-approved during the migration.
+`matchup_state.covered_sha` is NULL on all 13 rows on both sides, as it
+was.
+
+The only representational difference anywhere is timestamps: SQLite keeps
+them as ISO strings and Postgres as `timestamptz`. Same instant, and the
+diff normalises them, which is why it reports 0.
+
+**Nothing has been cut over.** Having the data in the cloud is a
+precondition for a cutover, not a cutover.
+
 ---
 
 ## What is not ready
 
-### The data has not moved
-
-The cloud holds **34 prose sections, identical to this machine's**, and
-**4 of 808 metadata rows** -- the whole `issues` table, left behind by
-the failed first attempt and byte-identical to local. The dry run now
-reads:
-
-```
-804 rows to insert, 0 rows differ, 0 remote-only, prose identical
-28 sections to mark commissioner-edited
-type preflight: every value fits its destination column
-```
-
-**The corrected import has not been run.** Running it is a separate,
-deliberate act, and it is the first thing a cutover needs.
-
-### Every existing approval is legacy, and the migration must keep it that way
+### Every existing approval is legacy, and the migration kept it that way
 
 All 19 approved modules on this machine carry `approved=1` with **no
 signature**, and all 13 matchup rows carry no `covered_sha`. Signatures
 arrived in 5A and nothing has been approved since.
 
-The import copies those rows exactly as they stand, including the nulls.
-Computing a signature during a migration would manufacture a claim the
+The import copied those rows exactly as they stand, nulls included --
+verified after the fact on 2026-09-09, both sides, key for key. Computing
+a signature during a migration would have manufactured a claim the
 Commissioner never made, about text he may never have read, and it would
 be indistinguishable afterwards from one he did make.
 
@@ -107,17 +148,17 @@ as a historical fact rather than as approval of what is there now. It
 does not touch published history: a snapshot is an immutable file and
 never consults this.
 
-### `about_save` — an open gap, in scope
+### `about_save` — decided, migration written, not applied
 
 The About page's copy is still a file, and it is the only authoritative
-prose outside the store. The blocker is specific rather than lazy: a
-`ProseKey` is `(league, season, issue, section)` and a site-wide About
-page has none of those. It needs either a key shape for site copy or a
-table of its own, and inventing a third way to store words inside a
-migration tranche is how a schema acquires one permanently.
+prose outside the store. The question this section used to leave open --
+a key shape for site copy, or a table of its own -- is now answered: a
+table of its own, `site_documents`, in
+`migrations/0007_site_documents.sql`.
 
-**On a hosted Desk today, the About editor would not work.** That is
-recorded as a missing feature, not as reduced scope.
+**On a hosted Desk today the About editor still would not work**, because
+the migration has not been applied and the store is not wired. Both steps,
+and what each one blocks, are in "The last filesystem write" below.
 
 ### Research beyond the rough draft
 
@@ -172,7 +213,8 @@ when, not about whether.
 
 ## What would break if it were cut over today
 
-- The About page editor (see above).
+- The About page editor, until `0007` is applied and the store is wired
+  (see "The last filesystem write" below).
 - Nothing else that the live route suite covers.
 
 The honest caveat is what that suite does NOT cover: it drives the
@@ -196,6 +238,86 @@ here. Being store-owned is the shape a cutover needs and is not a
 cutover, and
 `test_store_owned_is_not_the_same_claim_as_hosted_safe` exists to stop
 those two being quietly conflated.
+
+---
+
+## The last filesystem write, and the migration that closes it
+
+**Site -> About is the one authoring surface still writing authoritative
+state to this machine.** Every other route expresses intent to
+`EditorialStore` and lands in a table. About persists to
+`editorial/site/about.md`, and `leaguepage/site_build.py` reads the same
+file when it builds `about/index.html`. On a hosted Desk that file does
+not survive a restart, so the page describing how the paper is made --
+and disclosing the AI assistance -- is the one thing Hosted Beta would
+silently discard.
+
+`migrations/0007_site_documents.sql` closes it with a table of its own:
+
+```
+site_documents (slug text primary key, body text, updated_at, updated_by)
+```
+
+Why not one of the tables already here, and what it deliberately is not,
+are in `docs/DECISIONS.md` under 2026-09-09. The short version: `sections`
+is addressed by a ProseKey and About has no league, season or issue, so
+storing it there means inventing three values in the primary key the whole
+editorial model is addressed by. `research_artifacts` is issue-scoped
+research. `editorial_meta` is recomputable settings the parity diff
+deliberately skips, which makes it the wrong home for authored prose. And
+this is not a CMS: no revisions, no drafts, no workflow, no per-league
+copy.
+
+One thing is consciously given up. On the filesystem About has git
+history; in `site_documents` it has `updated_at` and `updated_by` and no
+revision log. That is a real reduction, it is chosen rather than
+overlooked, and reversing it is a new decision with a new table.
+
+### MANUAL MIGRATION REQUIRED
+
+**`migrations/0007_site_documents.sql` has NOT been applied.** Apply it
+the same way as the others -- Supabase dashboard, SQL Editor, New query,
+paste the file, Run. Expect "Success. No rows returned". It is additive
+and idempotent, so running it twice is a no-op, and it raises rather than
+returning quietly if RLS is not enabled AND forced, if the
+`commissioner_all` policy is missing, or if anon holds any grant on the
+table.
+
+Two things confirm it landed:
+
+```
+.venv\Scripts\python.exe scripts\verify_supabase_schema.py
+```
+
+-- `site_documents` moves off the "genuinely absent" list -- and the eight
+live tests in `tests/test_site_documents_rls.py`, which skip with the
+reason "migration 0007 has not been applied to this database yet" until
+it is, and then assert RLS, the single policy, anon's total absence of
+grants, a Commissioner round trip, a stranger seeing zero rows and being
+refused a write, anon refused outright, and the migration being
+re-runnable over existing content without destroying it.
+
+**The application wiring is deliberately not written yet.** `read_about`
+and `write_about` still go to the filesystem. Writing a Postgres-backed
+store against a table that does not exist means shipping code nothing has
+exercised, in a tranche whose whole point is that claims are proved. That
+work is the first thing after 0007 is applied.
+
+### What this blocks
+
+These gates cannot be honestly run until 0007 is applied and About is
+wired:
+
+- real HTTP route verification against imported data, including the About
+  save
+- the fault and concurrency gates for About
+- a rebuilt route safety table with an accurate hosted-safe count
+- the full Postgres parity harness, negative control and privacy sweep
+  against a complete schema
+- the cloud -> local rollback proof, which has to carry About back to
+  `editorial/site/about.md` losslessly
+
+So: **READY IN DATA, not READY FOR CUTOVER.**
 
 ---
 
@@ -348,9 +470,14 @@ all. `tests/test_import_types.py` pins the conversion, the preflight and
 the role guard with no database at all, so the regression cannot hide
 behind an unset opt-in.
 
-### The gate before the next attempt
+### How it ended
 
-The corrected `--apply` has NOT been run, and this tranche did not run
-it. It may be run when, and only when: `differs = 0`, `remote-only = 0`,
-the surviving rows are understood, the transaction tests are green and
-the type preflight is green. All five are currently true.
+The gate on a second attempt was: `differs = 0`, `remote-only = 0`, the
+surviving rows understood, the transaction tests green, the type
+preflight green. All five held, and Jonathan ran the corrected
+`--apply` on 2026-09-09. It wrote 832 rows in one transaction -- 804
+metadata rows, the 28 section-state reconciliations -- and did not
+rewrite the 4 `issues` rows, which were already identical. The
+verification is at the top of this file under "The data has moved, and
+it matches"; this section stays as the record of how it failed the first
+time.

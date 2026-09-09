@@ -1,12 +1,109 @@
 # HANDOFF
 
-Updated 2026-09-08, after the first production import attempt failed
-part-written; the importer is repaired and the cutover is paused.
+Updated 2026-09-09, after the import completed and was verified.
+READY IN DATA; migration 0007 is written and NOT applied.
 Companions: docs/SPEC.md (product spec), docs/DECISIONS.md,
 docs/DEPLOY.md (deploy playbook), **docs/ROADMAP.md (ranked future
 work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Post-import verification, and the last filesystem write (2026-09-09)
+
+**Status: READY IN DATA. Not READY FOR CUTOVER, and one manual step is
+outstanding.** `.env` untouched, `LEAGUEPAGE_PROSE_BACKEND` unset, the
+filesystem still authoritative, nothing published, nothing deployed, no
+backend switched. `docs/CUTOVER.md` is the document to read; this is the
+state summary.
+
+### The import completed and was verified rather than believed
+
+Jonathan ran the corrected `--apply`. It wrote 832 rows in one
+transaction and did not rewrite the 4 `issues` rows that survived the
+first attempt, because they were already identical.
+
+Checked three ways, all agreeing:
+
+- `import_editorial_state.py` dry run: insert 0, differs 0, cloud-only 0
+- `editorial_state_diff.py`: 842 local, 842 cloud, 0 local-only, 0
+  cloud-only, 0 differs
+- `prose_tool.py verify`: same 34, filesystem-only 0, postgres-only 0,
+  content-differs 0
+
+Section state reconciled exactly: 28 `commissioner-edited` in both
+stores, section for section, and the 6 with no local row still
+`generated` -- two disco `all-city` sections and four surfeit proposals.
+
+Legacy approvals came through as history, not as claims: 19 approved
+modules, all 19 with `approved_sha` NULL on both sides, key sets
+identical; `matchup_state.covered_sha` NULL on all 13 rows on both sides.
+Nothing was signed, auto-approved or "repaired". The Desk already renders
+that state honestly -- "approved before signatures" on the card,
+"approved, unsigned" on the rail.
+
+Idempotence: a second dry run has nothing to insert and nothing to
+reconcile. The importer, atomicity and local-footprint tests were re-run
+against the imported database (45 passed), and a byte-level fingerprint
+of the local prose, the 9 published snapshots, all 15 editorial SQLite
+tables and `.env` is identical before and after.
+
+The only representational difference anywhere is timestamps: ISO strings
+in SQLite, `timestamptz` in Postgres. Same instant; the diff normalises
+them.
+
+### Site -> About was the last route writing to this machine
+
+Every other authoring route expresses intent to `EditorialStore` and
+lands in a table. About persists to `editorial/site/about.md`, and
+`site_build` reads the same file to build `about/index.html`. Hosted,
+that file does not survive a restart -- so the page disclosing the AI
+assistance is the one thing Hosted Beta would silently discard.
+
+`migrations/0007_site_documents.sql` closes it:
+`site_documents (slug, body, updated_at, updated_by)`. RLS enabled AND
+forced, one `commissioner_all` policy, anon granted nothing, and the
+migration raises rather than returning if any of that is untrue after it
+runs. Why not `sections`, `research_artifacts` or `editorial_meta`, and
+the named loss of About's git history, are in `docs/DECISIONS.md` under
+2026-09-09.
+
+**MANUAL MIGRATION REQUIRED: `migrations/0007_site_documents.sql` has not
+been applied.** Paste it into the Supabase SQL Editor and Run.
+`scripts/verify_supabase_schema.py` now knows about it (and about 0006's
+three tables, which were missing from its map) and names it as genuinely
+absent until it lands. The eight live tests in
+`tests/test_site_documents_rls.py` skip with that reason and then assert
+RLS, the single policy, anon's absence of grants, a Commissioner round
+trip, a stranger refused, anon refused outright, and the migration being
+re-runnable over existing content.
+
+**The application wiring is deliberately not written.** `read_about` and
+`write_about` still go to the filesystem. A Postgres store written
+against a table that does not exist is code nothing has exercised, which
+is the one thing this tranche is not for. It is the first work after 0007
+lands.
+
+### One thing found in passing: the route audit over-reports
+
+`scripts/audit_route_writes.py` attributes `path.parent.mkdir,
+path.write_text` to `about_preview`, which is four lines long, returns a
+`JSONResponse` and writes nothing. The audit walks the call graph by
+FUNCTION NAME, so `prose.render` collides with `publish.render_*`, which
+does write files.
+
+Nothing in the product is wrong; the diagnostic is. It matters because the
+route safety table is meant to be derived from that audit, so the table
+would inherit a false positive. Fix the resolution before building the
+table, not after.
+
+### What is still unrun, and why
+
+Blocked on 0007 and the About wiring: HTTP route verification against
+imported data, the About fault/concurrency gates, a rebuilt route safety
+table with an honest hosted-safe count, the full parity harness, the
+negative control, the privacy sweep against a complete schema, and the
+cloud -> local rollback proof (which has to carry About back to
+`editorial/site/about.md` losslessly).
 
 ## Import recovery — the first production import failed part-written (2026-09-08)
 

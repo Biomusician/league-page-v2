@@ -1,6 +1,6 @@
 """One page, one H1, and it names the page.
 
-The masthead carries the league's name on all 101 built pages. As an `<h1>`
+The masthead carries the league's name on every built page. As an `<h1>`
 that made every page claim the league as its title and left the page's
 actual subject at `<h2>`, so a heading list read "DISCO CHAT / Standings"
 on the standings page and "DISCO CHAT / Week 01" on both the front page and
