@@ -187,11 +187,47 @@ def test_the_footer_offers_about_and_nothing_else(root):
     assert "Donate" not in footer and "Support" not in footer
 
 
-def test_about_is_a_restrained_placeholder(built):
+def test_about_says_how_the_paper_is_made(built):
+    """The disclosure page, and the only place the six provenance labels
+    are explained. It was a three-line placeholder, which meant the site's
+    one standing statement about AI assistance was the colophon paragraph
+    inside a single week's Lowdown."""
     page = (built / "about" / "index.html").read_text(encoding="utf-8")
     assert "About League Page" in page
-    assert "Information about the project will be added here." in page
     assert "Back to league select" in page
+    # The four things a reader needs from this page.
+    assert "final say" in page                      # editorial authority
+    assert "assisted by AI" in page                 # AI may assist
+    assert "Sleeper" in page                        # where the data is from
+    assert "frozen when it is published" in page    # archives are preserved
+    # Every label an issue can carry is named here, and no others exist.
+    for label in ("Commish-written", "AI-generated", "Automatically generated",
+                  "AI-assisted", "Commish edited"):
+        assert label in page, label
+
+
+def test_about_discloses_without_exposing_the_workshop(built):
+    """A methodology page, not an implementation tour. Nothing here may
+    name the private surfaces, the tooling, or anything a reader could
+    mistake for the Commissioner's own notes."""
+    html = (built / "about" / "index.html").read_text(encoding="utf-8")
+    # The copy only. The <head> legitimately carries the site's own
+    # canonical URL, which names the host it is deployed to.
+    body = html[html.index("<main>"):html.index("</main>")].lower()
+    for leak in ("prompt", "writing brief", "baseline", "packet", "rough draft",
+                 "commissioner's desk", "localhost", "sqlite", "supabase",
+                 "vercel", "github", "claude", "chatgpt", "openai", "anthropic"):
+        assert leak not in body, leak
+
+
+def test_every_league_page_carries_the_standing_disclosure(built):
+    """One quiet link in the colophon, on every page, so the disclosure is
+    never more than one click from anything a reader is looking at."""
+    for rel in ("disco/index.html", "disco/standings/index.html",
+                "surfeit/index.html", "surfeit/archive/index.html"):
+        page = (built / rel).read_text(encoding="utf-8")
+        assert "How this is made" in page, rel
+        assert "about/index.html" in page, rel
 
 
 def test_no_donation_destination_is_invented(built):

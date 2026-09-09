@@ -20,10 +20,90 @@ from leaguepage.config import EDITORIAL_DIR, LEAGUES, SEASON, get_league
 # it is in the backup bundle, and it needs no schema of its own.
 ABOUT_PATH = EDITORIAL_DIR / "site" / "about.md"
 
-DEFAULT_ABOUT = """# About League Page
+# The shipped default, not the Commissioner's copy: he can replace all of
+# it from the Desk at Site -> About, and then this is never read again.
+#
+# Written as the site's own methodology note rather than in his voice,
+# because it is a disclosure about how the paper is made and not a piece of
+# editorial writing. It says only what is already visible on the site --
+# the six provenance labels the issue pages carry, where the numbers come
+# from, and that published issues are immutable. Nothing here describes how
+# any of it is built.
+#
+# One paragraph per list entry, unwrapped: `prose.render` honours a line
+# break the way it does inside an issue, so wrapping this to 72 columns
+# would publish the wraps as <br>.
+_ABOUT_BLOCKS = [
+    "# About League Page",
 
-Information about the project will be added here.
-"""
+    "League Page is a weekly newspaper for the fantasy football leagues it"
+    " covers. Each issue is written, edited and published by the league's"
+    " Commissioner.",
+
+    "## Who writes it",
+
+    "The Commissioner has final say over everything published here. No"
+    " section is published automatically, and nothing reaches a published"
+    " issue without the Commissioner's approval.",
+
+    "Some of the work behind an issue is assisted by AI: gathering"
+    " research, summarising what has changed in a league, and preparing"
+    " drafts to be rewritten, cut or thrown away. Other sections are"
+    " assembled from the league's own data with no writing involved at all."
+    " And some are written from scratch.",
+
+    "Those are different things, so each section says which it was.",
+
+    "## The line under each heading",
+
+    "Every section in an issue carries a short line naming where it came"
+    " from and whether the Commissioner edited it. There are six, and no"
+    " others:",
+
+    "\n".join([
+        "- **Commish-written** — the Commissioner's words.",
+        "- **Commish-written · AI-assisted** — the Commissioner's"
+        " words, with AI help somewhere behind them.",
+        "- **AI-generated** — drafted by AI and published without edits.",
+        "- **AI-generated · Commish edited** — drafted by AI, then"
+        " edited.",
+        "- **Automatically generated** — assembled from league data, not"
+        " written.",
+        "- **Automatically generated · Commish edited** — assembled"
+        " from data, then edited.",
+    ]),
+
+    "The line describes the section it sits under, not the issue as a whole."
+    " One issue routinely carries several different ones.",
+
+    "## Where the numbers come from",
+
+    "Rosters, lineups, scores, standings, transactions and draft results"
+    " come from Sleeper, where the leagues are played. Anything derived from"
+    " them — power rankings, positional strength, draft value, records"
+    " — is computed from that data, and the page it appears on says what"
+    " it was measured against.",
+
+    "Rankings and awards are editorial judgments rather than measurements."
+    " Where a page shows a computed ordering beside the Commissioner's, it"
+    " shows both and names the disagreement rather than settling it quietly.",
+
+    "## The archive",
+
+    "Published issues are permanent. An issue is frozen when it is published"
+    " and is not rewritten afterwards. A correction is published as a new"
+    " revision beside the original, and the issue says that it was updated"
+    " and why. Older issues, including ones written before this site"
+    " existed, are kept in the archive as they were written.",
+
+    "## Your team",
+
+    "Choosing your team stores that one choice in your own browser. There is"
+    " no account and no sign-in, nothing is sent anywhere, and clearing it"
+    " removes it.",
+]
+
+DEFAULT_ABOUT = "\n\n".join(_ABOUT_BLOCKS) + "\n"
 
 
 def read_about(path: Path | None = None) -> str:

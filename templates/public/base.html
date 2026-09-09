@@ -40,7 +40,11 @@
 <header class="masthead">
   {% if league.slug == "disco" %}<img class="logo-mark" src="{{ asset_root }}disco-logo-light.png" alt="" width="800" height="300">{% endif %}
   {% if league.slug == "surfeit" %}<img class="logo-badge" src="{{ asset_root }}surfeit-badge.png" alt="" width="560" height="528">{% endif %}
-  <h1><a href="{{ lroot }}index.html">{{ league.display_name }}</a></h1>
+  {#  Branding, not the page's heading. It is the same on all 101
+      pages, so as an <h1> it made every page claim the league's
+      name as its title and left the actual subject at <h2>. Each
+      page owns its own <h1> now; this keeps its exact appearance. #}
+  <div class="brand"><a href="{{ lroot }}index.html">{{ league.display_name }}</a></div>
   <div class="sub">{{ league.subtitle }} · {{ season }}</div>
 </header>
 <nav class="leaguenav" aria-label="League navigation">
@@ -81,7 +85,13 @@
 </main>
 <footer class="colophon">
   {% if league and league.slug == "disco" %}<img class="logo-footer" src="{{ asset_root }}disco-logo-banner.jpg" alt="" width="800" height="300" loading="lazy">{% endif %}
-  {% if league %}{{ league.display_name }} · {{ season }} · <a href="{{ lroot }}../index.html">League select</a>{% endif %}
+  {% if league %}{{ league.display_name }} · {{ season }} ·
+  <a href="{{ lroot }}../index.html">League select</a> ·
+  {#  The standing disclosure. Short and quiet on purpose: the
+      per-section provenance line is where an issue says who wrote
+      what, and this is the page that explains what those lines
+      mean. #}
+  <a href="{{ lroot }}../about/index.html">How this is made</a>{% endif %}
 </footer>
 {% if league and not preview_mode %}<script src="{{ asset_root }}sortable.js" defer></script>
 <script src="{{ asset_root }}myteam.js" defer></script>{% endif %}
