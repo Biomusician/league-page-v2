@@ -1,7 +1,8 @@
 # Morning summary — 2026-09-08
 
-Overnight product tranche. Started at `2111db9`, five commits, tree clean.
-Nothing published, nothing deployed, no cutover, Supabase untouched.
+Overnight product tranche. Started at `2111db9`, ended at `d8710cf`: nine
+commits, tree clean, pushed to `origin/main`. Nothing published, nothing
+deployed, no cutover, Supabase untouched.
 
 ---
 
@@ -96,6 +97,10 @@ is fresh" forever. It's relabelled instead: **"Mark preview done"**.
    rewrite a word — but if that disclosure belongs on the front page it
    needs a home, and `/about/` is still the stub
    *"Information about the project will be added here."* **Your call.**
+   → **Called, and closed out.** The excerpt hierarchy stays as it is; the
+   disclosure moved to a real About page plus a standing "How this is
+   made" link in the footer of every league page. See the product-UX
+   closeout section in `docs/HANDOFF.md`.
 2. **Nothing has been seen at a real 1440px or on physical hardware.**
    Geometry was verified by DOM measurement, which is stricter than
    eyeballing; the Desk home, the Issue Room, the public nav, and the
@@ -127,13 +132,28 @@ Both servers were left running (`.claude/launch.json`: `desk-qa` 8031,
 
 ## Commits
 
+Nine, `2111db9..d8710cf`, all on `main` and pushed.
+
 | | |
 | --- | --- |
 | `235fa00` | Give the shared card styles to every screen that renders them |
 | `a5c23fa` | Make the Desk give one answer to "is this issue done?" |
 | `f718dca` | Give the reader the week before the machinery |
 | `cd62499` | Make the Issue Room the room |
-| (docs) | HANDOFF + this file |
+| `7d2a402` | Record the tranche, the rebuttals that changed it, and what was left |
+| `3336465` | Test the width, not the absence of a class attribute |
+| `731a9db` | Say what was actually looked at, not just what was measured |
+| `f9e5efd` | Record the phone renders that were actually inspected |
+| `d8710cf` | Name the box he writes in, and stop the headings skipping a level |
+
+The push also carried `05e40b4` and `2111db9`, the two cloud-migration
+commits from the previous tranche that had never been pushed; they are
+ancestors of these, so it was all or nothing.
+
+Final gates at `d8710cf`: 1565 passed, 47 skipped, 0 failed; public build
+101 pages with the built-output privacy audit clean; repo privacy audit
+clean; 0 broken links and 0 broken anchors; publication QA 0 blockers; 9/9
+published snapshots and 34/34 prose records byte-identical.
 
 Full detail, the before/after measurements and the complete deferred list
 are in `docs/HANDOFF.md`.

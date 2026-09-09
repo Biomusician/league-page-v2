@@ -1,10 +1,128 @@
 # HANDOFF
 
-Updated 2026-09-08, end of the overnight product tranche. Companions:
+Updated 2026-09-08, end of the product UX closeout. Companions:
 docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
 playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Product UX closeout — disclosure and the heading model (2026-09-08)
+
+Bounded cleanup after the overnight tranche, on Jonathan's product
+decisions. No publish, no deploy, no Supabase, no cutover, no `.env`
+change, and no published prose touched. Starting HEAD `d8710cf`.
+
+### The AI disclosure now has a home of its own
+
+The overnight tranche trimmed the front-page excerpt to clear the fold,
+which moved the AI/process paragraph out of the Lowdown excerpt. **The
+decision was to keep the improved hierarchy and give the disclosure a
+standing place instead**, not to put the paragraph back.
+
+- **A real About page.** `DEFAULT_ABOUT` in `leaguepage/desk_site.py` was
+  three lines of placeholder — so the site's only standing statement about
+  AI assistance was a paragraph inside one week's Lowdown, and it left with
+  the excerpt. It is now a methodology page in five parts: who has final
+  say, what AI assists with, what each of the six provenance labels means,
+  where the numbers come from, and that published issues are frozen.
+- **Written as the site's own note, not in his voice.** It is a disclosure
+  about how the paper is made rather than a piece of editorial writing, so
+  nothing in it is attributed to the Commissioner. It states only what is
+  already visible on the site.
+- **It is still his to replace.** This is the shipped default; the Desk's
+  Site → About editor overrides it with `editorial/site/about.md`, and once
+  he writes there this constant is never read again.
+- **A quiet standing affordance.** One "How this is made" link in the
+  colophon of every league page, beside "League select". Not a module.
+- **Per-issue provenance is untouched.** The six labels, `_provenance.html`
+  and everything that computes them are exactly as they were; the About
+  page only explains what a reader is already seeing.
+
+`test_landing_page.py` pins all three halves: that the page carries the
+four disclosures and every label name, that the link is on every league
+page, and — the one worth having — that the *copy* names none of
+`prompt`, `writing brief`, `baseline`, `packet`, `rough draft`,
+`Commissioner's Desk`, `localhost`, `sqlite`, `supabase`, `vercel`,
+`github`, `claude`, `chatgpt`, `openai` or `anthropic`.
+
+### One page, one H1, and it names the page
+
+The two-H1 issue page was a symptom, not the problem. The audit found the
+same defect on **eleven** pages: `base.html`'s masthead was an `<h1>`
+carrying the league's name identically on all 101 built pages, so every
+page claimed the league as its title and left its own subject at `<h2>`.
+A heading list read "DISCO CHAT / Standings" on the standings page and
+"DISCO CHAT / Week 01" on both the front page and the issue page.
+
+The model:
+
+- the persistent masthead is branding — `<div class="brand">`, with the
+  `<h1>`'s own default `font-weight:bold` now stated rather than inherited,
+  so it looks identical;
+- each page owns one `<h1>`, and it is the page's own leading title
+  heading promoted in place. The class carries all the styling and the CSS
+  matches `h1` and `h2` alike, so **ten of the eleven pages did not move a
+  pixel**;
+- `teams.html` is the eleventh and the exception: it had no title heading
+  at all, opening on a section of itself. It gets one, which is a visible
+  addition and the user-facing reason is that it was the only page that
+  never said where you were.
+
+Two skips that predate all of this were fixed with it, because they are
+the same defect: `matchups` went `h1 → h3` (a matchup is a top-level item
+on that page, so it is an `h2` now and its parts are `h3`), and
+`transactions` went `h2 → h4` under "Reading the Moves", which has no week
+grouping between the section and the mover.
+
+The `transactions` one is worth naming: four assertions in
+`test_force_flow_team_first.py` matched `<h4 class="mover">` by literal
+tag, so the tests were pinning the broken shape in place. They ask for the
+class now, and one new test states the rule they were accidentally
+encoding -- a mover is an `h4` under "Moves That Mattered", which groups by
+week, and the `h3` itself under "Reading the Moves", which does not.
+
+**101 of 101 built pages** now have exactly one `<h1>`, start at `<h1>`,
+and skip no levels. `tests/test_heading_model.py` holds it against the
+built site rather than the templates, because the failure is
+compositional: a template correct on its own can still skip a level once
+it is inside `base.html`.
+
+### Morning summary corrected
+
+`docs/MORNING_SUMMARY.md` said "five commits" and listed four plus a
+"(docs)" row. The tranche was **nine**, `2111db9..d8710cf`, and it was
+pushed. The commit table, the final-gate numbers and the push are now
+accurate, and the one open decision in "What needs your eyes" is annotated
+with how it was resolved. The narrative is otherwise untouched.
+
+### Gates
+
+Full pytest green. Public build 101 pages, built-output privacy audit
+clean. Repo privacy audit clean. 0 broken links and 0 broken anchors across
+101 pages. Publication QA 4 issues, 0 blockers, 5 warnings — the same
+roster-drift warnings as before. **9/9 published snapshot hashes identical
+to the recorded values and 34/34 prose records unchanged**; git reports
+`published/`, `editorial/` and `archive/` clean, so nothing in the content
+trees was touched at all.
+
+### Deliberately not done
+
+- **The stale team names in the published Week 1 prose.** "George &
+  Friends" is a name that no longer exists, and it is in a frozen snapshot.
+  That is a correction and a republication, which is the Commissioner's
+  workflow and his act.
+- Everything still listed under the overnight tranche's own "deliberately
+  not done": the public reading measure, the Desk token layer, quieter
+  chips, and the native `alert`/`confirm`/`prompt` calls.
+
+### Cloud / cutover state: still unchanged
+
+Untouched by this tranche as well. `docs/CUTOVER.md` continues to describe
+the position exactly, `scripts/import_editorial_state.py --apply` has still
+not been run, and every authoring route still claims `safe=False`.
+
+**Recommended next work: resume the cloud-authoritative cutover sequence at
+`docs/CUTOVER.md`.** The product UX work is closed out.
 
 ## Overnight product tranche — Desk workflow and reader experience (2026-09-08)
 

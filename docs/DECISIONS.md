@@ -1925,3 +1925,74 @@ taller, because nine columns do not fit wrapped or not.
 So `main.wrapcells` is opt-in, and the wide data pages keep `nowrap` and
 scroll inside `.tablewrap`, which is the correct pattern for them. The
 general lesson: this one is not a CSS preference, it is a per-table fact.
+
+## 2026-09-08 — The AI disclosure is a standing page, not a paragraph in one week's lede
+
+Trimming the front-page excerpt to clear the fold moved the AI/process
+paragraph out of the Lowdown excerpt, and that exposed the real problem
+rather than creating one: **the site's only standing statement about AI
+assistance lived inside a single week's editorial prose.** It would have
+left the front page anyway the moment a new issue was published.
+
+Jonathan's decision was to keep the improved above-the-fold hierarchy and
+give the disclosure somewhere permanent. So: a real About page, and one
+quiet "How this is made" link in the colophon of every league page.
+
+Three constraints shaped what the page says.
+
+It is written as the **site's own methodology note, not in his voice**, and
+nothing in it is attributed to him. A disclosure about how the paper is
+made is not editorial writing, and inventing prose for his byline would be
+the exact thing the provenance system exists to prevent.
+
+It **states only what a reader can already see** — the six labels the issue
+pages carry, that the numbers come from Sleeper, that published issues are
+frozen. It names none of the machinery, and a test asserts that the copy
+contains no occurrence of `prompt`, `writing brief`, `baseline`, `packet`,
+`rough draft`, `Commissioner's Desk`, `localhost`, `sqlite`, `supabase`,
+`vercel`, `github`, `claude`, `chatgpt`, `openai` or `anthropic`. The
+disclosure is about editorial authority, not about the build.
+
+It lives in **`DEFAULT_ABOUT`, the shipped default**, rather than in
+`editorial/site/about.md`. The file is the Commissioner's copy; writing it
+for him would take the page away from him. The default is what the site
+says until he says something else, and the Desk's Site → About editor
+overrides it permanently the first time he saves there.
+
+Per-issue provenance is untouched. The About page explains the labels; it
+does not replace, summarise or soften any of them.
+
+## 2026-09-08 — The masthead is branding; each page owns its H1
+
+The overnight tranche gave the issue page an `<h1>` and left it with two,
+because `base.html`'s masthead was already one. Fixing only that page would
+have missed the actual defect: the masthead carries the league's name
+**identically on all 101 built pages**, so as an `<h1>` every page claimed
+the league as its title and left its own subject at `<h2>`. A heading list
+read "DISCO CHAT / Standings" on the standings page and "DISCO CHAT / Week
+01" on both the front page and the issue page — three different pages
+announcing the same title. Eleven pages had it.
+
+The masthead becomes `<div class="brand">`, and each page's own leading
+title heading is promoted in place. Promoted rather than added, which is
+why this is a semantic change and not a visual one: the styling hangs off
+`.section-label` and `.headline`, the CSS now matches `h1` and `h2` alike,
+and ten of the eleven pages did not move a pixel. The `<h1>`'s default
+`font-weight:bold` is stated explicitly on `.brand`, since a `div` does not
+carry it.
+
+`teams.html` is the exception and got a heading it did not have. It opened
+on "Positional Strength — League Comparison", a section of itself, so the
+only heading claiming to be its title was the league's. Every other page
+opens with its own name; this one now does too.
+
+Two pre-existing skips were fixed in the same pass because they are the
+same defect rather than a different one: `matchups` went `h1 → h3`, and
+`transactions` went `h2 → h4` under the one section that has no week
+grouping between the heading and the movers.
+
+The test that holds this runs against the **built site, not the
+templates**, because the failure is compositional — a template whose own
+levels are correct can still skip one once it is inside `base.html`, which
+is exactly how `matchups` and `transactions` stayed broken while every
+template looked fine on its own.
