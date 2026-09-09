@@ -31,7 +31,6 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(ib, "EDITORIAL_DIR", ed)
     monkeypatch.setattr(mp, "EDITORIAL_DIR", ed)
     monkeypatch.setattr(cfg, "PUBLISHED_DIR", tmp_path / "published")
-    monkeypatch.setattr(desk_site, "ABOUT_PATH", ed / "site" / "about.md")
     db = tmp_path / "t.sqlite3"
     with Storage(db) as s:
         populate_league(s, LG, teams=10, rounds=3, picks="complete", season=SEASON)

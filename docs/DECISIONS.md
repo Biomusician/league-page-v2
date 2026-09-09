@@ -2037,3 +2037,98 @@ it is chosen. The Desk has never had an About history UI, and a revision table
 built to preserve a history nothing reads is the speculative half of the
 migration. If that history is ever wanted, it is a new decision with a new
 table, not a column somebody adds quietly.
+
+## 2026-09-09 — One Supabase project, and a guard that says so at startup
+
+`DATABASE_URL` and `SUPABASE_URL` pointed at two different Supabase projects, and
+had for weeks. The database project held every migration, all 842 imported
+editorial rows, `app_commissioners` and every RLS policy. The other project held
+the accounts people signed in with, plus migration 0001's empty tables and
+nothing since.
+
+The obvious reading of that is wrong and worth writing down, because the wrong
+version makes it sound like a breach. `app_is_commissioner()` reads
+`auth.jwt() ->> 'email'`, and the value there is the one **this application**
+asserts with `set_config('request.jwt.claims', ...)` from its own session. The
+database never verifies a Supabase-issued token. Nobody was ever let past RLS by
+the mismatch, and no editorial row was at risk.
+
+What was actually wrong is that authentication and authorization lived in two
+places with nothing linking them, so every operational question had two answers:
+which dashboard shows the sign-ins, whose rate limits apply, where to disable a
+compromised account. And it made a diagnostic lie for weeks —
+`verify_supabase_schema.py` asks PostgREST over one and Postgres over the other,
+reported six tables as invisible, and blamed a stale schema cache. They were in
+the other project, which had never had them. That explanation had been written
+into `docs/CUTOVER.md` and `docs/HANDOFF.md` as fact.
+
+**The database project is canonical.** It holds the data and the policies;
+moving those to follow the accounts would be a migration, and moving the
+accounts to follow the data is a URL and a key. No user needs migrating:
+`auth.users` in the canonical project is empty, and `send_email_otp` already
+posts `should_create_user: True` for exactly this bootstrap.
+
+**The guard raises rather than warns, but only where both halves are live.**
+`leaguepage/project_check.py` compares the refs — the DSN's username for a
+pooled connection, the hostname for a direct one, the subdomain for the API URL
+— and refuses to start a Postgres-backed Desk, or one with sign-in on, when they
+disagree. It only warns for the local filesystem Desk, which signs nobody in and
+reads its own disk. That asymmetry is deliberate: a config error an operator
+cannot act on without stopping work is one that gets worked around, and a guard
+that gets worked around protects nothing.
+
+Refs are printed; DSNs are not. A project ref is public — it is the subdomain of
+the project's own URL — and an operator who cannot see *which* projects disagree
+cannot fix it. `/health` reports the verdict word alone, because it is the one
+route a launcher reads without signing in.
+
+## 2026-09-09 — The route audit resolves calls, not names
+
+`scripts/audit_route_writes.py` followed every function in the package sharing a
+callee's bare name. `leaguepage` has three `render`s, so `about_preview` — four
+lines, returns JSON, writes nothing — was reported as writing files, because
+`site_build` has a nested helper of that name that writes pages.
+
+The hosted-safety table is derived from this pass, which is what made it worth
+fixing rather than annotating. A wide net may over-report what a route reaches;
+it may not invent a sink in a module the route never calls into, because that is
+a false positive in the direction that looks responsible.
+
+Resolution is now: a module alias read from the calling module's own imports; a
+bare name resolved to the module's own definition, then a `from ... import`,
+then — only if unique in the package — a global match; and for a method call on
+an object whose type the AST cannot know, every *method* of that name, which is
+the wide net working as designed. Nested functions are excluded from the index
+that resolution searches and kept in a separate one used only to *find* a route
+handler, since every handler is nested inside `register_*`.
+
+Whatever cannot be resolved is printed on an `unresolved:` line rather than
+dropped. Under-reporting is the failure that matters here, so the pass says when
+it stopped following rather than going quiet. Nine route rows changed, all
+reductions, and each was corroborated against the behavioural audit or the code
+before it was accepted.
+
+## 2026-09-09 — An exemption from the credential patterns has to be policed
+
+`scripts/audit_repo_privacy.py` refuses to let a Supabase URL or a Postgres DSN
+into a tracked file, and it caught the tests written for
+`leaguepage/project_check.py` — which exist to prove those exact shapes are
+parsed correctly and cannot be written without something shaped like one.
+
+Three ways out, and only one of them is honest. Rewording the fixtures until the
+regex stops matching is evasion: it defeats the guard and leaves no marker for
+the next reader. Deleting the tests trades a real check for a clean audit. So
+the two files are exempt by path, the same way `.env.example` already is — and
+because an exemption is where a real credential eventually hides,
+`tests/test_repo_privacy_exemptions.py` polices it: every exempt file is checked
+against the **live** configuration for the real project refs and the real
+database password, so nothing real is committed to make that assertion either.
+The list is capped and each entry has to name the module it exists to test.
+
+Two files did get reworded, and that was not evasion because neither was
+carrying a secret in the first place. `project_check.py`'s docstring illustrated
+where a project ref sits by pasting two connection strings; it now says which
+FIELD holds it in each case, which is more precise anyway. `test_about_store.py`
+asserted the About editor leaks nothing by listing literal scheme strings; it now
+asserts against `PRIVATE_PATTERNS`, the project's own definition of a secret,
+which is a better test than the one it replaced.

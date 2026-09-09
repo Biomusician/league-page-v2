@@ -167,6 +167,23 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                   openapi_url=None)
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+    # ---- Auth and the database must be the same Supabase project ----
+    # They were not, for weeks, and nothing said so. RLS was never fooled
+    # -- the claim it reads is one this application asserts from its own
+    # session -- but the allowlist that decides access and the accounts
+    # that vouch for people sat in different projects with nothing linking
+    # them, which is a question with two answers. This refuses
+    # the configuration where the two halves actually meet -- a Postgres
+    # backend, or sign-in switched on -- and only warns otherwise, because
+    # a local filesystem Desk that signs nobody in never brings them
+    # together. See leaguepage/project_check.py.
+    from leaguepage import project_check
+
+    _warning = project_check.enforce(backend=prose_store.backend_name(),
+                                     auth_required=auth.auth_required())
+    if _warning:
+        print("WARNING: " + _warning)
+
     # Job history is operational, not editorial: it records what the Desk
     # did, and none of it can be reconstructed into a lost issue. So it is
     # kept for a month and for the last fifty jobs of each type, whichever
@@ -463,10 +480,16 @@ def create_app(db_path: Path | str = DB_PATH) -> FastAPI:
                     # Safe facts only: never the DSN, the host or a credential.
                     prose_health.update({"reachable": False,
                                          "error": type(exc).__name__})
+            # The VERDICT only. A project ref is public but it is still a
+            # fact about somebody's infrastructure, and /health is the one
+            # route a launcher reads without signing in.
+            from leaguepage import project_check
+
             return {
                 "status": "ok",
                 "app": "commissioner-desk",
                 "database": "ok",
+                "supabase_projects": project_check.describe()["verdict"],
                 "season": season,
                 "leagues_loaded": leagues_loaded,
                 "leagues_configured": len(LEAGUES),

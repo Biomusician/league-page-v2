@@ -155,6 +155,21 @@ def main() -> int:
         print("Supabase not configured; run scripts/check_supabase.py first.")
         return 1
     headers = {"apikey": c["key"], "Authorization": f"Bearer {c['key']}"}
+
+    # Which two things are about to be compared. Until 2026-09-09 these
+    # were different projects and nothing said so, so every "missing" line
+    # below was a comparison between two databases and the script
+    # explained it as a stale schema cache.
+    from leaguepage import project_check
+
+    _v = project_check.describe()
+    print(f"PostgREST project : {_v['auth_ref'] or 'unknown'}")
+    print(f"Postgres project  : {_v['database_ref'] or 'unknown'}")
+    if _v["verdict"] == project_check.MISMATCH:
+        print("  *** THESE ARE DIFFERENT PROJECTS. Everything below "
+              "compares two databases. ***")
+    print()
+
     results = {}
     with httpx.Client(timeout=20) as client:
         for t in TABLES:
@@ -203,13 +218,33 @@ def main() -> int:
                 print(f"    {t:26s} apply migrations/{OWNER[t]}_*.sql")
             return 1
         print("  DIRECT CHECK: every one of them EXISTS in the database.")
-        print("  So this is PostgREST's schema cache, not the schema. It is")
-        print("  pinned to an older snapshot and a reload has not moved it.")
         print()
-        print("  Impact today: NONE. No data flows over PostgREST -- the")
-        print("  application talks to Postgres directly and supabase_client")
-        print("  is authentication only. This affects this script and")
-        print("  anything that might later read the database from a browser.")
+        from leaguepage import project_check
+
+        verdict = project_check.describe()
+        if verdict["verdict"] == project_check.MISMATCH:
+            # The explanation this script used to give, and it was wrong.
+            print("  BUT THE TWO HALVES OF THIS CHECK ARE DIFFERENT")
+            print("  PROJECTS. PostgREST was asked over SUPABASE_URL")
+            print(f"  (project {verdict['auth_ref']}) and Postgres over")
+            print(f"  DATABASE_URL (project {verdict['database_ref']}).")
+            print("  So these tables are not missing from a cache; they")
+            print("  are missing from the OTHER project, which has never")
+            print("  had them. Nothing here is evidence about the schema.")
+            print()
+            print("  Fix the configuration, not the cache: point")
+            print("  SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY at")
+            print(f"  {verdict['database_ref']}. See docs/CUTOVER.md.")
+        else:
+            print("  So this is PostgREST's schema cache, not the schema.")
+            print("  It is pinned to an older snapshot and a reload has")
+            print("  not moved it.")
+            print()
+            print("  Impact today: NONE. No data flows over PostgREST --")
+            print("  the application talks to Postgres directly and")
+            print("  supabase_client is authentication only. This affects")
+            print("  this script and anything that might later read the")
+            print("  database from a browser.")
         print()
         return report_columns()
     print(f"TABLES OK: {len(locked)}/{len(TABLES)} present and locked "

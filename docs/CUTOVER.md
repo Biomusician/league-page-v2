@@ -1,8 +1,9 @@
 # Cutover readiness — the Commissioner's Desk on Postgres
 
-Updated 2026-09-09, after the corrected import completed and was
-verified. The INCIDENT section at the foot of this file records the
-attempt that failed first; it is history now, not the current state.
+Updated 2026-09-09, after migration 0007 was applied and verified, About
+was wired to the cloud, and a second Supabase project was found where
+there should have been one. The INCIDENT section at the foot of this file
+records the import attempt that failed first; it is history now.
 
 **Status: READY IN DATA. Nothing has been cut over.
 `LEAGUEPAGE_PROSE_BACKEND` is unset, `.env` is untouched, the filesystem
@@ -14,11 +15,12 @@ and this machine now hold the same editorial state, verified three ways
 and reported below. That is what READY IN DATA means and it is all it
 means.**
 
-**READY FOR CUTOVER is a different claim and is NOT made yet.** One
-schema gap is open -- Site -> About still writes to this machine's
-filesystem, and `migrations/0007_site_documents.sql` closes it but has
-not been applied. Until it is, the remaining verification gates cannot
-honestly be run. See "The last filesystem write" below.
+**READY FOR CUTOVER is a different claim and is NOT made yet.** Two
+manual steps are open and both are Jonathan's: **Auth has to move to the
+canonical project**, and `migrations/0008_least_privilege.sql` has to be
+applied. Until Auth is consolidated the remaining verification gates
+cannot honestly be run. See "0007 applied, About wired, and one
+configuration that was wrong" below.
 
 This document is the thing to read before deciding. It says what is
 actually true, what is still missing, exactly what a cutover would
@@ -241,7 +243,11 @@ those two being quietly conflated.
 
 ---
 
-## The last filesystem write, and the migration that closes it
+## The last filesystem write, and the migration that closed it
+
+**Superseded on 2026-09-09: 0007 is applied and About is wired.
+Kept for the reasoning, which is still the reasoning. The
+current state is in the section after this one.**
 
 **Site -> About is the one authoring surface still writing authoritative
 state to this machine.** Every other route expresses intent to
@@ -273,7 +279,7 @@ history; in `site_documents` it has `updated_at` and `updated_by` and no
 revision log. That is a real reduction, it is chosen rather than
 overlooked, and reversing it is a new decision with a new table.
 
-### MANUAL MIGRATION REQUIRED
+### MANUAL MIGRATION REQUIRED (done: 0007 was applied 2026-09-09)
 
 **`migrations/0007_site_documents.sql` has NOT been applied.** Apply it
 the same way as the others -- Supabase dashboard, SQL Editor, New query,
@@ -297,11 +303,9 @@ grants, a Commissioner round trip, a stranger seeing zero rows and being
 refused a write, anon refused outright, and the migration being
 re-runnable over existing content without destroying it.
 
-**The application wiring is deliberately not written yet.** `read_about`
-and `write_about` still go to the filesystem. Writing a Postgres-backed
-store against a table that does not exist means shipping code nothing has
-exercised, in a tranche whose whole point is that claims are proved. That
-work is the first thing after 0007 is applied.
+**The application wiring was deliberately not written yet.** It is now:
+`site_documents.read()` and `EditorialState.set_site_document` went in
+once the table existed to exercise them against.
 
 ### What this blocks
 
@@ -318,6 +322,270 @@ wired:
   `editorial/site/about.md` losslessly
 
 So: **READY IN DATA, not READY FOR CUTOVER.**
+
+---
+
+## 0007 applied, About wired, and one configuration that was wrong
+
+Updated 2026-09-09.
+
+### Migration 0007 is live, checked rather than believed
+
+The SQL Editor said "Success". That is not evidence, so the table was
+asked directly on the connection the application itself uses.
+
+| claim | result |
+| --- | --- |
+| table exists | `to_regclass('public.site_documents')` -> `site_documents` |
+| columns, in order | `slug, body, updated_at, updated_by` |
+| types | `text, text, timestamptz, text` |
+| primary key | `slug` |
+| `body` | NOT NULL, default `''::text` |
+| `updated_at` | NOT NULL, default `now()` |
+| `updated_by` | nullable, no default |
+| RLS | enabled **and** forced |
+| policies | exactly one: `commissioner_all`, `ALL`, `{authenticated}`, `app_is_commissioner()` on both USING and WITH CHECK |
+| anon grants | none |
+| `leaguepage_app` grants | SELECT, INSERT, UPDATE, DELETE |
+| re-running the migration | idempotent, and existing content survives |
+
+Authorization proved three ways, none of them using the owner connection
+as evidence: **anon** is refused outright (it holds no grant, so the
+failure is a permission error before any policy is consulted); an
+**authenticated stranger** sees zero rows and cannot write; the
+**allowlisted Commissioner** round-trips insert, select, update, delete.
+`tests/test_site_documents_rls.py`, 8 tests, all green.
+
+### One thing was NOT as the migrations claim: `authenticated` grants
+
+`authenticated` holds **TRUNCATE, REFERENCES and TRIGGER** on all 22
+tables, on top of the four the migrations grant. This is not 0007's doing
+-- it is uniform across every table since 0001, and it comes from the
+Supabase project default that grants ALL on every new table in `public`
+to `anon`, `authenticated` and `service_role`. The migrations revoked
+anon. Nothing revoked the surplus from the role that actually writes.
+
+TRUNCATE is the one that matters, because **row level security does not
+apply to TRUNCATE**. `commissioner_all` stops a non-Commissioner deleting
+a row and would not stop the same role emptying the table.
+
+How exposed is it today: not. Acting as `authenticated` needs a Postgres
+connection, which needs the DSN, or PostgREST with a user JWT -- and
+PostgREST only ever issues SELECT/INSERT/UPDATE/DELETE. It cannot TRUNCATE
+and cannot create a trigger. So this is the gap between what the
+migrations say they grant and what the database grants, worth closing
+before a hosted Desk exists rather than after.
+
+**`migrations/0008_least_privilege.sql` closes it** and has NOT been
+applied. It states the whole intended set rather than naming the surplus
+(`revoke all` then `grant select, insert, update, delete`), which is
+idempotent and does not need to track MAINTAIN arriving in PostgreSQL 17;
+it fixes the default privileges too, so the next table created does not
+re-acquire it; and it raises rather than returning if any table still
+grants more than CRUD afterwards. The five live tests in
+`tests/test_least_privilege.py` skip with that reason until it is applied.
+
+### Site -> About now goes where the backend says
+
+`site_documents` has a store, and it is the smallest one that could work:
+`EditorialState.site_document` / `set_site_document`, the same shape
+`research_artifacts` already uses for a thing that is a file here and a
+row there.
+
+- **filesystem mode**: `editorial/site/about.md`, exactly as before, with
+  `DEFAULT_ABOUT` as the fallback when the file does not exist.
+- **postgres mode**: `site_documents` where `slug = 'about'`, with the
+  same fallback when there is no row, and **no file written at all** --
+  proved by a test that asserts the editorial tree stays empty.
+- No dual write, and no second code path: the route calls
+  `act.state.set_site_document(...)` inside a store action, so on Postgres
+  the About save is one transaction as the signed-in Commissioner with RLS
+  applying to it, like every other authoring route.
+
+`read()` takes no actor, because the public site build reads it too --
+the same shape an unbound prose repository already has for the build's
+prose.
+
+The editor names where the copy is kept: a path on the filesystem, the
+table on Postgres, and never a DSN. `tests/test_about_store.py` covers the
+default, the save, an update, survival across a restart, `updated_by`
+carrying the Commissioner, `updated_at` moving, the stranger refused, an
+action with no identity refused, and the preview writing nothing.
+
+**The route table moved with it.** `about_save` is now `owner="store"`,
+`kind="authoring"`, `cloud=("site_documents",)` and -- the interesting
+part -- **`local=()`**: it is the first authoring route with no local
+remainder at all. It is still not hosted-safe, because the selected
+backend today is the filesystem and that is where the write lands. The
+reason is now the setting rather than the code.
+
+### The route audit was lying, and the safety table is derived from it
+
+`scripts/audit_route_writes.py` reported `about_preview` -- four lines,
+returns JSON, writes nothing -- as writing files. It resolved call targets
+by BARE NAME, and `leaguepage` has three `render`s: `prose.render`, which
+`about_preview` calls; a nested helper inside `site_build.build`, which
+writes pages; and a method on a writing packet.
+
+It now resolves before it follows: a module alias is read from the calling
+module's own imports, so `prose.render` is `prose.py` and nothing else; a
+bare name resolves to the module's own definition, then to a `from ...
+import`, then -- only if the name is unique in the whole package -- to
+that; and a method call on an object whose type the AST cannot know
+follows every METHOD of that name, which is the wide net working as
+intended, but never a module-level or nested function that merely shares
+it. Anything left is printed on an `unresolved:` line rather than dropped,
+because a pass that quietly stops following calls under-reports.
+
+Nine route rows changed, every one of them a reduction, and every one
+corroborated before it was accepted -- four against
+`test_hosted_mutation_audit.py`, which drives the routes and records what
+they actually write, and the rest by reading the code:
+
+| route | was reported | actually |
+| --- | --- | --- |
+| `about_preview` | writes files | writes nothing |
+| `editor_approve` | `set_issue_status` | writes `issue_modules`, `matchup_state` |
+| `lowdown_save` | `set_issue_status` | prose plus `section_prose_state`, `issue_modules` |
+| `issue_build` | `set_meta` | `set_issue_status` only |
+| `issue_publish` | four file writes | the snapshot only; the HTML is the site build's |
+| `sync_start` | file writes | none |
+| `publish_start`, `qa_action` | extra aliases of the same write | the writes they have |
+
+The current audit reports **45 mutating routes, 0 unresolved calls**.
+
+### The two-Supabase-project split
+
+`DATABASE_URL` and `SUPABASE_URL` pointed at **different Supabase
+projects**, and nothing in the code, the tests or these documents said
+they were supposed to match.
+
+| setting | project | responsibility |
+| --- | --- | --- |
+| `DATABASE_URL` | `mxlrmjapffjplxtnuzkd` | every migration 0001-0007; all 842 imported editorial rows; `app_commissioners`; every RLS policy; the prose repository, the editorial store, the importer, the diff, the schema verifier's direct check |
+| `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` | `kgxmdhkswdhjbcozcznv` | OTP initiation (`/auth/v1/otp`), OTP verification (`/auth/v1/verify`), the health probe (`/auth/v1/settings`). Carries 0001's tables and nothing since |
+| `SUPABASE_SECRET_KEY` | not set anywhere | unused. Nothing in the application reads it |
+| `LEAGUEPAGE_COMMISSIONER_EMAILS` | local `.env` | the allowlist checked before an OTP is sent and again after it is verified |
+
+**Be precise about what it broke, because the obvious reading is wrong.**
+`app_is_commissioner()` reads `auth.jwt() ->> 'email'`, and the value
+there is the one **this application asserts** with
+`set_config('request.jwt.claims', ...)` from its own session. The database
+never verifies a Supabase-issued token. So the mismatch never let anyone
+past RLS, and no editorial row was ever at risk.
+
+What it did mean is that authentication and authorization lived in two
+projects with nothing linking them. The allowlist that decides access is a
+table in project A; the accounts that vouch for people are in project B;
+and every operational question then has two answers -- which dashboard
+shows the sign-ins, whose rate limits apply, where to disable a
+compromised account.
+
+**And it made a diagnostic lie.** `verify_supabase_schema.py` asks
+PostgREST over `SUPABASE_URL` and Postgres over `DATABASE_URL`. For weeks
+it reported six tables as "NOT VISIBLE TO PostgREST" and explained it as a
+schema cache "pinned to an older snapshot". They were not cached; they
+were **in the other project, which has never had them**. That explanation
+was recorded as fact in this document and in `docs/HANDOFF.md`, and both
+are corrected. The script now prints both project refs at the top, says
+`*** THESE ARE DIFFERENT PROJECTS ***` when they differ, and refuses to
+offer the cache explanation in that case.
+
+**It cannot happen silently again.** `leaguepage/project_check.py` derives
+each project's ref -- from the DSN's username for a pooled connection,
+from the hostname for a direct one, from the subdomain for the API URL --
+and compares them. A mismatch **raises at startup** when the two halves
+are actually live (a Postgres backend, or sign-in switched on) and warns
+otherwise, because the local filesystem Desk signs nobody in and reads its
+own disk, and a config error an operator cannot act on without stopping
+work is one that gets worked around. `/health` reports the verdict word
+only -- never a ref, never a host, never a DSN -- and the mismatch message
+names the two refs, which are public, and nothing else.
+`tests/test_project_consistency.py`, 23 tests, including the pooler shape
+that a hostname-only check would have passed.
+
+### MANUAL AUTH CONSOLIDATION STEP REQUIRED
+
+The canonical project is **`mxlrmjapffjplxtnuzkd`** -- the one
+`DATABASE_URL` points at, holding every migration and all 842 rows. Auth
+moves to it. Nothing about this can be done from here: the publishable key
+lives in that project's dashboard.
+
+What was established rather than assumed:
+
+- the canonical project **has Auth provisioned**: `/auth/v1/health` there
+  answers `401 "No API key found"`, which is the endpoint asking for a key
+  rather than the endpoint not existing.
+- its `auth` schema exists and **`auth.users` has 0 rows**, so there is
+  no account to migrate and none to collide with.
+- `app_commissioners` in the canonical project holds **exactly one row**,
+  and it is **the same address** as `LEAGUEPAGE_COMMISSIONER_EMAILS`. The
+  allowlist is already correct for it; nothing needs adding.
+- **no user migration is needed.** `send_email_otp` posts
+  `should_create_user: True`, which exists for precisely this case -- a
+  brand-new project has no user record, and Supabase answers
+  `otp_disabled / Signups not allowed for otp` without it. The account is
+  created on first sign-in, and permission to use the application is
+  still decided twice by us: the allowlist before the code is sent and
+  again against the address Supabase returns, then RLS against
+  `app_commissioners`.
+- **no Redirect URL and no Site URL are needed.** The flow posts to
+  `/auth/v1/otp` and `/auth/v1/verify` with a payload of
+  `{"email": ..., "options": {"should_create_user": true}}` -- no
+  `redirect_to` anywhere. Magic links would need them; a six-digit code
+  does not.
+- the settings to match, read from the current auth project:
+  `external.email = true`, `disable_signup = false`,
+  `mailer_autoconfirm = false`.
+
+**The steps, in order:**
+
+1. Open the dashboard for project **`mxlrmjapffjplxtnuzkd`** ->
+   Authentication -> Providers -> **Email**. Confirm it is enabled and
+   that sign-ups are allowed. Leave "Confirm email" as it is; the OTP
+   flow does not use a confirmation link.
+2. Settings -> API. Copy that project's **Project URL** and its
+   **publishable / anon key**.
+3. Put them in `.env` as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`,
+   replacing the `kgxmdhkswdhjbcozcznv` values. **This tranche did not
+   edit `.env`.**
+4. Check it: `.venv\\Scripts\\python.exe scripts\\check_supabase.py`, then
+   `.venv\\Scripts\\python.exe scripts\\verify_supabase_schema.py` -- the
+   two project lines at the top must now be the same ref and the
+   `*** THESE ARE DIFFERENT PROJECTS ***` banner must be gone.
+5. Sign in once with `LEAGUEPAGE_AUTH_MODE=required` so the account is
+   created in the canonical project. Supabase's built-in mailer sends the
+   code and has a low hourly limit on the free tier, so expect to wait if
+   you retry.
+6. The old project `kgxmdhkswdhjbcozcznv` then holds 0001's empty tables
+   and one stale account. Retiring it is a separate decision; nothing
+   reads it once step 3 is done.
+
+Until step 3, the startup guard raises for any configuration that puts
+both halves in play, so a hosted or Postgres-backed Desk **cannot be
+started against the split** even by accident.
+
+### What is still not proved
+
+Everything in section 8 of the brief, and it is gated on the step above
+rather than on anything in the code: real HTTP authoring routes across the
+full surface on imported Postgres state, the fault and concurrency gates,
+the rebuilt hosted-safe count, the full parity harness, 27/27 assembly,
+preview parity, the negative control, the privacy sweep, and the cloud ->
+fresh-local rollback proof including `site_documents/about` ->
+`editorial/site/about.md`.
+
+What IS proved of the chain: **from a signed Desk session downwards.**
+`tests/test_auth_chain_end_to_end.py` drives a real login token through
+`/auth/callback`, takes the signed session cookie, and observes -- inside
+the writing transaction, because outside it the connection is the owner
+and always was -- that `current_role` is `authenticated`, that
+`request.jwt.claims` carries the Commissioner's address, that
+`app_is_commissioner()` returns true, and that the row lands. The link
+above it, Supabase minting that identity **in the canonical project**, is
+the manual step.
+
+**Status: READY IN DATA. Not READY FOR CUTOVER.**
 
 ---
 

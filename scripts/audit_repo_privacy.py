@@ -58,7 +58,16 @@ HANDLE_EXEMPT = ("archive/",)
 # .env.example exists to document the SHAPE of each setting with <placeholder>
 # values and no secrets, so a connection-string template in it is the file
 # doing its job. Nothing else is exempt from the credential patterns.
-TOKEN_EXEMPT = (".env.example",)
+# Two test files are exempt for the same reason and under the same
+# condition: they exist to prove that `leaguepage/project_check.py` parses
+# Supabase URLs and Postgres DSNs correctly, which cannot be tested without
+# something shaped like one. Every value in them is invented -- fake refs,
+# a fake password -- and `tests/test_repo_privacy_exemptions.py` asserts
+# that against the LIVE configuration, so the exemption cannot quietly
+# become a place where a real credential hides.
+TOKEN_EXEMPT = (".env.example",
+                "tests/test_project_consistency.py",
+                "tests/test_auth_chain_end_to_end.py")
 
 
 def _git(*args: str) -> str:

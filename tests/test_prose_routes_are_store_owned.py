@@ -68,6 +68,11 @@ MOVED = (
     "track_take", "add_take", "take_action", "resolve_take",
     "set_team_names", "use_sleeper_name", "request_rewrite",
     "force_flow_note", "inbox_reviewed",
+    # the site's own copy. It was the last route writing authoritative
+    # state to this machine directly; it now expresses the same intent to
+    # the store, which on Postgres makes it one transaction as the
+    # signed-in Commissioner.
+    "about_save",
 )
 PARTIAL: dict[str, str] = {}
 

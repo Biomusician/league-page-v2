@@ -1,12 +1,133 @@
 # HANDOFF
 
-Updated 2026-09-09, after the import completed and was verified.
-READY IN DATA; migration 0007 is written and NOT applied.
+Updated 2026-09-09, after 0007 was applied and verified and About
+moved to the cloud. READY IN DATA. Two manual steps open:
+consolidate Auth onto the canonical project, and apply 0008.
 Companions: docs/SPEC.md (product spec), docs/DECISIONS.md,
 docs/DEPLOY.md (deploy playbook), **docs/ROADMAP.md (ranked future
 work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## 0007 verified, About on the cloud, and one Supabase project too many (2026-09-09)
+
+**Status: READY IN DATA. Not READY FOR CUTOVER. Two manual steps are
+open and both are Jonathan's.** `.env` untouched,
+`LEAGUEPAGE_PROSE_BACKEND` unset, nothing published, nothing deployed.
+`docs/CUTOVER.md` has the full account.
+
+### 0007 is live and was checked, not believed
+
+Table, four columns in order, types, `slug` primary key, `body` NOT NULL
+default `''`, `updated_at` NOT NULL default `now()`, RLS enabled AND
+forced, exactly one `commissioner_all` policy on `{authenticated}` with
+`app_is_commissioner()` on both USING and WITH CHECK, anon holding
+nothing, `leaguepage_app` holding CRUD, and the migration re-runnable over
+existing content. Authorization proved as anon (refused outright), as an
+authenticated stranger (zero rows, write refused) and as the Commissioner
+(full round trip) -- never as the owner.
+
+### Found while verifying: `authenticated` holds more than CRUD
+
+All 22 tables grant `authenticated` **TRUNCATE, REFERENCES and TRIGGER**
+on top of the four the migrations grant. Not 0007's doing: it is the
+Supabase project default that grants ALL on every new table in `public`,
+uniform since 0001, and the migrations only ever revoked `anon`.
+
+**RLS does not apply to TRUNCATE**, so the policy that stops a
+non-Commissioner deleting a row would not stop that role emptying the
+table. Not reachable today -- PostgREST cannot issue TRUNCATE and a
+direct connection needs the DSN -- but it is the gap between what the
+migrations say and what the database does.
+
+**`migrations/0008_least_privilege.sql` is written and NOT applied.** It
+states the intended set rather than naming the surplus, fixes the default
+privileges so the next table stays clean, and raises if any table still
+grants more than CRUD afterwards. Five live tests skip until it lands.
+
+### About is wired, and the route table moved with it
+
+`site_documents` reached through `EditorialState.site_document` /
+`set_site_document`, the shape `research_artifacts` already uses. On the
+filesystem it is `editorial/site/about.md` exactly as before; on Postgres
+it is the row, with `DEFAULT_ABOUT` as the fallback on both and **no file
+written at all** in Postgres mode. One store action, no dual write, no
+second code path. `read()` takes no actor because the public build reads
+it too.
+
+`about_save` in the route table is now `owner="store"`, `kind="authoring"`,
+`cloud=("site_documents",)` and **`local=()`** -- the first authoring
+route with no local remainder. Still `safe=False`, because the selected
+backend today is the filesystem; the reason is now the setting rather than
+the code.
+
+### The route audit was over-reporting, and the safety table reads it
+
+It resolved calls by bare name, so `about_preview` (four lines, returns
+JSON) was reported as writing files via a nested `render` in `site_build`.
+It now resolves module aliases from the calling module's imports, follows
+every *method* of a name for an object it cannot type, never a nested
+function, and prints what it could not resolve instead of dropping it.
+Nine rows changed, all reductions, each corroborated against the driven
+audit or the code. Now: **45 mutating routes, 0 unresolved calls.**
+
+### Two Supabase projects, which was not intentional
+
+`DATABASE_URL` -> `mxlrmjapffjplxtnuzkd`: every migration, all 842 rows,
+`app_commissioners`, every policy. `SUPABASE_URL` ->
+`kgxmdhkswdhjbcozcznv`: sign-in, and 0001's tables only.
+
+RLS was never fooled -- `app_is_commissioner()` reads the claim this
+application asserts from its own session, not a Supabase token -- so
+nothing was at risk. What was wrong is that authentication and
+authorization sat in two places with nothing linking them, and that it
+made `verify_supabase_schema.py` explain six cross-project misses as a
+stale PostgREST cache. **That explanation was recorded as fact in
+CUTOVER.md and in this file, and both are corrected.**
+
+`leaguepage/project_check.py` now compares the refs and **raises at
+startup** when both halves are live (Postgres backend, or sign-in on),
+warning otherwise. `/health` reports the verdict word only. 23 tests,
+including the pooler shape a hostname-only check would have passed.
+
+### MANUAL AUTH CONSOLIDATION STEP REQUIRED
+
+Canonical project is **`mxlrmjapffjplxtnuzkd`**. Established rather than
+assumed: Auth is provisioned there, `auth.users` is empty, the single
+`app_commissioners` row already matches `LEAGUEPAGE_COMMISSIONER_EMAILS`,
+`should_create_user: True` covers the bootstrap so **no user migration is
+needed**, and **no Redirect URL or Site URL is needed** because the OTP
+payload carries no `redirect_to`. Steps are in `docs/CUTOVER.md`.
+
+### The privacy audit caught the tests it should have
+
+`audit_repo_privacy.py` refused the new `project_check` tests: they carry
+Supabase URLs and Postgres DSNs because that is what they parse. The fix
+was not to reword them past the regex -- that defeats the guard and leaves
+no marker -- but to make every value invented, exempt the two files by
+path as `.env.example` already is, and add
+`tests/test_repo_privacy_exemptions.py`, which checks each exempt file
+against the LIVE configuration for the real refs and the real password.
+
+Two other files were reworded, and neither was carrying a secret:
+`project_check.py`'s docstring pasted two connection strings to show where
+a ref sits and now names the field instead, and `test_about_store.py`'s
+leak check now runs `PRIVATE_PATTERNS` rather than a hand-written list of
+literals -- a better test than the one it replaced.
+
+### What is proved of the chain, and what is not
+
+From a signed Desk session downwards, end to end and observed inside the
+writing transaction: `current_role = authenticated`, claims carrying the
+Commissioner, `app_is_commissioner()` true, the row landing
+(`tests/test_auth_chain_end_to_end.py`). The link above it -- Supabase
+minting that identity in the canonical project -- is the manual step.
+
+Everything in section 8 of the brief is gated on that step: full HTTP
+route verification on imported state, faults, concurrency, the rebuilt
+hosted-safe count, the parity harness, 27/27 assembly, preview parity,
+negative control, privacy sweep, and the cloud -> fresh-local rollback
+proof including `site_documents/about` -> `editorial/site/about.md`.
 
 ## Post-import verification, and the last filesystem write (2026-09-09)
 
@@ -71,7 +192,15 @@ the named loss of About's git history, are in `docs/DECISIONS.md` under
 been applied.** Paste it into the Supabase SQL Editor and Run.
 `scripts/verify_supabase_schema.py` now knows about it (and about 0006's
 three tables, which were missing from its map) and names it as genuinely
-absent until it lands. The eight live tests in
+absent until it lands.
+
+**Correction, 2026-09-09:** this file previously repeated the verifier's
+explanation that six tables were invisible because "PostgREST's schema
+cache is pinned to an older snapshot". That was wrong. The verifier asks
+PostgREST over `SUPABASE_URL` and Postgres over `DATABASE_URL`, and those
+were **two different Supabase projects**. The tables were not cached; they
+were in the other project, which has never had them. See
+`docs/CUTOVER.md`. The eight live tests in
 `tests/test_site_documents_rls.py` skip with that reason and then assert
 RLS, the single policy, anon's absence of grants, a Commissioner round
 trip, a stranger refused, anon refused outright, and the migration being

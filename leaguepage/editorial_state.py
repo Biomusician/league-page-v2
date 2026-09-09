@@ -123,6 +123,23 @@ class EditorialState(Protocol):
     def set_research(self, league: str, season: str, issue: str, scope: str,
                      name: str, body: str) -> None: ...
 
+    # -- site documents ------------------------------------------------
+    #
+    # Authored copy that belongs to no league, season or issue. Exactly one
+    # today: `about`. It is here rather than in a module of its own because
+    # the WRITE has to be inside the store's transaction like every other
+    # authoring route -- that is the whole difference between a hosted Desk
+    # that is safe and one that is nearly safe.
+    #
+    # There is no read here on purpose. Both readers -- the Desk's
+    # editor and the public site build -- want the answer OUTSIDE a
+    # transaction and with no actor, which is what `site_documents.read()`
+    # is, the same way an unbound prose repository serves the build's
+    # prose. A transactional read can be added when something needs one.
+
+    def set_site_document(self, slug: str, body: str,
+                          updated_by: str = "") -> None: ...
+
     # -- takes ---------------------------------------------------------
     #
     # A take has an identity of its own, so these are addressed by id
@@ -343,6 +360,20 @@ class SqliteEditorialState:
     def set_research(self, league: str, season: str, issue: str, scope: str,
                      name: str, body: str) -> None:
         path = self._research_path(league, season, issue, scope, name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8")
+
+    # -- site documents ------------------------------------------------
+
+    def set_site_document(self, slug: str, body: str,
+                          updated_by: str = "") -> None:
+        """`updated_by` is accepted and dropped: a Markdown file has no
+        column for it, and git already records who committed the change.
+        Stated rather than silently ignored, because the Postgres backend
+        does record it and the asymmetry is real."""
+        from leaguepage import site_documents
+
+        path = site_documents.path_for(slug, self._base_dir)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding="utf-8")
 
@@ -667,6 +698,20 @@ class PostgresEditorialState:
             "on conflict (league_slug, season, issue_key, scope, name) "
             "do update set body=excluded.body, updated_at=now()",
             (league, season, issue, scope, name, body))
+
+    # -- site documents ------------------------------------------------
+
+    def set_site_document(self, slug: str, body: str,
+                          updated_by: str = "") -> None:
+        """One row, replaced. No revision row and no history table: see
+        migration 0007 and docs/DECISIONS.md 2026-09-09 for why that is a
+        chosen reduction rather than an omission."""
+        self._cur.execute(
+            "insert into site_documents (slug, body, updated_at, updated_by) "
+            "values (%s, %s, now(), %s) "
+            "on conflict (slug) do update set body=excluded.body, "
+            "updated_at=now(), updated_by=excluded.updated_by",
+            (slug, body, updated_by or None))
 
     # -- takes ---------------------------------------------------------
 

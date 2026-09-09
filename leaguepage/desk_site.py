@@ -8,114 +8,37 @@ an issue look unfinished.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from leaguepage import auth, editorial_store, prose
-from leaguepage.config import EDITORIAL_DIR, LEAGUES, SEASON, get_league
+from leaguepage import (auth, editorial_store, prose, prose_store,
+                        site_documents)
+from leaguepage.config import LEAGUES, SEASON, get_league
 
-# Markdown on disk, beside the rest of the editorial source, so it diffs,
-# it is in the backup bundle, and it needs no schema of its own.
-ABOUT_PATH = EDITORIAL_DIR / "site" / "about.md"
-
-# The shipped default, not the Commissioner's copy: he can replace all of
-# it from the Desk at Site -> About, and then this is never read again.
+# About's copy and its storage moved to `site_documents`, because the WRITE
+# has to go through the store like every other authoring route. `read_about`
+# stays here because `site_build` imports it; `DEFAULT_ABOUT` stays as a
+# re-export for the tests that assert the shipped text.
 #
-# Written as the site's own methodology note rather than in his voice,
-# because it is a disclosure about how the paper is made and not a piece of
-# editorial writing. It says only what is already visible on the site --
-# the six provenance labels the issue pages carry, where the numbers come
-# from, and that published issues are immutable. Nothing here describes how
-# any of it is built.
-#
-# One paragraph per list entry, unwrapped: `prose.render` honours a line
-# break the way it does inside an issue, so wrapping this to 72 columns
-# would publish the wraps as <br>.
-_ABOUT_BLOCKS = [
-    "# About League Page",
-
-    "League Page is a weekly newspaper for the fantasy football leagues it"
-    " covers. Each issue is written, edited and published by the league's"
-    " Commissioner.",
-
-    "## Who writes it",
-
-    "The Commissioner has final say over everything published here. No"
-    " section is published automatically, and nothing reaches a published"
-    " issue without the Commissioner's approval.",
-
-    "Some of the work behind an issue is assisted by AI: gathering"
-    " research, summarising what has changed in a league, and preparing"
-    " drafts to be rewritten, cut or thrown away. Other sections are"
-    " assembled from the league's own data with no writing involved at all."
-    " And some are written from scratch.",
-
-    "Those are different things, so each section says which it was.",
-
-    "## The line under each heading",
-
-    "Every section in an issue carries a short line naming where it came"
-    " from and whether the Commissioner edited it. There are six, and no"
-    " others:",
-
-    "\n".join([
-        "- **Commish-written** — the Commissioner's words.",
-        "- **Commish-written · AI-assisted** — the Commissioner's"
-        " words, with AI help somewhere behind them.",
-        "- **AI-generated** — drafted by AI and published without edits.",
-        "- **AI-generated · Commish edited** — drafted by AI, then"
-        " edited.",
-        "- **Automatically generated** — assembled from league data, not"
-        " written.",
-        "- **Automatically generated · Commish edited** — assembled"
-        " from data, then edited.",
-    ]),
-
-    "The line describes the section it sits under, not the issue as a whole."
-    " One issue routinely carries several different ones.",
-
-    "## Where the numbers come from",
-
-    "Rosters, lineups, scores, standings, transactions and draft results"
-    " come from Sleeper, where the leagues are played. Anything derived from"
-    " them — power rankings, positional strength, draft value, records"
-    " — is computed from that data, and the page it appears on says what"
-    " it was measured against.",
-
-    "Rankings and awards are editorial judgments rather than measurements."
-    " Where a page shows a computed ordering beside the Commissioner's, it"
-    " shows both and names the disagreement rather than settling it quietly.",
-
-    "## The archive",
-
-    "Published issues are permanent. An issue is frozen when it is published"
-    " and is not rewritten afterwards. A correction is published as a new"
-    " revision beside the original, and the issue says that it was updated"
-    " and why. Older issues, including ones written before this site"
-    " existed, are kept in the archive as they were written.",
-
-    "## Your team",
-
-    "Choosing your team stores that one choice in your own browser. There is"
-    " no account and no sign-in, nothing is sent anywhere, and clearing it"
-    " removes it.",
-]
-
-DEFAULT_ABOUT = "\n\n".join(_ABOUT_BLOCKS) + "\n"
+# There is deliberately no ABOUT_PATH any more: on Postgres there is no
+# path, and a module constant computed at import time would have frozen the
+# filesystem one anyway. `site_documents.path_for()` answers when a path is
+# what is wanted.
+DEFAULT_ABOUT = site_documents.DEFAULT_ABOUT
 
 
-def read_about(path: Path | None = None) -> str:
-    p = path or ABOUT_PATH
-    return p.read_text(encoding="utf-8") if p.exists() else DEFAULT_ABOUT
+def read_about() -> str:
+    """The About copy from whichever backend is authoritative, or the
+    shipped default. No actor: the public build reads this too."""
+    return site_documents.read(site_documents.ABOUT)
 
 
-def write_about(text: str, path: Path | None = None) -> Path:
-    p = path or ABOUT_PATH
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(text, encoding="utf-8")
-    return p
+def _about_where() -> str:
+    """What the editor tells him about where this is kept. A path when it is
+    a path, the table name when it is not. Never a connection string."""
+    if prose_store.backend_name() == prose_store.FILESYSTEM:
+        return site_documents.path_for(site_documents.ABOUT).as_posix()
+    return "site_documents / about (cloud)"
 
 
 def register_site(app, storage, templates) -> None:
@@ -132,16 +55,26 @@ def register_site(app, storage, templates) -> None:
 
     @app.get("/commissioner/site/about")
     def about_editor(request: Request):
+        body = read_about()
         return templates.TemplateResponse(request, "desk/about.html", {
-            "text": read_about(),
-            "preview": prose.render(read_about()),
-            "path": ABOUT_PATH.as_posix(),
+            "text": body,
+            "preview": prose.render(body),
+            "where": _about_where(),
         })
 
     @app.post("/commissioner/site/about")
-    def about_save(text: str = Form(""), action: str = Form("save")):
+    def about_save(request: Request, text: str = Form(""),
+                   action: str = Form("save")):
+        """One store action, exactly like every other authoring route.
+
+        On Postgres that makes the save one transaction as the signed-in
+        Commissioner, so RLS applies to it; on the filesystem it is the
+        same file write it always was.
+        """
         if action == "save":
-            write_about(text)
+            with _editorial().action(actor=auth.actor_of(request)) as act:
+                act.state.set_site_document(site_documents.ABOUT, text,
+                                            act.actor)
         return RedirectResponse("/commissioner/site/about", status_code=303)
 
     @app.post("/commissioner/site/about/preview")

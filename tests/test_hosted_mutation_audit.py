@@ -297,19 +297,29 @@ CLAIMS: dict[str, Claim] = {
                         "would rebuild for itself from Sleeper. Nothing it "
                         "writes is authored, which is why the import "
                         "carries none of it", exercised=False),
-    "about_save": C((), ("editorial/site/about.md",), kind="operational",
-                    fs_dep="AUTHORITATIVE: the site copy is the file",
-                    why="OPEN, AND IN SCOPE. The only authoritative prose "
-                        "still outside the store, and the blocker is "
-                        "specific: a ProseKey is (league, season, issue, "
-                        "section) and the About page has none of those. It "
-                        "needs either a key shape for site-wide copy or a "
-                        "table of its own, and inventing one inside a "
-                        "migration tranche is how a schema acquires a "
-                        "third way of storing words. Recorded as a hosted "
-                        "gap, not as out of scope: a hosted Desk that "
-                        "cannot edit the About page is missing a feature",
-                    exercised=False),
+    # `local` is empty on purpose, and it is the only authoring route where
+    # that is true. About has ONE destination and the backend chooses which:
+    # `site_documents` on Postgres, `editorial/site/about.md` on the
+    # filesystem. That is the same convention prose already uses -- prose
+    # lands in `sections`/`prose_revisions` on both backends and is counted
+    # as cloud -- so the file belongs in `fs_dep`, not in `local`.
+    "about_save": C(("site_documents",), (),
+                    owner="store", kind="authoring",
+                    fs_dep="ON THE FILESYSTEM BACKEND ONLY: "
+                           "editorial/site/about.md. On Postgres the row is "
+                           "authoritative and no file is written at all",
+                    why="CLOSED. The ProseKey problem was real -- a key is "
+                        "(league, season, issue, kind, name) and the About "
+                        "page has none of those -- so it got a table of its "
+                        "own instead of an invented key: site_documents, "
+                        "migration 0007. The route now expresses intent to "
+                        "the store like every other authoring route, so on "
+                        "Postgres the save is one transaction as the "
+                        "signed-in Commissioner with RLS applying to it. "
+                        "Still `safe=False` for the same reason as every "
+                        "other store-owned route: the selected backend "
+                        "today is the filesystem, and that is where the "
+                        "write lands"),
     "about_preview": C((), (), owner="n/a", safe=True, kind="operational",
                        why="renders to a temp path, writes nothing "
                            "authoritative", exercised=False),
@@ -458,7 +468,7 @@ def test_no_authoring_route_is_safe_for_hosted_execution_yet():
                     "the cutover")
     # Pinned so a route cannot quietly flip to safe without someone
     # re-reading this file.
-    assert len(unsafe) == 35, sorted(unsafe)
+    assert len(unsafe) == 36, sorted(unsafe)
 
 
 def test_the_store_owned_routes_are_exactly_the_ones_proved_to_be():
@@ -480,7 +490,7 @@ def test_the_store_owned_routes_are_exactly_the_ones_proved_to_be():
 
 
 def test_moving_a_route_did_not_move_the_cutover():
-    """Seven routes changed owner. None of them changed the answer.
+    """Eight routes changed owner. None of them changed the answer.
 
     Hosted safety is about WHERE the authoritative write lands, and it
     still lands on this machine for every one of them. A route with a
@@ -491,9 +501,20 @@ def test_moving_a_route_did_not_move_the_cutover():
         if claim.owner != "store":
             continue
         assert not claim.safe, f"{name} claims hosted safety"
-        assert claim.local, (
-            f"{name} claims to write nothing local; if that is true it is "
-            "a cutover candidate and belongs in that conversation")
+        if not claim.local:
+            # The conversation this used to demand. `about_save` is the
+            # first authoring route with NO local remainder: its whole
+            # authoritative state has a cloud home and no SQLite caller
+            # left behind. It is still not hosted-safe, because the
+            # selected backend today is the filesystem and that is where
+            # the write lands -- but the reason is now the setting rather
+            # than the code.
+            assert name in {"about_save"}, (
+                f"{name} claims to write nothing local; if that is true it "
+                "is a cutover candidate and belongs in that conversation")
+            assert claim.fs_dep, (
+                f"{name} writes nothing local and names no filesystem "
+                "dependency; one of those is wrong")
 
 
 def _observed(log: WriteLog) -> tuple[set[str], set[str]]:
@@ -785,19 +806,20 @@ def test_the_cutover_gate_names_its_blockers(store_free=None):
     exposed = {n: c for n, c in CLAIMS.items()
                if c.kind == "authoring" and c.hosted_exposed}
     blockers = sorted(n for n, c in exposed.items() if not c.safe)
-    assert len(exposed) == 35, len(exposed)
-    assert len(blockers) == 35, (
+    assert len(exposed) == 36, len(exposed)
+    assert len(blockers) == 36, (
         f"{len(exposed) - len(blockers)} route(s) now claim hosted safety; "
         f"re-read them and move the gate deliberately")
 
 
 def test_the_prose_routes_are_the_ones_a_cloud_transaction_can_own():
     """Which routes EditorialStore could take over, and which need their
-    own cloud state first. Eight touch prose; twenty-seven write only
-    SQLite tables that have a Postgres home but no caller."""
+    own cloud state first. Nine reach the cloud -- eight prose routes and
+    About, which got `site_documents` in migration 0007 -- and twenty-seven
+    write only SQLite tables that have a Postgres home but no caller."""
     authoring = {n: c for n, c in CLAIMS.items() if c.kind == "authoring"}
     prose = {n for n, c in authoring.items() if c.cloud}
     sqlite_only = {n for n, c in authoring.items() if not c.cloud}
-    assert len(prose) == 8, sorted(prose)
+    assert len(prose) == 9, sorted(prose)
     assert len(sqlite_only) == 27, len(sqlite_only)
     assert prose | sqlite_only == set(authoring)
