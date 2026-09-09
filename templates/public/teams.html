@@ -3,6 +3,11 @@
 {% from "public/_links.html" import team %}
 {% block main_attrs %} class="wrapcells"{% endblock %}
 {% block content %}
+{#  The one page that never said where you were: every other page opens
+    with its own name and this opened on a section of itself, so the only
+    heading claiming to be the page's title was the league in the
+    masthead. #}
+<h1 class="section-label">Teams</h1>
 <h2 class="section-label">Positional Strength — League Comparison</h2>
 <p class="meta">Click a position to rank the league's rooms; click again to reverse.</p>
 <div class="tablewrap" tabindex="0" role="region" aria-label="Positional strength, league comparison">

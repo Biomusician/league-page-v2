@@ -11,8 +11,10 @@
   .skip { position:absolute; left:-999px; top:0; background:#fff; color:#000; padding:.4rem .8rem; z-index:10; }
   .skip:focus { left:.5rem; }
   header.masthead { text-align:center; padding:1.6rem 1rem .8rem; }
-  header.masthead h1 { margin:0; letter-spacing:.14em; text-transform:uppercase; font-size:clamp(1.5rem, 6vw, 2.6rem); }
-  header.masthead h1 a { text-decoration:none; color:inherit; }
+  /* font-weight was the <h1>'s own default; state it now that it is a div. */
+  header.masthead .brand { margin:0; letter-spacing:.14em; text-transform:uppercase;
+                           font-size:clamp(1.5rem, 6vw, 2.6rem); font-weight:bold; }
+  header.masthead .brand a { text-decoration:none; color:inherit; }
   header.masthead .sub { font-variant:small-caps; letter-spacing:.18em; font-size:.9rem; }
   header.masthead img.logo { display:block; margin:0 auto .7rem; width:min(22rem, 82%); height:auto;
                              border:1px solid #33325f; }
@@ -28,7 +30,7 @@
                     justify-content:center; align-items:center; line-height:1.25; }
   nav.leaguenav .ns { font-size:.71rem; opacity:.72; letter-spacing:.01em; }
   nav.leaguenav a:focus-visible, a:focus-visible, button:focus-visible { outline:3px solid #f0c419; outline-offset:2px; }
-  h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
+  h1.section-label, h2.section-label { text-transform:uppercase; letter-spacing:.12em; font-size:1.02rem; margin-top:2.4rem; }
   .credit { font-variant:small-caps; letter-spacing:.08em; font-size:.85rem; }
   /* A container that scrolls sideways must be focusable, or its hidden
      columns are unreachable without a pointer. The templates give it
@@ -106,12 +108,12 @@
      movie radar. */
   body { background:#15142c; color:#e9e7f2; }
   header.masthead { border-bottom:3px double #f0d848; background:#100f22; }
-  header.masthead h1 { color:#f0d848; }
+  header.masthead .brand { color:#f0d848; }
   header.masthead .sub { color:#a9a6c8; }
   nav.leaguenav { background:#100f22; border-bottom:1px solid #33325f; }
   nav.leaguenav a { color:#b8b5d6; }
   nav.leaguenav a[aria-current="page"] { color:#f0d848; border-bottom:2px solid #f0d848; }
-  h2.section-label { color:#f0d848; border-left:6px solid #f0d848; padding-left:.6rem; }
+  h1.section-label, h2.section-label { color:#f0d848; border-left:6px solid #f0d848; padding-left:.6rem; }
   a { color:#f0d848; }
   .card { background:#1d1c3d; border:1px solid #33325f; }
   .card.feature { border:2px solid #f0d848; }
@@ -134,13 +136,13 @@
      by structure (ruled section labels vs left-barred ones). */
   body { background:#0a0b0e; color:#eef1f5; }
   header.masthead { border-bottom:3px solid #f0c419; background:#050608; }
-  header.masthead h1 { color:#f0c419; }
+  header.masthead .brand { color:#f0c419; }
   header.masthead .sub { color:#a3adba; }
   header.masthead img.logo-badge { filter:drop-shadow(0 2px 6px rgba(0,0,0,.55)); }
   nav.leaguenav { background:#050608; border-bottom:1px solid #2a2f38; }
   nav.leaguenav a { color:#b6c2ce; }
   nav.leaguenav a[aria-current="page"] { color:#f0c419; border-bottom:2px solid #f0c419; }
-  h2.section-label { color:#f0c419; border-bottom:2px solid #2a2f38; padding-bottom:.2rem; }
+  h1.section-label, h2.section-label { color:#f0c419; border-bottom:2px solid #2a2f38; padding-bottom:.2rem; }
   a { color:#4da3e8; }
   .card { background:#13161c; border:1px solid #2a2f38; }
   .card.feature { border:2px solid #f0c419; box-shadow:3px 3px 0 #000000; }
@@ -153,12 +155,12 @@
   blockquote { border-left:3px solid #4da3e8; color:#ccd5de; }
   .meta, .credit, footer.colophon { color:#a3adba; }
 {% endif %}
-  h2.section-label { font-size:1.3rem; font-weight:700; }
+  h1.section-label, h2.section-label { font-size:1.3rem; font-weight:700; }
   section.module > div h2 { font-size:1.12rem; font-weight:700;
                             text-transform:none; letter-spacing:0; }
   section.module > div h3 { font-size:1.02rem; }
-  h3.matchup-title { font-size:1.1rem; margin:.1rem 0; }
-  h3.matchup-title.feature { font-size:1.35rem; }
+  h2.matchup-title { font-size:1.1rem; margin:.1rem 0; }
+  h2.matchup-title.feature { font-size:1.35rem; }
   .teamgrid h3 { font-size:1.05rem; margin:0 0 .2rem; }
   /* Editorial tables arrive as raw HTML inside published prose and are the
      only thing on the site that can scroll the whole page sideways. This
@@ -219,7 +221,7 @@
   .freshbar { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase;
               padding:.3rem 0 .1rem; opacity:.85; }
   .hero .kicker { font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; }
-  .hero h2.headline { margin:.25rem 0 .5rem; font-size:clamp(1.5rem, 5.2vw, 2.1rem);
+  .hero h1.headline, .hero h2.headline { margin:.25rem 0 .5rem; font-size:clamp(1.5rem, 5.2vw, 2.1rem);
                       line-height:1.2; letter-spacing:0; text-transform:none;
                       border:0; padding:0; }
   .hero .lede p:first-child { margin-top:.2rem; }
@@ -269,7 +271,7 @@
   .leaderboard li { background:#1d1c3d; border:1px solid #f0d848; }
   .lead-value { color:#f0d848; }
   .freshbar { color:#a9a6c8; border-bottom:1px solid #33325f; }
-  .hero h2.headline { color:#e9e7f2; }
+  .hero h1.headline, .hero h2.headline { color:#e9e7f2; }
 {% else %}
   .cta { background:#f0c419; color:#0a0b0e; }
   .brief .lead { border:2px solid #f0c419; background:#13161c; box-shadow:3px 3px 0 #000000; }
@@ -278,14 +280,14 @@
   .leaderboard li { background:#13161c; border:1px solid #f0c419; }
   .lead-value { color:#f0c419; }
   .freshbar { color:#a3adba; border-bottom:1px solid #2a2f38; }
-  .hero h2.headline { color:#eef1f5; }
+  .hero h1.headline, .hero h2.headline { color:#eef1f5; }
 {% endif %}
 
 /* ---- from matchups.html ---- */
   .scout { border-top:1px dashed; margin-top:.7rem; padding-top:.6rem; }
   .scout h3 { font-size:.74rem; letter-spacing:.14em; text-transform:uppercase;
               margin:.1rem 0 .35rem; }
-  .scout h4 { font-size:.82rem; margin:.55rem 0 .2rem; font-variant:small-caps;
+  .scout h3 { font-size:.82rem; margin:.55rem 0 .2rem; font-variant:small-caps;
               letter-spacing:.06em; }
   .scout ul { margin:.1rem 0; padding-left:1.1rem; font-size:.92rem; }
   .scout li { margin:.18rem 0; }

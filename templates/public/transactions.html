@@ -15,7 +15,7 @@
 {%- endmacro %}
 
 {% block content %}
-<h2 class="section-label">Force Flow</h2>
+<h1 class="section-label">Force Flow</h1>
 
 {% if not log %}
 <p>Nobody has touched a roster since the draft. Every team is still exactly
@@ -71,7 +71,7 @@ reading get labelled, not hidden.</p>
 {% endwith %}{% endif %}
   {% for m in meaningful %}
   <article class="card move">
-    <h4 class="mover">{{ movers(m) }}</h4>
+    <h3 class="mover">{{ movers(m) }}</h3>
     <p class="moveline">{{ m.line }}
       <span class="meta">wk {{ m.week }} · {{ m.type }}{% if m.faab %} · {{ m.faab }} FAAB{% endif %}</span>
       {% if m.questionable %} <span class="tag warn">QUESTIONABLE MOVE</span>{% endif %}</p>

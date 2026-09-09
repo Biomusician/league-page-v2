@@ -15,7 +15,7 @@
   <p class="kicker meta">{% if latest.headline %}{{ latest.issue_label }} · {% endif %}
     {%- if latest.published_at %}{{ latest.published_at[:10] }}{% endif %}
     {%- if latest.preview %} · <strong>UNPUBLISHED COMMISSIONER PREVIEW</strong>{% endif %}</p>
-  <h2 class="headline" id="lede-hero">{{ latest.headline or latest.issue_label }}</h2>
+  <h1 class="headline" id="lede-hero">{{ latest.headline or latest.issue_label }}</h1>
   {% if latest.revisions %}<p class="meta">Updated {{ latest.revisions[-1].at }} · {{ latest.revisions[-1].note }}</p>{% endif %}
   {% if latest.lowdown_excerpt_html %}
   <div class="lede prose">{{ latest.lowdown_excerpt_html | safe }}</div>
@@ -24,7 +24,7 @@
 </section>
 {% else %}
 <section class="hero">
-  <h2 class="headline">No issue published yet</h2>
+  <h1 class="headline">No issue published yet</h1>
   <p>The {{ season }} season's first issue is in production. The briefing
   below, the draft board and the archive are live in the meantime.</p>
 </section>

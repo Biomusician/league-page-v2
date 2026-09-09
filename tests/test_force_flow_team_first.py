@@ -53,6 +53,19 @@ def _page(tmp, rel="transactions/index.html"):
     return (tmp / "dist" / "surfeit" / rel).read_text(encoding="utf-8")
 
 
+def _mover(card):
+    """The mover heading, whatever level the nesting puts it at.
+
+    "Moves That Mattered" groups by week, so a mover sits under the week's
+    <h3> and is an <h4>. "Reading the Moves" has no grouping between the
+    section and the movers, so there a mover IS the <h3>. The class is the
+    contract; the level follows the structure.
+    """
+    m = re.search(r'<h[34] class="mover">(.*?)</h[34]>', card, re.S)
+    assert m, card[:200]
+    return m.group(1)
+
+
 def _cards(html, section):
     start = html.index(section)
     block = html[start:]
@@ -101,7 +114,7 @@ def test_a_single_team_move_leads_with_the_team(site_env):
     cards = _cards(html, "Reading the Moves")
     assert cards, "a 40-FAAB claim is a meaningful move"
     card = cards[0]
-    mover = re.search(r'<h4 class="mover">(.*?)</h4>', card, re.S).group(1)
+    mover = _mover(card)
     assert "Team 3" in mover
     assert card.index('class="mover"') < card.index("Claimed Log Player")
 
@@ -114,7 +127,7 @@ def test_the_team_is_a_link_to_its_canonical_page(site_env):
     _build(db, tmp)
     html = _page(tmp)
     card = _cards(html, "Reading the Moves")[0]
-    mover = re.search(r'<h4 class="mover">(.*?)</h4>', card, re.S).group(1)
+    mover = _mover(card)
     m = re.search(r'<a href="\.\./team/([a-z0-9-]+)/index\.html">The Third Estate</a>', mover)
     assert m, mover
     assert (tmp / "dist" / "surfeit" / "team" / m.group(1) / "index.html").exists()
@@ -127,7 +140,7 @@ def test_a_trade_names_both_sides(site_env):
     _build(db, tmp)
     html = _page(tmp)
     card = _cards(html, "Reading the Moves")[0]
-    mover = re.search(r'<h4 class="mover">(.*?)</h4>', card, re.S).group(1)
+    mover = _mover(card)
     assert "Team 1" in mover and "Team 2" in mover
     assert "↔" in mover
     assert mover.count("<a href=") == 2
@@ -180,7 +193,7 @@ def test_selections_reach_the_tab_as_structured_team_identity(site_env):
     html = _page(tmp)
     block = html[html.index("Moves That Mattered"):html.index("Reading the Moves")]
     card = re.search(r'<article class="card move">(.*?)</article>', block, re.S).group(1)
-    mover = re.search(r'<h4 class="mover">(.*?)</h4>', card, re.S).group(1)
+    mover = _mover(card)
     assert "Team 3" in mover and "<a href=" in mover
     assert "Team 9" not in block
     assert "Claimed Log Player" in card
@@ -301,3 +314,27 @@ def test_the_archive_index_has_no_force_flow_entry(site_env):
     body = archive[archive.index('<main id="content">'):archive.index("</main>")]
     assert "Force Flow" not in body
     assert "transactions/index.html" not in body
+
+
+def test_the_mover_heading_sits_at_the_level_its_nesting_gives_it(site_env):
+    """Force Flow used to go straight from the section's <h2> to an <h4>
+    in "Reading the Moves", skipping a level, because both sections reused
+    the same markup while only one of them groups by week."""
+    db, tmp = site_env
+    _tx(db, WAIVER)
+    cid = _candidate_ids(db)["t1"]
+    _publish_with_force_flow(db, tmp, "• Team 3 claimed Log Player off waivers (wk 1)\n",
+                             decisions=[(cid, None)])
+    _build(db, tmp)
+    html = _page(tmp)
+
+    mattered = html[html.index("Moves That Mattered"):html.index("Reading the Moves")]
+    reading = html[html.index("Reading the Moves"):]
+    reading = reading[:reading.find("</section>")]
+
+    # Grouped by week, so the week is the h3 and the mover is under it.
+    assert '<h3 class="moveweek"' in mattered
+    assert '<h4 class="mover">' in mattered
+    # No grouping, so the mover is the h3 itself.
+    assert '<h3 class="mover">' in reading
+    assert '<h4 class="mover">' not in reading

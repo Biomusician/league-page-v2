@@ -3,7 +3,7 @@
 
 {% from "public/_links.html" import team_list %}
 {% block content %}
-<h2 class="section-label">Common Tactical Picture · Week {{ week }}</h2>
+<h1 class="section-label">Common Tactical Picture · Week {{ week }}</h1>
 {% if cards | selectattr("scout") | first %}
 <p class="meta">Where the Commissioner has not written a preview, Scout View
 stands in: roster construction, league history and transactions, computed from
@@ -17,7 +17,7 @@ It says what is at stake, not who wins.</p>
 
 {% for c in cards %}
 <section class="card {{ 'feature' if c.prominence == 'FEATURE' else '' }}" id="{{ c.anchor }}">
-  <h3 class="matchup-title{{ ' feature' if c.prominence == 'FEATURE' else '' }}">{{ team_list(c.names, team_links, " vs ") }}</h3>
+  <h2 class="matchup-title{{ ' feature' if c.prominence == 'FEATURE' else '' }}">{{ team_list(c.names, team_links, " vs ") }}</h2>
   {% if c.score or not c.records.startswith("0-0 vs 0-0") %}
   <p class="meta">{{ c.records }}{% if c.score %} · {{ c.score }}{% endif %}</p>
   {% endif %}
@@ -31,11 +31,11 @@ It says what is at stake, not who wins.</p>
   {% elif c.scout %}
   <div class="scout">
     {% if c.scout.why %}
-    <h4>Why this matchup is interesting</h4>
+    <h3>Why this matchup is interesting</h3>
     <ul>{% for line in c.scout.why %}<li>{{ line }}</li>{% endfor %}</ul>
     {% endif %}
     {% if c.scout.watch %}
-    <h4>Watch</h4>
+    <h3>Watch</h3>
     <ul>{% for line in c.scout.watch %}<li>{{ line }}</li>{% endfor %}</ul>
     {% endif %}
   </div>
