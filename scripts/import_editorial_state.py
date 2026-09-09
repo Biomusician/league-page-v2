@@ -106,6 +106,145 @@ def _cloud_columns(pg, table: str) -> list[str]:
         "order by ordinal_position", (table,)).fetchall()]
 
 
+def _cloud_types(pg, table: str) -> dict[str, str]:
+    """column -> Postgres data_type, for the destination schema."""
+    return {r[0]: r[1] for r in pg.execute(
+        "select column_name, data_type from information_schema.columns "
+        "where table_schema='public' and table_name=%s", (table,)).fetchall()}
+
+
+# What each destination type accepts from SQLite once normalised. The list
+# is deliberately short: only types this import actually carries, and only
+# mappings the schema makes unambiguous. Postgres parses the ISO strings
+# SQLite keeps its timestamps in, which is why `text` is what a
+# `timestamp with time zone` column is fed -- proved rather than assumed
+# by the four `issues` rows that went in on the first attempt.
+ACCEPTS: dict[str, tuple[str, ...]] = {
+    "boolean": ("bool",),
+    "integer": ("int",),
+    "bigint": ("int",),
+    "text": ("str",),
+    "timestamp with time zone": ("str",),
+}
+
+# Values of these destination types are safe to name in an error message.
+# A `text` column may be prose, a baseline draft, or a Commissioner's
+# note, and a preflight failure is not a reason to print any of it.
+SHOWABLE = {"boolean", "integer", "bigint"}
+
+
+def _kind(v) -> str:
+    """The value's type for matching against ACCEPTS. `bool` before `int`,
+    because in Python bool IS an int and the two are not interchangeable
+    at a Postgres column boundary."""
+    if v is None:
+        return "null"
+    if isinstance(v, bool):
+        return "bool"
+    if isinstance(v, int):
+        return "int"
+    return type(v).__name__
+
+
+def as_bool(v):
+    """SQLite's 0/1 as a real boolean, or a refusal.
+
+    SQLite has no boolean type; it stores 0 and 1 in an INTEGER column and
+    hands them back as Python ints. Postgres will not take a smallint for
+    a BOOLEAN and psycopg does not guess, which is exactly right -- and is
+    what stopped the first production import halfway through
+    `issue_modules`.
+
+    0 and 1 are the only values with an unambiguous meaning here, so they
+    are the only ones accepted. Anything else is a fact about the data
+    nobody has looked at, and coercing it by truthiness would turn 2, ""
+    or "false" into an answer this script invented.
+    """
+    if v is None or isinstance(v, bool):
+        return v
+    if isinstance(v, int) and v in (0, 1):
+        return bool(v)
+    raise ValueError(f"{v!r} is not 0, 1, true, false or NULL")
+
+
+def normalize(rows: list[tuple], cols: list[str],
+              types: dict[str, str]) -> list[tuple]:
+    """Rows as the destination schema needs them.
+
+    Only booleans are converted, because boolean is the only column type
+    where the two sides disagree about the representation rather than
+    about the spelling. Everything else is passed through untouched: a
+    migration that reformats values it was not asked to reformat is a
+    migration that rewrites data.
+    """
+    at = [i for i, c in enumerate(cols) if types.get(c) == "boolean"]
+    if not at:
+        return rows
+    out = []
+    for r in rows:
+        r = list(r)
+        for i in at:
+            r[i] = as_bool(r[i])
+        out.append(tuple(r))
+    return out
+
+
+def preflight(p: dict, types_by_table: dict[str, dict[str, str]]) -> list[str]:
+    """Every value that would be written, checked against the column it
+    would land in, before the first write.
+
+    The dry run proved the KEYS: what is new, what matches, what somebody
+    changed on the other side. It did not prove the VALUES were
+    bind-compatible with the destination schema, and that gap is what let
+    a datatype mismatch surface as an exception in the middle of an APPLY
+    that had already committed a table.
+    """
+    problems: list[str] = []
+    for table in ORDER:
+        d = p.get(table)
+        if not d:
+            continue
+        types = types_by_table.get(table, {})
+        rows = list(d["insert"]) + [r for r, _ in d["differs"]]
+        seen: set[tuple[str, str, str]] = set()
+        for row in rows:
+            for col, value in zip(d["columns"], row):
+                dest = types.get(col)
+                if dest is None:
+                    continue
+                try:
+                    value = as_bool(value) if dest == "boolean" else value
+                except ValueError as exc:
+                    key = (col, dest, "bad-boolean")
+                    if key not in seen:
+                        seen.add(key)
+                        problems.append(
+                            f"{table}.{col}: {dest} column cannot take "
+                            f"{exc}")
+                    continue
+                kind = _kind(value)
+                if kind == "null":
+                    continue
+                allowed = ACCEPTS.get(dest)
+                if allowed is None:
+                    key = (col, dest, "unknown-type")
+                    if key not in seen:
+                        seen.add(key)
+                        problems.append(
+                            f"{table}.{col}: destination type {dest!r} is "
+                            f"not one this import knows how to check")
+                elif kind not in allowed:
+                    key = (col, dest, kind)
+                    if key not in seen:
+                        seen.add(key)
+                        shown = (f" (value {value!r})"
+                                 if dest in SHOWABLE else "")
+                        problems.append(
+                            f"{table}.{col}: {dest} column would receive a "
+                            f"python {kind}{shown}")
+    return problems
+
+
 def plan(s: Storage, pg) -> tuple[dict, list[str]]:
     """What each table would gain, keep, or overwrite. Reads only."""
     out: dict[str, dict] = {}
@@ -296,13 +435,40 @@ def show(p: dict, notes: list[str], prose: tuple, states: tuple) -> int:
 
 
 def apply(pg, p: dict, actor: str, overwrite: bool,
-          to_set: list[tuple] | None = None) -> dict:
-    """One transaction. Every table or none of them."""
+          to_set: list[tuple] | None = None,
+          types_by_table: dict[str, dict[str, str]] | None = None) -> dict:
+    """One transaction. Every table or none of them.
+
+    That sentence used to be a comment rather than a fact. The connection
+    is opened with `autocommit=True` so the read-only planning above can
+    run, and under autocommit a bare `with pg.cursor()` is not a
+    transaction: every statement committed on its own, so the first
+    production attempt left a committed `issues` table behind when
+    `issue_modules` raised. Worse, `SET LOCAL` and `set_config(..., true)`
+    are scoped to a transaction that did not exist, so both were discarded
+    immediately and the whole import ran as the connection's own role --
+    which carries BYPASSRLS. The authorization boundary this script's
+    docstring claims was not merely weakened; it was absent.
+
+    `pg.transaction()` is what makes both claims true at once. It opens an
+    explicit block even on an autocommit connection, so the settings live
+    for exactly the write phase, and an exception anywhere inside rolls
+    back every table.
+    """
     written = {}
-    with pg.cursor() as cur:
+    types_by_table = types_by_table or {}
+    with pg.transaction(), pg.cursor() as cur:
         cur.execute("select set_config('request.jwt.claims', %s, true)",
                     (json.dumps({"role": "authenticated", "email": actor}),))
         cur.execute("set local role authenticated")
+        # Proof rather than intention: if the settings did not take, the
+        # rows would land as the owner and nothing downstream would say so.
+        role = cur.execute("select current_role").fetchone()[0]
+        if role != "authenticated":
+            raise RuntimeError(
+                f"refusing to write as {role!r}: the import runs as the "
+                "signed-in Commissioner so RLS applies to it exactly as it "
+                "does to the Desk")
         for table in ORDER:
             d = p.get(table)
             if not d:
@@ -312,6 +478,7 @@ def apply(pg, p: dict, actor: str, overwrite: bool,
             if not rows:
                 continue
             cols = d["columns"]
+            rows = normalize(rows, cols, types_by_table.get(table, {}))
             names = ", ".join(_q(c) for c in cols)
             marks = ", ".join(["%s"] * len(cols))
             sets = ", ".join(f"{_q(c)}=excluded.{_q(c)}" for c in cols
@@ -366,10 +533,29 @@ def main() -> int:
         prose = prose_matches(pg)
         states = state_plan(s, pg)
         inserts, differs, bad = show(p, notes, prose, states)
+
+        # Every value that would be written, against the column it would
+        # land in, on the dry run as well as the real one. The dry run
+        # proved the keys and said nothing about the types, which is how
+        # a BOOLEAN column taking a SQLite 0 became a live exception
+        # halfway through a write instead of a refusal before one.
+        types_by_table = {t: _cloud_types(pg, t) for t in ORDER}
+        type_problems = preflight(p, types_by_table)
+        if type_problems:
+            print(f"\nTYPE PREFLIGHT: {len(type_problems)} problem(s)")
+            for line in type_problems:
+                print(f"  {line}")
+        else:
+            print("\ntype preflight: every value fits its destination column")
+
         if not args.apply:
             print("\nDRY RUN. Nothing was written. Re-run with --apply to "
                   "write exactly the INSERT column above.")
             return 0
+        if type_problems:
+            print("\nREFUSING BEFORE WRITE: a value does not fit the column "
+                  "it would be written to. Nothing has been written.")
+            return 1
         if bad:
             print("\nREFUSING: the cloud's prose is not the prose on this "
                   "machine. Metadata describes text; importing it against "
@@ -394,7 +580,8 @@ def main() -> int:
             print("\nREFUSING: the section-state reconciliation is not safe "
                   "to run. Read the PROBLEM lines above.")
             return 1
-        written = apply(pg, p, actor, args.overwrite, states[0])
+        written = apply(pg, p, actor, args.overwrite, states[0],
+                        types_by_table)
         print(f"\nWROTE {sum(written.values())} row(s) in one transaction:")
         for table, n in written.items():
             print(f"  {table:26s} {n}")

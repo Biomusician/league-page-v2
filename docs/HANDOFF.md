@@ -1,10 +1,116 @@
 # HANDOFF
 
-Updated 2026-09-08, end of the product UX closeout. Companions:
-docs/SPEC.md (product spec), docs/DECISIONS.md, docs/DEPLOY.md (deploy
-playbook), **docs/ROADMAP.md (ranked future work)**, POST_MVP.md (backlog).
+Updated 2026-09-08, after the first production import attempt failed
+part-written; the importer is repaired and the cutover is paused.
+Companions: docs/SPEC.md (product spec), docs/DECISIONS.md,
+docs/DEPLOY.md (deploy playbook), **docs/ROADMAP.md (ranked future
+work)**, POST_MVP.md (backlog).
 
 This file is IMPLEMENTATION STATE. Future features belong in ROADMAP.md.
+
+## Import recovery — the first production import failed part-written (2026-09-08)
+
+**Status: the production import is INCOMPLETE and the importer is
+repaired. 4 of 808 rows are in the cloud, 804 are not, 0 differ, 0 are
+remote-only. No cutover, no publish, no deploy, no `.env` change,
+`LEAGUEPAGE_PROSE_BACKEND` still unset. The corrected `--apply` has NOT
+been run and this tranche did not run it.** The full account is in
+`docs/CUTOVER.md` under INCIDENT; this is the state summary.
+
+### Two defects, and the second is the one that matters
+
+**Boolean.** `issue_modules.included` and `.approved` are BOOLEAN in
+Postgres and INTEGER 0/1 in SQLite, which has no boolean type. psycopg
+refused to guess, correctly. Those two are the only boolean columns in
+the entire import surface (5 bigint, 13 integer, 99 text, 18 timestamptz
+besides).
+
+**Transaction, and with it authorization.** `apply()` claimed *"One
+transaction. Every table or none of them."* It was not one. `main()`
+opens the connection `autocommit=True` for the read-only planning, and
+under autocommit a bare `with pg.cursor()` is not a transaction. Probed
+live rather than assumed:
+
+- `set_config('request.jwt.claims', ..., true)` -- discarded, read back EMPTY
+- `set local role authenticated` -- discarded, `current_role` stayed `postgres`
+- a statement that succeeded before a later failure -- **survived**
+
+So the tables committed one by one, and **the import never ran as the
+Commissioner**. It ran as `postgres`, which carries `rolbypassrls`. RLS
+did not apply to it at all. The policy itself is sound and was verified
+live: as the allowlisted Commissioner 4 rows visible, as an authenticated
+non-Commissioner 0, as `anon` refused outright. The import was simply
+never inside it.
+
+### What survived, verified three ways
+
+The importer's own dry run, `editorial_state_diff.py`, and a
+column-by-column read of the raw values all agree.
+
+- **4 rows, the whole `issues` table**, all four identical to local:
+  `(disco, 2026, draft)`, `(disco, 2026, week-01)`,
+  `(surfeit, 2026, draft)`, `(surfeit, 2026, week-01)`.
+  `published_at` -- the one cloud column nothing local fills -- is NULL on
+  all four, so they are complete rows rather than half-written ones.
+- **804 still to create, 0 differ, 0 remote-only.**
+- **Prose 34/34 identical.** The import writes no prose; it verifies it.
+- **Section state not reconciled**: all 34 cloud sections still
+  `generated`, 28 still to mark. That step runs after every table.
+- **Sequences not advanced.** Four never called;
+  `prose_revisions_id_seq` sits at 84 from earlier live route tests whose
+  rows were cleaned up, and the import setvals it to `max(id)` anyway.
+- **No scratch rows.** Local, published snapshots and `.env` untouched.
+
+Kept, not deleted: **outcome A**. Removing four correct rows to restore a
+tidier notion of atomicity would be a write against production to make a
+number look better, and the corrected importer already reads them as
+`same`.
+
+`editorial_state_diff.py` says 798 local-only where the importer says 804
+to create, and neither is wrong: the diff keys `prose_revisions` on its
+content, so six revisions with identical prior text collapse; the
+importer keys on `id`, which is what it writes. **804 is the number of
+rows the next run inserts.**
+
+### The repair
+
+- `apply()` runs inside `with pg.transaction()` -- an explicit block even
+  on an autocommit connection, so the LOCAL settings live for exactly the
+  write phase and one failure rolls back every table, the section-state
+  reconciliation and the sequence setvals together.
+- `apply()` reads `current_role` back and refuses to write as anything but
+  `authenticated`. A rollback that runs as the owner is still the wrong
+  thing succeeding.
+- A normalisation layer keyed on the DESTINATION Postgres type. Only
+  boolean is converted, and only 0/1/True/False/NULL: coercing by
+  truthiness would turn a 2, an empty string or "false" into an answer the
+  script invented.
+- A preflight that checks every value against the column it would land
+  in, on the dry run as well as the real one, so a datatype problem is
+  `REFUSING BEFORE WRITE` with a table, column and destination type on it
+  -- and never the value of a `text` column, which may be prose, a
+  baseline draft or a private note.
+
+### Tests
+
+`tests/test_import_atomicity.py` (live, opt-in, scratch season 1901,
+purged either side including the sequence): 14 tests. Failure injected at
+the first table, a middle table, the last table, before the section-state
+update, during it, and at the sequence setvals -- each requiring every
+count exactly as before, the section still `generated`, the sequence
+unmoved. Plus the boolean conversion end to end, idempotence, the actor
+pinned during a real write, a non-Commissioner refused, and a proof that
+the dry run issues no write at all.
+
+`tests/test_import_types.py`: 29 tests with no database, so the
+regression cannot hide behind an unset opt-in -- the conversion, the
+preflight, and the role guard driven against a fake connection.
+
+### Next
+
+Nothing here should be run without reading `docs/CUTOVER.md`. The gate on
+the next `--apply` is: `differs = 0`, `remote-only = 0`, surviving rows
+understood, transaction tests green, preflight green. All five hold.
 
 ## Product UX closeout — disclosure and the heading model (2026-09-08)
 
